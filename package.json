@@ -1,0 +1,17 @@
+{
+  "name": "nexus-os",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @nexus/web",
+    "build": "npm run build -w @nexus/web",
+    "preview": "npm run preview -w @nexus/web",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
