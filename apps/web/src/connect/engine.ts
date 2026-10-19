@@ -13,6 +13,7 @@ import {
   type InboxItem,
 } from '@nexus/core'
 import { getAll, getValue, update } from '../state/db'
+import { isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
 import { ConnectSetupError, type ConnectRemote } from './remote'
 
@@ -144,7 +145,7 @@ export class ConnectEngine {
       }
       if (!identity) identity = await this.createIdentity(userId)
       if (!own) {
-        await remote.registerDevice({ id: identity.deviceId, name: identity.name, platform: 'web', publicKey: identity.publicKey })
+        await remote.registerDevice({ id: identity.deviceId, name: identity.name, platform: isDesktopApp ? 'desktop' : 'web', publicKey: identity.publicKey })
       } else {
         await remote.updateDevice(identity.deviceId, { seen: true })
       }
@@ -166,7 +167,7 @@ export class ConnectEngine {
     const identity: Identity = {
       userId,
       deviceId: crypto.randomUUID(),
-      name: defaultDeviceName(navigator.userAgent),
+      name: isDesktopApp ? 'NEXUS voor Windows' : defaultDeviceName(navigator.userAgent),
       publicKey: await exportPublicKey(pair.publicKey),
       privateKey: pair.privateKey,
     }
@@ -355,6 +356,11 @@ export class ConnectEngine {
 
 /** Shows a system notification when the tab is in the background and the user allowed it. */
 function showSystemNotification(item: InboxItem): void {
+  if (isDesktopApp) {
+    // In the Windows app NEXUS often sits in the tray: notify whenever the window is not in front.
+    if (!document.hasFocus()) void notifyDesktop(item.appName, [item.title, item.text].filter(Boolean).join('\n'))
+    return
+  }
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
   if (document.visibilityState === 'visible') return
   const options: NotificationOptions = { body: [item.title, item.text].filter(Boolean).join('\n'), tag: item.id, icon: '/icon-192.png' }

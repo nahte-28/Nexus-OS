@@ -1,0 +1,69 @@
+name: Windows app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/desktop/**
+      - apps/web/**
+      - packages/core/**
+      - package-lock.json
+      - .github/workflows/desktop.yml
+  pull_request:
+    paths:
+      - apps/desktop/**
+      - apps/web/src/platform/**
+      - .github/workflows/desktop.yml
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write # to publish the installer as a release on main
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - run: npm ci
+      # The app needs the public Supabase settings at build time; the live web app publishes them.
+      - name: Use the Supabase settings of the live NEXUS
+        run: |
+          curl -sfL https://nexus-os-lime.vercel.app/nexus-config.json -o nexus-config.json
+          node -e '
+            const c = require("./nexus-config.json")
+            require("fs").appendFileSync(process.env.GITHUB_ENV, `VITE_SUPABASE_URL=${c.supabaseUrl}\nVITE_SUPABASE_ANON_KEY=${c.anonKey}\n`)
+          '
+      - name: Number this build
+        run: |
+          node -e '
+            const fs = require("fs"), p = "apps/desktop/src-tauri/tauri.conf.json"
+            const conf = JSON.parse(fs.readFileSync(p, "utf8"))
+            conf.version = `0.5.${process.env.GITHUB_RUN_NUMBER}`
+            fs.writeFileSync(p, JSON.stringify(conf, null, 2))
+          '
+      - run: npm run build -w @nexus/desktop
+      - run: cp apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe nexus-os-setup.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nexus-os-windows
+          path: nexus-os-setup.exe
+      - name: Publish the installer
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v0.5.${{ github.run_number }}
+          name: NEXUS OS voor Windows 0.5.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          files: nexus-os-setup.exe
+          body: |
+            Download `nexus-os-setup.exe` en voer het uit. Een nieuwe versie installeert over de vorige heen.
+            Windows kan waarschuwen dat de app onbekend is (ze is nog niet digitaal ondertekend): kies "Meer informatie" en dan "Toch uitvoeren".
