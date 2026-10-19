@@ -4,6 +4,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.PrivateKey
 import java.security.interfaces.ECPublicKey
 import java.security.spec.ECGenParameterSpec
 import javax.crypto.Cipher
@@ -35,6 +36,8 @@ object DeviceKey {
         val key = keyStore().getCertificate(ALIAS)?.publicKey as? ECPublicKey ?: return null
         return ConnectCrypto.b64(ConnectCrypto.rawPublicKey(key))
     }
+
+    fun privateKey(): PrivateKey? = keyStore().getKey(ALIAS, null) as? PrivateKey
 
     fun delete() {
         keyStore().run { if (containsAlias(ALIAS)) deleteEntry(ALIAS) }

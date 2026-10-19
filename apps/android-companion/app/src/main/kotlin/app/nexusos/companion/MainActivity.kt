@@ -1,12 +1,16 @@
 package app.nexusos.companion
 
+import android.Manifest
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
@@ -35,6 +39,7 @@ class MainActivity : Activity() {
     private lateinit var content: LinearLayout
     private var status: String? = null
     private var busy = false
+    private var askedNotifications = false
     private val onChange: () -> Unit = { render() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +59,15 @@ class MainActivity : Activity() {
             }
         }
         setContentView(scroll)
+        Notifier.ensureChannel(this)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        render()
     }
 
     override fun onResume() {
@@ -61,6 +75,8 @@ class MainActivity : Activity() {
         Connect.addListener(onChange)
         render()
         Connect.refreshDevices(this)
+        Connect.receive(this)
+        Inbox.poke()
     }
 
     override fun onPause() {
@@ -161,6 +177,8 @@ class MainActivity : Activity() {
         }
         status?.let { text(it) }
 
+        fromNexus(granted)
+
         section("Apps")
         text(
             "Elke app staat standaard uit. Kies per app wat je deelt. Codes in inlog- en verificatieberichten worden gemaskeerd.",
@@ -181,6 +199,47 @@ class MainActivity : Activity() {
         button("Afmelden") {
             Connect.signOut(this) { status = null; render() }
         }
+    }
+
+    /** The other direction: what NEXUS on the pc sends to this phone and the watch. */
+    private fun fromNexus(listenerGranted: Boolean) {
+        section("Van NEXUS naar gsm en horloge")
+        text(
+            when {
+                Inbox.connected -> "Live verbonden. Meldingen die je in NEXUS naar deze gsm stuurt, verschijnen meteen."
+                listenerGranted -> "Even geen live verbinding. De companion probeert opnieuw, en wachtende meldingen komen ook binnen als je deze app opent."
+                else -> "Zet meldingstoegang aan, dan blijft de companion op de achtergrond luisteren naar NEXUS."
+            },
+        )
+        val received = store.receivedAt
+        if (received > 0) {
+            text("Laatste melding van NEXUS: ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(received))}", muted = true)
+        }
+        if (!Notifier.enabled(this)) {
+            text("Meldingen van de companion staan uit. Zet ze aan om berichten van NEXUS te zien.")
+            button("Meldingen toestaan", primary = true) {
+                val canAsk = Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                if (canAsk && !askedNotifications) {
+                    askedNotifications = true
+                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+                } else {
+                    startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+                }
+            }
+        }
+        val power = getSystemService(PowerManager::class.java)
+        if (power != null && !power.isIgnoringBatteryOptimizations(packageName)) {
+            text("OxygenOS kan de verbinding verbreken om batterij te sparen. Sta de companion toe op de achtergrond te blijven.", muted = true)
+            button("Batterijoptimalisatie uitzetten") {
+                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+            }
+        }
+        text(
+            "Op je horloge verschijnen ze als de horloge-app meldingen van NEXUS Companion doorstuurt. " +
+                "Zie je ze niet? Zet NEXUS Companion aan bij de meldingen in de OHealth-app.",
+            muted = true,
+        )
     }
 
     private fun appRow(app: String, appName: String) {

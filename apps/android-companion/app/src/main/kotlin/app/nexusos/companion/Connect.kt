@@ -5,6 +5,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import java.util.UUID
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
 import org.json.JSONArray
@@ -32,6 +34,9 @@ object Connect {
     fun addListener(listener: () -> Unit) = listeners.add(listener)
     fun removeListener(listener: () -> Unit) = listeners.remove(listener)
     private fun changed() = main.post { listeners.forEach { it() } }
+
+    /** Lets the screen redraw after something changed elsewhere, e.g. the [Inbox] connection. */
+    fun notifyChanged() = changed()
 
     /** Runs [work] on the worker thread and reports its error (or null) on the main thread. */
     private fun run(done: ((String?) -> Unit)?, work: () -> Unit) {
@@ -65,6 +70,7 @@ object Connect {
             store.saveDeviceId(id)
             store.devices = api.listDevices(session.accessToken)
             notice = null
+            Inbox.restart()
         }
     }
 
@@ -104,6 +110,47 @@ object Connect {
             val sent = deliver(store, Policy.payload(posted, ShareMode.FULL, kind = "test")!!)
             if (sent == 0) throw IllegalStateException("Kies eerst minstens één apparaat bij \"Naar deze apparaten\".")
             store.addAudit(AuditEntry(System.currentTimeMillis(), "NEXUS (test)", ShareMode.FULL, "naar $sent apparaat(en)"))
+        }
+    }
+
+    /**
+     * Picks up the messages NEXUS sent to this phone, shows each as an Android notification
+     * (which the watch mirrors) and deletes them from the server.
+     */
+    fun receive(context: Context, done: ((String?) -> Unit)? = null) {
+        val store = Store(context)
+        if (!store.signedIn) return
+        val app = context.applicationContext
+        run(done) {
+            if (!store.signedIn) return@run
+            val ownId = store.deviceId!!
+            val messages = api(store).fetchMessages(token(store), ownId)
+            if (messages.isEmpty()) return@run
+            val key = DeviceKey.privateKey()
+            val ownKey = DeviceKey.publicKey()
+            val names = store.devices.associate { it.id to it.name }
+            for (message in messages) {
+                val plaintext = if (key == null || ownKey == null) {
+                    null
+                } else {
+                    runCatching { ConnectCrypto.decryptWith(key, ownKey, ownId, message.envelope, "AndroidKeyStore") }.getOrNull()
+                }
+                // A message that cannot be read now never will be: it is deleted like the others.
+                val incoming = plaintext?.let(Protocol::parsePayload) ?: continue
+                Notifier.show(app, message.id, incoming, names[message.senderDeviceId])
+                store.receivedAt = System.currentTimeMillis()
+            }
+            api(store).deleteMessages(token(store), messages.map { it.id })
+        }
+    }
+
+    /** A valid access token for the [Inbox] connection. Blocks; never call it from the worker thread. */
+    fun accessToken(context: Context): String {
+        val store = Store(context)
+        try {
+            return worker.submit(Callable { token(store) }).get()
+        } catch (e: ExecutionException) {
+            throw e.cause ?: e
         }
     }
 
@@ -172,6 +219,7 @@ object Connect {
         store.clearAccount()
         DeviceKey.delete()
         synchronized(lastSent) { lastSent.clear() }
+        Inbox.restart()
     }
 
     private fun api(store: Store) = Supabase(store.supabaseUrl!!, store.anonKey!!)

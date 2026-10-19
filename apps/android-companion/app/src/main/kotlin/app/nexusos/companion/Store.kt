@@ -51,6 +51,11 @@ class Store(context: Context) {
             .apply()
     }
 
+    /** When the last message from NEXUS arrived on this phone. */
+    var receivedAt: Long
+        get() = prefs.getLong("receivedAt", 0)
+        set(value) = prefs.edit().putLong("receivedAt", value).apply()
+
     var paused: Boolean
         get() = prefs.getBoolean("paused", false)
         set(value) = prefs.edit().putBoolean("paused", value).apply()

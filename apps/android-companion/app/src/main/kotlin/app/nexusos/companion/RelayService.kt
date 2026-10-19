@@ -7,11 +7,21 @@ import android.service.notification.StatusBarNotification
 
 /**
  * Receives every notification Android shows, once the user granted notification access.
- * Only apps the user switched on are forwarded; see [Store.mode].
+ * Only apps the user switched on are forwarded; see [Store.mode]. Android keeps this service
+ * running, so it also holds the [Inbox] connection for messages from NEXUS.
  */
 class RelayService : NotificationListenerService() {
 
+    override fun onListenerConnected() {
+        Inbox.start(this)
+    }
+
+    override fun onListenerDisconnected() {
+        Inbox.stop()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        Inbox.poke()
         if (sbn.packageName == packageName) return
         val notification = sbn.notification
         val skipFlags = Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE or Notification.FLAG_GROUP_SUMMARY

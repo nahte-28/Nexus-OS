@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Messages from NEXUS appear as notifications on the phone and, through the watch app, on the watch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets the user exempt the companion from battery optimisation, so the connection stays open. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Needed to show the real app names (WhatsApp, Gmail...) in the per-app list. -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
