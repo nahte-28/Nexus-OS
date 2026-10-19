@@ -25,6 +25,9 @@ import android.widget.TextView
 import java.text.DateFormat
 import java.util.Date
 
+/** Production address of the NEXUS web app; editable on the login screen. */
+private const val DEFAULT_HOST = "nexus-os-lime.vercel.app"
+
 /** One screen: log in, grant notification access, choose devices and apps, see the log. */
 class MainActivity : Activity() {
     private lateinit var store: Store
@@ -78,8 +81,8 @@ class MainActivity : Activity() {
     private fun loginForm() {
         section("Inloggen")
         text("Gebruik hetzelfde account als in NEXUS op je pc.", muted = true)
-        val host = input("Adres van je NEXUS, bv. nexus-os.vercel.app", InputType.TYPE_TEXT_VARIATION_URI).apply {
-            setText(store.host?.removePrefix("https://").orEmpty())
+        val host = input("Adres van je NEXUS-webapp", InputType.TYPE_TEXT_VARIATION_URI).apply {
+            setText(store.host?.removePrefix("https://") ?: DEFAULT_HOST)
         }
         val email = input("E-mailadres", InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS).apply { setText(store.email.orEmpty()) }
         val password = input("Wachtwoord", InputType.TYPE_TEXT_VARIATION_PASSWORD)
