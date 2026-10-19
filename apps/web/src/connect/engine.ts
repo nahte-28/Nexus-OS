@@ -13,6 +13,7 @@ import {
   type InboxItem,
 } from '@nexus/core'
 import { getAll, getValue, update } from '../state/db'
+import { errorText } from '../sync/engine'
 import { ConnectSetupError, type ConnectRemote } from './remote'
 
 export type ConnectStatus =
@@ -184,7 +185,7 @@ export class ConnectEngine {
       this.set({ status: 'setup-needed', error: null })
       return
     }
-    this.set({ status: 'error', error: err instanceof Error ? err.message : String(err) })
+    this.set({ status: 'error', error: errorText(err) })
   }
 
   async refreshDevices(): Promise<void> {
