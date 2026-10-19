@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
+import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { isDesktopApp } from './platform/desktop'
 import { reminderDelivery } from './reminders/deliver'
 import { startReminderScheduler } from './reminders/store'
@@ -21,7 +22,9 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider>
       <SyncProvider>
         <ConnectProvider>
-          <App />
+          <ErrorBoundary name="NEXUS">
+            <App />
+          </ErrorBoundary>
         </ConnectProvider>
       </SyncProvider>
     </ThemeProvider>

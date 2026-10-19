@@ -1,6 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { WindowState } from '@nexus/core'
 import { getApp } from '../apps/registry'
+import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { useWindows } from '../state/WindowsContext'
 
 interface Props {
@@ -84,7 +85,9 @@ export function Window({ win, focused }: Props) {
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <AppComponent />
+        <ErrorBoundary name={win.title}>
+          <AppComponent />
+        </ErrorBoundary>
       </div>
 
       {!win.maximized && (
