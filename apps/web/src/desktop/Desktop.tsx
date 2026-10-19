@@ -1,12 +1,13 @@
 import { useCallback } from 'react'
 import type { AppId } from '@nexus/core'
-import { APPS, getApp } from '../apps/registry'
+import { getApp, useVisibleApps } from '../apps/registry'
 import { useWindows } from '../state/WindowsContext'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 
 export function Desktop() {
   const { state, dispatch } = useWindows()
+  const apps = useVisibleApps()
 
   const openApp = useCallback(
     (appId: AppId) => {
@@ -22,9 +23,9 @@ export function Desktop() {
   return (
     <div className="nx-wallpaper relative h-full overflow-hidden">
       <main className="absolute inset-x-0 top-0" style={{ bottom: TASKBAR_HEIGHT }} aria-label="Bureaublad">
-        <ul className="flex w-24 flex-col gap-2 p-3">
-          {APPS.map((app) => (
-            <li key={app.id}>
+        <ul className="flex h-full flex-col flex-wrap content-start gap-2 p-3">
+          {apps.map((app) => (
+            <li key={app.id} className="w-20">
               <button
                 type="button"
                 onClick={() => openApp(app.id)}

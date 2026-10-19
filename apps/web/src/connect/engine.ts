@@ -16,6 +16,7 @@ import { getAll, getValue, update } from '../state/db'
 import { isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
 import { ConnectSetupError, type ConnectRemote } from './remote'
+import { logEvent } from '../devtools/log'
 
 export type ConnectStatus =
   | 'unconfigured' // no Supabase project: Connect needs an account
@@ -252,6 +253,7 @@ export class ConnectEngine {
       }
       await this.addToInbox(items)
       await this.remote.deleteMessages(messages.map((m) => m.id))
+      logEvent('connect', `${items.length} melding(en) ontvangen, ${messages.length - items.length} onleesbaar`)
       for (const item of items) this.notify(item)
     } catch (err) {
       this.fail(err)
@@ -315,6 +317,7 @@ export class ConnectEngine {
     const payload: ConnectPayload = { v: 1, app: 'nexus', appName: 'NEXUS', postedAt: Date.now(), ...content }
     const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
     await this.remote!.sendMessages([{ ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id }])
+    logEvent('connect', `Melding (${content.kind}) versleuteld verstuurd naar ${target.name}`)
   }
 
   async rename(deviceId: string, name: string): Promise<void> {
@@ -358,6 +361,9 @@ export class ConnectEngine {
   getSnapshot = (): ConnectState => this.state
 
   private set(patch: Partial<ConnectState>): void {
+    if (patch.status && patch.status !== this.state.status) {
+      logEvent('connect', `Status: ${patch.status}${patch.error ? ` (${patch.error})` : ''}`, patch.status === 'error')
+    }
     this.state = { ...this.state, ...patch }
     for (const l of this.listeners) l()
   }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
+import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
 import { useTheme } from '../theme/ThemeContext'
 
@@ -35,6 +36,7 @@ export function Settings() {
       </fieldset>
       <p className="text-sm text-nx-muted">Je keuze wordt bewaard en geldt direct, zonder dat open vensters sluiten.</p>
       {isDesktopApp && <WindowsSettings />}
+      <DeveloperSettings />
     </div>
   )
 }
@@ -64,6 +66,24 @@ function WindowsSettings() {
         Sluit je het venster, dan blijft NEXUS in het systeemvak draaien zodat meldingen binnenkomen. Afsluiten doe je via
         het NEXUS-icoon in het systeemvak.
       </p>
+    </fieldset>
+  )
+}
+
+function DeveloperSettings() {
+  const developer = useDeveloperMode()
+  return (
+    <fieldset className="space-y-2 border-t border-nx-border pt-4">
+      <legend className="mb-2 text-sm font-semibold text-nx-muted">Ontwikkelaar</legend>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={developer}
+          onChange={(e) => setDeveloperMode(e.target.checked)}
+          className="accent-[var(--nx-accent)]"
+        />
+        Ontwikkelaarsmodus: toont de app Ontwikkelaar met logboek, systeeminfo en AI-verbruik
+      </label>
     </fieldset>
   )
 }

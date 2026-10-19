@@ -68,6 +68,32 @@ describe('App shell', () => {
     expect(screen.getByText(/Koppel dit apparaat in Apparaten/)).toBeTruthy()
   })
 
+  it('opens NEXUS AI and plans a reminder from the Herinneringen app', async () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'NEXUS AI' }))
+    expect(screen.getByText('Meld je eerst aan in de Account-app.')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Herinneringen' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Titel' }), { target: { value: 'Verslag inleveren' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Plannen' }))
+    await waitFor(() => expect(screen.getByRole('list', { name: 'Geplande herinneringen' }).textContent).toContain('Verslag inleveren'))
+  })
+
+  it('shows the Developer app only in developer mode', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    expect(screen.queryByRole('menuitem', { name: 'Ontwikkelaar' })).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Instellingen' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Ontwikkelaarsmodus/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Ontwikkelaar' }))
+    expect(screen.getByText(/NEXUS OS 0\.7/)).toBeTruthy()
+  })
+
   it('switches theme and remembers it', () => {
     mockViewport(false)
     renderApp()
@@ -84,6 +110,6 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.6')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.7')).toBeTruthy()
   })
 })

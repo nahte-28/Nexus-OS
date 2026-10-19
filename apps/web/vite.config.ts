@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     // Shown in the Account app so a deployment can be identified when checking setup.
     __BUILD_COMMIT__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? 'lokaal').slice(0, 7)),
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.7.0'),
   },
   plugins: [
     companionConfig(mode),

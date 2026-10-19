@@ -2,7 +2,7 @@
 
 Een modulair, persoonlijk ecosysteem voor web, Windows, Android en smartwatch. Zie het projectdocument (v0.3) voor visie en roadmap.
 
-Deze repository bevat versie **0.6**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc en van NEXUS naar je gsm en horloge. De webapp is als PWA installeerbaar en er is een Windows-app.
+Deze repository bevat versie **0.7**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc en van NEXUS naar je gsm en horloge. De webapp is als PWA installeerbaar en er is een Windows-app. Sinds 0.7 is er ook **NEXUS AI**, een assistent die acties pas uitvoert na je toestemming, plus herinneringen en ontwikkelaarstools.
 
 ## Structuur
 
@@ -12,6 +12,7 @@ apps/desktop            Windows-app (Tauri) rond dezelfde interface
 apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt
 packages/core           Gedeelde types en logica: thema's, vensterbeheer, notities, sync, Connect
 supabase                Databaseschema (migraties) voor accounts, sync en Connect
+api                     Vercel-functies op de server, nu alleen NEXUS AI (api/ai.ts)
 ```
 
 Later volgen `packages/ui` en `packages/api-client`.
@@ -75,6 +76,26 @@ Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/andro
 
 Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/prerequisites/), zet de Supabase-waarden in `apps/web/.env.local` en voer `npm run dev -w @nexus/desktop` (ontwikkelen) of `npm run build -w @nexus/desktop` (installer) uit.
 
+## NEXUS AI
+
+De app **NEXUS AI** praat met Claude via de serverfunctie `api/ai.ts` op Vercel. De sleutel blijft op de server; de app stuurt je login mee en de server laat alleen de accounts in `NEXUS_AI_ALLOWED_EMAILS` toe.
+
+Claude kan acties voorstellen: notities zoeken of maken, herinneringen plannen of verwijderen, een melding naar je gsm sturen en het thema wisselen. Elke actie verschijnt als kaart en loopt pas als je op **Toestaan** tikt (of als je die actie eerder "altijd" toestond; dat kun je in de Ontwikkelaar-app weer vergeten). De acties zelf draaien in NEXUS op je apparaat, niet op de server.
+
+Instellen (eenmalig), in Vercel bij Settings > Environment Variables:
+
+- `ANTHROPIC_API_KEY`: een API-sleutel van [console.anthropic.com](https://console.anthropic.com). Zet daar ook een maandlimiet, want de aanvragen kosten geld.
+- `NEXUS_AI_ALLOWED_EMAILS`: je eigen e-mailadres (meerdere gescheiden door komma's).
+- Optioneel `NEXUS_AI_MODEL` (standaard `claude-opus-5-5`).
+
+Daarna opnieuw deployen. De Windows-app gebruikt dezelfde functie op `nexus-os-lime.vercel.app`. Lokaal draait `/api/ai` alleen met `vercel dev`.
+
+## Herinneringen en ontwikkelaarstools
+
+**Herinneringen** zijn de eerste automatisering: een melding op een tijdstip, eenmalig, elke dag of elke week, alleen op dit apparaat of ook op je gsm en horloge (versleuteld via NEXUS Connect). Ze staan lokaal in IndexedDB en werken dus offline; ze gaan af zolang NEXUS open is op dat apparaat, en wat gemist werd gaat af bij de volgende start. De Windows-app in het systeemvak is daarom de beste plek. Ook NEXUS AI kan herinneringen plannen.
+
+Zet in Instellingen de **ontwikkelaarsmodus** aan voor de app **Ontwikkelaar**: systeeminfo (versie, sync, Connect, apparaat), een logboek van wat NEXUS deed (zonder inhoud) en het AI-verbruik in tokens.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
@@ -91,4 +112,6 @@ Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/p
 - Windows-app met systeemvak, Windows-meldingen en starten met Windows.
 - Van NEXUS naar gsm en horloge: in Apparaten stuur je een melding naar je gsm. De companion houdt een live verbinding open zolang hij meldingstoegang heeft, toont de melding als Android-melding, en de horloge-app (OHealth) zet ze door naar je OnePlus Watch.
 
-Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is) en een eigen Wear OS-app. Volgende stap is v0.7: AI, automatiseringen en developer tools.
+- NEXUS AI met acties die je toestemming vragen, herinneringen naar pc, gsm en horloge, en een ontwikkelaarsmodus.
+
+Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is), een eigen Wear OS-app en herinneringen die ook afgaan als NEXUS nergens open is.
