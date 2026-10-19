@@ -6,3 +6,7 @@ dev-dist/
 .vercel
 .env
 .env.local
+.gradle/
+apps/android-companion/**/build/
+apps/android-companion/local.properties
+*.apk

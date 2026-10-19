@@ -3,10 +3,10 @@ import { notesStore } from '../state/notesStore'
 import { SyncEngine } from './engine'
 import { createNotesRemote, supabase } from './supabase'
 
-const defaultEngine = new SyncEngine(supabase, notesStore, supabase ? createNotesRemote(supabase) : null)
-const SyncContext = createContext<SyncEngine>(defaultEngine)
+export const defaultSyncEngine = new SyncEngine(supabase, notesStore, supabase ? createNotesRemote(supabase) : null)
+const SyncContext = createContext<SyncEngine>(defaultSyncEngine)
 
-export function SyncProvider({ engine = defaultEngine, children }: { engine?: SyncEngine; children: ReactNode }) {
+export function SyncProvider({ engine = defaultSyncEngine, children }: { engine?: SyncEngine; children: ReactNode }) {
   useEffect(() => engine.start(), [engine])
   return <SyncContext.Provider value={engine}>{children}</SyncContext.Provider>
 }

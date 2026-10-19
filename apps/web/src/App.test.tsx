@@ -59,6 +59,15 @@ describe('App shell', () => {
     expect(screen.getByText(/Synchronisatie is nog niet ingesteld/)).toBeTruthy()
   })
 
+  it('explains that devices and notifications need an account', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Apparaten' })[0])
+    expect(screen.getByText(/werkt met een account/)).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Meldingen' })[0])
+    expect(screen.getByText(/Koppel dit apparaat in Apparaten/)).toBeTruthy()
+  })
+
   it('switches theme and remembers it', () => {
     mockViewport(false)
     renderApp()
@@ -75,6 +84,6 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.3')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.4')).toBeTruthy()
   })
 })

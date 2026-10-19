@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp } from '../apps/registry'
-import { CloudIcon, GridIcon } from '../apps/icons'
+import { BellIcon, CloudIcon, GridIcon } from '../apps/icons'
 import { statusText } from '../apps/Account'
+import { useConnect } from '../connect/ConnectContext'
 import { useSync } from '../sync/SyncContext'
 import { useWindows } from '../state/WindowsContext'
 import { StartMenu } from './StartMenu'
@@ -49,6 +50,7 @@ export function Taskbar({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
         })}
       </nav>
 
+      <InboxBadge onOpen={() => onOpenApp('notifications')} />
       <SyncBadge onOpen={() => onOpenApp('account')} />
       <Clock />
       {startOpen && (
@@ -93,6 +95,28 @@ function SyncBadge({ onOpen }: { onOpen: () => void }) {
       className={`grid size-10 place-items-center rounded-lg hover:bg-nx-surface-2 ${color} ${state.status === 'syncing' ? 'animate-pulse' : ''}`}
     >
       <CloudIcon className="size-5" />
+    </button>
+  )
+}
+
+function InboxBadge({ onOpen }: { onOpen: () => void }) {
+  const { state } = useConnect()
+  if (state.status === 'unconfigured' || state.status === 'signed-out') return null
+  const label = state.unread > 0 ? `${state.unread} nieuwe melding(en)` : 'Meldingen'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={label}
+      title={label}
+      className="relative grid size-10 place-items-center rounded-lg text-nx-muted hover:bg-nx-surface-2"
+    >
+      <BellIcon className="size-5" />
+      {state.unread > 0 && (
+        <span className="absolute top-1 right-1 min-w-4 rounded-full bg-nx-accent px-1 text-[10px] leading-4 font-semibold text-nx-accent-text">
+          {state.unread > 99 ? '99+' : state.unread}
+        </span>
+      )}
     </button>
   )
 }

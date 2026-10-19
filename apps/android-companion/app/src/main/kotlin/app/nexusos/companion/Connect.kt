@@ -1,0 +1,201 @@
+package app.nexusos.companion
+
+import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import java.util.UUID
+import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.Executors
+import org.json.JSONArray
+import org.json.JSONObject
+
+/**
+ * Everything the companion does with the account, on one background thread so token
+ * refreshes and sends never race: signing in, keeping the device list, and forwarding.
+ */
+object Connect {
+    private val worker = Executors.newSingleThreadExecutor()
+    private val main = Handler(Looper.getMainLooper())
+    private val listeners = CopyOnWriteArraySet<() -> Unit>()
+    private const val DEVICES_MAX_AGE_MS = 10 * 60_000L
+
+    /** Last forwarded content per notification key, so updates that change nothing are not resent. */
+    private val lastSent = object : LinkedHashMap<String, Int>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int>?) = size > 200
+    }
+
+    /** A message for the UI when something happened in the background (e.g. a revocation). */
+    @Volatile
+    var notice: String? = null
+
+    fun addListener(listener: () -> Unit) = listeners.add(listener)
+    fun removeListener(listener: () -> Unit) = listeners.remove(listener)
+    private fun changed() = main.post { listeners.forEach { it() } }
+
+    /** Runs [work] on the worker thread and reports its error (or null) on the main thread. */
+    private fun run(done: ((String?) -> Unit)?, work: () -> Unit) {
+        worker.execute {
+            val error = try {
+                work()
+                null
+            } catch (e: ApiException) {
+                e.message
+            } catch (e: java.io.IOException) {
+                "Geen verbinding met de server. Controleer je internet."
+            } catch (e: Exception) {
+                e.message ?: e.javaClass.simpleName
+            }
+            main.post { done?.invoke(error) }
+            changed()
+        }
+    }
+
+    fun signIn(context: Context, host: String, email: String, password: String, done: (String?) -> Unit) {
+        val store = Store(context)
+        run(done) {
+            val (url, key) = Supabase.fetchConfig(host)
+            val api = Supabase(url, key)
+            val session = api.signIn(email.trim(), password)
+            store.host = Supabase.normalizeHost(host)
+            store.saveProject(url, key)
+            store.saveSession(session)
+            val id = UUID.randomUUID().toString()
+            api.registerDevice(session.accessToken, id, deviceName(), DeviceKey.create())
+            store.saveDeviceId(id)
+            store.devices = api.listDevices(session.accessToken)
+            notice = null
+        }
+    }
+
+    fun refreshDevices(context: Context, done: ((String?) -> Unit)? = null) {
+        val store = Store(context)
+        if (!store.signedIn) return
+        run(done) {
+            loadDevices(store)
+            api(store).touchDevice(token(store), store.deviceId!!)
+        }
+    }
+
+    /** Signs out and revokes this phone, so it disappears from the active devices. */
+    fun signOut(context: Context, done: (String?) -> Unit) {
+        val store = Store(context)
+        run(done) {
+            try {
+                if (store.signedIn) api(store).revokeDevice(token(store), store.deviceId!!)
+            } catch (_: Exception) {
+                // Offline or session expired: the phone can still be revoked from the pc.
+            } finally {
+                forget(store)
+            }
+        }
+    }
+
+    fun sendTest(context: Context, done: (String?) -> Unit) {
+        val store = Store(context)
+        val posted = PostedNotification(
+            app = "nexus",
+            appName = "NEXUS",
+            title = "Testmelding van ${deviceName()}",
+            text = "Als je dit leest, werkt NEXUS Connect. De inhoud was onderweg versleuteld.",
+            postedAt = System.currentTimeMillis(),
+        )
+        run(done) {
+            val sent = deliver(store, Policy.payload(posted, ShareMode.FULL, kind = "test")!!)
+            if (sent == 0) throw IllegalStateException("Kies eerst minstens één apparaat bij \"Naar deze apparaten\".")
+            store.addAudit(AuditEntry(System.currentTimeMillis(), "NEXUS (test)", ShareMode.FULL, "naar $sent apparaat(en)"))
+        }
+    }
+
+    /** Called by [RelayService] for every notification Android shows. */
+    fun forward(context: Context, posted: PostedNotification, key: String) {
+        val store = Store(context)
+        store.noteApp(posted.app, posted.appName)
+        if (!store.signedIn || store.paused) return
+        val mode = store.mode(posted.app)
+        val payload = Policy.payload(posted, mode) ?: return
+        val fingerprint = payload.replace(Regex("\"postedAt\":\\d+"), "").hashCode()
+        synchronized(lastSent) {
+            if (lastSent[key] == fingerprint) return
+            lastSent[key] = fingerprint
+        }
+        run(null) {
+            val result = try {
+                val sent = deliver(store, payload)
+                if (sent == 0) "geen apparaat gekozen" else "naar $sent apparaat(en)"
+            } catch (e: Exception) {
+                "mislukt: ${e.message ?: e.javaClass.simpleName}"
+            }
+            store.addAudit(AuditEntry(System.currentTimeMillis(), posted.appName, mode, result))
+        }
+    }
+
+    /** Encrypts [payload] separately for each chosen device and uploads it. Returns how many. */
+    private fun deliver(store: Store, payload: String): Int {
+        if (!store.signedIn) return 0
+        if (System.currentTimeMillis() - store.devicesAt > DEVICES_MAX_AGE_MS) loadDevices(store)
+        if (!store.signedIn) return 0
+        val ownId = store.deviceId!!
+        val chosen = store.recipients
+        val targets = store.devices.filter { it.id in chosen && !it.revoked && it.id != ownId && it.platform != "android" }
+        if (targets.isEmpty()) return 0
+        val rows = JSONArray()
+        for (device in targets) {
+            val envelope = ConnectCrypto.encryptFor(device.publicKey, device.id, payload)
+            rows.put(
+                JSONObject()
+                    .put("sender_device_id", ownId)
+                    .put("recipient_device_id", device.id)
+                    .put("ephemeral_key", envelope.ephemeralKey)
+                    .put("iv", envelope.iv)
+                    .put("ciphertext", envelope.ciphertext),
+            )
+        }
+        api(store).sendMessages(token(store), rows)
+        return targets.size
+    }
+
+    private fun loadDevices(store: Store) {
+        val devices = api(store).listDevices(token(store))
+        val own = devices.find { it.id == store.deviceId }
+        if (own == null || own.revoked) {
+            forget(store)
+            notice = "Deze gsm werd ingetrokken. Log opnieuw in om hem te koppelen."
+            return
+        }
+        store.devices = devices
+        // Drop choices for devices that no longer exist or were revoked.
+        store.recipients = store.recipients.filter { id -> devices.any { it.id == id && !it.revoked } }.toSet()
+    }
+
+    private fun forget(store: Store) {
+        store.clearAccount()
+        DeviceKey.delete()
+        synchronized(lastSent) { lastSent.clear() }
+    }
+
+    private fun api(store: Store) = Supabase(store.supabaseUrl!!, store.anonKey!!)
+
+    /** A valid access token, refreshed when it is about to expire. */
+    private fun token(store: Store): String {
+        val current = store.accessToken
+        if (current != null && store.expiresAt - System.currentTimeMillis() > 60_000) return current
+        val refresh = store.refreshToken ?: throw IllegalStateException("Log opnieuw in.")
+        try {
+            val session = api(store).refresh(refresh)
+            store.saveSession(session)
+            return session.accessToken
+        } catch (e: ApiException) {
+            if (e.status in 400..401) {
+                forget(store)
+                notice = "Je sessie is verlopen. Log opnieuw in."
+            }
+            throw e
+        }
+    }
+
+    fun deviceName(): String {
+        val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
+        return if (Build.MODEL.startsWith(maker, ignoreCase = true)) Build.MODEL else "$maker ${Build.MODEL}"
+    }
+}

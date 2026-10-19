@@ -1,0 +1,365 @@
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import {
+  decryptWith,
+  defaultDeviceName,
+  encryptFor,
+  exportPublicKey,
+  fingerprint,
+  generateDeviceKeyPair,
+  parsePayload,
+  trimInbox,
+  type ConnectPayload,
+  type Device,
+  type InboxItem,
+} from '@nexus/core'
+import { getAll, getValue, update } from '../state/db'
+import { ConnectSetupError, type ConnectRemote } from './remote'
+
+export type ConnectStatus =
+  | 'unconfigured' // no Supabase project: Connect needs an account
+  | 'signed-out'
+  | 'starting'
+  | 'ready'
+  | 'revoked' // this device was revoked from another device
+  | 'setup-needed' // the v0.4 migration is missing on the server
+  | 'error'
+
+export interface DeviceView extends Device {
+  fingerprint: string
+  isThisDevice: boolean
+}
+
+export interface ConnectState {
+  status: ConnectStatus
+  device: { id: string; name: string; fingerprint: string } | null
+  devices: DeviceView[]
+  inbox: InboxItem[]
+  unread: number
+  error: string | null
+}
+
+/** This browser's identity. The private key is non-extractable and never leaves IndexedDB. */
+interface Identity {
+  userId: string
+  deviceId: string
+  name: string
+  publicKey: string
+  privateKey: CryptoKey
+}
+
+const IDENTITY_KEY = 'identity'
+const MAX_INBOX = 500
+const POLL_MS = 60_000
+
+/**
+ * Registers this browser as a device, receives end-to-end encrypted notifications from the
+ * user's other devices, and keeps them only in this browser's inbox.
+ */
+export class ConnectEngine {
+  private state: ConnectState
+  private listeners = new Set<() => void>()
+  private session: Session | null = null
+  private identity: Identity | null = null
+  private cleanups: Array<() => void> = []
+  private stopListening: (() => void) | null = null
+  private receiving: Promise<void> | null = null
+  private again = false
+
+  constructor(
+    private client: SupabaseClient | null,
+    private remote: ConnectRemote | null,
+    private notify: (item: InboxItem) => void = showSystemNotification,
+  ) {
+    this.state = {
+      status: client && remote ? 'signed-out' : 'unconfigured',
+      device: null,
+      devices: [],
+      inbox: [],
+      unread: 0,
+      error: null,
+    }
+  }
+
+  start(): () => void {
+    void this.loadInbox()
+    const { client } = this
+    if (!client || !this.remote) return () => this.stop()
+
+    void client.auth.getSession().then(({ data }) => this.setSession(data.session))
+    const { data } = client.auth.onAuthStateChange((_event, session) => this.setSession(session))
+    this.cleanups.push(() => data.subscription.unsubscribe())
+
+    const refresh = () => {
+      if (this.state.status !== 'ready') return
+      void this.receive()
+      void this.refreshDevices()
+    }
+    const onVisible = () => document.visibilityState === 'visible' && refresh()
+    window.addEventListener('online', refresh)
+    document.addEventListener('visibilitychange', onVisible)
+    const poll = setInterval(refresh, POLL_MS)
+    this.cleanups.push(() => {
+      window.removeEventListener('online', refresh)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(poll)
+    })
+    return () => this.stop()
+  }
+
+  private stop(): void {
+    this.stopListening?.()
+    this.stopListening = null
+    for (const c of this.cleanups.splice(0)) c()
+  }
+
+  private setSession(session: Session | null): void {
+    const previous = this.session?.user.id
+    this.session = session
+    if (!session) {
+      this.stopListening?.()
+      this.stopListening = null
+      this.identity = null
+      if (this.client) this.set({ status: 'signed-out', device: null, devices: [] })
+      return
+    }
+    if (session.user.id !== previous) void this.connect()
+  }
+
+  /** Makes sure this browser is a registered, active device, then starts receiving. */
+  private async connect(): Promise<void> {
+    const remote = this.remote!
+    const userId = this.session!.user.id
+    this.set({ status: 'starting', error: null })
+    try {
+      let identity = await getValue<Identity>('connect', IDENTITY_KEY)
+      if (identity && identity.userId !== userId) identity = undefined
+      const devices = await remote.listDevices()
+      const own = identity && devices.find((d) => d.id === identity!.deviceId)
+      if (own?.revokedAt) {
+        this.identity = null
+        await this.showDevices(devices, null)
+        this.set({ status: 'revoked', device: null })
+        return
+      }
+      if (!identity) identity = await this.createIdentity(userId)
+      if (!own) {
+        await remote.registerDevice({ id: identity.deviceId, name: identity.name, platform: 'web', publicKey: identity.publicKey })
+      } else {
+        await remote.updateDevice(identity.deviceId, { seen: true })
+      }
+      this.identity = identity
+      this.set({
+        status: 'ready',
+        device: { id: identity.deviceId, name: own?.name ?? identity.name, fingerprint: await fingerprint(identity.publicKey) },
+      })
+      this.stopListening?.()
+      this.stopListening = remote.listen(identity.deviceId, () => void this.receive())
+      await Promise.all([this.refreshDevices(), this.receive()])
+    } catch (err) {
+      this.fail(err)
+    }
+  }
+
+  private async createIdentity(userId: string): Promise<Identity> {
+    const pair = await generateDeviceKeyPair()
+    const identity: Identity = {
+      userId,
+      deviceId: crypto.randomUUID(),
+      name: defaultDeviceName(navigator.userAgent),
+      publicKey: await exportPublicKey(pair.publicKey),
+      privateKey: pair.privateKey,
+    }
+    await update('connect', { put: [identity], key: IDENTITY_KEY })
+    return identity
+  }
+
+  /** After a revocation the user can register this browser again, with a new key. */
+  async reconnect(): Promise<void> {
+    await update('connect', { remove: [IDENTITY_KEY] })
+    await this.connect()
+  }
+
+  private fail(err: unknown): void {
+    if (err instanceof ConnectSetupError) {
+      this.set({ status: 'setup-needed', error: null })
+      return
+    }
+    this.set({ status: 'error', error: err instanceof Error ? err.message : String(err) })
+  }
+
+  async refreshDevices(): Promise<void> {
+    if (!this.remote || !this.session) return
+    try {
+      const devices = await this.remote.listDevices()
+      const own = this.identity && devices.find((d) => d.id === this.identity!.deviceId)
+      if (this.identity && own?.revokedAt) {
+        this.identity = null
+        this.stopListening?.()
+        this.stopListening = null
+        this.set({ status: 'revoked', device: null })
+      }
+      await this.showDevices(devices, this.identity?.deviceId ?? null)
+      if (own && this.state.device && own.name !== this.state.device.name) {
+        this.set({ device: { ...this.state.device, name: own.name } })
+      }
+    } catch (err) {
+      this.fail(err)
+    }
+  }
+
+  private async showDevices(devices: Device[], ownId: string | null): Promise<void> {
+    const views = await Promise.all(
+      devices.map(async (d) => ({ ...d, fingerprint: await fingerprint(d.publicKey), isThisDevice: d.id === ownId })),
+    )
+    this.set({ devices: views })
+  }
+
+  /** Fetches, decrypts and stores everything waiting for this device, then removes it from the server. */
+  receive(): Promise<void> {
+    if (this.receiving) {
+      this.again = true
+      return this.receiving
+    }
+    this.receiving = this.receiveOnce().finally(() => {
+      this.receiving = null
+      if (this.again) {
+        this.again = false
+        void this.receive()
+      }
+    })
+    return this.receiving
+  }
+
+  private async receiveOnce(): Promise<void> {
+    const identity = this.identity
+    if (!identity || !this.remote) return
+    try {
+      const messages = await this.remote.fetchMessages(identity.deviceId)
+      if (messages.length === 0) return
+      const items: InboxItem[] = []
+      for (const m of messages) {
+        try {
+          const plaintext = await decryptWith(identity.privateKey, identity.publicKey, identity.deviceId, m)
+          const payload = parsePayload(JSON.parse(plaintext))
+          if (payload) {
+            items.push({ ...payload, id: m.id, fromDeviceId: m.senderDeviceId, receivedAt: Date.now(), read: false })
+          }
+        } catch {
+          // Not decryptable for this key (e.g. sent to an older key): it can never be read, so drop it.
+        }
+      }
+      await this.addToInbox(items)
+      await this.remote.deleteMessages(messages.map((m) => m.id))
+      for (const item of items) this.notify(item)
+    } catch (err) {
+      this.fail(err)
+    }
+  }
+
+  private async loadInbox(): Promise<void> {
+    const stored = await getAll<InboxItem>('inbox')
+    this.setInbox(trimInbox([...stored, ...this.state.inbox.filter((i) => !stored.some((s) => s.id === i.id))], MAX_INBOX))
+  }
+
+  private async addToInbox(items: InboxItem[]): Promise<void> {
+    if (items.length === 0) return
+    const known = new Set(this.state.inbox.map((i) => i.id))
+    const fresh = items.filter((i) => !known.has(i.id))
+    const next = trimInbox([...fresh, ...this.state.inbox], MAX_INBOX)
+    const kept = new Set(next.map((i) => i.id))
+    await update('inbox', { put: fresh.filter((i) => kept.has(i.id)), remove: this.state.inbox.filter((i) => !kept.has(i.id)).map((i) => i.id) })
+    this.setInbox(next)
+  }
+
+  private setInbox(inbox: InboxItem[]): void {
+    this.set({ inbox, unread: inbox.filter((i) => !i.read).length })
+  }
+
+  async markAllRead(): Promise<void> {
+    const changed = this.state.inbox.filter((i) => !i.read).map((i) => ({ ...i, read: true }))
+    if (changed.length === 0) return
+    await update('inbox', { put: changed })
+    this.setInbox(this.state.inbox.map((i) => (i.read ? i : { ...i, read: true })))
+  }
+
+  async removeFromInbox(ids: string[]): Promise<void> {
+    await update('inbox', { remove: ids })
+    const gone = new Set(ids)
+    this.setInbox(this.state.inbox.filter((i) => !gone.has(i.id)))
+  }
+
+  /** Sends an encrypted test notification to one of the user's devices (this one included). */
+  async sendTest(deviceId: string): Promise<void> {
+    const identity = this.requireIdentity()
+    const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
+    if (!target) throw new Error('Dit apparaat is niet meer actief.')
+    const payload: ConnectPayload = {
+      v: 1,
+      kind: 'test',
+      app: 'nexus',
+      appName: 'NEXUS',
+      title: `Testmelding van ${this.state.device?.name ?? identity.name}`,
+      text: 'Als je dit leest, werkt NEXUS Connect. De inhoud was onderweg versleuteld.',
+      postedAt: Date.now(),
+    }
+    const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
+    await this.remote!.sendMessages([{ ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id }])
+  }
+
+  async rename(deviceId: string, name: string): Promise<void> {
+    const trimmed = name.trim().slice(0, 80)
+    if (!trimmed) return
+    await this.remote!.updateDevice(deviceId, { name: trimmed })
+    await this.refreshDevices()
+  }
+
+  async revoke(deviceId: string): Promise<void> {
+    await this.remote!.updateDevice(deviceId, { revoked: true })
+    await this.refreshDevices()
+  }
+
+  /** Called just before signing out: this browser stops being a device of the account. */
+  async leave(): Promise<void> {
+    const identity = this.identity
+    if (identity && this.remote) {
+      try {
+        await this.remote.updateDevice(identity.deviceId, { revoked: true })
+      } catch {
+        // Offline: the device stays listed and can be revoked from another device.
+      }
+    }
+    this.identity = null
+    this.stopListening?.()
+    this.stopListening = null
+    this.setInbox([])
+  }
+
+  private requireIdentity(): Identity {
+    if (!this.identity || !this.remote) throw new Error('Dit apparaat is nog niet gekoppeld.')
+    return this.identity
+  }
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  getSnapshot = (): ConnectState => this.state
+
+  private set(patch: Partial<ConnectState>): void {
+    this.state = { ...this.state, ...patch }
+    for (const l of this.listeners) l()
+  }
+}
+
+/** Shows a system notification when the tab is in the background and the user allowed it. */
+function showSystemNotification(item: InboxItem): void {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+  if (document.visibilityState === 'visible') return
+  const options: NotificationOptions = { body: [item.title, item.text].filter(Boolean).join('\n'), tag: item.id, icon: '/icon-192.png' }
+  // Android Chrome only allows notifications through the service worker.
+  void navigator.serviceWorker?.getRegistration().then((reg) => {
+    if (reg) return reg.showNotification(item.appName, options)
+    new Notification(item.appName, options)
+  })
+}

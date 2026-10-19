@@ -1,8 +1,9 @@
 /** Minimal IndexedDB wrapper: one object store per collection plus a key/value "meta" store. */
 
 const DB_NAME = 'nexus'
-const DB_VERSION = 1
-export const STORES = ['notes', 'meta'] as const
+const DB_VERSION = 2
+// inbox: received Connect notifications; connect: this device's identity and keys.
+export const STORES = ['notes', 'meta', 'inbox', 'connect'] as const
 export type StoreName = (typeof STORES)[number]
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -14,6 +15,8 @@ export function openDb(): Promise<IDBDatabase> {
       const db = req.result
       if (!db.objectStoreNames.contains('notes')) db.createObjectStore('notes', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
+      if (!db.objectStoreNames.contains('inbox')) db.createObjectStore('inbox', { keyPath: 'id' })
+      if (!db.objectStoreNames.contains('connect')) db.createObjectStore('connect')
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => {
@@ -57,6 +60,27 @@ export async function write(change: { store: StoreName; put?: unknown[]; meta?: 
   for (const value of change.put ?? []) store.put(value)
   const meta = tx.objectStore('meta')
   for (const [key, value] of Object.entries(change.meta ?? {})) meta.put(value, key)
+  return done(tx)
+}
+
+export async function getValue<T>(store: StoreName, key: string): Promise<T | undefined> {
+  const db = await openDb()
+  return result(db.transaction(store).objectStore(store).get(key) as IDBRequest<T | undefined>)
+}
+
+/** Puts and deletes records in one store; `key` is only for stores without a keyPath. */
+export async function update(
+  store: StoreName,
+  change: { put?: unknown[]; key?: string; remove?: string[] },
+): Promise<void> {
+  const db = await openDb()
+  const tx = db.transaction(store, 'readwrite')
+  const os = tx.objectStore(store)
+  for (const value of change.put ?? []) {
+    if (change.key) os.put(value, change.key)
+    else os.put(value)
+  }
+  for (const key of change.remove ?? []) os.delete(key)
   return done(tx)
 }
 

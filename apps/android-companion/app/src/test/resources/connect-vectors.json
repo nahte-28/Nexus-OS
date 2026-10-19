@@ -1,0 +1,21 @@
+{
+  "note": "Test key only. Shared by the web and Android tests to prove both sides speak nexus-connect-v1.",
+  "recipient": {
+    "deviceId": "7d1f5a3e-2b4c-4e8f-9a6b-1c2d3e4f5a6b",
+    "publicKey": "BIrbqkjFU/sIHoIGjruXKHZXIH6Ifvs33s5NIL7pUibBzvtXdojo6fdzuflGH+8ZAjCRvJ7K7LRiTGo5/GbFMJw=",
+    "privateKeyPkcs8": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg0e2tPXA0T29IY4/thl2EG99dRitK4fa+6Dc4TvUQxZehRANCAASK26pIxVP7CB6CBo67lyh2VyB+iH77N97OTSC+6VImwc77V3aI6On3c7n5Rh/vGQIwkbyeyuy0YkxqOfxmxTCc",
+    "fingerprint": "E1E3-C193-16C7"
+  },
+  "fromWeb": {
+    "plaintext": "{\"v\":1,\"kind\":\"test\",\"app\":\"nexus\",\"appName\":\"NEXUS\",\"title\":\"Hallo van het web ✓\",\"postedAt\":1760870400000}",
+    "ephemeralKey": "BKSAVTF80cXqp7YoxBBsMa6Y29wM26fcgLoW0O+MviGIjUW9brEwTEpedxhW+UWPr1agvtfoA6IUWATjO2++08o=",
+    "iv": "i3VdHJGXUwU0gUXj",
+    "ciphertext": "KIr8l6kk36FymRNRkkyLe7XafT3K6/Vljly1bWKiEmX3R/NimAJJUPd5bR4ahaexzkHlLm19OjcL4bqT5Ub/ucM6jCSybZZQKA3Ur5eIK4ZQzsIGn1gRwBUyOMwBwOJmwn+f/9yR+M4ar/h8hcbGyg44aJwNQhBGgf07j8N8"
+  },
+  "fromAndroid": {
+    "plaintext": "{\"v\":1,\"kind\":\"notification\",\"app\":\"com.whatsapp\",\"appName\":\"WhatsApp\",\"title\":\"Sam\",\"text\":\"Etentje \\\"vanavond\\\"? 🍝\",\"postedAt\":1760870400000}",
+    "ephemeralKey": "BE2oGDNDe53fUhlleczATsLiE+JNoIoqACGfdIfYWVQ55lxgVXSxYrI/L1gb+aq0aiVLwtHUb5S38ohOeqsDFqM=",
+    "iv": "+l4o6qrwxhuzx8oM",
+    "ciphertext": "Pv8z0A2OYBRRBkVljJ3u77KktfU7VWcxqQYk+JUFi3iLzqDjtNnhjunrmTJqmujxnNalB+XIwugZhM54budXcvYakdRKplJFO58GBErEU7v8BM88d6b6p77c2+gv0s5Ma98lfM+PuOjVWnWEqcV7e+fn4INSqfZFjxTajlZiA6oH+ubEdrTEkTMP6LaUOZJVErr76nKR7j5cs2xt6rx+pVDu"
+  }
+}
