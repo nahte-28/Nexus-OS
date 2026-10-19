@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { PLATFORM_LABELS } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
+import { isDesktopApp } from '../platform/desktop'
 import type { DeviceView } from '../connect/engine'
 
 const RELEASES_URL = 'https://github.com/nahte-28/Nexus-OS/releases'
@@ -19,8 +20,9 @@ export function Devices() {
   const { engine, state } = useConnect()
   const [busy, setBusy] = useState<string | null>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
+  // The Windows app shows notifications natively; the browser needs permission first.
   const [permission, setPermission] = useState(() =>
-    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+    isDesktopApp || typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
   )
 
   const run = async (key: string, action: () => Promise<string | void>) => {

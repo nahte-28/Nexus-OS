@@ -10,3 +10,5 @@ dev-dist/
 apps/android-companion/**/build/
 apps/android-companion/local.properties
 *.apk
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/

@@ -2,18 +2,19 @@
 
 Een modulair, persoonlijk ecosysteem voor web, Windows, Android en smartwatch. Zie het projectdocument (v0.3) voor visie en roadmap.
 
-Deze repository bevat versie **0.4**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc. De webapp is als PWA installeerbaar.
+Deze repository bevat versie **0.5**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc. De webapp is als PWA installeerbaar en er is een Windows-app.
 
 ## Structuur
 
 ```
 apps/web                React + TypeScript + Vite + Tailwind webapp (PWA)
+apps/desktop            Windows-app (Tauri) rond dezelfde interface
 apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt
 packages/core           Gedeelde types en logica: thema's, vensterbeheer, notities, sync, Connect
 supabase                Databaseschema (migraties) voor accounts, sync en Connect
 ```
 
-Later volgen `apps/desktop` (Tauri), `packages/ui` en `packages/api-client`.
+Later volgen `packages/ui` en `packages/api-client`.
 
 ## Aan de slag
 
@@ -62,6 +63,17 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
 
+## Windows-app
+
+`apps/desktop` verpakt dezelfde interface als de webapp in een Windows-app met [Tauri](https://tauri.app). GitHub Actions bouwt bij elke wijziging op `main` een installer en zet `nexus-os-setup.exe` bij de [releases](https://github.com/nahte-28/Nexus-OS/releases).
+
+- Sluit je het venster, dan blijft NEXUS in het systeemvak draaien en krijg je Windows-meldingen van je gsm. Afsluiten doe je via het icoon in het systeemvak.
+- In Instellingen kun je NEXUS laten starten met Windows; het start dan stil in het systeemvak.
+- Inloggen gaat met e-mail en wachtwoord (een inloglink zou in de browser openen).
+- De installer is nog niet digitaal ondertekend. Windows SmartScreen waarschuwt daarom; kies "Meer informatie" en "Toch uitvoeren".
+
+Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/prerequisites/), zet de Supabase-waarden in `apps/web/.env.local` en voer `npm run dev -w @nexus/desktop` (ontwikkelen) of `npm run build -w @nexus/desktop` (installer) uit.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
@@ -75,4 +87,6 @@ Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/andro
 - Focus- en Pulse-thema als design tokens, direct wisselbaar en onthouden.
 - PWA-manifest, iconen en service worker met offline fallback.
 
-Nog niet in v0.4: Web Push (meldingen terwijl NEXUS helemaal gesloten is) en meldingen van NEXUS naar je gsm. Volgende stap is v0.5: de Windows-app via Tauri.
+- Windows-app met systeemvak, Windows-meldingen en starten met Windows.
+
+Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is) en meldingen van NEXUS naar je gsm. Volgende stap is v0.6: meldingen op je horloge.

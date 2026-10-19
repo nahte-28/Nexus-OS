@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { isDesktopApp } from '../platform/desktop'
 import { useSync } from '../sync/SyncContext'
 import type { SyncState } from '../sync/engine'
 import { missingSupabaseEnv } from '../sync/supabase'
@@ -25,7 +26,8 @@ type Mode = 'login' | 'signup' | 'link'
 const MODES: Array<{ id: Mode; label: string }> = [
   { id: 'login', label: 'Inloggen' },
   { id: 'signup', label: 'Account maken' },
-  { id: 'link', label: 'Inloglink' },
+  // A login link opens in the browser, not in the Windows app, so the app only offers passwords.
+  ...(isDesktopApp ? [] : [{ id: 'link' as const, label: 'Inloglink' }]),
 ]
 
 const inputClass =
