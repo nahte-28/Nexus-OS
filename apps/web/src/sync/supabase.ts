@@ -1,8 +1,15 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { toNote, type Note, type PullResult, type RemoteStore } from '@nexus/core'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+/** Accepts the project URL as copied from anywhere in the dashboard, e.g. with a trailing /rest/v1/. */
+export function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim()
+  if (!trimmed) return undefined
+  return trimmed.replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '')
+}
+
+const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined)
+const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
 
 /** Null until the Supabase env vars are set; the app then simply stays local-only. */
 export const supabase: SupabaseClient | null = url && key ? createClient(url, key) : null
