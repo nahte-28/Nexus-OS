@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
+import { ConnectProvider } from './connect/ConnectContext'
 import { SyncProvider } from './sync/SyncContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import './index.css'
@@ -12,7 +13,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <SyncProvider>
-        <App />
+        <ConnectProvider>
+          <App />
+        </ConnectProvider>
       </SyncProvider>
     </ThemeProvider>
   </StrictMode>,

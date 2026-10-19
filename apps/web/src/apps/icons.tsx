@@ -60,3 +60,18 @@ export const CloudIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z" />
   </svg>
 )
+
+export const DevicesIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="2" y="4" width="14" height="10" rx="1.5" />
+    <path d="M6 18h6M9 14v4" />
+    <rect x="17" y="8" width="5" height="12" rx="1.2" />
+  </svg>
+)
+
+export const BellIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z" />
+    <path d="M10 20a2 2 0 0 0 4 0" />
+  </svg>
+)

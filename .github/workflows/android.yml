@@ -1,0 +1,49 @@
+name: Android companion
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/android-companion/**
+      - packages/core/src/fixtures/**
+      - .github/workflows/android.yml
+  pull_request:
+    paths:
+      - apps/android-companion/**
+      - packages/core/src/fixtures/**
+      - .github/workflows/android.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to publish the APK as a release on main
+    defaults:
+      run:
+        working-directory: apps/android-companion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Use the same encryption test vectors as the web app
+        run: diff app/src/test/resources/connect-vectors.json ../../packages/core/src/fixtures/connect-vectors.json
+      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - run: cp app/build/outputs/apk/debug/app-debug.apk nexus-companion.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nexus-companion
+          path: apps/android-companion/nexus-companion.apk
+      - name: Publish the APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: companion-v0.4.${{ github.run_number }}
+          name: NEXUS Companion 0.4.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          files: apps/android-companion/nexus-companion.apk
+          body: |
+            Installeer `nexus-companion.apk` op je gsm. Elke nieuwe versie installeert over de vorige heen.
+            Eerste keer: sta installeren uit je browser of bestanden-app toe, en daarna in App-info > ⋮ > "Beperkte instellingen toestaan" zodat je meldingstoegang kunt geven.

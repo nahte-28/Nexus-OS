@@ -33,6 +33,7 @@ export class SyncEngine {
   private again = false
   private debounce: ReturnType<typeof setTimeout> | undefined
   private cleanups: Array<() => void> = []
+  private signOutHooks: Array<() => Promise<void>> = []
 
   constructor(
     private client: SupabaseClient | null,
@@ -186,10 +187,16 @@ export class SyncEngine {
     if (error) throw new Error(authErrorText(error.message))
   }
 
+  /** Runs `hook` during sign-out, while the session is still valid. */
+  beforeSignOut(hook: () => Promise<void>): void {
+    this.signOutHooks.push(hook)
+  }
+
   /** Signs out and removes this device's copy; the data stays safe in the account. */
   async signOut(): Promise<void> {
     if (!this.client) return
     await this.syncNow()
+    for (const hook of this.signOutHooks) await hook()
     await this.client.auth.signOut()
     await this.store.reset()
     this.set({ lastSyncedAt: null })
