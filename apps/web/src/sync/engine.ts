@@ -149,7 +149,8 @@ export class SyncEngine {
     if (!this.client) throw new Error('Synchronisatie is niet ingesteld.')
     const { error } = await this.client.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      // A trailing slash is needed to match redirect patterns like https://*.vercel.app/**.
+      options: { emailRedirectTo: `${window.location.origin}/` },
     })
     if (error) throw error
   }
