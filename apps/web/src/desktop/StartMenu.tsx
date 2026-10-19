@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppId } from '@nexus/core'
-import { APPS } from '../apps/registry'
+import { useVisibleApps } from '../apps/registry'
 
 interface Props {
   onClose: () => void
@@ -10,7 +10,7 @@ interface Props {
 export function StartMenu({ onClose, onOpenApp }: Props) {
   const [query, setQuery] = useState('')
   const ref = useRef<HTMLDivElement>(null)
-  const results = APPS.filter((a) => a.title.toLowerCase().includes(query.trim().toLowerCase()))
+  const results = useVisibleApps().filter((a) => a.title.toLowerCase().includes(query.trim().toLowerCase()))
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()

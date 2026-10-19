@@ -1,7 +1,7 @@
 {
   "name": "nexus-os",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "workspaces": [
     "apps/*",
@@ -12,6 +12,9 @@
     "build": "npm run build -w @nexus/web",
     "preview": "npm run preview -w @nexus/web",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p api"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
   }
 }

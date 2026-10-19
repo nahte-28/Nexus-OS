@@ -47,7 +47,7 @@ jobs:
           node -e '
             const fs = require("fs"), p = "apps/desktop/src-tauri/tauri.conf.json"
             const conf = JSON.parse(fs.readFileSync(p, "utf8"))
-            conf.version = `0.6.${process.env.GITHUB_RUN_NUMBER}`
+            conf.version = `0.7.${process.env.GITHUB_RUN_NUMBER}`
             fs.writeFileSync(p, JSON.stringify(conf, null, 2))
           '
       - run: npm run build -w @nexus/desktop
@@ -60,8 +60,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-v0.6.${{ github.run_number }}
-          name: NEXUS OS voor Windows 0.6.${{ github.run_number }}
+          tag_name: desktop-v0.7.${{ github.run_number }}
+          name: NEXUS OS voor Windows 0.7.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           files: nexus-os-setup.exe
           body: |

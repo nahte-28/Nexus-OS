@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { AppId } from '@nexus/core'
-import { APPS, getApp } from '../apps/registry'
+import { getApp, useVisibleApps } from '../apps/registry'
 import { BackIcon, GridIcon } from '../apps/icons'
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
 export function MobileShell() {
   const [openId, setOpenId] = useState<AppId | null>(null)
   const app = openId ? getApp(openId) : null
+  const apps = useVisibleApps()
 
   // Android back button / gesture returns to the app grid instead of leaving NEXUS.
   useEffect(() => {
@@ -49,7 +50,7 @@ export function MobileShell() {
           </div>
         ) : (
           <ul className="grid grid-cols-4 gap-y-6 p-5" aria-label="Apps">
-            {APPS.map((a) => (
+            {apps.map((a) => (
               <li key={a.id}>
                 <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
                   <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
@@ -67,7 +68,7 @@ export function MobileShell() {
         <NavButton label="Apps" active={!app} onClick={goHome}>
           <GridIcon />
         </NavButton>
-        {APPS.slice(0, 2).map((a) => (
+        {apps.slice(0, 2).map((a) => (
           <NavButton key={a.id} label={a.title} active={openId === a.id} onClick={() => switchTo(a.id)}>
             <a.icon />
           </NavButton>

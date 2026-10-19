@@ -1,9 +1,10 @@
 /** Minimal IndexedDB wrapper: one object store per collection plus a key/value "meta" store. */
 
 const DB_NAME = 'nexus'
-const DB_VERSION = 2
-// inbox: received Connect notifications; connect: this device's identity and keys.
-export const STORES = ['notes', 'meta', 'inbox', 'connect'] as const
+const DB_VERSION = 3
+// inbox: received Connect notifications; connect: this device's identity and keys;
+// reminders: planned notifications, kept on this device only.
+export const STORES = ['notes', 'meta', 'inbox', 'connect', 'reminders'] as const
 export type StoreName = (typeof STORES)[number]
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -17,6 +18,7 @@ export function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta')
       if (!db.objectStoreNames.contains('inbox')) db.createObjectStore('inbox', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('connect')) db.createObjectStore('connect')
+      if (!db.objectStoreNames.contains('reminders')) db.createObjectStore('reminders', { keyPath: 'id' })
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => {
@@ -84,11 +86,14 @@ export async function update(
   return done(tx)
 }
 
-/** Clears all local data, used on sign-out so the next account starts clean. */
+/** Account data, cleared on sign-out. Reminders belong to the device and work without an account. */
+const ACCOUNT_STORES = STORES.filter((name) => name !== 'reminders')
+
+/** Clears all local account data, used on sign-out so the next account starts clean. */
 export async function clearAll(): Promise<void> {
   const db = await openDb()
-  const tx = db.transaction([...STORES], 'readwrite')
-  for (const name of STORES) tx.objectStore(name).clear()
+  const tx = db.transaction(ACCOUNT_STORES, 'readwrite')
+  for (const name of ACCOUNT_STORES) tx.objectStore(name).clear()
   return done(tx)
 }
 

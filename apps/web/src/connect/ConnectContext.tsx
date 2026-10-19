@@ -4,7 +4,7 @@ import { supabase } from '../sync/supabase'
 import { ConnectEngine } from './engine'
 import { createConnectRemote } from './remote'
 
-const defaultEngine = new ConnectEngine(supabase, supabase ? createConnectRemote(supabase) : null)
+export const defaultEngine = new ConnectEngine(supabase, supabase ? createConnectRemote(supabase) : null)
 defaultSyncEngine.beforeSignOut(() => defaultEngine.leave())
 
 const ConnectContext = createContext<ConnectEngine>(defaultEngine)

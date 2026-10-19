@@ -24,3 +24,11 @@ export async function setAutostart(enabled: boolean): Promise<void> {
   const { enable, disable } = await import('@tauri-apps/plugin-autostart')
   await (enabled ? enable() : disable())
 }
+
+/**
+ * Where the NEXUS server functions (like NEXUS AI) live. The web app calls its own host;
+ * the Windows app has no server of its own and calls the live NEXUS.
+ */
+export const apiBase = isDesktopApp
+  ? ((import.meta.env.VITE_NEXUS_HOST as string | undefined)?.replace(/\/+$/, '') || 'https://nexus-os-lime.vercel.app')
+  : ''

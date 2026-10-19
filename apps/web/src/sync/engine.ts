@@ -1,3 +1,4 @@
+import { logEvent } from '../devtools/log'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { syncOnce, type Note, type RemoteStore } from '@nexus/core'
 import type { NotesStore } from '../state/notesStore'
@@ -210,6 +211,9 @@ export class SyncEngine {
   getSnapshot = (): SyncState => this.state
 
   private set(patch: Partial<SyncState>): void {
+    if (patch.status && patch.status !== this.state.status) {
+      logEvent('sync', `Status: ${patch.status}${patch.error ? ` (${patch.error})` : ''}`, patch.status === 'error')
+    }
     this.state = { ...this.state, ...patch }
     for (const l of this.listeners) l()
   }
