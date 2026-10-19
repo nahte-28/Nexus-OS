@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Note, PullResult, RemoteStore } from '@nexus/core'
 import { resetDbConnection } from '../state/db'
 import { NotesStore } from '../state/notesStore'
-import { SyncEngine } from './engine'
+import { authErrorText, SyncEngine } from './engine'
 
 class FakeServer implements RemoteStore<Note> {
   rows = new Map<string, Note>()
@@ -117,5 +117,33 @@ describe('SyncEngine', () => {
     expect(store.getSnapshot()).toEqual([])
     expect(server.rows.size).toBe(1)
     stop()
+  })
+})
+
+describe('password sign-in', () => {
+  it('translates Supabase auth errors to Dutch', () => {
+    expect(authErrorText('Invalid login credentials')).toBe('E-mailadres of wachtwoord klopt niet.')
+    expect(authErrorText('email rate limit exceeded')).toMatch(/te veel mails/)
+    expect(authErrorText('Password should be at least 6 characters.')).toBe('Je wachtwoord moet minstens 6 tekens lang zijn.')
+    expect(authErrorText('Something new')).toBe('Something new')
+  })
+
+  it('signs up, signs in and reports existing accounts', async () => {
+    const auth = {
+      signUp: vi.fn(async ({ email }: { email: string }) =>
+        email === 'bestaat@example.com'
+          ? { data: { user: { identities: [] }, session: null }, error: null }
+          : { data: { user: { identities: [{}] }, session: null }, error: null },
+      ),
+      signInWithPassword: vi.fn(async ({ password }: { password: string }) => ({
+        data: {},
+        error: password === 'goed' ? null : { message: 'Invalid login credentials' },
+      })),
+    }
+    const engine = new SyncEngine({ auth } as unknown as SupabaseClient, new NotesStore(), new FakeServer())
+    await expect(engine.signUp('nieuw@example.com', 'geheim1')).resolves.toEqual({ needsConfirmation: true })
+    await expect(engine.signUp('bestaat@example.com', 'geheim1')).rejects.toThrow(/bestaat al/)
+    await expect(engine.signInWithPassword('a@example.com', 'fout')).rejects.toThrow('E-mailadres of wachtwoord klopt niet.')
+    await expect(engine.signInWithPassword('a@example.com', 'goed')).resolves.toBeUndefined()
   })
 })

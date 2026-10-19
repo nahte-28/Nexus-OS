@@ -20,25 +20,55 @@ export function statusText(state: SyncState): string {
   }
 }
 
+type Mode = 'login' | 'signup' | 'link'
+
+const MODES: Array<{ id: Mode; label: string }> = [
+  { id: 'login', label: 'Inloggen' },
+  { id: 'signup', label: 'Account maken' },
+  { id: 'link', label: 'Inloglink' },
+]
+
+const inputClass =
+  'w-full min-w-0 rounded-lg border border-nx-border bg-nx-surface-2 px-3 py-2 outline-none placeholder:text-nx-muted'
+const primaryButton = 'rounded-lg bg-nx-accent px-4 py-2 font-medium text-nx-accent-text disabled:opacity-60'
+
 export function Account() {
   const { engine, state } = useSync()
+  const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
+  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
+  const run = async (action: () => Promise<string | null>) => {
     setBusy(true)
     setError(null)
+    setNotice(null)
     try {
-      await engine.signIn(email.trim())
-      setSent(true)
+      setNotice(await action())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Er ging iets mis.')
     } finally {
       setBusy(false)
     }
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    const address = email.trim()
+    void run(async () => {
+      if (mode === 'link') {
+        await engine.signIn(address)
+        return `Check je mailbox: we stuurden een inloglink naar ${address}.`
+      }
+      if (mode === 'signup') {
+        const { needsConfirmation } = await engine.signUp(address, password)
+        return needsConfirmation ? `Bijna klaar: bevestig je account via de mail naar ${address}.` : null
+      }
+      await engine.signInWithPassword(address, password)
+      return null
+    })
   }
 
   const signOut = async () => {
@@ -72,32 +102,62 @@ export function Account() {
       <div className="space-y-3 p-4 text-sm">
         <h2 className="text-lg font-semibold">Aanmelden</h2>
         <p className="text-nx-muted">Meld je aan om je notities te synchroniseren tussen je pc en je gsm.</p>
-        {sent ? (
-          <p role="status" className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
-            Check je mailbox: we stuurden een inloglink naar <strong>{email}</strong>.
-          </p>
-        ) : (
-          <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jij@voorbeeld.be"
-              aria-label="E-mailadres"
-              className="min-w-0 flex-1 rounded-lg border border-nx-border bg-nx-surface-2 px-3 py-2 outline-none placeholder:text-nx-muted"
-            />
+        <div role="tablist" aria-label="Manier van aanmelden" className="flex gap-1 rounded-lg bg-nx-surface-2 p-1">
+          {MODES.map((m) => (
             <button
-              type="submit"
-              disabled={busy}
-              className="rounded-lg bg-nx-accent px-4 py-2 font-medium text-nx-accent-text disabled:opacity-60"
+              key={m.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === m.id}
+              onClick={() => {
+                setMode(m.id)
+                setError(null)
+                setNotice(null)
+              }}
+              className={`flex-1 rounded-md px-2 py-1.5 ${mode === m.id ? 'bg-nx-surface font-medium shadow-sm' : 'text-nx-muted'}`}
             >
-              Stuur inloglink
+              {m.label}
             </button>
-          </form>
+          ))}
+        </div>
+        <form onSubmit={submit} className="flex flex-col gap-2">
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="jij@voorbeeld.be"
+            aria-label="E-mailadres"
+            className={inputClass}
+          />
+          {mode !== 'link' && (
+            <input
+              type="password"
+              required
+              minLength={6}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Wachtwoord"
+              aria-label="Wachtwoord"
+              className={inputClass}
+            />
+          )}
+          <button type="submit" disabled={busy} className={primaryButton}>
+            {mode === 'login' ? 'Inloggen' : mode === 'signup' ? 'Account maken' : 'Stuur inloglink'}
+          </button>
+        </form>
+        {notice && (
+          <p role="status" className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+            {notice}
+          </p>
         )}
-        {error && <p className="text-red-500">{error}</p>}
+        {error && (
+          <p role="alert" className="text-red-500">
+            {error}
+          </p>
+        )}
       </div>
     )
   }
@@ -120,17 +180,48 @@ export function Account() {
         {state.error && <p className="text-red-500">{state.error}</p>}
       </div>
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => void engine.syncNow()}
-          className="rounded-lg bg-nx-accent px-4 py-2 font-medium text-nx-accent-text"
-        >
+        <button type="button" onClick={() => void engine.syncNow()} className={primaryButton}>
           Nu synchroniseren
         </button>
         <button type="button" onClick={signOut} className="rounded-lg border border-nx-border px-4 py-2">
           Afmelden
         </button>
       </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void run(async () => {
+            await engine.setPassword(password)
+            setPassword('')
+            return 'Je wachtwoord is opgeslagen. Je kunt er voortaan mee inloggen.'
+          })
+        }}
+        className="space-y-2 border-t border-nx-border pt-4"
+      >
+        <h3 className="font-medium">Wachtwoord instellen</h3>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="password"
+            required
+            minLength={6}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Nieuw wachtwoord"
+            aria-label="Nieuw wachtwoord"
+            className={inputClass}
+          />
+          <button type="submit" disabled={busy} className="rounded-lg border border-nx-border px-4 py-2 disabled:opacity-60">
+            Opslaan
+          </button>
+        </div>
+        {notice && <p role="status">{notice}</p>}
+        {error && (
+          <p role="alert" className="text-red-500">
+            {error}
+          </p>
+        )}
+      </form>
     </div>
   )
 }

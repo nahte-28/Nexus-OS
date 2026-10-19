@@ -145,14 +145,45 @@ export class SyncEngine {
     }
   }
 
-  async signIn(email: string): Promise<void> {
+  private requireClient(): SupabaseClient {
     if (!this.client) throw new Error('Synchronisatie is niet ingesteld.')
-    const { error } = await this.client.auth.signInWithOtp({
+    return this.client
+  }
+
+  /** Emails a one-time login link. */
+  async signIn(email: string): Promise<void> {
+    const { error } = await this.requireClient().auth.signInWithOtp({
       email,
       // A trailing slash is needed to match redirect patterns like https://*.vercel.app/**.
       options: { emailRedirectTo: `${window.location.origin}/` },
     })
-    if (error) throw error
+    if (error) throw new Error(authErrorText(error.message))
+  }
+
+  async signInWithPassword(email: string, password: string): Promise<void> {
+    const { error } = await this.requireClient().auth.signInWithPassword({ email, password })
+    if (error) throw new Error(authErrorText(error.message))
+  }
+
+  /** Creates an account; resolves to true when the project still wants the email confirmed first. */
+  async signUp(email: string, password: string): Promise<{ needsConfirmation: boolean }> {
+    const { data, error } = await this.requireClient().auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
+    if (error) throw new Error(authErrorText(error.message))
+    // Supabase hides whether an address exists: a known address comes back without identities.
+    if (data.user && data.user.identities?.length === 0) {
+      throw new Error('Er bestaat al een account met dit e-mailadres. Meld je aan, of stel een wachtwoord in na inloggen.')
+    }
+    return { needsConfirmation: !data.session }
+  }
+
+  /** Sets or changes the password of the signed-in account, e.g. one created via a login link. */
+  async setPassword(password: string): Promise<void> {
+    const { error } = await this.requireClient().auth.updateUser({ password })
+    if (error) throw new Error(authErrorText(error.message))
   }
 
   /** Signs out and removes this device's copy; the data stays safe in the account. */
@@ -175,4 +206,23 @@ export class SyncEngine {
     this.state = { ...this.state, ...patch }
     for (const l of this.listeners) l()
   }
+}
+
+const AUTH_ERRORS: Array<[RegExp, string]> = [
+  [/invalid login credentials/i, 'E-mailadres of wachtwoord klopt niet.'],
+  [/email not confirmed/i, 'Bevestig eerst je e-mailadres via de mail die je kreeg.'],
+  [/rate limit/i, 'Er zijn te veel mails verstuurd. Wacht even of log in met je wachtwoord.'],
+  [/password should be at least (\d+)/i, 'Je wachtwoord moet minstens $1 tekens lang zijn.'],
+  [/already registered/i, 'Er bestaat al een account met dit e-mailadres.'],
+  [/same.*password|different from the old/i, 'Kies een ander wachtwoord dan je huidige.'],
+  [/failed to fetch|network/i, 'Geen verbinding met de server. Controleer je internet.'],
+]
+
+/** Turns Supabase's English auth errors into Dutch messages for the UI. */
+export function authErrorText(message: string): string {
+  for (const [pattern, text] of AUTH_ERRORS) {
+    const match = message.match(pattern)
+    if (match) return text.replace('$1', match[1] ?? '')
+  }
+  return message
 }

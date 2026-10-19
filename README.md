@@ -38,6 +38,7 @@ Zonder Supabase werkt de app volledig lokaal. Voor synchronisatie zet je in Verc
 2. Open de SQL Editor en voer `supabase/migrations/20261019000000_notes.sql` uit. Dat maakt de tabel, de toegangsregels (row-level security) en realtime aan.
 3. Zet onder Authentication > URL Configuration de **Site URL** op je Vercel-adres en voeg `http://localhost:5173` en je preview-URL's (bijvoorbeeld `https://*-jouwnaam.vercel.app/**`) toe bij **Redirect URLs**. De inloglink in de mail komt anders niet terug in de app.
 4. Kopieer onder Project Settings > API de project-URL en de anon/publishable key naar de omgevingsvariabelen.
+5. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
 
 ## Hoe synchronisatie werkt
 
@@ -49,7 +50,7 @@ Elk apparaat bewaart al je notities in een lokale database (IndexedDB) en werkt 
 - Vensters verplaatsen, vergroten, minimaliseren, maximaliseren (dubbelklik op de titelbalk) en sluiten.
 - Onder 768px breed: appgrid, apps op volledig scherm, onderste navigatie en de Android-terugknop.
 - Notities in een lokale database, offline bruikbaar, gesynchroniseerd tussen tabbladen en (met een account) tussen apparaten.
-- Aanmelden met een inloglink per e-mail, sync-status in de taakbalk en de Account-app.
+- Aanmelden met e-mail en wachtwoord of met een inloglink per e-mail, sync-status in de taakbalk en de Account-app.
 - Focus- en Pulse-thema als design tokens, direct wisselbaar en onthouden.
 - PWA-manifest, iconen en service worker met offline fallback.
 
