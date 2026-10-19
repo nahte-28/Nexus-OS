@@ -141,7 +141,7 @@ export class SyncEngine {
       const offline = !navigator.onLine
       this.set({
         status: offline ? 'offline' : 'error',
-        error: offline ? null : err instanceof Error ? err.message : String(err),
+        error: offline ? null : errorText(err),
       })
     }
   }
@@ -232,4 +232,29 @@ export function authErrorText(message: string): string {
     if (match) return text.replace('$1', match[1] ?? '')
   }
   return message
+}
+
+const SERVER_ERRORS: Array<[RegExp, string]> = [
+  [/42P01|PGRST205|could not find the table|does not exist/i, 'De tabel voor notities ontbreekt. Voer de migratie 20261019000000_notes.sql uit in Supabase.'],
+  [/42501|row-level security/i, 'De server weigert een notitie: ze hoort bij een ander account.'],
+  [/23503|foreign key/i, 'Dit account bestaat niet meer op de server. Meld je af en opnieuw aan.'],
+  [/JWT|PGRST30/i, 'Je sessie is verlopen. Meld je af en opnieuw aan.'],
+  [/failed to fetch|network/i, 'Geen verbinding met de server. Controleer je internet.'],
+]
+
+/**
+ * A readable message for any error, also for Supabase's plain error objects
+ * ({ message, code, details }) that are not Error instances.
+ */
+export function errorText(err: unknown): string {
+  const e = (typeof err === 'object' && err !== null ? err : { message: String(err) }) as {
+    message?: unknown
+    code?: unknown
+    details?: unknown
+  }
+  const message = typeof e.message === 'string' && e.message ? e.message : 'Onbekende fout'
+  const code = typeof e.code === 'string' ? e.code : ''
+  const probe = `${code} ${message}`
+  for (const [pattern, text] of SERVER_ERRORS) if (pattern.test(probe)) return `${text} (${code || message})`
+  return code ? `${message} (${code})` : message
 }

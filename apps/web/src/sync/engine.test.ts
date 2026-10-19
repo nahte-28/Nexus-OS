@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Note, PullResult, RemoteStore } from '@nexus/core'
 import { resetDbConnection } from '../state/db'
 import { NotesStore } from '../state/notesStore'
-import { authErrorText, SyncEngine } from './engine'
+import { authErrorText, errorText, SyncEngine } from './engine'
 
 class FakeServer implements RemoteStore<Note> {
   rows = new Map<string, Note>()
@@ -145,5 +145,16 @@ describe('password sign-in', () => {
     await expect(engine.signUp('bestaat@example.com', 'geheim1')).rejects.toThrow(/bestaat al/)
     await expect(engine.signInWithPassword('a@example.com', 'fout')).rejects.toThrow('E-mailadres of wachtwoord klopt niet.')
     await expect(engine.signInWithPassword('a@example.com', 'goed')).resolves.toBeUndefined()
+  })
+})
+
+describe('errorText', () => {
+  it('reads Supabase error objects instead of showing [object Object]', () => {
+    expect(errorText({ message: 'new row violates row-level security policy for table "notes"', code: '42501' })).toMatch(
+      /ander account.*42501/,
+    )
+    expect(errorText({ message: 'Something odd', code: 'XX000' })).toBe('Something odd (XX000)')
+    expect(errorText(new Error('Failed to fetch'))).toMatch(/Geen verbinding/)
+    expect(errorText('kapot')).toBe('kapot')
   })
 })
