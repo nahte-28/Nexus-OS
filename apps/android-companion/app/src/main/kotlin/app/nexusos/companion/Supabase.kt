@@ -19,6 +19,8 @@ data class Session(
     val email: String,
 )
 
+data class RemoteMessage(val id: String, val senderDeviceId: String, val envelope: ConnectCrypto.Envelope)
+
 data class RemoteDevice(
     val id: String,
     val name: String,
@@ -46,7 +48,7 @@ class Supabase(private val url: String, private val anonKey: String) {
 
     companion object {
         private val JSON = "application/json".toMediaType()
-        private val http = OkHttpClient.Builder()
+        val http: OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .build()
@@ -110,6 +112,30 @@ class Supabase(private val url: String, private val anonKey: String) {
 
     fun revokeDevice(token: String, id: String) {
         request("PATCH", "/rest/v1/devices?id=eq.$id", token, JSONObject().put("revoked_at", Instant.now().toString()).toString())
+    }
+
+    /** Encrypted messages waiting for this device, oldest first. */
+    fun fetchMessages(token: String, deviceId: String): List<RemoteMessage> {
+        val body = request(
+            "GET",
+            "/rest/v1/connect_messages?select=id,sender_device_id,ephemeral_key,iv,ciphertext" +
+                "&recipient_device_id=eq.$deviceId&order=created_at&limit=50",
+            token,
+        )
+        val rows = JSONArray(body)
+        return (0 until rows.length()).map {
+            val o = rows.getJSONObject(it)
+            RemoteMessage(
+                id = o.getString("id"),
+                senderDeviceId = o.getString("sender_device_id"),
+                envelope = ConnectCrypto.Envelope(o.getString("ephemeral_key"), o.getString("iv"), o.getString("ciphertext")),
+            )
+        }
+    }
+
+    fun deleteMessages(token: String, ids: List<String>) {
+        if (ids.isEmpty()) return
+        request("DELETE", "/rest/v1/connect_messages?id=in.(${ids.joinToString(",")})", token)
     }
 
     fun sendMessages(token: String, rows: JSONArray) {

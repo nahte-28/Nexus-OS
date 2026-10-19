@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { encryptFor, type Device, type InboxItem } from '@nexus/core'
+import { decryptWith, encryptFor, exportPublicKey, generateDeviceKeyPair, type Device, type InboxItem } from '@nexus/core'
 import { getAll, resetDbConnection } from '../state/db'
 import { ConnectEngine } from './engine'
 import { ConnectSetupError, type ConnectMessage, type ConnectRemote, type OutgoingMessage } from './remote'
@@ -119,6 +119,25 @@ describe('ConnectEngine', () => {
     await engine.sendTest(pc.id)
     await vi.waitFor(() => expect(remote.messages).toHaveLength(0))
     expect(engine.getSnapshot().inbox.map((i) => i.kind)).toEqual(['test'])
+    stop()
+  })
+
+  it('sends an encrypted NEXUS notification that only the phone can read', async () => {
+    const remote = new FakeRemote()
+    const engine = new ConnectEngine(fakeClient(), remote, () => {})
+    const stop = engine.start()
+    await ready(engine)
+    const phoneKeys = await generateDeviceKeyPair()
+    const phoneKey = await exportPublicKey(phoneKeys.publicKey)
+    await remote.registerDevice({ id: 'phone', name: 'OnePlus 15R', platform: 'android', publicKey: phoneKey })
+    await engine.refreshDevices()
+
+    await expect(engine.sendNotification('phone', '   ')).rejects.toThrow('titel')
+    await engine.sendNotification('phone', ' Deadline ', 'Verslag inleveren')
+    const [message] = await remote.fetchMessages('phone')
+    expect(message.ciphertext).not.toContain('Verslag')
+    const payload = JSON.parse(await decryptWith(phoneKeys.privateKey, phoneKey, 'phone', message))
+    expect(payload).toMatchObject({ v: 1, kind: 'notification', app: 'nexus', appName: 'NEXUS', title: 'Deadline', text: 'Verslag inleveren' })
     stop()
   })
 

@@ -13,7 +13,7 @@ android {
         minSdk = 31
         targetSdk = 35
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "0.4.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
+        versionName = "0.6.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
     }
 
     signingConfigs {
@@ -45,4 +45,6 @@ android {
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("junit:junit:4.13.2")
+    // The real org.json, because unit tests only get stubs of Android's copy.
+    testImplementation("org.json:json:20240303")
 }

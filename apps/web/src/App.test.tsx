@@ -84,6 +84,6 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.5')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.6')).toBeTruthy()
   })
 })

@@ -2,7 +2,7 @@
 
 Een modulair, persoonlijk ecosysteem voor web, Windows, Android en smartwatch. Zie het projectdocument (v0.3) voor visie en roadmap.
 
-Deze repository bevat versie **0.5**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc. De webapp is als PWA installeerbaar en er is een Windows-app.
+Deze repository bevat versie **0.6**: een webdesktop met vensterbeheer, een mobiele weergave voor de OnePlus 15R, notities die offline werken en via een account synchroniseren, de thema's **NEXUS Focus** en **NEXUS Pulse**, en **NEXUS Connect**: gekoppelde apparaten en end-to-end versleutelde meldingen van je gsm naar je pc en van NEXUS naar je gsm en horloge. De webapp is als PWA installeerbaar en er is een Windows-app.
 
 ## Structuur
 
@@ -60,6 +60,7 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 2. Open NEXUS Companion, controleer het adres van je NEXUS-webapp (standaard `nexus-os-lime.vercel.app`) en log in met hetzelfde account. De app haalt de Supabase-instellingen op via `/nexus-config.json` van die webapp.
 3. Tik op **Meldingstoegang openen** en zet NEXUS Companion aan. Is de schakelaar grijs? Android blokkeert dat voor zelf geïnstalleerde apps: open **App-info**, tik op ⋮ en kies **Beperkte instellingen toestaan**.
 4. Vink bij **Naar deze apparaten** je pc aan (vergelijk de code) en kies per app wat je deelt: uit, alleen titel, of titel en inhoud. Elke app staat standaard uit en codes in inlogberichten worden gemaskeerd.
+5. Voor meldingen van NEXUS naar je gsm en horloge: sta meldingen van de companion toe en zet batterijoptimalisatie uit (knop in de app), zodat OxygenOS de live verbinding niet verbreekt. Zet in de OHealth-app de meldingen van NEXUS Companion aan om ze op je horloge te krijgen.
 
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
 
@@ -88,5 +89,6 @@ Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/p
 - PWA-manifest, iconen en service worker met offline fallback.
 
 - Windows-app met systeemvak, Windows-meldingen en starten met Windows.
+- Van NEXUS naar gsm en horloge: in Apparaten stuur je een melding naar je gsm. De companion houdt een live verbinding open zolang hij meldingstoegang heeft, toont de melding als Android-melding, en de horloge-app (OHealth) zet ze door naar je OnePlus Watch.
 
-Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is) en meldingen van NEXUS naar je gsm. Volgende stap is v0.6: meldingen op je horloge.
+Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is) en een eigen Wear OS-app. Volgende stap is v0.7: AI, automatiseringen en developer tools.

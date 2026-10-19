@@ -293,17 +293,26 @@ export class ConnectEngine {
   /** Sends an encrypted test notification to one of the user's devices (this one included). */
   async sendTest(deviceId: string): Promise<void> {
     const identity = this.requireIdentity()
-    const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
-    if (!target) throw new Error('Dit apparaat is niet meer actief.')
-    const payload: ConnectPayload = {
-      v: 1,
+    await this.deliver(deviceId, {
       kind: 'test',
-      app: 'nexus',
-      appName: 'NEXUS',
       title: `Testmelding van ${this.state.device?.name ?? identity.name}`,
       text: 'Als je dit leest, werkt NEXUS Connect. De inhoud was onderweg versleuteld.',
-      postedAt: Date.now(),
-    }
+    })
+  }
+
+  /** Sends a NEXUS notification, e.g. to the phone, which shows it there and on the watch. */
+  async sendNotification(deviceId: string, title: string, text?: string): Promise<void> {
+    const cleanTitle = title.trim().slice(0, 120)
+    const cleanText = text?.trim().slice(0, 1000) || undefined
+    if (!cleanTitle) throw new Error('Geef de melding een titel.')
+    await this.deliver(deviceId, { kind: 'notification', title: cleanTitle, text: cleanText })
+  }
+
+  private async deliver(deviceId: string, content: Pick<ConnectPayload, 'kind' | 'title' | 'text'>): Promise<void> {
+    const identity = this.requireIdentity()
+    const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
+    if (!target) throw new Error('Dit apparaat is niet meer actief.')
+    const payload: ConnectPayload = { v: 1, app: 'nexus', appName: 'NEXUS', postedAt: Date.now(), ...content }
     const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
     await this.remote!.sendMessages([{ ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id }])
   }

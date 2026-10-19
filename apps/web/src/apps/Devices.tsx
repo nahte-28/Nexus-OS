@@ -25,14 +25,17 @@ export function Devices() {
     isDesktopApp || typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
   )
 
-  const run = async (key: string, action: () => Promise<string | void>) => {
+  /** Runs an action with a busy state and shows its result; resolves to whether it worked. */
+  const run = async (key: string, action: () => Promise<string | void>): Promise<boolean> => {
     setBusy(key)
     setMessage(null)
     try {
       const text = await action()
       if (text) setMessage({ text })
+      return true
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : 'Er ging iets mis.', error: true })
+      return false
     } finally {
       setBusy(null)
     }
@@ -87,6 +90,7 @@ export function Devices() {
 
   const active = state.devices.filter((d) => !d.revokedAt)
   const revoked = state.devices.filter((d) => d.revokedAt)
+  const phones = active.filter((d) => d.platform === 'android')
 
   return (
     <div className="space-y-4 p-4 text-sm">
@@ -117,9 +121,9 @@ export function Devices() {
             onTest={() =>
               void run(`test-${d.id}`, async () => {
                 await engine.sendTest(d.id)
-                return d.isThisDevice
-                  ? 'Testmelding verstuurd. Ze verschijnt zo in Meldingen.'
-                  : `Testmelding verstuurd naar ${d.name}.`
+                if (d.isThisDevice) return 'Testmelding verstuurd. Ze verschijnt zo in Meldingen.'
+                if (d.platform === 'android') return `Testmelding verstuurd naar ${d.name}. Ze verschijnt op je gsm en horloge.`
+                return `Testmelding verstuurd naar ${d.name}.`
               })
             }
             onRename={(name) => void run(`rename-${d.id}`, () => engine.rename(d.id, name))}
@@ -132,6 +136,20 @@ export function Devices() {
           />
         ))}
       </ul>
+
+      {phones.length > 0 && (
+        <SendForm
+          phones={phones}
+          busy={busy}
+          onSend={(deviceId, title, text) =>
+            run('send', async () => {
+              await engine.sendNotification(deviceId, title, text)
+              const name = phones.find((p) => p.id === deviceId)?.name ?? 'je gsm'
+              return `Verstuurd naar ${name}. De melding verschijnt op je gsm en horloge.`
+            })
+          }
+        />
+      )}
 
       {message && (
         <p role={message.error ? 'alert' : 'status'} className={message.error ? 'text-red-500' : 'text-nx-muted'}>
@@ -218,12 +236,9 @@ function DeviceRow({
         <span className="font-mono">{device.fingerprint}</span>
       </p>
       <div className="flex flex-wrap gap-2">
-        {/* The companion only sends for now; it cannot receive messages yet. */}
-        {device.platform !== 'android' && (
-          <button type="button" className={button} disabled={busy !== null} onClick={onTest}>
-            {busy === `test-${device.id}` ? 'Versturen…' : 'Testmelding'}
-          </button>
-        )}
+        <button type="button" className={button} disabled={busy !== null} onClick={onTest}>
+          {busy === `test-${device.id}` ? 'Versturen…' : 'Testmelding'}
+        </button>
         {!editing && (
           <button type="button" className={button} onClick={() => setEditing(true)}>
             Naam wijzigen
@@ -234,5 +249,69 @@ function DeviceRow({
         </button>
       </div>
     </li>
+  )
+}
+
+/** A NEXUS notification to the phone; the watch shows it through the phone. */
+function SendForm({
+  phones,
+  busy,
+  onSend,
+}: {
+  phones: DeviceView[]
+  busy: string | null
+  onSend: (deviceId: string, title: string, text: string) => Promise<boolean>
+}) {
+  const [deviceId, setDeviceId] = useState(phones[0].id)
+  const [title, setTitle] = useState('')
+  const [text, setText] = useState('')
+  const target = phones.some((p) => p.id === deviceId) ? deviceId : phones[0].id
+  const field = 'w-full rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
+  return (
+    <form
+      className="space-y-2 rounded-lg border border-nx-border p-3"
+      aria-label="Melding naar je gsm"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void onSend(target, title, text).then((sent) => {
+          if (!sent) return
+          setTitle('')
+          setText('')
+        })
+      }}
+    >
+      <h3 className="font-medium">Melding naar je gsm en horloge</h3>
+      <p className="text-nx-muted">Versleuteld verstuurd. Je gsm heeft NEXUS Companion 0.6 of nieuwer nodig.</p>
+      {phones.length > 1 && (
+        <select value={target} onChange={(e) => setDeviceId(e.target.value)} aria-label="Naar" className={field}>
+          {phones.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        maxLength={120}
+        required
+        placeholder="Titel"
+        aria-label="Titel"
+        className={field}
+      />
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={1000}
+        rows={2}
+        placeholder="Tekst (optioneel)"
+        aria-label="Tekst"
+        className={field}
+      />
+      <button type="submit" className={primaryButton} disabled={busy !== null || !title.trim()}>
+        {busy === 'send' ? 'Versturen…' : 'Versturen'}
+      </button>
+    </form>
   )
 }
