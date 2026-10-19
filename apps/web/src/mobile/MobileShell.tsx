@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { BackIcon, GridIcon } from '../apps/icons'
+import { ErrorBoundary } from '../devtools/ErrorBoundary'
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
 export function MobileShell() {
@@ -46,7 +47,9 @@ export function MobileShell() {
       <main className="min-h-0 flex-1 overflow-auto">
         {app ? (
           <div className="nx-glass h-full">
-            <app.component />
+            <ErrorBoundary key={app.id} name={app.title}>
+              <app.component />
+            </ErrorBoundary>
           </div>
         ) : (
           <ul className="grid grid-cols-4 gap-y-6 p-5" aria-label="Apps">
