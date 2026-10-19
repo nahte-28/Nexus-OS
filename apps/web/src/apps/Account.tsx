@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useSync } from '../sync/SyncContext'
 import type { SyncState } from '../sync/engine'
+import { missingSupabaseEnv } from '../sync/supabase'
 
 export function statusText(state: SyncState): string {
   switch (state.status) {
@@ -58,6 +59,9 @@ export function Account() {
         <p className="text-nx-muted">
           Je notities staan veilig op dit apparaat en werken volledig offline. Zodra er een account gekoppeld is, worden
           ze automatisch meegenomen.
+        </p>
+        <p className="rounded-lg border border-nx-border bg-nx-surface-2 p-3 font-mono text-xs text-nx-muted">
+          Build {__BUILD_COMMIT__} · ontbreekt: {missingSupabaseEnv.join(', ')}
         </p>
       </div>
     )

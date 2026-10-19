@@ -5,6 +5,10 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: {
+    // Shown in the Account app so a deployment can be identified when checking setup.
+    __BUILD_COMMIT__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? 'lokaal').slice(0, 7)),
+  },
   plugins: [
     react(),
     tailwindcss(),

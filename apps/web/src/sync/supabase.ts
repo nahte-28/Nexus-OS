@@ -1,15 +1,27 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { toNote, type Note, type PullResult, type RemoteStore } from '@nexus/core'
 
+/** Trims whitespace and quotes that easily slip in when pasting into a dashboard. */
+function cleanEnv(raw: string | undefined): string | undefined {
+  const value = raw?.trim().replace(/^["']|["']$/g, '').trim()
+  return value || undefined
+}
+
 /** Accepts the project URL as copied from anywhere in the dashboard, e.g. with a trailing /rest/v1/. */
 export function normalizeSupabaseUrl(raw: string | undefined): string | undefined {
-  const trimmed = raw?.trim()
-  if (!trimmed) return undefined
-  return trimmed.replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '')
+  const cleaned = cleanEnv(raw)
+  if (!cleaned) return undefined
+  return cleaned.replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '')
 }
 
 const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined)
-const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
+const key = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
+
+/** Names of the settings this build was made without, for the setup hint in the Account app. */
+export const missingSupabaseEnv: string[] = [
+  ...(url ? [] : ['VITE_SUPABASE_URL']),
+  ...(key ? [] : ['VITE_SUPABASE_ANON_KEY']),
+]
 
 /** Null until the Supabase env vars are set; the app then simply stays local-only. */
 export const supabase: SupabaseClient | null = url && key ? createClient(url, key) : null
