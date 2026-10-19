@@ -18,4 +18,10 @@ describe('notes', () => {
     expect(parseNotes('{"a":1}')).toEqual([])
     expect(parseNotes(JSON.stringify([createNote(1, 'ok'), { id: 3 }]))).toHaveLength(1)
   })
+
+  it('upgrades v0.2 notes without deletedAt and hides tombstones', () => {
+    const [old] = parseNotes(JSON.stringify([{ id: 'a', title: 't', body: '', updatedAt: 1 }]))
+    expect(old.deletedAt).toBeNull()
+    expect(sortNotes([old, { ...createNote(2, 'b'), deletedAt: 3 }]).map((n) => n.id)).toEqual(['a'])
+  })
 })

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { App } from './App'
+import { getAll } from './state/db'
 import { ThemeProvider } from './theme/ThemeContext'
 
 function mockViewport(mobile: boolean) {
@@ -39,13 +40,23 @@ describe('App shell', () => {
     expect(screen.queryByRole('dialog', { name: 'Notities' })).toBeNull()
   })
 
-  it('persists notes in local storage', () => {
+  it('saves notes to the device database', async () => {
     mockViewport(false)
     renderApp()
     fireEvent.click(screen.getAllByRole('button', { name: 'Notities' })[0])
     fireEvent.click(screen.getByRole('button', { name: 'Nieuw' }))
     fireEvent.change(screen.getByLabelText('Inhoud'), { target: { value: 'Hallo NEXUS' } })
-    expect(localStorage.getItem('nexus.notes')).toContain('Hallo NEXUS')
+    await waitFor(async () => {
+      const stored = await getAll<{ body: string }>('notes')
+      expect(stored.map((n) => n.body)).toContain('Hallo NEXUS')
+    })
+  })
+
+  it('explains that sync is local-only until an account is connected', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Account' })[0])
+    expect(screen.getByText(/Synchronisatie is nog niet ingesteld/)).toBeTruthy()
   })
 
   it('switches theme and remembers it', () => {
@@ -64,6 +75,6 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.2')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.3')).toBeTruthy()
   })
 })

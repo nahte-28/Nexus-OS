@@ -69,7 +69,7 @@ export function Notes() {
               className="mt-2 min-h-0 flex-1 resize-none bg-transparent text-base leading-relaxed outline-none placeholder:text-nx-muted"
             />
             <p className="pt-2 text-xs text-nx-muted">
-              Lokaal opgeslagen op dit apparaat · laatst gewijzigd {new Date(selected.updatedAt).toLocaleString('nl-BE')}
+              Laatst gewijzigd {new Date(selected.updatedAt).toLocaleString('nl-BE')}
             </p>
           </>
         ) : (
