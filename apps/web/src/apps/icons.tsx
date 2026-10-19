@@ -47,3 +47,16 @@ export const BackIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M15 5l-7 7 7 7" />
   </svg>
 )
+
+export const AccountIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+)
+
+export const CloudIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M7 18a5 5 0 1 1 .9-9.9A6 6 0 0 1 19 10a4 4 0 0 1-1 8z" />
+  </svg>
+)

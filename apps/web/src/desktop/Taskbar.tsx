@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp } from '../apps/registry'
-import { GridIcon } from '../apps/icons'
+import { CloudIcon, GridIcon } from '../apps/icons'
+import { statusText } from '../apps/Account'
+import { useSync } from '../sync/SyncContext'
 import { useWindows } from '../state/WindowsContext'
 import { StartMenu } from './StartMenu'
 
@@ -47,6 +49,7 @@ export function Taskbar({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
         })}
       </nav>
 
+      <SyncBadge onOpen={() => onOpenApp('account')} />
       <Clock />
       {startOpen && (
         <StartMenu
@@ -72,5 +75,24 @@ function Clock() {
       <span className="block text-sm text-nx-text">{now.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span>
       {now.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' })}
     </time>
+  )
+}
+
+function SyncBadge({ onOpen }: { onOpen: () => void }) {
+  const { state } = useSync()
+  if (state.status === 'unconfigured') return null
+  const label = statusText(state)
+  const color =
+    state.status === 'error' ? 'text-red-500' : state.status === 'synced' && state.pending === 0 ? 'text-nx-accent' : 'text-nx-muted'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Synchronisatie: ${label}`}
+      title={label}
+      className={`grid size-10 place-items-center rounded-lg hover:bg-nx-surface-2 ${color} ${state.status === 'syncing' ? 'animate-pulse' : ''}`}
+    >
+      <CloudIcon className="size-5" />
+    </button>
   )
 }
