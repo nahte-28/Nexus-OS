@@ -36,18 +36,16 @@ export const apiBase = isDesktopApp
   : ''
 
 /**
- * Opens a website as its own app: a separate NEXUS window in the Windows app (where you stay
- * logged in), a new tab in the browser.
+ * Opens a website app (like KlasHub): in the default browser from the Windows app, a new tab
+ * in the browser. Its own NEXUS window stayed black on Windows.
  */
-export async function openWebApp(url: string, title: string): Promise<void> {
+export async function openWebApp(url: string): Promise<void> {
   if (isDesktopApp) {
     const { invoke } = await import('@tauri-apps/api/core')
     try {
-      await invoke('open_web_window', { url, title })
-    } catch (err) {
-      // Its own window did not work: open it in the browser, so the link still works.
-      logEvent('system', `${title} openen in eigen venster mislukt: ${String(err)}`, true)
       await invoke('open_in_browser_command', { url })
+    } catch (err) {
+      logEvent('system', `Website openen mislukt: ${String(err)}`, true)
     }
     return
   }

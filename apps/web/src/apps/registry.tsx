@@ -27,15 +27,15 @@ export interface AppDefinition {
   launch?: () => void
 }
 
-/** KlasHub (Remo's study hub) opens in its own window, where you stay logged in. */
+/** KlasHub (Remo's study hub) opens in the browser, where you stay logged in. */
 export function openKlasHub(): void {
-  void openWebApp(profilesStore.getSnapshot().state.klashubUrl, 'KlasHub')
+  void openWebApp(profilesStore.getSnapshot().state.klashubUrl)
 }
 
 function KlasHubLauncher() {
   return (
     <div className="space-y-2 p-4 text-sm">
-      <p>KlasHub opent in een eigen venster.</p>
+      <p>KlasHub opent in je browser.</p>
       <button type="button" onClick={openKlasHub} className="rounded-lg bg-nx-accent px-3 py-1.5 font-medium text-nx-accent-text">
         KlasHub openen
       </button>
