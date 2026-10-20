@@ -71,8 +71,8 @@ export class ProfilesStore {
     this.emit(this.compute(state))
   }
 
-  choose(profile: ProfileId, mode: ProfileOverride['mode'] = 'until-change'): void {
-    this.update((s) => chooseProfile(s, profile, this.now(), mode))
+  choose(profile: ProfileId, mode: ProfileOverride['mode'] = 'until-change', until?: number): void {
+    this.update((s) => chooseProfile(s, profile, this.now(), mode, until))
   }
 
   updateProfile(id: ProfileId, patch: Partial<Profile>): void {

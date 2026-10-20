@@ -5,6 +5,8 @@ import {
   defaultProfilesState,
   isWindowOpen,
   mergeFirstSync,
+  moveItem,
+  notificationPopsUp,
   newerState,
   nextLesson,
   parseProfilesState,
@@ -136,5 +138,38 @@ describe('next lesson', () => {
     expect(merged).toMatchObject({ defaultProfile: 'gaming', calendarUrl: 'https://apih.ap.be/x.ics', revision: 10 })
     // Nothing to add: the account copy stays as it is, so the device just adopts it.
     expect(mergeFirstSync({ ...defaultProfilesState(), revision: 1 }, browser)).toBe(browser)
+  })
+
+  it('returns to the profile picked before school, not the default', () => {
+    // Monday 07:30: Gaming by hand, before the window opens.
+    let s = chooseProfile(state(), 'gaming', at('2026-10-19T07:30:00+02:00'))
+    expect(s.override).toBeNull()
+    expect(activeProfile(s, at('2026-10-19T07:45:00+02:00'))).toEqual({ id: 'gaming', reason: 'return' })
+    expect(activeProfile(s, at('2026-10-19T09:00:00+02:00')).id).toBe('school')
+    expect(activeProfile(s, at('2026-10-19T18:00:00+02:00'))).toEqual({ id: 'gaming', reason: 'return' })
+    // Picking the default again forgets it.
+    s = chooseProfile(s, 'personal', at('2026-10-19T19:00:00+02:00'))
+    expect(s.returnProfile).toBeNull()
+    expect(activeProfile(s, at('2026-10-19T19:00:00+02:00'))).toEqual({ id: 'personal', reason: 'default' })
+  })
+
+  it('ends a timed choice at its end time', () => {
+    const until = at('2026-10-19T10:00:00+02:00')
+    const s = chooseProfile(state(), 'gaming', at('2026-10-19T09:00:00+02:00'), 'until-time', until)
+    expect(activeProfile(s, at('2026-10-19T09:59:00+02:00'))).toEqual({ id: 'gaming', reason: 'override' })
+    expect(activeProfile(s, until).id).toBe('school')
+    expect(parseProfilesState(JSON.parse(JSON.stringify(s))).override).toMatchObject({ mode: 'until-time', until })
+  })
+
+  it('lets chosen apps through while quiet', () => {
+    const school = { ...defaultProfilesState().profiles.school, allowApps: ['Smartschool'] }
+    expect(notificationPopsUp(school, 'smartschool ')).toBe(true)
+    expect(notificationPopsUp(school, 'WhatsApp')).toBe(false)
+    expect(notificationPopsUp(defaultProfilesState().profiles.personal, 'WhatsApp')).toBe(true)
+  })
+
+  it('moves an app up or down', () => {
+    expect(moveItem(['a', 'b', 'c'], 'c', -1)).toEqual(['a', 'c', 'b'])
+    expect(moveItem(['a', 'b', 'c'], 'a', -1)).toEqual(['a', 'b', 'c'])
   })
 })

@@ -7,6 +7,10 @@ import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 
 export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
+/** Accent colours a profile can use instead of its theme's own; null keeps the theme's. */
+export type AccentId = 'blue' | 'cyan' | 'violet' | 'green' | 'orange' | 'pink'
+export const ACCENT_IDS: AccentId[] = ['blue', 'cyan', 'violet', 'green', 'orange', 'pink']
+
 export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications'
 
 export interface Profile {
@@ -19,6 +23,9 @@ export interface Profile {
   widgets: WidgetId[]
   /** Only important NEXUS notifications pop up; the rest still lands in Meldingen. */
   quietNonEssential: boolean
+  /** Phone apps whose notifications still pop up while quiet, e.g. "Smartschool". */
+  allowApps: string[]
+  accent: AccentId | null
 }
 
 /** One lesson in the timetable, for the "next class" widget. Day: 1 = Monday ... 7 = Sunday. */
@@ -44,11 +51,13 @@ export interface ProfileSchedule {
 
 /**
  * A manual choice. 'until-change' holds until the schedule window next opens or closes;
- * 'until-manual' holds until the user switches again.
+ * 'until-time' holds until [until]; 'until-manual' holds until the user switches again.
  */
 export interface ProfileOverride {
   profile: ProfileId
-  mode: 'until-change' | 'until-manual'
+  mode: 'until-change' | 'until-time' | 'until-manual'
+  /** End of an 'until-time' choice, ms since epoch. */
+  until?: number
   /** Whether the schedule window was open when the choice was made. */
   windowOpenAtStart: boolean
   setAt: number
@@ -58,6 +67,11 @@ export interface ProfilesState {
   profiles: Record<ProfileId, Profile>
   /** The profile outside the schedule window. */
   defaultProfile: ProfileId
+  /**
+   * The profile last picked by hand outside the schedule window; NEXUS returns to it when the
+   * window closes, instead of the default. Cleared when the default is changed.
+   */
+  returnProfile: ProfileId | null
   schedule: ProfileSchedule
   override: ProfileOverride | null
   lessons: Lesson[]
@@ -91,6 +105,8 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     apps: ['klashub', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
     widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
     quietNonEssential: true,
+    allowApps: [],
+    accent: null,
   },
   personal: {
     id: 'personal',
@@ -100,6 +116,8 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     apps: ['notes', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
+    allowApps: [],
+    accent: null,
   },
   gaming: {
     id: 'gaming',
@@ -109,6 +127,8 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     apps: ['notifications', 'assistant', 'devices', 'notes', 'account', 'about'],
     widgets: ['notifications', 'devices'],
     quietNonEssential: true,
+    allowApps: [],
+    accent: null,
   },
   developer: {
     id: 'developer',
@@ -118,6 +138,8 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     apps: ['developer', 'assistant', 'notes', 'notifications', 'reminders', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'devices'],
     quietNonEssential: false,
+    allowApps: [],
+    accent: null,
   },
 }
 
@@ -134,6 +156,7 @@ export function defaultProfilesState(): ProfilesState {
   return {
     profiles: structuredClone(DEFAULT_PROFILES),
     defaultProfile: 'personal',
+    returnProfile: null,
     schedule: { ...DEFAULT_SCHEDULE },
     override: null,
     lessons: [],
@@ -186,15 +209,27 @@ export function isWindowOpen(schedule: ProfileSchedule, at: number): boolean {
   return (schedule.days.includes(day) && now >= start) || (schedule.days.includes(yesterday) && now < end)
 }
 
-export type ActiveReason = 'override' | 'schedule' | 'default'
+export type ActiveReason = 'override' | 'schedule' | 'return' | 'default'
 
 /** The profile that applies at [at]; evaluated fresh every time, so reopening NEXUS is always right. */
 export function activeProfile(state: ProfilesState, at: number): { id: ProfileId; reason: ActiveReason } {
   const open = isWindowOpen(state.schedule, at)
   const o = state.override
-  if (o && (o.mode === 'until-manual' || o.windowOpenAtStart === open)) return { id: o.profile, reason: 'override' }
+  if (o && overrideHolds(o, open, at)) return { id: o.profile, reason: 'override' }
   if (open) return { id: state.schedule.profile, reason: 'schedule' }
+  if (state.returnProfile) return { id: state.returnProfile, reason: 'return' }
   return { id: state.defaultProfile, reason: 'default' }
+}
+
+function overrideHolds(o: ProfileOverride, open: boolean, at: number): boolean {
+  if (o.mode === 'until-manual') return true
+  if (o.mode === 'until-time') return typeof o.until === 'number' && at < o.until
+  return o.windowOpenAtStart === open
+}
+
+/** The profile outside the schedule window: the last one picked by hand, else the default. */
+export function profileOutsideSchedule(state: ProfilesState): ProfileId {
+  return state.returnProfile ?? state.defaultProfile
 }
 
 /** The state after the user picks a profile by hand. */
@@ -203,12 +238,18 @@ export function chooseProfile(
   profile: ProfileId,
   at: number,
   mode: ProfileOverride['mode'] = 'until-change',
+  until?: number,
 ): ProfilesState {
   const open = isWindowOpen(state.schedule, at)
-  const scheduled = open ? state.schedule.profile : state.defaultProfile
+  // Outside the window the choice is remembered, so NEXUS comes back to it after school.
+  const returnProfile = open || mode !== 'until-change' ? state.returnProfile : profile === state.defaultProfile ? null : profile
+  const scheduled = open ? state.schedule.profile : (returnProfile ?? state.defaultProfile)
   // Choosing what the schedule would pick anyway clears the override instead of pinning it.
-  const override = mode === 'until-change' && profile === scheduled ? null : { profile, mode, windowOpenAtStart: open, setAt: at }
-  return { ...state, override, revision: state.revision + 1 }
+  const override: ProfileOverride | null =
+    mode === 'until-change' && profile === scheduled
+      ? null
+      : { profile, mode, windowOpenAtStart: open, setAt: at, ...(mode === 'until-time' && until !== undefined ? { until } : {}) }
+  return { ...state, override, returnProfile, revision: state.revision + 1 }
 }
 
 /**
@@ -239,7 +280,14 @@ export function parseProfilesState(raw: unknown): ProfilesState {
   const profiles = { ...base.profiles }
   for (const id of PROFILE_IDS) {
     const p = r.profiles?.[id]
-    if (p && typeof p === 'object') profiles[id] = { ...base.profiles[id], ...p, id }
+    if (p && typeof p === 'object') {
+      const merged = { ...base.profiles[id], ...p, id }
+      profiles[id] = {
+        ...merged,
+        allowApps: Array.isArray(merged.allowApps) ? merged.allowApps.filter((a) => typeof a === 'string').slice(0, 50) : [],
+        accent: ACCENT_IDS.includes(merged.accent as AccentId) ? merged.accent : null,
+      }
+    }
   }
   // Copies from before KlasHub existed get it in the profiles that have it by default.
   if (typeof r.schema !== 'number' || r.schema < 2) {
@@ -258,9 +306,14 @@ export function parseProfilesState(raw: unknown): ProfilesState {
   return {
     profiles,
     defaultProfile: PROFILE_IDS.includes(r.defaultProfile as ProfileId) ? (r.defaultProfile as ProfileId) : base.defaultProfile,
+    returnProfile: PROFILE_IDS.includes(r.returnProfile as ProfileId) ? (r.returnProfile as ProfileId) : null,
     schedule,
     override:
-      r.override && PROFILE_IDS.includes(r.override.profile) && (r.override.mode === 'until-change' || r.override.mode === 'until-manual')
+      r.override &&
+      PROFILE_IDS.includes(r.override.profile) &&
+      (r.override.mode === 'until-change' ||
+        r.override.mode === 'until-manual' ||
+        (r.override.mode === 'until-time' && typeof r.override.until === 'number'))
         ? r.override
         : null,
     lessons: Array.isArray(r.lessons) ? r.lessons.filter((l) => l && isTime(l.start) && isTime(l.end) && typeof l.subject === 'string') : [],
@@ -286,6 +339,23 @@ export function nextLesson(lessons: Lesson[], at: number, timeZone?: string): { 
     if (!best || key < best.key) best = { lesson, inDays, key }
   }
   return best && { lesson: best.lesson, inDays: best.inDays }
+}
+
+/** Whether a phone notification from [appName] may pop up in [profile]. */
+export function notificationPopsUp(profile: Profile, appName: string): boolean {
+  if (!profile.quietNonEssential) return true
+  const name = appName.trim().toLowerCase()
+  return profile.allowApps.some((a) => a.trim().toLowerCase() === name)
+}
+
+/** Moves [item] one place up (-1) or down (+1) in [list]. */
+export function moveItem<T>(list: T[], item: T, by: -1 | 1): T[] {
+  const i = list.indexOf(item)
+  const j = i + by
+  if (i < 0 || j < 0 || j >= list.length) return list
+  const next = [...list]
+  ;[next[i], next[j]] = [next[j], next[i]]
+  return next
 }
 
 /** The apps a profile shows, always including the ones you need to switch back. */

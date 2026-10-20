@@ -29,6 +29,7 @@ export function reasonText(reason: ActiveReason, state: ProfilesState): string {
     return state.override?.mode === 'until-manual'
       ? 'Met de hand gekozen, tot je terugschakelt'
       : 'Met de hand gekozen, tot het tijdschema wisselt'
+  if (reason === 'return') return 'Je laatst gekozen profiel buiten het schema'
   return 'Je standaardprofiel'
 }
 

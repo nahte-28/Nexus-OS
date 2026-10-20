@@ -6,6 +6,7 @@ import {
   exportPublicKey,
   fingerprint,
   generateDeviceKeyPair,
+  notificationPopsUp,
   parsePayload,
   trimInbox,
   type ConnectPayload,
@@ -372,8 +373,9 @@ export class ConnectEngine {
 
 /** Shows a system notification when the tab is in the background and the user allowed it. */
 function showSystemNotification(item: InboxItem): void {
-  // A quiet profile (School, Gaming) keeps phone notifications in Meldingen without popping up.
-  if (profilesStore.getSnapshot().active.quietNonEssential) return
+  // A quiet profile (School, Gaming) keeps phone notifications in Meldingen without popping up,
+  // except for the apps it lets through.
+  if (!notificationPopsUp(profilesStore.getSnapshot().active, item.appName)) return
   if (isDesktopApp) {
     // In the Windows app NEXUS often sits in the tray: notify whenever the window is not in front.
     if (!document.hasFocus()) void notifyDesktop(item.appName, [item.title, item.text].filter(Boolean).join('\n'))
