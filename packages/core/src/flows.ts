@@ -298,7 +298,7 @@ export function markHandled(runtime: FlowRuntime, runs: PlannedRun[], now: numbe
 }
 
 const DURATION_LABELS: Record<ProfileDuration, string> = { 'until-change': 'tot het schema wisselt', hour: 'voor een uur', today: 'voor vandaag' }
-const TARGET_LABELS: Record<NotifyTarget, string> = { this_device: 'op dit apparaat', phone: 'ook op gsm en horloge' }
+const TARGET_LABELS: Record<NotifyTarget, string> = { this_device: 'op het apparaat dat de flow uitvoert', phone: 'ook op gsm en horloge' }
 const PROFILE_NAMES: Record<ProfileId, string> = { school: 'School', personal: 'Persoonlijk', gaming: 'Gaming', developer: 'Developer' }
 const DAY_NAMES = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
 
@@ -448,3 +448,55 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     },
   },
 ]
+
+/** A flow as the account stores it: a definition, or a deletion, with the time of the change. */
+export interface StoredFlow {
+  id: string
+  /** null when the flow was deleted. */
+  definition: FlowDefinition | null
+  /** Time of the last change in ms; the newer side wins. */
+  revision: number
+}
+
+export interface MergedFlows {
+  flows: FlowDefinition[]
+  /** Deleted flows on this device: id → time of the deletion. */
+  deleted: Record<string, number>
+  /** What the account does not have yet. */
+  push: StoredFlow[]
+}
+
+/**
+ * Brings this device's flows and the account's together, one flow at a time: the newer change
+ * wins, a deletion included. A copy from the account that no longer passes validation is ignored.
+ */
+export function mergeFlows(flows: FlowDefinition[], deleted: Record<string, number>, stored: StoredFlow[]): MergedFlows {
+  const local = new Map<string, StoredFlow>()
+  for (const [id, at] of Object.entries(deleted)) local.set(id, { id, definition: null, revision: at })
+  for (const f of flows) local.set(f.id, { id: f.id, definition: f, revision: f.updatedAt })
+  const remote = new Map(stored.filter((s) => s.definition === null || isFlowDefinition(s.definition)).map((s) => [s.id, s]))
+
+  const result = new Map<string, StoredFlow>()
+  const push: StoredFlow[] = []
+  for (const id of new Set([...local.keys(), ...remote.keys()])) {
+    const mine = local.get(id)
+    const theirs = remote.get(id)
+    if (mine && (!theirs || mine.revision > theirs.revision)) {
+      result.set(id, mine)
+      push.push(mine)
+    } else if (theirs) {
+      result.set(id, theirs.definition ? { ...theirs, definition: { ...theirs.definition, id, updatedAt: theirs.revision } } : theirs)
+    }
+  }
+  const all = [...result.values()]
+  // Keep the order of this device; flows from other devices go at the end, oldest first.
+  const order = new Map(flows.map((f, i) => [f.id, i]))
+  const merged = all
+    .flatMap((s) => (s.definition ? [s.definition] : []))
+    .sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity) || a.createdAt - b.createdAt)
+  return {
+    flows: merged,
+    deleted: Object.fromEntries(all.filter((s) => !s.definition).map((s) => [s.id, s.revision])),
+    push,
+  }
+}
