@@ -1,7 +1,7 @@
 export function About() {
   return (
     <div className="space-y-3 p-4 text-sm leading-relaxed">
-      <h2 className="text-lg font-semibold">NEXUS OS v0.7</h2>
+      <h2 className="text-lg font-semibold">NEXUS OS v0.8</h2>
       <p>
         Een modulair, persoonlijk ecosysteem bovenop je bestaande besturingssystemen. Deze versie bevat de webdesktop,
         een mobiele weergave, notities die offline werken en synchroniseren, de thema's Focus en Pulse, NEXUS

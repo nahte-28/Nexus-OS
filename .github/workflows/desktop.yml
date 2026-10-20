@@ -47,10 +47,11 @@ jobs:
           node -e '
             const fs = require("fs"), p = "apps/desktop/src-tauri/tauri.conf.json"
             const conf = JSON.parse(fs.readFileSync(p, "utf8"))
-            conf.version = `0.7.${process.env.GITHUB_RUN_NUMBER}`
+            conf.version = `0.8.${process.env.GITHUB_RUN_NUMBER}`
             fs.writeFileSync(p, JSON.stringify(conf, null, 2))
           '
       - run: npm run build -w @nexus/desktop
+      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
       - run: cp apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe nexus-os-setup.exe
       - uses: actions/upload-artifact@v4
         with:
@@ -60,10 +61,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-v0.7.${{ github.run_number }}
-          name: NEXUS OS voor Windows 0.7.${{ github.run_number }}
+          tag_name: desktop-v0.8.${{ github.run_number }}
+          name: NEXUS OS voor Windows 0.8.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           files: nexus-os-setup.exe
           body: |
             Download `nexus-os-setup.exe` en voer het uit. Een nieuwe versie installeert over de vorige heen.
+            Vanaf 0.8 werkt NEXUS zichzelf bij: Instellingen > Windows > Zoeken naar updates, of de knop "Bijwerken" in de taakbalk.
             Windows kan waarschuwen dat de app onbekend is (ze is nog niet digitaal ondertekend): kies "Meer informatie" en dan "Toch uitvoeren".

@@ -91,7 +91,7 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Ontwikkelaarsmodus/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Ontwikkelaar' }))
-    expect(screen.getByText(/NEXUS OS 0\.7/)).toBeTruthy()
+    expect(screen.getByText(/NEXUS OS 0\.8/)).toBeTruthy()
   })
 
   it('switches theme and remembers it', () => {
@@ -110,6 +110,6 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.7')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.8')).toBeTruthy()
   })
 })

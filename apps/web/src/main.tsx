@@ -7,6 +7,7 @@ import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { isDesktopApp } from './platform/desktop'
 import { reminderDelivery } from './reminders/deliver'
 import { startReminderScheduler } from './reminders/store'
+import { startUpdateChecks } from './platform/update'
 import { SyncProvider } from './sync/SyncContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import './index.css'
@@ -16,6 +17,8 @@ if (!isDesktopApp) registerSW({ immediate: true })
 
 // Automations run as long as NEXUS is open somewhere on this device.
 startReminderScheduler(reminderDelivery(defaultEngine))
+// The Windows app looks for a newer version itself; the browser version updates through its service worker.
+startUpdateChecks()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

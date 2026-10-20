@@ -5,6 +5,7 @@ import { BellIcon, CloudIcon, GridIcon } from '../apps/icons'
 import { statusText } from '../apps/Account'
 import { useConnect } from '../connect/ConnectContext'
 import { useSync } from '../sync/SyncContext'
+import { installUpdate, useUpdate } from '../platform/update'
 import { useWindows } from '../state/WindowsContext'
 import { StartMenu } from './StartMenu'
 
@@ -50,6 +51,7 @@ export function Taskbar({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
         })}
       </nav>
 
+      <UpdateBadge />
       <InboxBadge onOpen={() => onOpenApp('notifications')} />
       <SyncBadge onOpen={() => onOpenApp('account')} />
       <Clock />
@@ -117,6 +119,24 @@ function InboxBadge({ onOpen }: { onOpen: () => void }) {
           {state.unread > 99 ? '99+' : state.unread}
         </span>
       )}
+    </button>
+  )
+}
+
+/** Shown only in the Windows app when a newer version was published. */
+function UpdateBadge() {
+  const update = useUpdate()
+  if (update.status !== 'available' && update.status !== 'installing') return null
+  const installing = update.status === 'installing'
+  return (
+    <button
+      type="button"
+      disabled={installing}
+      onClick={() => void installUpdate()}
+      title={`NEXUS OS ${update.update.version} installeren`}
+      className="h-10 shrink-0 rounded-lg bg-nx-accent px-3 text-sm font-medium text-nx-accent-text disabled:opacity-70"
+    >
+      {installing ? 'Bijwerken…' : `Bijwerken naar ${update.update.version}`}
     </button>
   )
 }

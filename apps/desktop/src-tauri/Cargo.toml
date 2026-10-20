@@ -1,6 +1,6 @@
 [package]
 name = "nexus-desktop"
-version = "0.7.0"
+version = "0.8.0"
 description = "NEXUS OS for Windows"
 edition = "2021"
 
@@ -16,3 +16,7 @@ tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-single-instance = "2"
+# Self-update: finds the newest installer on GitHub releases and downloads it (Windows TLS via schannel).
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json"] }
+serde = { version = "1", features = ["derive"] }
+semver = "1"

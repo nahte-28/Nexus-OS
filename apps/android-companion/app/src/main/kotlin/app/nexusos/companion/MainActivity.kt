@@ -77,6 +77,7 @@ class MainActivity : Activity() {
         Connect.refreshDevices(this)
         Connect.receive(this)
         Inbox.poke()
+        if (Updater.state is Updater.State.Idle) Updater.check(this)
     }
 
     override fun onPause() {
@@ -188,6 +189,8 @@ class MainActivity : Activity() {
         if (apps.isEmpty()) text("Nog geen apps gezien. Ze verschijnen hier zodra ze een melding tonen.", muted = true)
         for ((app, appName) in apps) appRow(app, appName)
 
+        updates()
+
         section("Logboek")
         text("Wat er werd doorgestuurd, zonder inhoud.", muted = true)
         val log = store.audit().take(15)
@@ -240,6 +243,30 @@ class MainActivity : Activity() {
                 "Zie je ze niet? Zet NEXUS Companion aan bij de meldingen in de OHealth-app.",
             muted = true,
         )
+    }
+
+    private fun updates() {
+        section("Updates")
+        when (val state = Updater.state) {
+            Updater.State.Idle, Updater.State.Checking -> text("Zoeken naar een nieuwe versie…", muted = true)
+            Updater.State.Current -> text("Je hebt de nieuwste versie.", muted = true)
+            is Updater.State.Failed -> text(state.error)
+            is Updater.State.Downloading -> text("Versie ${state.update.version} wordt gedownload…")
+            is Updater.State.Available -> {
+                text("Versie ${state.update.version} is beschikbaar. Je gegevens en instellingen blijven behouden.")
+                button("Nu bijwerken", primary = true) {
+                    if (packageManager.canRequestPackageInstalls()) {
+                        Updater.install(this)
+                    } else {
+                        status = "Sta NEXUS Companion toe om apps te installeren en tik daarna opnieuw op Nu bijwerken."
+                        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                    }
+                }
+            }
+        }
+        if (Updater.state !is Updater.State.Available) {
+            button("Zoeken naar updates") { Updater.check(this) }
+        }
     }
 
     private fun appRow(app: String, appName: String) {
