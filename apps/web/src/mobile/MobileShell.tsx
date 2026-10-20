@@ -27,6 +27,8 @@ export function MobileShell() {
   // Switching between apps replaces the current entry so one back press always returns home.
   const switchTo = (id: AppId) => {
     if (openId === id) return
+    const launch = getApp(id).launch
+    if (launch) return launch()
     if (openId) setOpenId(id)
     else open(id)
   }
