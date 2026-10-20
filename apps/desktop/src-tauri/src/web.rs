@@ -18,6 +18,30 @@ fn parse(url: &str) -> Result<Url, String> {
     Ok(url)
 }
 
+/// Opens the address in the default browser. Only called with an address that passed [parse].
+fn open_in_browser(url: &Url) -> Result<(), String> {
+    #[cfg(windows)]
+    let mut command = {
+        // No shell in between, so characters like & in the address are not interpreted.
+        let mut c = std::process::Command::new("rundll32");
+        c.args(["url.dll,FileProtocolHandler", url.as_str()]);
+        c
+    };
+    #[cfg(not(windows))]
+    let mut command = {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(url.as_str());
+        c
+    };
+    command.spawn().map(|_| ()).map_err(|err| format!("Browser openen mislukt: {err}"))
+}
+
+/// Opens a website in the default browser, when its own window does not work.
+#[tauri::command]
+pub fn open_in_browser_command(url: String) -> Result<(), String> {
+    open_in_browser(&parse(&url)?)
+}
+
 // Async so the window is built off the main thread; a sync command would deadlock on Windows.
 #[tauri::command]
 pub async fn open_web_window(app: AppHandle, url: String, title: String) -> Result<(), String> {
@@ -29,13 +53,16 @@ pub async fn open_web_window(app: AppHandle, url: String, title: String) -> Resu
         let _ = window.set_focus();
         return Ok(());
     }
-    WebviewWindowBuilder::new(&app, label, WebviewUrl::External(url))
+    let built = WebviewWindowBuilder::new(&app, label, WebviewUrl::External(url.clone()))
         .title(title)
         .inner_size(1200.0, 820.0)
         .min_inner_size(480.0, 400.0)
-        .build()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+        .build();
+    match built {
+        Ok(_) => Ok(()),
+        // The website still opens, just in the browser instead of its own window.
+        Err(err) => open_in_browser(&url).map_err(|browser| format!("{err}; {browser}")),
+    }
 }
 
 #[cfg(test)]
