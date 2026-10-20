@@ -26,7 +26,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![MINIMIZED_FLAG]),
         ))
-        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update, web::open_web_window])
+        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update, web::open_web_window, web::open_in_browser_command])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;

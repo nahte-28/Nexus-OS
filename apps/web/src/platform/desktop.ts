@@ -3,6 +3,8 @@
  * browser and in the app; native features are only loaded when running inside the app.
  */
 
+import { logEvent } from '../devtools/log'
+
 /** True when this page runs inside the NEXUS Windows app instead of a browser. */
 export const isDesktopApp = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 
@@ -40,7 +42,13 @@ export const apiBase = isDesktopApp
 export async function openWebApp(url: string, title: string): Promise<void> {
   if (isDesktopApp) {
     const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('open_web_window', { url, title })
+    try {
+      await invoke('open_web_window', { url, title })
+    } catch (err) {
+      // Its own window did not work: open it in the browser, so the link still works.
+      logEvent('system', `${title} openen in eigen venster mislukt: ${String(err)}`, true)
+      await invoke('open_in_browser_command', { url })
+    }
     return
   }
   window.open(url, '_blank', 'noopener')
