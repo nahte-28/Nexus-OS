@@ -211,6 +211,21 @@ export function chooseProfile(
   return { ...state, override, revision: state.revision + 1 }
 }
 
+/**
+ * The first time a device syncs, its own copy meets the one from the account. The newer one wins,
+ * but a timetable or calendar link set up on only one of them is kept, so nothing typed in is lost.
+ */
+export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): ProfilesState {
+  const [base, other] = remote.revision >= local.revision ? [remote, local] : [local, remote]
+  let merged = base
+  if (!base.calendarUrl && other.calendarUrl) {
+    merged = { ...merged, calendarUrl: other.calendarUrl, calendarEvents: other.calendarEvents, calendarSyncedAt: other.calendarSyncedAt }
+  }
+  if (base.lessons.length === 0 && other.lessons.length > 0) merged = { ...merged, lessons: other.lessons }
+  if (merged === remote) return remote
+  return { ...merged, revision: Math.max(local.revision, remote.revision) + 1 }
+}
+
 /** Keeps the newer of two copies (from this device and another one) without ping-pong. */
 export function newerState(a: ProfilesState, b: ProfilesState): ProfilesState {
   return b.revision > a.revision ? b : a

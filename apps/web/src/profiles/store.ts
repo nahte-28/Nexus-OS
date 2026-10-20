@@ -82,6 +82,12 @@ export class ProfilesStore {
     }))
   }
 
+  /** Takes over a copy from the account (another device), as is: no new revision, so no echo. */
+  adopt(state: ProfilesState): void {
+    writeStorage(STORAGE_KEY, JSON.stringify(state))
+    this.emit(this.compute(state))
+  }
+
   /** Another tab or window changed the stored copy. */
   reload(raw: string | null): void {
     const state = parseProfilesState(readJson(raw))
