@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
+import { startFlowRunner } from './flows/runner'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
 import { startProfileClock } from './profiles/store'
@@ -21,6 +22,8 @@ if (!isDesktopApp) registerSW({ immediate: true })
 
 // Automations run as long as NEXUS is open somewhere on this device.
 startReminderScheduler(reminderDelivery(defaultEngine))
+// Flow Studio's automations, under the same rule: only while NEXUS is open on this device.
+startFlowRunner(defaultEngine)
 // The Windows app looks for a newer version itself; the browser version updates through its service worker.
 startUpdateChecks()
 // School Mode and the other profiles follow their schedule while NEXUS runs.

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { defaultProfilesState } from '@nexus/core'
 import { App } from './App'
+import { flowsStore } from './flows/store'
 import { profilesStore } from './profiles/store'
 import { getAll } from './state/db'
 import { ThemeProvider } from './theme/ThemeContext'
@@ -199,5 +200,27 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
     expect(profilesStore.getSnapshot().state.profiles.school.allowApps).toEqual(['Smartschool'])
     expect(screen.getByRole('list', { name: 'Altijd doorlaten' }).textContent).toContain('Smartschool')
+  })
+
+  it('builds a flow from a template in Flow Studio, with a dry run and a confirmed delete', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Flow Studio' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Sjablonen' }))
+    const template = within(screen.getByRole('list', { name: 'Sjablonen' })).getByText('School Start').closest('li')!
+    fireEvent.click(within(template).getByRole('button', { name: 'Gebruiken' }))
+    expect(screen.getByRole('complementary', { name: 'Proefrun' }).textContent).toContain('KlasHub te openen')
+    fireEvent.change(screen.getByLabelText('Naam'), { target: { value: '' } })
+    expect(screen.getByRole('alert').textContent).toBe('Geef de flow een naam.')
+    fireEvent.click(screen.getByRole('button', { name: 'Ongedaan maken' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bewaren' }))
+    expect(flowsStore.getSnapshot().flows.map((f) => f.name)).toContain('School Start')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Mijn flows' }))
+    const flows = within(screen.getByRole('list', { name: 'Flows' }))
+    expect(flows.getByText('School Start')).toBeTruthy()
+    fireEvent.click(flows.getAllByRole('button', { name: 'Verwijderen' })[0])
+    fireEvent.click(flows.getByRole('button', { name: 'Ja, verwijderen' }))
+    expect(flowsStore.getSnapshot().flows.map((f) => f.name)).not.toContain('School Start')
   })
 })

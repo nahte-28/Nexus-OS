@@ -1,6 +1,6 @@
 /** Pure window-manager state, shared by every runtime (web, Tauri). */
 
-export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'about'
+export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'flows' | 'about'
 
 export interface Rect {
   x: number

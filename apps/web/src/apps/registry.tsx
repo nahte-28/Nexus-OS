@@ -3,12 +3,14 @@ import { profileApps, type AppId } from '@nexus/core'
 import { About } from './About'
 import { useDeveloperMode } from '../devtools/log'
 import { openWebApp } from '../platform/desktop'
+import { useFlowStudioEnabled } from '../flows/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { Account } from './Account'
 import { Assistant } from './Assistant'
 import { Developer } from './Developer'
 import { Devices } from './Devices'
-import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CodeIcon, DevicesIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon } from './icons'
+import { FlowStudio } from './FlowStudio'
+import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CodeIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon } from './icons'
 import { Inbox } from './Inbox'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
@@ -23,6 +25,8 @@ export interface AppDefinition {
   defaultSize: { width: number; height: number }
   /** Only listed while developer mode is on. */
   developer?: boolean
+  /** A beta behind its own switch in Instellingen. */
+  beta?: boolean
   /** Opens outside NEXUS's own windows (a website app) instead of showing [component]. */
   launch?: () => void
 }
@@ -52,6 +56,7 @@ export const APPS: AppDefinition[] = [
   { id: 'devices', title: 'Apparaten', icon: DevicesIcon, component: Devices, defaultSize: { width: 560, height: 520 } },
   { id: 'account', title: 'Account', icon: AccountIcon, component: Account, defaultSize: { width: 480, height: 340 } },
   { id: 'klashub', title: 'KlasHub', icon: BookIcon, component: KlasHubLauncher, defaultSize: { width: 420, height: 200 }, launch: openKlasHub },
+  { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, beta: true },
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },
   { id: 'developer', title: 'Ontwikkelaar', icon: CodeIcon, component: Developer, defaultSize: { width: 640, height: 480 }, developer: true },
@@ -70,8 +75,11 @@ export function getApp(id: AppId): AppDefinition {
  */
 export function useVisibleApps(): AppDefinition[] {
   const developerMode = useDeveloperMode()
+  const flowStudio = useFlowStudioEnabled()
   const { active } = useProfiles()
   const ids = profileApps(active)
   if (developerMode && !ids.includes('developer')) ids.unshift('developer')
-  return ids.flatMap((id) => APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer')))
+  // Flow Studio sits with the apps every profile shows, right before Profielen.
+  if (flowStudio && !ids.includes('flows')) ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, 'flows')
+  return ids.flatMap((id) => APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio)))
 }

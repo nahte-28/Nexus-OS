@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
+import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
 import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
 import { checkForUpdate, installUpdate, useUpdate } from '../platform/update'
 import { useTheme } from '../theme/ThemeContext'
@@ -37,6 +38,7 @@ export function Settings() {
       </fieldset>
       <p className="text-sm text-nx-muted">Je keuze wordt bewaard en geldt direct, zonder dat open vensters sluiten.</p>
       {isDesktopApp && <WindowsSettings />}
+      <BetaSettings />
       <DeveloperSettings />
     </div>
   )
@@ -99,6 +101,19 @@ function UpdateSettings() {
         </button>
       )}
     </div>
+  )
+}
+
+function BetaSettings() {
+  const flows = useFlowStudioEnabled()
+  return (
+    <fieldset className="space-y-2 border-t border-nx-border pt-4">
+      <legend className="mb-2 text-sm font-semibold text-nx-muted">Beta</legend>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={flows} onChange={(e) => setFlowStudioEnabled(e.target.checked)} className="accent-[var(--nx-accent)]" />
+        Flow Studio: automatiseringen met een trigger, voorwaarden en acties. Uit betekent ook dat geen enkele flow loopt.
+      </label>
+    </fieldset>
   )
 }
 

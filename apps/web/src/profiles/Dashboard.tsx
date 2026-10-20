@@ -3,6 +3,9 @@ import { nextCalendarEvent, nextLesson, noteTitle, type AppId, type WidgetId } f
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
+import { dismissPrompt, usePrompts } from '../flows/prompts'
+import { appName } from '../flows/runner'
+import { installUpdate, useUpdate } from '../platform/update'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
 import { useProfiles } from './store'
@@ -47,6 +50,8 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
         </p>
       </header>
 
+      <FlowPrompts onOpenApp={onOpenApp} />
+
       <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -75,6 +80,45 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
           ))}
       </div>
     </section>
+  )
+}
+
+/** Suggestions from Flow Studio: nothing opens or installs until you choose it here. */
+function FlowPrompts({ onOpenApp }: { onOpenApp: OpenApp }) {
+  const prompts = usePrompts()
+  const update = useUpdate()
+  if (prompts.length === 0) return null
+  return (
+    <ul aria-label="Voorstellen" className="space-y-2">
+      {prompts.map((p) => {
+        const isUpdate = p.kind === 'update'
+        if (isUpdate && update.status !== 'available') return null
+        return (
+          <li key={p.id} className="nx-glass flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-nx-accent p-3 text-sm">
+            <span>
+              <span className="font-medium">{p.flowName}</span> stelt voor:{' '}
+              {isUpdate && update.status === 'available' ? `versie ${update.update.version} installeren` : `${appName(p.app ?? '')} openen`}
+            </span>
+            <span className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-lg bg-nx-accent px-3 py-1.5 font-medium text-nx-accent-text"
+                onClick={() => {
+                  dismissPrompt(p.id)
+                  if (isUpdate) void installUpdate()
+                  else if (p.app) onOpenApp(p.app)
+                }}
+              >
+                {isUpdate ? 'Installeren' : 'Openen'}
+              </button>
+              <button type="button" className="rounded-lg border border-nx-border px-3 py-1.5" onClick={() => dismissPrompt(p.id)}>
+                Niet nu
+              </button>
+            </span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
