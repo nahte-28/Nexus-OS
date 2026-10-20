@@ -7,10 +7,12 @@ import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
 import { startProfileClock } from './profiles/store'
+import { startProfilesSync } from './profiles/sync'
 import { reminderDelivery } from './reminders/deliver'
 import { startReminderScheduler } from './reminders/store'
 import { startUpdateChecks } from './platform/update'
 import { SyncProvider } from './sync/SyncContext'
+import { supabase } from './sync/supabase'
 import { ThemeProvider } from './theme/ThemeContext'
 import './index.css'
 
@@ -24,6 +26,8 @@ startUpdateChecks()
 // School Mode and the other profiles follow their schedule while NEXUS runs.
 startProfileClock()
 startCalendarSync()
+// With an account, profiles and the calendar link follow you to every device.
+startProfilesSync(supabase)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

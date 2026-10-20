@@ -4,6 +4,7 @@ import {
   chooseProfile,
   defaultProfilesState,
   isWindowOpen,
+  mergeFirstSync,
   newerState,
   nextLesson,
   parseProfilesState,
@@ -126,5 +127,14 @@ describe('next lesson', () => {
     // Once upgraded, removing it sticks.
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, school: { ...s.profiles.school, apps: ['notes'] } } })
     expect(removed.profiles.school.apps).toEqual(['notes'])
+  })
+
+  it('keeps a calendar link from either side on the first sync of a device', () => {
+    const browser = { ...defaultProfilesState(), calendarUrl: 'https://apih.ap.be/x.ics', revision: 4 }
+    const phone = { ...defaultProfilesState(), defaultProfile: 'gaming' as const, revision: 9 }
+    const merged = mergeFirstSync(phone, browser)
+    expect(merged).toMatchObject({ defaultProfile: 'gaming', calendarUrl: 'https://apih.ap.be/x.ics', revision: 10 })
+    // Nothing to add: the account copy stays as it is, so the device just adopts it.
+    expect(mergeFirstSync({ ...defaultProfilesState(), revision: 1 }, browser)).toBe(browser)
   })
 })
