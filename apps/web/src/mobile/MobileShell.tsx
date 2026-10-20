@@ -3,6 +3,7 @@ import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
+import { Dashboard } from '../profiles/Dashboard'
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
 export function MobileShell() {
@@ -52,18 +53,21 @@ export function MobileShell() {
             </ErrorBoundary>
           </div>
         ) : (
-          <ul className="grid grid-cols-4 gap-y-6 p-5" aria-label="Apps">
-            {apps.map((a) => (
-              <li key={a.id}>
-                <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
-                  <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
-                    <a.icon />
-                  </span>
-                  {a.title}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <Dashboard compact onOpenApp={open} />
+            <ul className="grid grid-cols-4 gap-y-6 p-5" aria-label="Apps">
+              {apps.map((a) => (
+                <li key={a.id}>
+                  <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
+                    <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
+                      <a.icon />
+                    </span>
+                    {a.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </main>
 

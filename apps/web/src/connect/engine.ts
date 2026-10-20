@@ -17,6 +17,7 @@ import { isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
 import { ConnectSetupError, type ConnectRemote } from './remote'
 import { logEvent } from '../devtools/log'
+import { profilesStore } from '../profiles/store'
 
 export type ConnectStatus =
   | 'unconfigured' // no Supabase project: Connect needs an account
@@ -371,6 +372,8 @@ export class ConnectEngine {
 
 /** Shows a system notification when the tab is in the background and the user allowed it. */
 function showSystemNotification(item: InboxItem): void {
+  // A quiet profile (School, Gaming) keeps phone notifications in Meldingen without popping up.
+  if (profilesStore.getSnapshot().active.quietNonEssential) return
   if (isDesktopApp) {
     // In the Windows app NEXUS often sits in the tray: notify whenever the window is not in front.
     if (!document.hasFocus()) void notifyDesktop(item.appName, [item.title, item.text].filter(Boolean).join('\n'))

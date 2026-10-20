@@ -1,0 +1,119 @@
+import { describe, expect, it } from 'vitest'
+import {
+  activeProfile,
+  chooseProfile,
+  defaultProfilesState,
+  isWindowOpen,
+  newerState,
+  nextLesson,
+  parseProfilesState,
+  profileApps,
+  type ProfilesState,
+} from './profiles'
+
+const ZONE = 'Europe/Brussels'
+/** Brussels wall-clock time on a given date (October 2026 is summer time, UTC+2). */
+const at = (iso: string) => new Date(iso).getTime()
+const state = (): ProfilesState => {
+  const s = defaultProfilesState()
+  s.schedule.timeZone = ZONE
+  return s
+}
+
+describe('profile schedule', () => {
+  // 2026-10-20 is a Tuesday.
+  it('switches to School Mode at 08:30, not at 08:29', () => {
+    expect(activeProfile(state(), at('2026-10-20T08:29:00+02:00'))).toEqual({ id: 'personal', reason: 'default' })
+    expect(activeProfile(state(), at('2026-10-20T08:30:00+02:00'))).toEqual({ id: 'school', reason: 'schedule' })
+  })
+
+  it('switches back at 18:00 and stays off at the weekend', () => {
+    expect(activeProfile(state(), at('2026-10-20T17:59:00+02:00')).id).toBe('school')
+    expect(activeProfile(state(), at('2026-10-20T18:00:00+02:00')).id).toBe('personal')
+    expect(activeProfile(state(), at('2026-10-24T10:00:00+02:00')).id).toBe('personal') // Saturday
+  })
+
+  it('works out the right profile when NEXUS reopens mid-morning', () => {
+    expect(activeProfile(state(), at('2026-10-21T11:00:00+02:00')).id).toBe('school')
+  })
+
+  it('keeps the wall-clock times across the switch to winter time', () => {
+    // 2026-10-26 (Monday) is after the change to UTC+1.
+    expect(activeProfile(state(), at('2026-10-26T08:30:00+01:00')).id).toBe('school')
+    expect(activeProfile(state(), at('2026-10-26T08:29:00+01:00')).id).toBe('personal')
+  })
+
+  it('handles windows that run past midnight', () => {
+    const s = state()
+    s.schedule = { ...s.schedule, days: [5], start: '22:00', end: '06:00' }
+    expect(isWindowOpen(s.schedule, at('2026-10-23T23:00:00+02:00'))).toBe(true) // Friday night
+    expect(isWindowOpen(s.schedule, at('2026-10-24T05:59:00+02:00'))).toBe(true) // Saturday early
+    expect(isWindowOpen(s.schedule, at('2026-10-24T06:00:00+02:00'))).toBe(false)
+  })
+
+  it('does nothing when automation is off', () => {
+    const s = state()
+    s.schedule.enabled = false
+    expect(activeProfile(s, at('2026-10-20T10:00:00+02:00')).id).toBe('personal')
+  })
+})
+
+describe('manual override', () => {
+  it('keeps a manual Gaming Mode until the schedule window closes', () => {
+    const s = chooseProfile(state(), 'gaming', at('2026-10-20T09:00:00+02:00'))
+    expect(activeProfile(s, at('2026-10-20T12:00:00+02:00'))).toEqual({ id: 'gaming', reason: 'override' })
+    expect(activeProfile(s, at('2026-10-20T18:00:00+02:00'))).toEqual({ id: 'personal', reason: 'default' })
+  })
+
+  it('keeps an "until I switch back" choice across schedule changes', () => {
+    const s = chooseProfile(state(), 'developer', at('2026-10-20T07:00:00+02:00'), 'until-manual')
+    expect(activeProfile(s, at('2026-10-20T10:00:00+02:00')).id).toBe('developer')
+    expect(activeProfile(s, at('2026-10-21T20:00:00+02:00')).id).toBe('developer')
+  })
+
+  it('clears the override when you pick what the schedule would pick', () => {
+    const t = at('2026-10-20T10:00:00+02:00')
+    const gaming = chooseProfile(state(), 'gaming', t)
+    const back = chooseProfile(gaming, 'school', t)
+    expect(back.override).toBeNull()
+    expect(back.revision).toBe(2)
+  })
+})
+
+describe('sync and storage', () => {
+  it('keeps the copy with the higher revision', () => {
+    const a = { ...state(), revision: 3 }
+    const b = { ...state(), revision: 5, defaultProfile: 'gaming' as const }
+    expect(newerState(a, b)).toBe(b)
+    expect(newerState(b, a)).toBe(b)
+  })
+
+  it('repairs broken or old stored data', () => {
+    expect(parseProfilesState(null).defaultProfile).toBe('personal')
+    const parsed = parseProfilesState({ schedule: { start: 'nope' }, defaultProfile: 'x', override: { profile: 'y' } })
+    expect(parsed.schedule.start).toBe('08:30')
+    expect(parsed.defaultProfile).toBe('personal')
+    expect(parsed.override).toBeNull()
+  })
+
+  it('always shows Profiles and Settings', () => {
+    const apps = profileApps({ ...state().profiles.gaming, apps: [] })
+    expect(apps).toEqual(['profiles', 'settings'])
+  })
+})
+
+describe('next lesson', () => {
+  const lessons = [
+    { id: '1', day: 2, start: '09:45', end: '10:35', subject: 'Networking' },
+    { id: '2', day: 2, start: '13:00', end: '13:50', subject: 'Wiskunde' },
+    { id: '3', day: 4, start: '08:30', end: '09:20', subject: 'Engels' },
+  ]
+
+  it('finds the next lesson today, then on later days', () => {
+    expect(nextLesson(lessons, at('2026-10-20T08:00:00+02:00'), ZONE)?.lesson.subject).toBe('Networking')
+    expect(nextLesson(lessons, at('2026-10-20T10:00:00+02:00'), ZONE)?.lesson.subject).toBe('Networking') // still running
+    expect(nextLesson(lessons, at('2026-10-20T11:00:00+02:00'), ZONE)?.lesson.subject).toBe('Wiskunde')
+    expect(nextLesson(lessons, at('2026-10-20T15:00:00+02:00'), ZONE)).toMatchObject({ lesson: { subject: 'Engels' }, inDays: 2 })
+    expect(nextLesson([], at('2026-10-20T15:00:00+02:00'), ZONE)).toBeNull()
+  })
+})
