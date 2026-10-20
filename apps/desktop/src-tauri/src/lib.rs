@@ -2,6 +2,8 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WindowEvent};
 
+mod update;
+
 /// Passed by the autostart entry, so NEXUS starts quietly in the tray at login.
 const MINIMIZED_FLAG: &str = "--minimized";
 
@@ -23,6 +25,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![MINIMIZED_FLAG]),
         ))
+        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;

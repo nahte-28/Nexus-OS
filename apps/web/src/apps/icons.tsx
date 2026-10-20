@@ -95,3 +95,38 @@ export const CodeIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" />
   </svg>
 )
+
+export const LayersIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M12 3 3 8l9 5 9-5z" />
+    <path d="m3 13 9 5 9-5M3 17.5l9 5 9-5" />
+  </svg>
+)
+
+export const SchoolIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M2 9l10-5 10 5-10 5z" />
+    <path d="M6 11v5c3 2 9 2 12 0v-5M22 9v6" />
+  </svg>
+)
+
+export const HomeIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M3 11l9-7 9 7" />
+    <path d="M5 10v10h14V10M10 20v-6h4v6" />
+  </svg>
+)
+
+export const GamepadIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M6 8h12a4 4 0 0 1 3.9 4.9l-1 4.3a2.5 2.5 0 0 1-4.3 1.1L14.5 16h-5l-2.1 2.3a2.5 2.5 0 0 1-4.3-1.1l-1-4.3A4 4 0 0 1 6 8z" />
+    <path d="M8 11v3M6.5 12.5h3M15.5 12h.01M17.5 13.5h.01" />
+  </svg>
+)
+
+export const LinkIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  </svg>
+)

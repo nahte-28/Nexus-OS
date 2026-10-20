@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
+import { checkForUpdate, installUpdate, useUpdate } from '../platform/update'
 import { useTheme } from '../theme/ThemeContext'
 
 export function Settings() {
@@ -66,7 +67,38 @@ function WindowsSettings() {
         Sluit je het venster, dan blijft NEXUS in het systeemvak draaien zodat meldingen binnenkomen. Afsluiten doe je via
         het NEXUS-icoon in het systeemvak.
       </p>
+      <UpdateSettings />
     </fieldset>
+  )
+}
+
+function UpdateSettings() {
+  const update = useUpdate()
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
+      <span className="flex-1">
+        {update.status === 'idle' && 'Updates voor de Windows-app'}
+        {update.status === 'checking' && 'Zoeken naar updates…'}
+        {update.status === 'current' && 'Je hebt de nieuwste versie.'}
+        {update.status === 'available' && `Versie ${update.update.version} is beschikbaar.`}
+        {update.status === 'installing' && `Versie ${update.update.version} wordt geïnstalleerd; NEXUS start zo opnieuw.`}
+        {update.status === 'error' && <span className="text-red-500">Updates zoeken lukte niet: {update.error}</span>}
+      </span>
+      {update.status === 'available' ? (
+        <button type="button" onClick={() => void installUpdate()} className="rounded-lg bg-nx-accent px-3 py-1.5 font-medium text-nx-accent-text">
+          Nu bijwerken
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={update.status === 'checking' || update.status === 'installing'}
+          onClick={() => void checkForUpdate()}
+          className="rounded-lg border border-nx-border px-3 py-1.5 hover:bg-nx-surface-2 disabled:opacity-60"
+        >
+          Zoeken naar updates
+        </button>
+      )}
+    </div>
   )
 }
 

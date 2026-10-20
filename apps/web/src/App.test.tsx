@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { defaultProfilesState } from '@nexus/core'
 import { App } from './App'
+import { profilesStore } from './profiles/store'
 import { getAll } from './state/db'
 import { ThemeProvider } from './theme/ThemeContext'
 
@@ -24,7 +26,11 @@ const renderApp = () =>
   )
 
 describe('App shell', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    // Outside the schedule, so tests do not depend on the clock.
+    profilesStore.update(() => ({ ...defaultProfilesState(), schedule: { ...defaultProfilesState().schedule, enabled: false } }))
+  })
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
@@ -91,7 +97,7 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Ontwikkelaarsmodus/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Ontwikkelaar' }))
-    expect(screen.getByText(/NEXUS OS 0\.7/)).toBeTruthy()
+    expect(screen.getByText(/NEXUS OS 0\.8/)).toBeTruthy()
   })
 
   it('switches theme and remembers it', () => {
@@ -110,6 +116,32 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.7')).toBeTruthy()
+    expect(screen.getByText('NEXUS OS v0.8')).toBeTruthy()
+  })
+
+  it('switches profile, which changes the apps and the theme', () => {
+    mockViewport(false)
+    renderApp()
+    const sidebar = screen.getByRole('navigation', { name: 'Apps' })
+    expect(within(sidebar).getByRole('button', { name: 'Herinneringen' })).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('radio', { name: 'Gaming' })[0])
+    expect(within(sidebar).queryByRole('button', { name: 'Herinneringen' })).toBeNull()
+    expect(within(sidebar).getByRole('button', { name: 'Profielen' })).toBeTruthy()
+    expect(document.documentElement.dataset.theme).toBe('pulse')
+    fireEvent.click(screen.getAllByRole('radio', { name: 'Persoonlijk' })[0])
+    expect(document.documentElement.dataset.theme).toBe('focus')
+  })
+
+  it('shows the next class from the timetable on the School dashboard', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('radio', { name: 'School' })[0])
+    expect(screen.getByText('School Workspace')).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Lesrooster' }))
+    fireEvent.change(screen.getByLabelText('Vak'), { target: { value: 'Wiskunde' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Les toevoegen' }))
+    expect(screen.getByRole('list', { name: 'Lesrooster' }).textContent).toContain('Wiskunde')
+    expect(screen.getByText('Volgende les').parentElement?.textContent).toContain('Wiskunde')
   })
 })
