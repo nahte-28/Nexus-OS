@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, type ReactNode } fro
 import type { ThemeId } from '@nexus/core'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { writeStorage } from '../state/storage'
+import { applyAccent } from './accents'
 
 const STORAGE_KEY = 'nexus.theme'
 const THEME_COLORS: Record<ThemeId, string> = { focus: '#eef1f5', pulse: '#0b1020' }
@@ -24,6 +25,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme])
     writeStorage(STORAGE_KEY, theme)
   }, [theme])
+  useEffect(() => {
+    applyAccent(active.accent, theme)
+  }, [active.accent, theme])
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }

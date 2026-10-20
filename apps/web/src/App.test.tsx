@@ -155,4 +155,49 @@ describe('App shell', () => {
     expect(open).toHaveBeenCalledWith('https://klashub.vercel.app', '_blank', 'noopener')
     expect(screen.queryByRole('dialog', { name: 'KlasHub' })).toBeNull()
   })
+
+  const openProfiles = () => fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+
+  it('picks a profile for one hour from the Profielen app', () => {
+    mockViewport(false)
+    renderApp()
+    openProfiles()
+    fireEvent.change(screen.getByLabelText('Hoe lang geldt een keuze met de hand?'), { target: { value: 'hour' } })
+    fireEvent.click(within(screen.getByRole('list', { name: 'Profielen kiezen' })).getByRole('button', { name: /Gaming/ }))
+    const { override } = profilesStore.getSnapshot().state
+    expect(override).toMatchObject({ profile: 'gaming', mode: 'until-time' })
+    expect(screen.getByText(/Met de hand gekozen.*, tot \d\d:\d\d/)).toBeTruthy()
+  })
+
+  it('reorders apps and sets an accent colour per profile', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('radio', { name: 'Persoonlijk' })[0])
+    openProfiles()
+    fireEvent.click(screen.getByRole('tab', { name: 'Apps & widgets' }))
+    fireEvent.click(within(screen.getByRole('list', { name: 'Apps' })).getByRole('button', { name: 'Meldingen omhoog' }))
+    const sidebar = within(screen.getByRole('navigation', { name: 'Apps' }))
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+    // (Ontwikkelaar may still show from the developer-mode test above.)
+    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 2)).toEqual(['Meldingen', 'Notities'])
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))
+    expect(document.documentElement.style.getPropertyValue('--nx-accent')).toBe('#15803d')
+    fireEvent.click(screen.getByRole('radio', { name: 'Van het thema' }))
+    expect(document.documentElement.style.getPropertyValue('--nx-accent')).toBe('')
+  })
+
+  it('lets chosen apps through in a quiet profile', () => {
+    mockViewport(false)
+    renderApp()
+    openProfiles()
+    fireEvent.click(screen.getByRole('tab', { name: 'Meldingen' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Profiel' }), { target: { value: 'school' } })
+    fireEvent.change(screen.getByLabelText('Naam van de app'), { target: { value: 'Smartschool' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
+    expect(profilesStore.getSnapshot().state.profiles.school.allowApps).toEqual(['Smartschool'])
+    expect(screen.getByRole('list', { name: 'Altijd doorlaten' }).textContent).toContain('Smartschool')
+  })
 })

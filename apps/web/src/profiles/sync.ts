@@ -7,8 +7,36 @@ import { profilesStore, type ProfilesStore } from './store'
 const KEY = 'profiles'
 /** The account this device last synced profiles with; a new account means a first sync. */
 const SYNCED_USER_KEY = 'nexus.profiles.synced-user'
+/** 'off' when profiles stay on this device only (Profielen > Apparaten). */
+const SYNC_MODE_KEY = 'nexus.profiles.sync-mode'
 const PUSH_DEBOUNCE_MS = 1500
 const POLL_MS = 5 * 60_000
+
+export type SyncMode = 'all-devices' | 'this-device'
+
+export function profilesSyncMode(): SyncMode {
+  return readStorage(SYNC_MODE_KEY) === 'off' ? 'this-device' : 'all-devices'
+}
+
+export interface ProfilesSyncStatus {
+  state: 'unavailable' | 'off' | 'signed-out' | 'syncing' | 'synced' | 'error'
+  at: number | null
+  error: string | null
+}
+
+let status: ProfilesSyncStatus = { state: 'unavailable', at: null, error: null }
+const statusListeners = new Set<() => void>()
+function setStatus(next: Partial<ProfilesSyncStatus>): void {
+  status = { ...status, ...next }
+  statusListeners.forEach((l) => l())
+}
+export const profilesSyncStatus = {
+  subscribe(listener: () => void): () => void {
+    statusListeners.add(listener)
+    return () => statusListeners.delete(listener)
+  },
+  getSnapshot: (): ProfilesSyncStatus => status,
+}
 
 /** Where the account's copy lives; a small seam so the logic can be tested without Supabase. */
 export interface ProfilesRemote {
@@ -58,8 +86,18 @@ export class ProfilesSync {
       this.again = true
       return this.running
     }
+    if (profilesSyncMode() === 'this-device') {
+      setStatus({ state: 'off', error: null })
+      return Promise.resolve()
+    }
+    setStatus({ state: 'syncing' })
     this.running = this.round()
-      .catch((err) => logEvent('sync', `Profielen synchroniseren mislukt: ${err instanceof Error ? err.message : String(err)}`))
+      .then(() => setStatus({ state: 'synced', at: Date.now(), error: null }))
+      .catch((err) => {
+        const message = errorMessage(err)
+        setStatus({ state: 'error', error: message })
+        logEvent('sync', `Profielen synchroniseren mislukt: ${message}`)
+      })
       .finally(() => {
         this.running = null
         if (this.again) {
@@ -105,6 +143,25 @@ export class ProfilesSync {
   }
 }
 
+function errorMessage(err: unknown): string {
+  const text = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String(err.message) : String(err)
+  // The table does not exist yet: the SQL migration was not run in Supabase.
+  if (/user_settings/.test(text) && /(does not exist|schema cache|not find)/i.test(text)) {
+    return 'De tabel user_settings ontbreekt in Supabase. Voer de SQL van supabase/migrations/20261020100000_settings.sql uit.'
+  }
+  return text
+}
+
+let current: ProfilesSync | null = null
+
+/** Turns syncing on or off for this device; switching it on syncs right away. */
+export function setProfilesSyncMode(mode: SyncMode): void {
+  writeStorage(SYNC_MODE_KEY, mode === 'this-device' ? 'off' : 'on')
+  if (mode === 'this-device') setStatus({ state: 'off', error: null })
+  else if (current) void current.sync()
+  else setStatus({ state: 'signed-out' })
+}
+
 /** Starts syncing profiles whenever someone is signed in; stays local-only otherwise. */
 export function startProfilesSync(client: SupabaseClient | null, store: ProfilesStore = profilesStore): () => void {
   if (!client) return () => {}
@@ -112,13 +169,15 @@ export function startProfilesSync(client: SupabaseClient | null, store: Profiles
   let debounce: ReturnType<typeof setTimeout> | undefined
   const remote = createProfilesRemote(client)
 
+  setStatus({ state: profilesSyncMode() === 'this-device' ? 'off' : 'signed-out' })
   const setSession = (session: Session | null) => {
     if (!session) {
-      sync = null
+      sync = current = null
+      if (profilesSyncMode() === 'all-devices') setStatus({ state: 'signed-out', error: null })
       return
     }
     if (sync && readStorage(SYNCED_USER_KEY) === session.user.id) return
-    sync = new ProfilesSync(remote, store, session.user.id)
+    sync = current = new ProfilesSync(remote, store, session.user.id)
     void sync.sync()
   }
   void client.auth.getSession().then(({ data }) => setSession(data.session))
