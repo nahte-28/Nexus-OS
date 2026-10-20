@@ -116,4 +116,15 @@ describe('next lesson', () => {
     expect(nextLesson(lessons, at('2026-10-20T15:00:00+02:00'), ZONE)).toMatchObject({ lesson: { subject: 'Engels' }, inDays: 2 })
     expect(nextLesson([], at('2026-10-20T15:00:00+02:00'), ZONE)).toBeNull()
   })
+
+  it('adds KlasHub to copies stored before it existed', () => {
+    const old = { profiles: { school: { apps: ['notes', 'reminders'] }, gaming: { apps: ['notes'] } }, revision: 3 }
+    const s = parseProfilesState(old)
+    expect(s.profiles.school.apps).toEqual(['klashub', 'notes', 'reminders'])
+    expect(s.profiles.gaming.apps).toEqual(['notes'])
+    expect(s.klashubUrl).toBe('https://klashub.vercel.app')
+    // Once upgraded, removing it sticks.
+    const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, school: { ...s.profiles.school, apps: ['notes'] } } })
+    expect(removed.profiles.school.apps).toEqual(['notes'])
+  })
 })

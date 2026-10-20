@@ -3,6 +3,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, WindowEvent};
 
 mod update;
+mod web;
 
 /// Passed by the autostart entry, so NEXUS starts quietly in the tray at login.
 const MINIMIZED_FLAG: &str = "--minimized";
@@ -25,7 +26,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![MINIMIZED_FLAG]),
         ))
-        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update])
+        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update, web::open_web_window])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
@@ -60,7 +61,11 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             // Closing hides NEXUS to the tray so notifications keep arriving; quit from the tray menu.
+            // Website windows (like KlasHub) just close.
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() != "main" {
+                    return;
+                }
                 api.prevent_close();
                 let _ = window.hide();
             }

@@ -17,6 +17,7 @@ export function Desktop() {
   const openApp = useCallback(
     (appId: AppId) => {
       const app = getApp(appId)
+      if (app.launch) return app.launch()
       const offset = (state.windows.length % 6) * 32
       const width = Math.min(app.defaultSize.width, window.innerWidth - SIDEBAR_WIDTH - 40)
       const height = Math.min(app.defaultSize.height, window.innerHeight - TASKBAR_HEIGHT - 40)

@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { nextLesson, noteTitle, type AppId, type WidgetId } from '@nexus/core'
+import { nextCalendarEvent, nextLesson, noteTitle, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
@@ -108,8 +108,31 @@ function Widget({ id, onOpenApp }: { id: WidgetId; onOpenApp: OpenApp }) {
   }
 }
 
+function dayWord(at: number, now: number): string {
+  const day = (t: number) => new Date(t).toDateString()
+  if (day(at) === day(now)) return 'Vandaag'
+  if (day(at) === day(now + 86_400_000)) return 'Morgen'
+  const word = new Date(at).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'short' })
+  return word.charAt(0).toUpperCase() + word.slice(1)
+}
+
+const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+
 function NextClass({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
   const { state } = useProfiles()
+  // Lessons from the school calendar win over the ones typed in by hand.
+  const event = nextCalendarEvent(state.calendarEvents, now)
+  if (event) {
+    return (
+      <Card title={event.start <= now ? 'Nu bezig' : 'Volgende les'}>
+        <p className="text-lg font-semibold">{event.subject}</p>
+        <p className="text-sm text-nx-accent tabular-nums">
+          {dayWord(event.start, now)} {clock(event.start)}–{clock(event.end)}
+          {event.room ? ` · ${event.room}` : ''}
+        </p>
+      </Card>
+    )
+  }
   const next = nextLesson(state.lessons, now, state.schedule.timeZone)
   if (!next) {
     return (
@@ -216,19 +239,12 @@ function AiStudy({ onOpenApp }: { onOpenApp: OpenApp }) {
 }
 
 function KlasHub({ onOpenApp }: { onOpenApp: OpenApp }) {
-  const { state } = useProfiles()
   return (
     <Card title="KlasHub">
-      <p className="mb-2 text-sm text-nx-muted">Vakken en opdrachten.</p>
-      {state.klashubUrl ? (
-        <a href={state.klashubUrl} target="_blank" rel="noreferrer" className={`${linkButton} inline-flex items-center gap-1`}>
-          <LinkIcon className="size-4" /> KlasHub openen
-        </a>
-      ) : (
-        <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>
-          KlasHub-link instellen
-        </button>
-      )}
+      <p className="mb-2 text-sm text-nx-muted">Oefenvragen, samenvattingen en deadlines van je klas.</p>
+      <button type="button" className={`${linkButton} inline-flex items-center gap-1`} onClick={() => onOpenApp('klashub')}>
+        <LinkIcon className="size-4" /> KlasHub openen
+      </button>
     </Card>
   )
 }

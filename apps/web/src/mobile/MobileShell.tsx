@@ -19,6 +19,8 @@ export function MobileShell() {
   }, [])
 
   const open = (id: AppId) => {
+    const launch = getApp(id).launch
+    if (launch) return launch()
     history.pushState({ app: id }, '')
     setOpenId(id)
   }
