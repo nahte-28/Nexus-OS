@@ -5,6 +5,7 @@ import { App } from './App'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
+import { startFlowsSync } from './flows/sync'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
 import { startProfileClock } from './profiles/store'
@@ -31,6 +32,8 @@ startProfileClock()
 startCalendarSync()
 // With an account, profiles and the calendar link follow you to every device.
 startProfilesSync(supabase)
+// Flows, their settings and run history too; each event still runs on one device only.
+startFlowsSync(supabase)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

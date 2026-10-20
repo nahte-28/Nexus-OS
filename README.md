@@ -109,6 +109,7 @@ Profielen (School, Persoonlijk, Gaming, Developer) bepalen het thema en de accen
 Instellen (eenmalig):
 
 - Voer `supabase/migrations/20261020100000_settings.sql` uit in de SQL Editor van Supabase, voor het synchroniseren tussen toestellen.
+- Voer ook `supabase/migrations/20261020140000_flows.sql` uit, voor Flow Studio op al je apparaten.
 - Optioneel in Vercel: `NEXUS_CALENDAR_HOSTS` (standaard `apih.ap.be`), de adressen waarvan `api/calendar.ts` een agendalink mag ophalen.
 
 Beperkingen: NEXUS kan alleen zijn eigen meldingen stil zetten, niet die van andere apps op je gsm of horloge, en een webapp ziet niet welke andere apps er draaien. Wisselen op basis van een app of agenda-afspraak zit er daarom nog niet in. KlasHub opent in je browser (ook vanuit de Windows-app), omdat de site niet ingesloten mag worden.
@@ -120,11 +121,13 @@ Automatiseringen als **Wanneer → Alleen als → Doe dit**, in de app **Flow St
 - **Wanneer**: op een vast tijdstip (dagen en uur), een deadline komt eraan (je herinneringen), een gekoppeld apparaat is offline, er is een update van de Windows-app, of met de hand.
 - **Alleen als**: een profiel is actief, tussen twee uren, dit apparaat is online. Alle voorwaarden moeten kloppen.
 - **Doe dit** (hoogstens 5): een profiel activeren (via Profiles), een melding sturen (hier of via NEXUS Connect ook op gsm en horloge), voorstellen om een app te openen, voorstellen om de update te installeren. Flows openen nooit zelf apps en installeren nooit zelf iets: een voorstel staat op het dashboard tot je kiest.
-- Tabs: **Mijn flows** (aan/uit, uitvoeren, dupliceren, verwijderen met bevestiging), **Sjablonen** (School Start, Deadline eraan, Update-moment, Apparaat offline, Studiesessie), **Bouwer** (stappen met proefrun, ongedaan maken en opnieuw), **Runs** (wat elke run deed en waarom iets mislukte) en **Instellingen** (alles pauzeren, stille uren).
+- Tabs: **Mijn flows** (aan/uit, uitvoeren, dupliceren, verwijderen met bevestiging), **Sjablonen** (School Start, Deadline eraan, Update-moment, Apparaat offline, Studiesessie), **Bouwer** (stappen met proefrun, ongedaan maken en opnieuw), **Runs** (wat elke run deed en waarom iets mislukte) en **Instellingen** (synchroniseren, alles pauzeren, stille uren).
 
 Hoe het loopt: zolang NEXUS open is op het apparaat (de Windows-app in het systeemvak is het betrouwbaarst), elke 30 seconden en meteen na slaap of terugkeren naar het venster. Elke gebeurtenis loopt hoogstens één keer per flow, ook na herladen; een gemist tijdstip wordt tot een halfuur later nog ingehaald. Hoogstens 6 runs per flow per uur. Tijden volgen de tijdzone van het apparaat, ook rond de overgang naar zomer- en wintertijd.
 
-Beperkingen: flows staan voorlopig alleen op het apparaat waar je ze maakt (geen sync, dus ook geen dubbele meldingen van twee toestellen). Een gesloten browser of PWA voert niets uit; daarvoor is een server nodig, dat zit er nog niet in.
+Sync: met een account staan flows, pauzeren, stille uren en de runs op al je apparaten (tabellen `automation_flows` en `automation_runs` en de sleutel `flows` in `user_settings`, met RLS; voer daarvoor eenmalig `supabase/migrations/20261020140000_flows.sql` uit in de SQL-editor van Supabase). Per flow wint de nieuwste wijziging, ook een verwijdering. Elke gebeurtenis loopt op één apparaat: wie ze eerst in `automation_runs` zet, voert ze uit, de andere apparaten slaan ze over. Zonder verbinding voert het apparaat ze zelf uit, zodat een herinnering nooit op het netwerk wacht. Je account bewaart van een run alleen welke flow, het soort gebeurtenis en actie, het apparaat en de uitkomst, nooit de titel van een deadline of de tekst van een melding. Uitzetten per apparaat kan in Flow Studio › Instellingen.
+
+Beperkingen: een gesloten browser of PWA voert niets uit; daarvoor is een server nodig, dat zit er nog niet in. "Op het apparaat dat de flow uitvoert" is het eerste apparaat dat het moment ziet, meestal de pc als die aanstaat.
 
 ## Wat werkt
 

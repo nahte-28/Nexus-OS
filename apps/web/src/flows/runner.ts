@@ -21,6 +21,7 @@ import { remindersStore } from '../reminders/store'
 import type { ConnectEngine } from '../connect/engine'
 import { showLocalNotification } from '../platform/notify'
 import { addPrompt, type FlowPrompt } from './prompts'
+import { claimFlowRun } from './sync'
 import { FLOWS_STORAGE_KEY, flowsStore, flowStudioEnabled, type FlowRun, type FlowSettings, type FlowStepResult, type FlowsStore } from './store'
 
 const TICK_MS = 30_000
@@ -30,6 +31,13 @@ export interface FlowEffects {
   activateProfile(profile: ProfileId, duration: ProfileDuration): void
   notify(title: string, text: string, target: NotifyTarget): Promise<void>
   prompt(prompt: FlowPrompt): void
+  /**
+   * Asks the account whether this device may run the event: false when another device already
+   * did. Without an account or connection the answer is yes, so flows keep working offline.
+   */
+  claim?(run: FlowRun): Promise<boolean>
+  /** Name of this device in NEXUS Connect, for the run history. */
+  deviceName?(): string | undefined
 }
 
 export const APP_NAMES: Partial<Record<string, string>> = {
@@ -65,9 +73,9 @@ export async function runActions(
     const label = describeAction(action, event.vars, appName)
     try {
       const skipped = await runAction(action, flow, event, effects, settings, now, index)
-      steps.push(skipped ? { action: label, status: 'skipped', detail: skipped } : { action: label, status: 'ok' })
+      steps.push(skipped ? { type: action.type, action: label, status: 'skipped', detail: skipped } : { type: action.type, action: label, status: 'ok' })
     } catch (err) {
-      steps.push({ action: label, status: 'failed', detail: err instanceof Error ? err.message : String(err) })
+      steps.push({ type: action.type, action: label, status: 'failed', detail: err instanceof Error ? err.message : String(err) })
     }
   }
   return steps
@@ -102,11 +110,27 @@ async function runAction(
 
 const SKIP_REASONS = { condition: 'Voorwaarde niet voldaan', paused: 'Alles gepauzeerd', 'rate-limit': 'Te vaak dit uur' } as const
 
-async function toRun(planned: PlannedRun, effects: FlowEffects, settings: FlowSettings, now: number, manual = false): Promise<FlowRun> {
-  const base = { id: crypto.randomUUID(), flowId: planned.flow.id, flowName: planned.flow.name, event: planned.event.label, at: now, ...(manual ? { manual } : {}) }
-  if (planned.skipped) return { ...base, status: 'skipped', reason: SKIP_REASONS[planned.skipped], steps: [] }
+function newRun(planned: PlannedRun, effects: FlowEffects, now: number, manual = false): FlowRun {
+  const device = effects.deviceName?.()
+  return {
+    id: crypto.randomUUID(),
+    flowId: planned.flow.id,
+    flowName: planned.flow.name,
+    event: planned.event.label,
+    eventId: planned.event.id,
+    trigger: manual ? 'manual' : planned.flow.trigger.type,
+    at: now,
+    status: 'ok',
+    ...(manual ? { manual } : {}),
+    ...(device ? { device } : {}),
+    steps: [],
+  }
+}
+
+async function finishRun(run: FlowRun, planned: PlannedRun, effects: FlowEffects, settings: FlowSettings, now: number): Promise<FlowRun> {
+  if (planned.skipped) return { ...run, status: 'skipped', reason: SKIP_REASONS[planned.skipped] }
   const steps = await runActions(planned.flow, planned.event, effects, settings, now)
-  return { ...base, status: steps.some((s) => s.status === 'failed') ? 'failed' : 'ok', steps }
+  return { ...run, status: steps.some((s) => s.status === 'failed') ? 'failed' : 'ok', steps }
 }
 
 /** Checks every flow once: runs what is due and records it, so nothing runs twice. */
@@ -117,7 +141,12 @@ export async function tickFlows(context: FlowContext, effects: FlowEffects, stor
   // Mark first: a reload halfway through can then never run the same event again.
   store.update((s) => ({ ...s, runtime: markHandled(s.runtime, planned, context.now) }))
   const runs: FlowRun[] = []
-  for (const p of planned) runs.push(await toRun(p, effects, settings, context.now))
+  for (const p of planned) {
+    const run = newRun(p, effects, context.now)
+    // Another device of the account already ran this event: nothing to do or show here.
+    if (!p.skipped && effects.claim && !(await effects.claim(run))) continue
+    runs.push(await finishRun(run, p, effects, settings, context.now))
+  }
   store.addRuns(runs, context.now)
   for (const run of runs) {
     if (run.status !== 'skipped') logEvent('system', `Flow ${run.flowName}: ${run.status === 'ok' ? 'gelukt' : 'deels mislukt'}`, run.status === 'failed')
@@ -131,7 +160,8 @@ export async function runNow(flow: FlowDefinition, context: FlowContext, effects
   const event: FlowEvent = { id: `manual:${context.now}`, label: 'Met de hand', vars: {} }
   const condition = failingCondition(flow, context)
   const skipped = settings.paused ? 'paused' : condition ? 'condition' : undefined
-  const run = await toRun({ flow, event, ...(skipped ? { skipped } : {}) }, effects, settings, context.now, true)
+  const planned: PlannedRun = { flow, event, ...(skipped ? { skipped } : {}) }
+  const run = await finishRun(newRun(planned, effects, context.now, true), planned, effects, settings, context.now)
   store.addRuns([run], context.now)
   return run
 }
@@ -172,6 +202,11 @@ export function defaultEffects(connect: ConnectEngine): FlowEffects {
       addPrompt(prompt)
       const what = prompt.kind === 'update' ? 'de update installeren' : `${appName(prompt.app ?? '')} openen`
       void showLocalNotification(prompt.flowName, `Voorstel: ${what}. Open NEXUS om te kiezen.`, prompt.id)
+    },
+    claim: claimFlowRun,
+    deviceName() {
+      const state = connect.getSnapshot()
+      return state.status === 'ready' ? state.devices.find((d) => d.isThisDevice)?.name : undefined
     },
   }
 }

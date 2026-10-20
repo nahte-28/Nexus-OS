@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { emptyRuntime, isFlowDefinition, isTime, type FlowDefinition, type FlowRuntime } from '@nexus/core'
+import { emptyRuntime, isFlowDefinition, isTime, type ActionType, type FlowDefinition, type FlowRuntime, type TriggerType } from '@nexus/core'
 import { readStorage, writeStorage } from '../state/storage'
 
 const STORAGE_KEY = 'nexus.flows'
@@ -13,9 +13,12 @@ export interface FlowSettings {
   paused: boolean
   /** Quiet hours: flows still run, but send no notifications. */
   quiet: { enabled: boolean; start: string; end: string }
+  /** Time of the last change, so the newest one wins across devices. */
+  updatedAt: number
 }
 
 export interface FlowStepResult {
+  type?: ActionType
   action: string
   status: 'ok' | 'failed' | 'skipped'
   detail?: string
@@ -27,20 +30,29 @@ export interface FlowRun {
   flowId: string
   flowName: string
   event: string
+  /** With the flow id, what makes the run happen once across all devices. */
+  eventId?: string
+  trigger?: TriggerType
   at: number
   status: 'ok' | 'failed' | 'skipped'
   reason?: string
   manual?: boolean
+  /** The device that ran it. */
+  device?: string
+  /** True once the account has the outcome. */
+  synced?: boolean
   steps: FlowStepResult[]
 }
 
 export interface FlowsState {
   flows: FlowDefinition[]
   settings: FlowSettings
+  /** Flows deleted here: id → time, so other devices delete them too. */
+  deleted: Record<string, number>
   runtime: FlowRuntime
 }
 
-const DEFAULT_SETTINGS: FlowSettings = { paused: false, quiet: { enabled: false, start: '22:00', end: '07:00' } }
+const DEFAULT_SETTINGS: FlowSettings = { paused: false, quiet: { enabled: false, start: '22:00', end: '07:00' }, updatedAt: 0 }
 
 function readJson(raw: string | null): unknown {
   try {
@@ -60,7 +72,12 @@ export function parseFlowsState(raw: unknown): FlowsState {
     settings: {
       paused: s.paused === true,
       quiet: isTime(quiet.start) && isTime(quiet.end) ? { ...quiet, enabled: quiet.enabled === true } : DEFAULT_SETTINGS.quiet,
+      updatedAt: typeof s.updatedAt === 'number' ? s.updatedAt : 0,
     },
+    deleted:
+      typeof r.deleted === 'object' && r.deleted !== null
+        ? Object.fromEntries(Object.entries(r.deleted).filter(([, at]) => typeof at === 'number'))
+        : {},
     runtime:
       r.runtime && typeof r.runtime.handled === 'object' && typeof r.runtime.recent === 'object' ? r.runtime : emptyRuntime(),
   }
@@ -100,17 +117,48 @@ export class FlowsStore {
     return saved
   }
 
-  remove(id: string): void {
-    this.update((s) => ({ ...s, flows: s.flows.filter((f) => f.id !== id) }))
+  remove(id: string, now = Date.now()): void {
+    this.update((s) => ({ ...s, flows: s.flows.filter((f) => f.id !== id), deleted: { ...s.deleted, [id]: now } }))
   }
 
-  setEnabled(id: string, enabled: boolean): void {
-    this.update((s) => ({ ...s, flows: s.flows.map((f) => (f.id === id ? { ...f, enabled } : f)) }))
+  setEnabled(id: string, enabled: boolean, now = Date.now()): void {
+    this.update((s) => ({ ...s, flows: s.flows.map((f) => (f.id === id ? { ...f, enabled, updatedAt: now } : f)) }))
+  }
+
+  setSettings(patch: Partial<Omit<FlowSettings, 'updatedAt'>>, now = Date.now()): void {
+    this.update((s) => ({ ...s, settings: { ...s.settings, ...patch, updatedAt: now } }))
+  }
+
+  /** Takes over what came from the account (see FlowsSync). */
+  adopt(patch: Partial<Pick<FlowsState, 'flows' | 'deleted' | 'settings'>>): void {
+    this.update((s) => ({ ...s, ...patch }))
   }
 
   addRuns(runs: FlowRun[], now = Date.now()): void {
     if (runs.length === 0) return
-    this.runs = [...runs, ...this.runs].filter((r) => now - r.at < KEEP_RUNS_MS).slice(0, MAX_RUNS)
+    const ids = new Set(runs.map((r) => r.id))
+    this.setRuns([...runs, ...this.runs.filter((r) => !ids.has(r.id))], now)
+  }
+
+  /** Runs from the account: adds those of other devices and marks this device's as synced. */
+  mergeRuns(remote: FlowRun[], now = Date.now()): void {
+    const known = new Map(this.runs.map((r) => [r.id, r]))
+    const remoteIds = new Set(remote.map((r) => r.id))
+    const fresh = remote.filter((r) => !known.has(r.id))
+    const changed = fresh.length > 0 || this.runs.some((r) => remoteIds.has(r.id) && !r.synced)
+    if (!changed) return
+    const runs = [...fresh, ...this.runs.map((r) => (remoteIds.has(r.id) && !r.synced ? { ...r, synced: true } : r))]
+    this.setRuns(runs.sort((a, b) => b.at - a.at), now)
+  }
+
+  markSynced(ids: string[]): void {
+    if (ids.length === 0) return
+    const done = new Set(ids)
+    this.setRuns(this.runs.map((r) => (done.has(r.id) ? { ...r, synced: true } : r)))
+  }
+
+  private setRuns(runs: FlowRun[], now = Date.now()): void {
+    this.runs = runs.filter((r) => now - r.at < KEEP_RUNS_MS).slice(0, MAX_RUNS)
     writeStorage(RUNS_KEY, JSON.stringify(this.runs))
     this.listeners.forEach((l) => l())
   }

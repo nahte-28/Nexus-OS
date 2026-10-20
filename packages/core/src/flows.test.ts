@@ -4,6 +4,7 @@ import {
   fillText,
   FLOW_TEMPLATES,
   markHandled,
+  mergeFlows,
   MAX_RUNS_PER_HOUR,
   nextScheduledRun,
   planRuns,
@@ -142,5 +143,38 @@ describe('flow validation and templates', () => {
 
   it('ships valid templates', () => {
     for (const t of FLOW_TEMPLATES) expect(validateFlow(flow(t.flow)), t.id).toBeNull()
+  })
+})
+
+describe('flow sync merge', () => {
+  it('keeps the newest change per flow, a deletion included', () => {
+    const mine = [flow({ id: 'a', name: 'Hier nieuwer', updatedAt: 20 }), flow({ id: 'b', name: 'Hier ouder', updatedAt: 5 })]
+    const stored = [
+      { id: 'a', definition: flow({ id: 'a', name: 'Account', updatedAt: 10 }), revision: 10 },
+      { id: 'b', definition: null, revision: 8 }, // deleted on the phone after this device's change
+      { id: 'c', definition: flow({ id: 'c', name: 'Van de gsm', createdAt: 3 }), revision: 12 },
+    ]
+    const merged = mergeFlows(mine, { d: 30 }, stored)
+    expect(merged.flows.map((f) => [f.id, f.name])).toEqual([
+      ['a', 'Hier nieuwer'],
+      ['c', 'Van de gsm'],
+    ])
+    expect(merged.flows[1].updatedAt).toBe(12)
+    expect(merged.deleted).toEqual({ b: 8, d: 30 })
+    expect(merged.push.map((s) => s.id).sort()).toEqual(['a', 'd'])
+  })
+
+  it('ignores a copy from the account that does not pass validation', () => {
+    const broken = { ...flow({ id: 'x' }), actions: [] }
+    const merged = mergeFlows([], {}, [{ id: 'x', definition: broken, revision: 50 }])
+    expect(merged.flows).toEqual([])
+    expect(merged.push).toEqual([])
+  })
+
+  it('has nothing to do when both sides match', () => {
+    const f = flow({ id: 'a', updatedAt: 10 })
+    const merged = mergeFlows([f], {}, [{ id: 'a', definition: f, revision: 10 }])
+    expect(merged.push).toEqual([])
+    expect(merged.flows).toEqual([f])
   })
 })

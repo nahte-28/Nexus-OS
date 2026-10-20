@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 import {
   ACTION_LABELS,
   ACTION_TYPES,
@@ -34,6 +34,7 @@ import {
 import { useConnect } from '../connect/ConnectContext'
 import { appName, currentContext, defaultEffects, runNow } from '../flows/runner'
 import { flowsStore, useFlowRuns, useFlows, type FlowRun } from '../flows/store'
+import { clearFlowRuns, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn } from '../flows/sync'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -161,8 +162,8 @@ function MyFlows({ onEdit, onNew }: { onEdit: (flow: FlowDefinition) => void; on
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-nx-muted">
-          Flows lopen zolang NEXUS open is op dit apparaat (de Windows-app in het systeemvak is het betrouwbaarst). Ze openen nooit zelf apps en
-          installeren nooit zelf iets.
+          Flows lopen zolang NEXUS ergens open is (de Windows-app in het systeemvak is het betrouwbaarst), en elke keer op één apparaat. Ze
+          openen nooit zelf apps en installeren nooit zelf iets.
         </p>
         <button type="button" className={primaryButton} onClick={onNew}>
           Nieuwe flow
@@ -587,7 +588,7 @@ function ActionEditor({ action, onChange }: { action: FlowAction; onChange: (a: 
           <label className="flex flex-col gap-1">
             Waar
             <select className={field} value={action.target} onChange={(e) => onChange({ ...action, target: e.target.value as typeof action.target })}>
-              <option value="this_device">Alleen hier</option>
+              <option value="this_device">Op het apparaat dat de flow uitvoert</option>
               <option value="phone">Ook op gsm en horloge</option>
             </select>
           </label>
@@ -666,7 +667,7 @@ function Runs() {
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
-        <button type="button" className={button} onClick={() => flowsStore.clearRuns()}>
+        <button type="button" className={button} onClick={() => void clearFlowRuns()}>
           Geschiedenis wissen
         </button>
       </div>
@@ -684,6 +685,7 @@ function Runs() {
               </p>
               <p className="text-xs text-nx-muted">
                 {time(run.at)} · {run.manual ? 'met de hand' : run.event}
+                {run.device ? ` · op ${run.device}` : ''}
               </p>
               {run.steps.length > 0 && (
                 <ul className="mt-1 text-xs">
@@ -710,13 +712,14 @@ function Runs() {
 
 function FlowSettingsTab() {
   const { settings } = useFlows()
-  const setSettings = (patch: Partial<typeof settings>) => flowsStore.update((s) => ({ ...s, settings: { ...s.settings, ...patch } }))
+  const setSettings = (patch: Partial<Omit<typeof settings, 'updatedAt'>>) => flowsStore.setSettings(patch)
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={settings.paused} onChange={(e) => setSettings({ paused: e.target.checked })} className="accent-[var(--nx-accent)]" />
         Alles pauzeren: geen enkele flow loopt, tot je dit weer uitzet
       </label>
+      <FlowsSyncSetting />
       <fieldset className="space-y-2 border-t border-nx-border pt-4">
         <legend className="mb-2 font-semibold text-nx-muted">Stille uren</legend>
         <label className="flex items-center gap-2">
@@ -742,11 +745,51 @@ function FlowSettingsTab() {
       <div className="space-y-1 border-t border-nx-border pt-4 text-nx-muted">
         <p>
           Grenzen: hoogstens {MAX_RUNS_PER_HOUR} runs per flow per uur, {MAX_CONDITIONS} voorwaarden en {MAX_ACTIONS} acties. De geschiedenis houdt de
-          laatste 100 runs, hoogstens 30 dagen, alleen op dit apparaat, zonder de inhoud van meldingen.
+          laatste 100 runs, hoogstens 30 dagen. Je account bewaart van een run alleen welke flow, wanneer, op welk apparaat en wat elke actie
+          deed, nooit de titel van een deadline of de tekst van een melding.
         </p>
-        <p>Flows staan voorlopig alleen op dit apparaat; synchroniseren met je andere apparaten komt later.</p>
         <p>Flow Studio helemaal uitzetten kan in Instellingen.</p>
       </div>
     </div>
+  )
+}
+
+const SYNC_TEXT = {
+  unavailable: 'Deze versie van NEXUS heeft geen verbinding met Supabase, dus flows blijven op dit apparaat.',
+  off: 'Uit: flows, pauze en stille uren blijven op dit apparaat.',
+  'signed-out': 'Meld je aan in Account om je flows op al je apparaten te hebben.',
+  syncing: 'Bezig met synchroniseren…',
+  synced: 'Gesynchroniseerd',
+  error: 'Synchroniseren lukte niet',
+} as const
+
+function FlowsSyncSetting() {
+  const status = useSyncExternalStore(flowsSyncStatus.subscribe, flowsSyncStatus.getSnapshot)
+  const [on, setOn] = useState(flowsSyncOn)
+  return (
+    <fieldset className="space-y-2 border-t border-nx-border pt-4">
+      <legend className="mb-2 font-semibold text-nx-muted">Synchroniseren</legend>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={on}
+          onChange={(e) => {
+            setOn(e.target.checked)
+            setFlowsSyncOn(e.target.checked)
+          }}
+          className="accent-[var(--nx-accent)]"
+        />
+        Flows, pauze, stille uren en runs op al mijn apparaten
+      </label>
+      <p className="text-nx-muted" role="status">
+        {SYNC_TEXT[status.state]}
+        {status.state === 'synced' && status.at ? ` om ${new Date(status.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}` : ''}
+        {status.state === 'error' && status.error ? `: ${status.error}` : ''}
+      </p>
+      <p className="text-nx-muted">
+        Staat een flow op meerdere apparaten, dan voert het eerste apparaat dat het moment ziet ze uit en slaan de andere het over. Zonder
+        verbinding voert elk apparaat ze zelf uit, zodat een herinnering nooit op het netwerk wacht.
+      </p>
+    </fieldset>
   )
 }
