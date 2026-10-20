@@ -1,7 +1,9 @@
 import { useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
+  DEFAULT_KLASHUB_URL,
   isTime,
+  klashubLink,
   moveItem,
   PROFILE_IDS,
   profileOutsideSchedule,
@@ -176,6 +178,7 @@ function Timetable() {
   const [subject, setSubject] = useState('')
   const [room, setRoom] = useState('')
   const [klashub, setKlashub] = useState(state.klashubUrl)
+  const [klashubMessage, setKlashubMessage] = useState<string | null>(null)
   const valid = subject.trim() !== '' && isTime(start) && isTime(end) && start < end
   const lessons = [...state.lessons].sort((a, b) => a.day - b.day || a.start.localeCompare(b.start))
 
@@ -280,16 +283,25 @@ function Timetable() {
         className="space-y-2 border-t border-nx-border pt-4"
         onSubmit={(e) => {
           e.preventDefault()
-          profilesStore.update((s) => ({ ...s, klashubUrl: klashub.trim() }))
+          const url = klashubLink(klashub)
+          if (!url) {
+            setKlashubMessage('Dit is geen KlasHub-adres. Je agendalink hoort in het veld hierboven.')
+            return
+          }
+          profilesStore.update((s) => ({ ...s, klashubUrl: url }))
+          setKlashub(url)
+          setKlashubMessage('Bewaard.')
         }}
       >
         <label className="flex flex-col gap-1">
-          KlasHub-link
-          <input type="url" className={field} value={klashub} onChange={(e) => setKlashub(e.target.value)} placeholder="https://" />
+          Adres van KlasHub
+          <input type="url" className={field} value={klashub} onChange={(e) => setKlashub(e.target.value)} placeholder={DEFAULT_KLASHUB_URL} />
         </label>
+        <p className="text-nx-muted">Het adres van de website zelf, standaard {DEFAULT_KLASHUB_URL}.</p>
         <button type="submit" className={button}>
-          Link bewaren
+          Adres bewaren
         </button>
+        {klashubMessage && <p role="status">{klashubMessage}</p>}
       </form>
     </div>
   )
