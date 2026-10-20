@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  klashubLink,
   activeProfile,
   chooseProfile,
   defaultProfilesState,
@@ -118,6 +119,16 @@ describe('next lesson', () => {
     expect(nextLesson(lessons, at('2026-10-20T11:00:00+02:00'), ZONE)?.lesson.subject).toBe('Wiskunde')
     expect(nextLesson(lessons, at('2026-10-20T15:00:00+02:00'), ZONE)).toMatchObject({ lesson: { subject: 'Engels' }, inDays: 2 })
     expect(nextLesson([], at('2026-10-20T15:00:00+02:00'), ZONE)).toBeNull()
+  })
+
+  it('never opens a calendar link as KlasHub', () => {
+    expect(klashubLink(' https://klashub.vercel.app ')).toBe('https://klashub.vercel.app/')
+    expect(klashubLink('https://apih.ap.be/ical/abc.ics')).toBeNull()
+    expect(klashubLink('https://example.com/rooster.ics')).toBeNull()
+    expect(klashubLink('webcal://apih.ap.be/x')).toBeNull()
+    expect(klashubLink('http://klashub.vercel.app')).toBeNull()
+    const s = parseProfilesState({ klashubUrl: 'https://apih.ap.be/ical/abc.ics' })
+    expect(s.klashubUrl).toBe('https://klashub.vercel.app')
   })
 
   it('adds KlasHub to copies stored before it existed', () => {

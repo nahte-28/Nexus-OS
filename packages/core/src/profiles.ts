@@ -2,7 +2,7 @@
  * NEXUS Profiles: a profile changes the theme, the visible apps, the dashboard widgets and how
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
-import { isCalendarEvent, type CalendarEvent } from './calendar'
+import { CALENDAR_HOSTS, isCalendarEvent, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 
@@ -89,6 +89,19 @@ export interface ProfilesState {
 }
 
 export const DEFAULT_KLASHUB_URL = 'https://klashub.vercel.app'
+
+/** The address if it can open as the KlasHub app: https, and not a calendar link pasted in the wrong field. */
+export function klashubLink(text: string): string | null {
+  let url: URL
+  try {
+    url = new URL(text.trim())
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) return null
+  if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
+  return url.href
+}
 export const PROFILES_SCHEMA = 2
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
@@ -317,7 +330,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         ? r.override
         : null,
     lessons: Array.isArray(r.lessons) ? r.lessons.filter((l) => l && isTime(l.start) && isTime(l.end) && typeof l.subject === 'string') : [],
-    klashubUrl: typeof r.klashubUrl === 'string' && r.klashubUrl ? r.klashubUrl : DEFAULT_KLASHUB_URL,
+    klashubUrl: (typeof r.klashubUrl === 'string' && klashubLink(r.klashubUrl)) || DEFAULT_KLASHUB_URL,
     calendarUrl: typeof r.calendarUrl === 'string' ? r.calendarUrl : '',
     calendarEvents: Array.isArray(r.calendarEvents) ? r.calendarEvents.filter(isCalendarEvent) : [],
     calendarSyncedAt: typeof r.calendarSyncedAt === 'number' ? r.calendarSyncedAt : null,
