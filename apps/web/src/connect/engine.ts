@@ -10,6 +10,7 @@ import {
   parsePayload,
   trimInbox,
   type ConnectPayload,
+  type PlanPayload,
   type Device,
   type InboxItem,
 } from '@nexus/core'
@@ -305,21 +306,29 @@ export class ConnectEngine {
   }
 
   /** Sends a NEXUS notification, e.g. to the phone, which shows it there and on the watch. */
-  async sendNotification(deviceId: string, title: string, text?: string): Promise<void> {
+  async sendNotification(deviceId: string, title: string, text?: string, ref?: string): Promise<void> {
     const cleanTitle = title.trim().slice(0, 120)
     const cleanText = text?.trim().slice(0, 1000) || undefined
     if (!cleanTitle) throw new Error('Geef de melding een titel.')
-    await this.deliver(deviceId, { kind: 'notification', title: cleanTitle, text: cleanText })
+    await this.deliver(deviceId, { kind: 'notification', title: cleanTitle, text: cleanText, ...(ref ? { ref } : {}) })
   }
 
-  private async deliver(deviceId: string, content: Pick<ConnectPayload, 'kind' | 'title' | 'text'>): Promise<void> {
+  /** Sends the phone its safety net: the notifications it should show itself if NEXUS cannot. */
+  async sendPlan(deviceId: string, items: PlanPayload['items']): Promise<void> {
+    await this.send(deviceId, { v: 1, kind: 'plan', items, sentAt: Date.now() })
+  }
+
+  private async deliver(deviceId: string, content: Pick<ConnectPayload, 'kind' | 'title' | 'text' | 'ref'>): Promise<void> {
+    await this.send(deviceId, { v: 1, app: 'nexus', appName: 'NEXUS', postedAt: Date.now(), ...content })
+  }
+
+  private async send(deviceId: string, payload: ConnectPayload | PlanPayload): Promise<void> {
     const identity = this.requireIdentity()
     const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
     if (!target) throw new Error('Dit apparaat is niet meer actief.')
-    const payload: ConnectPayload = { v: 1, app: 'nexus', appName: 'NEXUS', postedAt: Date.now(), ...content }
     const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
     await this.remote!.sendMessages([{ ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id }])
-    logEvent('connect', `Melding (${content.kind}) versleuteld verstuurd naar ${target.name}`)
+    logEvent('connect', payload.kind === 'plan' ? `Vangnet (${payload.items.length} meldingen) versleuteld verstuurd naar ${target.name}` : `Melding (${payload.kind}) versleuteld verstuurd naar ${target.name}`)
   }
 
   async rename(deviceId: string, name: string): Promise<void> {

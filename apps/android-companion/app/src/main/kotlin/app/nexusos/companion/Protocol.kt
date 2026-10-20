@@ -10,7 +10,12 @@ data class IncomingNotification(
     val title: String,
     val text: String?,
     val postedAt: Long,
+    /** Ties it to a notice in the safety net ([SafetyPlan]), so the phone shows it once. */
+    val ref: String? = null,
 )
+
+/** A notification NEXUS plans to send; the phone shows it itself if NEXUS cannot. */
+data class PlannedNotice(val ref: String, val at: Long, val title: String, val text: String?)
 
 /** Pure parsing and framing, kept apart from Android so it can be unit tested. */
 object Protocol {
@@ -32,7 +37,23 @@ object Protocol {
             title = title,
             text = text,
             postedAt = o.optLong("postedAt", 0L).takeIf { it > 0 } ?: System.currentTimeMillis(),
+            ref = o.optString("ref").trim().take(300).ifEmpty { null },
         )
+    }
+
+    /** The safety net from a "plan" payload (PlanPayload in packages/core/src/connect.ts), or null. */
+    fun parsePlan(json: String): List<PlannedNotice>? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val items = o.optJSONArray("items") ?: return null
+        return (0 until minOf(items.length(), SafetyPlan.MAX_ITEMS)).mapNotNull { i ->
+            val item = items.optJSONObject(i) ?: return@mapNotNull null
+            val ref = item.optString("ref").trim().take(300)
+            val at = item.optLong("at", 0L)
+            val title = item.optString("title").trim().take(MAX_TEXT)
+            val text = (if (item.isNull("text")) "" else item.optString("text")).trim().take(MAX_TEXT).ifEmpty { null }
+            if (ref.isEmpty() || at <= 0 || title.isEmpty()) null else PlannedNotice(ref, at, title, text)
+        }
     }
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.

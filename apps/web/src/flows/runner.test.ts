@@ -57,7 +57,7 @@ describe('flow runner', () => {
       throw new Error('Geen gsm gekoppeld.')
     })
     const runs = await tickFlows(ctx({ deadlines: [{ id: 'r', title: 'Labo', at: now + 30 * 60_000 }] }), fx, store)
-    expect(fx.notify).toHaveBeenCalledWith('Binnen een uur: Labo', 'Om 09:01.', 'phone')
+    expect(fx.notify).toHaveBeenCalledWith('Binnen een uur: Labo', 'Om 09:01.', 'phone', expect.stringMatching(/^flow:deadline-reminder\|deadline:r@\d+\|0$/))
     expect(runs[0]).toMatchObject({ status: 'failed', steps: [{ status: 'failed', detail: 'Geen gsm gekoppeld.' }] })
   })
 

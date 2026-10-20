@@ -136,7 +136,15 @@ object Connect {
                     runCatching { ConnectCrypto.decryptWith(key, ownKey, ownId, message.envelope, "AndroidKeyStore") }.getOrNull()
                 }
                 // A message that cannot be read now never will be: it is deleted like the others.
-                val incoming = plaintext?.let(Protocol::parsePayload) ?: continue
+                if (plaintext == null) continue
+                val plan = Protocol.parsePlan(plaintext)
+                if (plan != null) {
+                    Safety.replacePlan(app, message.senderDeviceId, plan)
+                    continue
+                }
+                val incoming = Protocol.parsePayload(plaintext) ?: continue
+                // The safety net already showed it while NEXUS could not reach the phone.
+                if (incoming.ref != null && !Safety.claim(app, incoming.ref)) continue
                 Notifier.show(app, message.id, incoming, names[message.senderDeviceId])
                 store.receivedAt = System.currentTimeMillis()
             }
@@ -217,6 +225,7 @@ object Connect {
 
     private fun forget(store: Store) {
         store.clearAccount()
+        Safety.clear(store.context)
         DeviceKey.delete()
         synchronized(lastSent) { lastSent.clear() }
         Inbox.restart()

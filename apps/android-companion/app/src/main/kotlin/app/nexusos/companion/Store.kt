@@ -9,7 +9,8 @@ data class AuditEntry(val at: Long, val appName: String, val mode: ShareMode, va
 
 /** Settings and account state, in the app's private storage. Tokens are encrypted with [Vault]. */
 class Store(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("nexus", Context.MODE_PRIVATE)
+    val context: Context = context.applicationContext
+    private val prefs = this.context.getSharedPreferences("nexus", Context.MODE_PRIVATE)
 
     var host: String?
         get() = prefs.getString("host", null)

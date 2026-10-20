@@ -25,7 +25,7 @@ object Notifier {
 
     fun enabled(context: Context): Boolean = manager(context).areNotificationsEnabled()
 
-    fun show(context: Context, messageId: String, n: IncomingNotification, from: String?) {
+    fun show(context: Context, messageId: String, n: IncomingNotification, from: String?, note: String? = null) {
         ensureChannel(context)
         val open = PendingIntent.getActivity(
             context,
@@ -38,7 +38,7 @@ object Notifier {
             .setColor(context.getColor(R.color.nexus_accent))
             .setContentTitle(n.title.ifEmpty { n.appName })
             .setContentText(n.text)
-            .setSubText(from?.let { "van $it" })
+            .setSubText(note ?: from?.let { "van $it" })
             .setCategory(Notification.CATEGORY_MESSAGE)
             .setWhen(n.postedAt)
             .setShowWhen(true)

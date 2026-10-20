@@ -2,6 +2,7 @@ import {
   describeAction,
   failingCondition,
   fillText,
+  flowRef,
   localClock,
   markHandled,
   planRuns,
@@ -29,7 +30,8 @@ const TICK_MS = 30_000
 /** What actions may touch. Everything goes through the existing Profiles, Connect and updater. */
 export interface FlowEffects {
   activateProfile(profile: ProfileId, duration: ProfileDuration): void
-  notify(title: string, text: string, target: NotifyTarget): Promise<void>
+  /** [ref] ties it to the phone's safety net, so the phone shows it once. */
+  notify(title: string, text: string, target: NotifyTarget, ref?: string): Promise<void>
   prompt(prompt: FlowPrompt): void
   /**
    * Asks the account whether this device may run the event: false when another device already
@@ -51,7 +53,7 @@ export const APP_NAMES: Partial<Record<string, string>> = {
 }
 export const appName = (id: string) => APP_NAMES[id] ?? id
 
-function inQuietHours(settings: FlowSettings, now: number, timeZone: string): boolean {
+export function inQuietHours(settings: FlowSettings, now: number, timeZone: string): boolean {
   const { enabled, start, end } = settings.quiet
   if (!enabled) return false
   const m = localClock(now, timeZone).minutes
@@ -97,7 +99,7 @@ async function runAction(
       return
     case 'notification.send':
       if (inQuietHours(settings, now, flow.timeZone)) return 'Stille uren'
-      await effects.notify(fillText(action.title, event.vars), fillText(action.text, event.vars), action.target)
+      await effects.notify(fillText(action.title, event.vars), fillText(action.text, event.vars), action.target, flowRef(flow.id, event.id, index))
       return
     case 'app.open_prompt':
       effects.prompt({ id: `${flow.id}|${event.id}|${index}`, flowName: flow.name, kind: 'app', app: action.app, at: now })
@@ -189,14 +191,14 @@ export function currentContext(connect: ConnectEngine, now = Date.now()): FlowCo
 export function defaultEffects(connect: ConnectEngine): FlowEffects {
   return {
     activateProfile: (profile, duration) => chooseFor(profile, duration),
-    async notify(title, text, target) {
+    async notify(title, text, target, ref) {
       await showLocalNotification(title, text || 'Van Flow Studio', `flow-${title}`)
       if (target !== 'phone') return
       const state = connect.getSnapshot()
       if (state.status !== 'ready') throw new Error('NEXUS Connect is niet verbonden, dus de gsm kreeg ze niet.')
       const phones = state.devices.filter((d) => d.platform === 'android' && !d.revokedAt)
       if (phones.length === 0) throw new Error('Geen gsm gekoppeld.')
-      await Promise.all(phones.map((p) => connect.sendNotification(p.id, title, text || undefined)))
+      await Promise.all(phones.map((p) => connect.sendNotification(p.id, title, text || undefined, ref)))
     },
     prompt(prompt) {
       addPrompt(prompt)

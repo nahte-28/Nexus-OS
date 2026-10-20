@@ -11,6 +11,10 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <!-- Installs new versions of the companion from GitHub releases, after the user confirms. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- The safety net: shows reminders on time itself when the pc is off. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"
@@ -40,5 +44,12 @@
         </service>
 
         <receiver android:name=".UpdateReceiver" android:exported="false" />
+        <receiver android:name=".SafetyReceiver" android:exported="false" />
+        <receiver android:name=".SafetyBootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
