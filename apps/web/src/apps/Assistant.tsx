@@ -21,8 +21,14 @@ export function Assistant() {
   const [draft, setDraft] = useState('')
   const end = useRef<HTMLDivElement>(null)
 
-  useEffect(() => bindTheme(setTheme), [setTheme])
-  useEffect(() => end.current?.scrollIntoView?.({ block: 'end' }), [state.items.length, state.streaming])
+  useEffect(() => {
+    bindTheme(setTheme)
+  }, [setTheme])
+  // Braces on purpose: newer browsers return a Promise from scrollIntoView, and React would
+  // call a returned value as the cleanup function ("is not a function").
+  useEffect(() => {
+    end.current?.scrollIntoView?.({ block: 'end' })
+  }, [state.items.length, state.streaming])
 
   const signedIn = sync.status !== 'signed-out' && sync.status !== 'unconfigured'
   const submit = (text: string) => {
