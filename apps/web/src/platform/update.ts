@@ -60,12 +60,15 @@ export function startUpdateChecks(): () => void {
   return () => clearInterval(timer)
 }
 
+export function getUpdateState(): UpdateState {
+  return state
+}
+
+export function subscribeUpdate(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
 export function useUpdate(): UpdateState {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l)
-      return () => listeners.delete(l)
-    },
-    () => state,
-  )
+  return useSyncExternalStore(subscribeUpdate, getUpdateState)
 }

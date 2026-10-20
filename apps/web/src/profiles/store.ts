@@ -117,6 +117,19 @@ function readJson(raw: string | null): unknown {
 
 export const profilesStore = new ProfilesStore()
 
+export type ChoiceDuration = 'until-change' | 'hour' | 'today' | 'until-manual'
+
+/** Picks a profile by hand (or from a flow) for the chosen duration. */
+export function chooseFor(profile: ProfileId, duration: ChoiceDuration, now = Date.now(), store = profilesStore): void {
+  if (duration === 'hour') return store.choose(profile, 'until-time', now + 60 * 60_000)
+  if (duration === 'today') {
+    const midnight = new Date(now)
+    midnight.setHours(24, 0, 0, 0)
+    return store.choose(profile, 'until-time', midnight.getTime())
+  }
+  store.choose(profile, duration)
+}
+
 /** Keeps the active profile right while NEXUS runs, after sleep and across tabs. */
 export function startProfileClock(store = profilesStore): () => void {
   const timer = setInterval(store.tick, TICK_MS)

@@ -113,6 +113,19 @@ Instellen (eenmalig):
 
 Beperkingen: NEXUS kan alleen zijn eigen meldingen stil zetten, niet die van andere apps op je gsm of horloge, en een webapp ziet niet welke andere apps er draaien. Wisselen op basis van een app of agenda-afspraak zit er daarom nog niet in. KlasHub opent in je browser (ook vanuit de Windows-app), omdat de site niet ingesloten mag worden.
 
+## Flow Studio (beta)
+
+Automatiseringen als **Wanneer → Alleen als → Doe dit**, in de app **Flow Studio** (aan of uit onder Instellingen › Beta):
+
+- **Wanneer**: op een vast tijdstip (dagen en uur), een deadline komt eraan (je herinneringen), een gekoppeld apparaat is offline, er is een update van de Windows-app, of met de hand.
+- **Alleen als**: een profiel is actief, tussen twee uren, dit apparaat is online. Alle voorwaarden moeten kloppen.
+- **Doe dit** (hoogstens 5): een profiel activeren (via Profiles), een melding sturen (hier of via NEXUS Connect ook op gsm en horloge), voorstellen om een app te openen, voorstellen om de update te installeren. Flows openen nooit zelf apps en installeren nooit zelf iets: een voorstel staat op het dashboard tot je kiest.
+- Tabs: **Mijn flows** (aan/uit, uitvoeren, dupliceren, verwijderen met bevestiging), **Sjablonen** (School Start, Deadline eraan, Update-moment, Apparaat offline, Studiesessie), **Bouwer** (stappen met proefrun, ongedaan maken en opnieuw), **Runs** (wat elke run deed en waarom iets mislukte) en **Instellingen** (alles pauzeren, stille uren).
+
+Hoe het loopt: zolang NEXUS open is op het apparaat (de Windows-app in het systeemvak is het betrouwbaarst), elke 30 seconden en meteen na slaap of terugkeren naar het venster. Elke gebeurtenis loopt hoogstens één keer per flow, ook na herladen; een gemist tijdstip wordt tot een halfuur later nog ingehaald. Hoogstens 6 runs per flow per uur. Tijden volgen de tijdzone van het apparaat, ook rond de overgang naar zomer- en wintertijd.
+
+Beperkingen: flows staan voorlopig alleen op het apparaat waar je ze maakt (geen sync, dus ook geen dubbele meldingen van twee toestellen). Een gesloten browser of PWA voert niets uit; daarvoor is een server nodig, dat zit er nog niet in.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

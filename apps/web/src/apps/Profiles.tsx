@@ -16,7 +16,7 @@ import {
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { syncCalendar } from '../profiles/calendar'
-import { profilesStore, useProfiles } from '../profiles/store'
+import { chooseFor, profilesStore, useProfiles, type ChoiceDuration } from '../profiles/store'
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
 import { ACCENTS } from '../theme/accents'
 import { daysLabel, PROFILE_ICONS, reasonText } from '../profiles/ui'
@@ -96,28 +96,16 @@ export function Profiles() {
   )
 }
 
-type Duration = 'until-change' | 'hour' | 'today' | 'until-manual'
-const DURATIONS: Array<{ id: Duration; label: string }> = [
+const DURATIONS: Array<{ id: ChoiceDuration; label: string }> = [
   { id: 'until-change', label: 'Tot het schema wisselt' },
   { id: 'hour', label: 'Eén uur' },
   { id: 'today', label: 'Tot het einde van de dag' },
   { id: 'until-manual', label: 'Tot ik zelf terugschakel' },
 ]
 
-/** Picks a profile by hand for the chosen duration. */
-function chooseFor(profile: ProfileId, duration: Duration, now = Date.now()): void {
-  if (duration === 'hour') return profilesStore.choose(profile, 'until-time', now + 60 * 60_000)
-  if (duration === 'today') {
-    const midnight = new Date(now)
-    midnight.setHours(24, 0, 0, 0)
-    return profilesStore.choose(profile, 'until-time', midnight.getTime())
-  }
-  profilesStore.choose(profile, duration)
-}
-
 function Overview() {
   const { state, active, reason } = useProfiles()
-  const [duration, setDuration] = useState<Duration>('until-change')
+  const [duration, setDuration] = useState<ChoiceDuration>('until-change')
   const until = state.override?.mode === 'until-time' ? state.override.until : undefined
   return (
     <div className="space-y-4">
@@ -130,7 +118,7 @@ function Overview() {
       </div>
       <label className="flex flex-col gap-1 sm:max-w-xs">
         Hoe lang geldt een keuze met de hand?
-        <select className={field} value={duration} onChange={(e) => setDuration(e.target.value as Duration)}>
+        <select className={field} value={duration} onChange={(e) => setDuration(e.target.value as ChoiceDuration)}>
           {DURATIONS.map((d) => (
             <option key={d.id} value={d.id}>
               {d.label}

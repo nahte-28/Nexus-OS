@@ -137,3 +137,13 @@ export const BookIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 21V5M8 7h7M8 11h5" />
   </svg>
 )
+
+export const FlowIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="6" height="5" rx="1.5" />
+    <rect x="15" y="15" width="6" height="5" rx="1.5" />
+    <path d="M9 6.5h4a2 2 0 0 1 2 2v2M15 17.5h-4a2 2 0 0 1-2-2v-2" />
+    <circle cx="15" cy="12.5" r="1.5" />
+    <circle cx="9" cy="11.5" r="1.5" />
+  </svg>
+)
