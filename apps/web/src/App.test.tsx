@@ -144,4 +144,15 @@ describe('App shell', () => {
     expect(screen.getByRole('list', { name: 'Lesrooster' }).textContent).toContain('Wiskunde')
     expect(screen.getByText('Volgende les').parentElement?.textContent).toContain('Wiskunde')
   })
+
+  it('opens KlasHub as its own app from the sidebar', () => {
+    mockViewport(false)
+    const open = vi.fn()
+    vi.stubGlobal('open', open)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('radio', { name: 'School' })[0])
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'KlasHub' }))
+    expect(open).toHaveBeenCalledWith('https://klashub.vercel.app', '_blank', 'noopener')
+    expect(screen.queryByRole('dialog', { name: 'KlasHub' })).toBeNull()
+  })
 })

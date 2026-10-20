@@ -32,3 +32,16 @@ export async function setAutostart(enabled: boolean): Promise<void> {
 export const apiBase = isDesktopApp
   ? ((import.meta.env.VITE_NEXUS_HOST as string | undefined)?.replace(/\/+$/, '') || 'https://nexus-os-lime.vercel.app')
   : ''
+
+/**
+ * Opens a website as its own app: a separate NEXUS window in the Windows app (where you stay
+ * logged in), a new tab in the browser.
+ */
+export async function openWebApp(url: string, title: string): Promise<void> {
+  if (isDesktopApp) {
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('open_web_window', { url, title })
+    return
+  }
+  window.open(url, '_blank', 'noopener')
+}

@@ -2,6 +2,7 @@
  * NEXUS Profiles: a profile changes the theme, the visible apps, the dashboard widgets and how
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
+import { isCalendarEvent, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 
@@ -60,11 +61,21 @@ export interface ProfilesState {
   schedule: ProfileSchedule
   override: ProfileOverride | null
   lessons: Lesson[]
-  /** Quick link for KlasHub, opened in the browser. */
+  /** Where the KlasHub app opens. */
   klashubUrl: string
+  /** The school calendar link ("Koppel agenda" on the intranet); empty when not linked. */
+  calendarUrl: string
+  /** Lessons from that link for the coming weeks, refreshed now and then. */
+  calendarEvents: CalendarEvent[]
+  calendarSyncedAt: number | null
+  /** Version of the stored shape, so older copies can be upgraded. */
+  schema: number
   /** Bumped on every change, so another device's older copy never wins. */
   revision: number
 }
+
+export const DEFAULT_KLASHUB_URL = 'https://klashub.vercel.app'
+export const PROFILES_SCHEMA = 2
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -77,7 +88,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'School',
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
-    apps: ['notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
+    apps: ['klashub', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
     widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
     quietNonEssential: true,
   },
@@ -86,7 +97,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['notes', 'notifications', 'assistant', 'reminders', 'devices', 'account', 'about'],
+    apps: ['notes', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
   },
@@ -126,7 +137,11 @@ export function defaultProfilesState(): ProfilesState {
     schedule: { ...DEFAULT_SCHEDULE },
     override: null,
     lessons: [],
-    klashubUrl: '',
+    klashubUrl: DEFAULT_KLASHUB_URL,
+    calendarUrl: '',
+    calendarEvents: [],
+    calendarSyncedAt: null,
+    schema: PROFILES_SCHEMA,
     revision: 0,
   }
 }
@@ -211,6 +226,15 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     const p = r.profiles?.[id]
     if (p && typeof p === 'object') profiles[id] = { ...base.profiles[id], ...p, id }
   }
+  // Copies from before KlasHub existed get it in the profiles that have it by default.
+  if (typeof r.schema !== 'number' || r.schema < 2) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('klashub') && Array.isArray(apps) && !apps.includes('klashub')) {
+        profiles[id] = { ...profiles[id], apps: id === 'school' ? ['klashub', ...apps] : [...apps, 'klashub'] }
+      }
+    }
+  }
   const merged = { ...base.schedule, ...(typeof r.schedule === 'object' ? r.schedule : {}) }
   const schedule =
     isTime(merged.start) && isTime(merged.end) && Array.isArray(merged.days) && PROFILE_IDS.includes(merged.profile)
@@ -225,7 +249,11 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         ? r.override
         : null,
     lessons: Array.isArray(r.lessons) ? r.lessons.filter((l) => l && isTime(l.start) && isTime(l.end) && typeof l.subject === 'string') : [],
-    klashubUrl: typeof r.klashubUrl === 'string' ? r.klashubUrl : '',
+    klashubUrl: typeof r.klashubUrl === 'string' && r.klashubUrl ? r.klashubUrl : DEFAULT_KLASHUB_URL,
+    calendarUrl: typeof r.calendarUrl === 'string' ? r.calendarUrl : '',
+    calendarEvents: Array.isArray(r.calendarEvents) ? r.calendarEvents.filter(isCalendarEvent) : [],
+    calendarSyncedAt: typeof r.calendarSyncedAt === 'number' ? r.calendarSyncedAt : null,
+    schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }
 }

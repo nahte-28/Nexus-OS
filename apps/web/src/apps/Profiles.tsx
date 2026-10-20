@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { isTime, PROFILE_IDS, THEMES, type AppId, type Lesson, type ProfileId, type WidgetId } from '@nexus/core'
+import { syncCalendar } from '../profiles/calendar'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { daysLabel, PROFILE_ICONS, ProfileSwitcher, reasonText } from '../profiles/ui'
 
@@ -11,6 +12,7 @@ const DAYS = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterda
 
 /** Apps a profile can show or hide; Profielen and Instellingen always stay. */
 const APP_CHOICES: Array<{ id: AppId; title: string }> = [
+  { id: 'klashub', title: 'KlasHub' },
   { id: 'notes', title: 'Notities' },
   { id: 'notifications', title: 'Meldingen' },
   { id: 'assistant', title: 'NEXUS AI' },
@@ -137,7 +139,9 @@ function Timetable() {
 
   return (
     <div className="space-y-4">
-      <p className="text-nx-muted">Je lessen verschijnen als "Volgende les" op het School-dashboard.</p>
+      <p className="text-nx-muted">
+        Je lessen verschijnen als "Volgende les" op het School-dashboard. Koppel je agendalink hieronder, of vul ze zelf in.
+      </p>
       <form
         aria-label="Nieuwe les"
         className="grid gap-2 rounded-lg border border-nx-border p-3 sm:grid-cols-2"
@@ -213,6 +217,8 @@ function Timetable() {
         </ul>
       )}
 
+      <CalendarLink />
+
       <form
         className="space-y-2 border-t border-nx-border pt-4"
         onSubmit={(e) => {
@@ -229,6 +235,64 @@ function Timetable() {
         </button>
       </form>
     </div>
+  )
+}
+
+/** The school calendar link: lessons fill themselves in from it. */
+function CalendarLink() {
+  const { state } = useProfiles()
+  const [link, setLink] = useState(state.calendarUrl)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const synced = state.calendarSyncedAt
+  return (
+    <form
+      aria-label="Agendalink"
+      className="space-y-2 border-t border-nx-border pt-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setBusy(true)
+        setMessage(null)
+        void syncCalendar(link).then((error) => {
+          setBusy(false)
+          setMessage(error ?? 'Je lessen zijn opgehaald.')
+        })
+      }}
+    >
+      <label className="flex flex-col gap-1">
+        Agendalink van school
+        <input type="url" className={field} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://apih.ap.be/..." />
+      </label>
+      <p className="text-nx-muted">
+        Kopieer de link van "Koppel agenda" op het intranet, dezelfde die KlasHub gebruikt. NEXUS haalt je lessen dan zelf op, elke paar uur
+        opnieuw. Je moet aangemeld zijn in Account.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="submit" className={primaryButton} disabled={busy || !link.trim()}>
+          {busy ? 'Ophalen...' : 'Lessen ophalen'}
+        </button>
+        {state.calendarUrl && (
+          <button
+            type="button"
+            className={button}
+            onClick={() => {
+              profilesStore.update((s) => ({ ...s, calendarUrl: '', calendarEvents: [], calendarSyncedAt: null }))
+              setLink('')
+              setMessage(null)
+            }}
+          >
+            Ontkoppelen
+          </button>
+        )}
+      </div>
+      {message && <p role="status">{message}</p>}
+      {synced !== null && (
+        <p className="text-nx-muted">
+          {state.calendarEvents.length} lessen, bijgewerkt{' '}
+          {new Date(synced).toLocaleString('nl-BE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
+    </form>
   )
 }
 

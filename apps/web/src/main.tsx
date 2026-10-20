@@ -5,6 +5,7 @@ import { App } from './App'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { isDesktopApp } from './platform/desktop'
+import { startCalendarSync } from './profiles/calendar'
 import { startProfileClock } from './profiles/store'
 import { reminderDelivery } from './reminders/deliver'
 import { startReminderScheduler } from './reminders/store'
@@ -22,6 +23,7 @@ startReminderScheduler(reminderDelivery(defaultEngine))
 startUpdateChecks()
 // School Mode and the other profiles follow their schedule while NEXUS runs.
 startProfileClock()
+startCalendarSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
