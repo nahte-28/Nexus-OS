@@ -63,6 +63,8 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 4. Vink bij **Naar deze apparaten** je pc aan (vergelijk de code) en kies per app wat je deelt: uit, alleen titel, of titel en inhoud. Elke app staat standaard uit en codes in inlogberichten worden gemaskeerd.
 5. Voor meldingen van NEXUS naar je gsm en horloge: sta meldingen van de companion toe en zet batterijoptimalisatie uit (knop in de app), zodat OxygenOS de live verbinding niet verbreekt. Zet in de OHealth-app de meldingen van NEXUS Companion aan om ze op je horloge te krijgen.
 
+**Vangnet**: zolang NEXUS ergens open is, krijgt de gsm versleuteld de meldingen van de komende drie dagen die naar hem gaan: herinneringen met "ook op gsm" en flows met een melding naar de gsm die op een vast tijdstip of bij een deadline starten (alleen flows zonder voorwaarden, of met alleen "tussen twee uren", want een actief profiel of netwerk kun je niet vooraf weten). De gsm zet er wekkers voor. Komt de melding van NEXUS niet binnen twee minuten na het moment, dan toont de gsm ze zelf, met "vangnet" erbij. Komt ze later toch nog van NEXUS (de pc ging weer aan), dan verschijnt ze niet nog eens: de melding en het geplande item delen een `ref`. De companion houdt hoogstens 50 items; ze blijven na een herstart van de gsm staan.
+
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
 
 ## Windows-app

@@ -1,4 +1,4 @@
-import type { Reminder } from '@nexus/core'
+import { reminderRef, type Reminder } from '@nexus/core'
 import type { ConnectEngine, ConnectState } from '../connect/engine'
 import { showLocalNotification } from '../platform/notify'
 
@@ -11,7 +11,7 @@ export function reminderDelivery(connect: ConnectEngine) {
     if (state.status !== 'ready') throw new Error('NEXUS Connect is niet verbonden, dus de gsm kreeg ze niet.')
     const phones = state.devices.filter((d) => d.platform === 'android' && !d.revokedAt)
     if (phones.length === 0) throw new Error('Geen gsm gekoppeld.')
-    await Promise.all(phones.map((p) => connect.sendNotification(p.id, reminder.title, reminder.text)))
+    await Promise.all(phones.map((p) => connect.sendNotification(p.id, reminder.title, reminder.text, reminderRef(reminder))))
   }
 }
 

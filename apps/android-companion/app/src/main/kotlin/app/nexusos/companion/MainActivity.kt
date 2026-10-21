@@ -218,6 +218,15 @@ class MainActivity : Activity() {
         if (received > 0) {
             text("Laatste melding van NEXUS: ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(received))}", muted = true)
         }
+        val planned = Safety.pendingCount(this)
+        text(
+            if (planned > 0) {
+                "Vangnet: $planned melding(en) van de komende dagen staan klaar op deze gsm. Is je pc uit, dan toont de gsm ze zelf."
+            } else {
+                "Vangnet: nog niets gepland. Herinneringen en flows die naar je gsm gaan, komen hier vanzelf bij zodra NEXUS open is."
+            },
+            muted = true,
+        )
         if (!Notifier.enabled(this)) {
             text("Meldingen van de companion staan uit. Zet ze aan om berichten van NEXUS te zien.")
             button("Meldingen toestaan", primary = true) {

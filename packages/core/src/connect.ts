@@ -24,6 +24,16 @@ export interface ConnectPayload {
   /** Absent when the sender only shares titles for this app. */
   text?: string
   postedAt: number
+  /** Ties a notification to a notice in the phone's safety net (see safetyNet.ts), so it shows once. */
+  ref?: string
+}
+
+/** The phone's safety net: the notifications NEXUS will send it soon. Replaces the previous plan of the sender. */
+export interface PlanPayload {
+  v: 1
+  kind: 'plan'
+  items: Array<{ ref: string; at: number; title: string; text?: string }>
+  sentAt: number
 }
 
 /** A received notification as kept on the device (never in the cloud). */
@@ -52,7 +62,8 @@ export function parsePayload(value: unknown): ConnectPayload | null {
   }
   if (typeof p.postedAt !== 'number' || !Number.isFinite(p.postedAt)) return null
   const text = str(p.text)
-  return { v: 1, kind: p.kind, app, appName, title, ...(text !== null ? { text } : {}), postedAt: p.postedAt }
+  const ref = str(p.ref, 300)
+  return { v: 1, kind: p.kind, app, appName, title, ...(text !== null ? { text } : {}), postedAt: p.postedAt, ...(ref !== null ? { ref } : {}) }
 }
 
 /** Newest first, optionally narrowed to one app and a search term over app, title and text. */
