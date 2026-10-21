@@ -17,7 +17,7 @@ import {
 import { getAll, getValue, update } from '../state/db'
 import { isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
-import { ConnectSetupError, type ConnectRemote } from './remote'
+import { ConnectSetupError, type ConnectRemote, type PlannedPush, type PushSubscriptionKeys } from './remote'
 import { logEvent } from '../devtools/log'
 import { profilesStore } from '../profiles/store'
 
@@ -52,6 +52,18 @@ interface Identity {
   publicKey: string
   privateKey: CryptoKey
 }
+
+/**
+ * The phones NEXUS sends notifications to: the companion app, and NEXUS in Chrome on a phone that
+ * allowed web push (it shows them also when NEXUS is closed there).
+ */
+export function phonesOf(state: ConnectState): DeviceView[] {
+  if (state.status !== 'ready') return []
+  return state.devices.filter((d) => !d.revokedAt && !d.isThisDevice && (d.platform === 'android' || d.push))
+}
+
+/** Push messages may be 4 KB; with encryption and JSON this keeps a notification well within it. */
+const MAX_PUSH_TEXT = 300
 
 const IDENTITY_KEY = 'identity'
 const MAX_INBOX = 500
@@ -257,7 +269,9 @@ export class ConnectEngine {
       await this.addToInbox(items)
       await this.remote.deleteMessages(messages.map((m) => m.id))
       logEvent('connect', `${items.length} melding(en) ontvangen, ${messages.length - items.length} onleesbaar`)
-      for (const item of items) this.notify(item)
+      // With web push on, the service worker already shows notifications that carry a ref.
+      const pushHere = this.state.devices.some((d) => d.isThisDevice && d.push)
+      for (const item of items) if (!(pushHere && item.ref)) this.notify(item)
     } catch (err) {
       this.fail(err)
     }
@@ -298,11 +312,11 @@ export class ConnectEngine {
   /** Sends an encrypted test notification to one of the user's devices (this one included). */
   async sendTest(deviceId: string): Promise<void> {
     const identity = this.requireIdentity()
-    await this.deliver(deviceId, {
-      kind: 'test',
-      title: `Testmelding van ${this.state.device?.name ?? identity.name}`,
-      text: 'Als je dit leest, werkt NEXUS Connect. De inhoud was onderweg versleuteld.',
-    })
+    const title = `Testmelding van ${this.state.device?.name ?? identity.name}`
+    const text = 'Als je dit leest, werkt NEXUS Connect. De inhoud was onderweg versleuteld.'
+    const ref = `test:${crypto.randomUUID()}`
+    await this.deliver(deviceId, { kind: 'test', title, text, ref })
+    await this.pushNow(deviceId, title, text, ref)
   }
 
   /** Sends a NEXUS notification, e.g. to the phone, which shows it there and on the watch. */
@@ -316,6 +330,75 @@ export class ConnectEngine {
   /** Sends the phone its safety net: the notifications it should show itself if NEXUS cannot. */
   async sendPlan(deviceId: string, items: PlanPayload['items']): Promise<void> {
     await this.send(deviceId, { v: 1, kind: 'plan', items, sentAt: Date.now() })
+  }
+
+  /**
+   * Sends a notification to every phone: through Connect, and for a phone with web push also as a
+   * push, so it appears there when NEXUS is closed. A push that was planned already (same ref) is not
+   * sent twice.
+   */
+  async notifyPhones(title: string, text?: string, ref?: string): Promise<void> {
+    const phones = phonesOf(this.state)
+    if (this.state.status !== 'ready') throw new Error('NEXUS Connect is niet verbonden, dus de gsm kreeg ze niet.')
+    if (phones.length === 0) throw new Error('Geen gsm gekoppeld.')
+    await Promise.all(phones.map((p) => this.sendToPhone(p.id, title, text, ref)))
+  }
+
+  /** One phone: through Connect and, when it has web push, as a push too. */
+  async sendToPhone(deviceId: string, title: string, text?: string, ref?: string): Promise<void> {
+    const pushed = this.state.devices.some((d) => d.id === deviceId && d.push)
+    const sharedRef = ref ?? (pushed ? `live:${crypto.randomUUID()}` : undefined)
+    await this.sendNotification(deviceId, title, text, sharedRef)
+    if (sharedRef) await this.pushNow(deviceId, title.trim(), text?.trim(), sharedRef)
+  }
+
+  /** A push for right now (the database sends it within a minute); only for a phone with web push. */
+  private async pushNow(deviceId: string, title: string, text: string | undefined, ref: string): Promise<void> {
+    if (!this.state.devices.some((d) => d.id === deviceId && d.push && !d.isThisDevice) || !this.remote?.addPushes) return
+    await this.remote.addPushes([await this.pushFor(deviceId, { ref, at: Date.now(), title, ...(text ? { text } : {}) })])
+  }
+
+  /** Plans the coming days' notifications for a phone with web push; the database sends each one when due. */
+  async sendPushPlan(deviceId: string, items: PlanPayload['items']): Promise<void> {
+    const identity = this.requireIdentity()
+    if (!this.remote!.replacePushPlan) throw new Error('Web-push wordt hier niet ondersteund.')
+    const pushes = await Promise.all(items.map((item) => this.pushFor(deviceId, item)))
+    await this.remote!.replacePushPlan(identity.deviceId, deviceId, pushes)
+    const name = this.state.devices.find((d) => d.id === deviceId)?.name ?? deviceId
+    logEvent('connect', `${pushes.length} meldingen versleuteld gepland voor ${name} (web-push)`)
+  }
+
+  private async pushFor(deviceId: string, item: PlanPayload['items'][number]): Promise<PlannedPush> {
+    const identity = this.requireIdentity()
+    const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
+    if (!target) throw new Error('Dit apparaat is niet meer actief.')
+    const text = item.text?.trim().slice(0, MAX_PUSH_TEXT) || undefined
+    const payload: ConnectPayload = {
+      v: 1,
+      app: 'nexus',
+      appName: 'NEXUS',
+      kind: 'notification',
+      title: item.title.trim().slice(0, 120) || 'Herinnering',
+      ...(text ? { text } : {}),
+      postedAt: item.at,
+      ref: item.ref,
+    }
+    const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
+    return { ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id, ref: item.ref, at: item.at }
+  }
+
+  /** Lets this browser be woken by web push (the subscription comes from the service worker). */
+  async enablePush(keys: PushSubscriptionKeys): Promise<void> {
+    const identity = this.requireIdentity()
+    if (!this.remote!.savePushSubscription) throw new Error('Web-push wordt hier niet ondersteund.')
+    await this.remote!.savePushSubscription(identity.deviceId, keys)
+    await this.refreshDevices()
+  }
+
+  async disablePush(): Promise<void> {
+    const identity = this.requireIdentity()
+    await this.remote!.removePushSubscription?.(identity.deviceId)
+    await this.refreshDevices()
   }
 
   private async deliver(deviceId: string, content: Pick<ConnectPayload, 'kind' | 'title' | 'text' | 'ref'>): Promise<void> {
@@ -348,6 +431,7 @@ export class ConnectEngine {
     const identity = this.identity
     if (identity && this.remote) {
       try {
+        await this.remote.removePushSubscription?.(identity.deviceId)
         await this.remote.updateDevice(identity.deviceId, { revoked: true })
       } catch {
         // Offline: the device stays listed and can be revoked from another device.

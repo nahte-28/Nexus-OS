@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { decryptWith, encryptFor, exportPublicKey, generateDeviceKeyPair, type Device, type InboxItem } from '@nexus/core'
 import { getAll, resetDbConnection } from '../state/db'
 import { ConnectEngine } from './engine'
-import { ConnectSetupError, type ConnectMessage, type ConnectRemote, type OutgoingMessage } from './remote'
+import { ConnectSetupError, type ConnectMessage, type ConnectRemote, type OutgoingMessage, type PlannedPush } from './remote'
 
 class FakeRemote implements ConnectRemote {
   devices: Device[] = []
@@ -40,6 +40,20 @@ class FakeRemote implements ConnectRemote {
   listen(deviceId: string, onMessage: () => void) {
     this.listeners.set(deviceId, onMessage)
     return () => this.listeners.delete(deviceId)
+  }
+  pushes: PlannedPush[] = []
+  async savePushSubscription(deviceId: string) {
+    this.devices.find((d) => d.id === deviceId)!.push = true
+  }
+  async removePushSubscription(deviceId: string) {
+    delete this.devices.find((d) => d.id === deviceId)!.push
+  }
+  async replacePushPlan(sender: string, recipient: string, pushes: PlannedPush[]) {
+    this.pushes = this.pushes.filter((p) => p.senderDeviceId !== sender || p.recipientDeviceId !== recipient)
+    await this.addPushes(pushes)
+  }
+  async addPushes(pushes: PlannedPush[]) {
+    for (const p of pushes) if (!this.pushes.some((q) => q.recipientDeviceId === p.recipientDeviceId && q.ref === p.ref)) this.pushes.push(p)
   }
 }
 
@@ -138,6 +152,50 @@ describe('ConnectEngine', () => {
     expect(message.ciphertext).not.toContain('Verslag')
     const payload = JSON.parse(await decryptWith(phoneKeys.privateKey, phoneKey, 'phone', message))
     expect(payload).toMatchObject({ v: 1, kind: 'notification', app: 'nexus', appName: 'NEXUS', title: 'Deadline', text: 'Verslag inleveren' })
+    stop()
+  })
+
+  it('wakes a phone in Chrome with web push: planned ahead, and once per notification', async () => {
+    const remote = new FakeRemote()
+    const engine = new ConnectEngine(fakeClient(), remote, () => {})
+    const stop = engine.start()
+    await ready(engine)
+    const phoneKeys = await generateDeviceKeyPair()
+    const phoneKey = await exportPublicKey(phoneKeys.publicKey)
+    await remote.registerDevice({ id: 'gsm', name: 'Chrome op Android', platform: 'web', publicKey: phoneKey })
+    await remote.registerDevice({ id: 'laptop', name: 'Chrome op Windows', platform: 'web', publicKey: phoneKey })
+    await remote.savePushSubscription('gsm')
+    await engine.refreshDevices()
+
+    await engine.sendPushPlan('gsm', [{ ref: 'reminder:a@9', at: 9, title: 'Labo', text: 'x'.repeat(2000) }])
+    expect(remote.pushes).toHaveLength(1)
+    const planned = JSON.parse(await decryptWith(phoneKeys.privateKey, phoneKey, 'gsm', remote.pushes[0]))
+    expect(planned).toMatchObject({ kind: 'notification', title: 'Labo', ref: 'reminder:a@9', postedAt: 9 })
+    expect(planned.text).toHaveLength(300)
+
+    // When it goes off with the pc on: the inbox message plus no second push for the same ref.
+    await engine.notifyPhones('Labo', 'x', 'reminder:a@9')
+    expect(remote.pushes).toHaveLength(1)
+    expect(await remote.fetchMessages('gsm')).toHaveLength(1)
+    expect(await remote.fetchMessages('laptop')).toHaveLength(0)
+    // Something that was not planned is pushed right away.
+    await engine.notifyPhones('Nu', undefined, 'flow:f|e|0')
+    expect(remote.pushes.map((p) => p.ref)).toEqual(['reminder:a@9', 'flow:f|e|0'])
+    stop()
+  })
+
+  it('does not pop up what web push already shows on this device', async () => {
+    const remote = new FakeRemote()
+    const shown: InboxItem[] = []
+    const engine = new ConnectEngine(fakeClient(), remote, (item) => shown.push(item))
+    const stop = engine.start()
+    await ready(engine)
+    const own = engine.getSnapshot().device!.id
+    await engine.enablePush({ endpoint: 'https://push.example/x', p256dh: 'p', auth: 'a' })
+    await engine.sendNotification(own, 'Met ref', undefined, 'reminder:b@1')
+    await engine.sendNotification(own, 'Zonder ref')
+    await vi.waitFor(() => expect(engine.getSnapshot().inbox).toHaveLength(2))
+    expect(shown.map((i) => i.title)).toEqual(['Zonder ref'])
     stop()
   })
 
