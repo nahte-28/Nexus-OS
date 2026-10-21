@@ -67,6 +67,10 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
 
+### Web-push (gsm zonder companion)
+
+Kan de companion niet op je gsm (bijvoorbeeld door ouderlijk toezicht), open NEXUS dan in Chrome op de gsm, meld je aan en kies in Apparaten "Meldingen aanzetten". De pc versleutelt het vangnet dan per melding voor die browser en zet het in `push_schedule`; elke minuut stuurt Supabase (pg_cron + pg_net) wat aan de beurt is naar `/api/push`, dat de gsm via Chrome wekt. De service worker (`apps/web/public/push-sw.js`) ontsleutelt de melding met de sleutel van het toestel en toont ze, ook als NEXUS dicht is; Chrome geeft ze door aan het horloge. De server ziet alleen versleutelde inhoud en de `ref`. Meldingen komen tot een minuut na het tijdstip. Eenmalig instellen: Developer › Web-push maakt de sleutels voor Vercel (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `PUSH_SECRET`) en de SQL-regel voor `nexus_private.push_config`, na de migratie `supabase/migrations/20261021100000_push.sql`.
+
 ## Windows-app
 
 `apps/desktop` verpakt dezelfde interface als de webapp in een Windows-app met [Tauri](https://tauri.app). GitHub Actions bouwt bij elke wijziging op `main` een installer en zet `nexus-os-setup.exe` bij de [releases](https://github.com/nahte-28/Nexus-OS/releases).

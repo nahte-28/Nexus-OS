@@ -11,6 +11,7 @@ import { startCalendarSync } from './profiles/calendar'
 import { startProfileClock } from './profiles/store'
 import { startProfilesSync } from './profiles/sync'
 import { reminderDelivery } from './reminders/deliver'
+import { startWebPush } from './push/subscribe'
 import { startSafetyNet } from './safety/plan'
 import { startReminderScheduler } from './reminders/store'
 import { startUpdateChecks } from './platform/update'
@@ -28,6 +29,8 @@ startReminderScheduler(reminderDelivery(defaultEngine))
 startFlowRunner(defaultEngine)
 // The phone gets the notifications of the coming days ahead, so it can show them itself when the pc is off.
 startSafetyNet(defaultEngine)
+// A phone with NEXUS in Chrome and push on keeps the server's push address up to date.
+startWebPush(defaultEngine)
 // The Windows app looks for a newer version itself; the browser version updates through its service worker.
 startUpdateChecks()
 // School Mode and the other profiles follow their schedule while NEXUS runs.

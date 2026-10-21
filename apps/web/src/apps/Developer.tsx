@@ -1,14 +1,15 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { assistant } from '../ai/runtime'
 import { forgetAlwaysAllowed } from '../ai/session'
 import { useConnect } from '../connect/ConnectContext'
 import { clearLog, useLog, type LogSource } from '../devtools/log'
 import { apiBase, isDesktopApp } from '../platform/desktop'
+import { makePushSetup, pushConfigSql, type PushSetup } from '../push/setup'
 import { remindersStore } from '../reminders/store'
 import { useSync } from '../sync/SyncContext'
 
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2'
-const TABS = ['Systeem', 'Logboek', 'AI'] as const
+const TABS = ['Systeem', 'Logboek', 'AI', 'Web-push'] as const
 const SOURCES: Array<LogSource | 'all'> = ['all', 'ai', 'reminders', 'connect', 'sync', 'system']
 
 /** Developer tools: what NEXUS is doing, for debugging. Never shows note or message content. */
@@ -34,6 +35,7 @@ export function Developer() {
         {tab === 'Systeem' && <SystemTab />}
         {tab === 'Logboek' && <LogTab />}
         {tab === 'AI' && <AiTab />}
+        {tab === 'Web-push' && <PushTab />}
       </div>
     </div>
   )
@@ -137,6 +139,60 @@ function AiTab() {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/** One-time setup for web push to a phone in Chrome: keys for Vercel, the address for Supabase. */
+function PushTab() {
+  const [server, setServer] = useState<'checking' | 'ready' | 'missing' | 'offline'>('checking')
+  const [setup, setSetup] = useState<PushSetup | null>(null)
+  const origin = apiBase || window.location.origin
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${apiBase}/api/push`, { cache: 'no-store' })
+      .then((r) => !cancelled && setServer(r.ok ? 'ready' : 'missing'))
+      .catch(() => !cancelled && setServer('offline'))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  const code = 'block whitespace-pre-wrap break-all rounded-md border border-nx-border bg-nx-surface-2 p-2 font-mono text-xs select-all'
+  return (
+    <div className="space-y-3 leading-relaxed">
+      <p>
+        Server:{' '}
+        {server === 'checking' ? 'bezig met nakijken…' : server === 'ready' ? 'web-push is ingesteld.' : server === 'missing' ? 'de sleutels ontbreken nog op Vercel.' : 'niet bereikbaar.'}
+      </p>
+      <p className="text-nx-muted">
+        Eenmalig, zodat je gsm meldingen krijgt als NEXUS daar dicht is. Maak de waarden hier, zet ze op Vercel en in Supabase,
+        en bewaar ze nergens anders: wie de geheime waarden heeft, kan meldingen naar je toestellen sturen (lezen kan niemand,
+        de inhoud blijft versleuteld).
+      </p>
+      {!setup ? (
+        <button type="button" className={button} onClick={() => void makePushSetup().then(setSetup)}>
+          Sleutels maken
+        </button>
+      ) : (
+        <ol className="list-decimal space-y-3 pl-5">
+          <li className="space-y-1">
+            <p>
+              Vercel › je project › Settings › Environment Variables: voeg deze drie toe (Production) en zet daarna de site opnieuw
+              online (Deployments › Redeploy).
+            </p>
+            <code className={code}>{`VAPID_PUBLIC_KEY=${setup.publicKey}\nVAPID_PRIVATE_KEY=${setup.privateKey}\nPUSH_SECRET=${setup.secret}`}</code>
+          </li>
+          <li className="space-y-1">
+            <p>
+              Supabase › SQL Editor: voer eerst <span className="font-mono text-xs">supabase/migrations/20261021100000_push.sql</span>{' '}
+              uit (eerst Database › Extensions: <span className="font-mono text-xs">pg_cron</span> en{' '}
+              <span className="font-mono text-xs">pg_net</span> aanzetten als dat niet lukt), daarna dit:
+            </p>
+            <code className={code}>{pushConfigSql(origin, setup.secret)}</code>
+          </li>
+          <li>Op je gsm: open NEXUS in Chrome, meld je aan en kies in Apparaten "Meldingen aanzetten".</li>
+        </ol>
+      )}
     </div>
   )
 }

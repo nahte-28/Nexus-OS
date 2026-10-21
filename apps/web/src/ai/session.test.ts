@@ -52,8 +52,8 @@ function fakeContext(now = Date.parse('2026-10-19T12:00:00+02:00')) {
           status: 'ready',
           devices: [{ id: 'phone', name: 'OnePlus 15R', platform: 'android', revokedAt: null }],
         }) as never,
-      sendNotification: async (deviceId: string, title: string, text?: string) => {
-        sent.push({ deviceId, title, text })
+      notifyPhones: async (title: string, text?: string) => {
+        sent.push({ deviceId: 'phone', title, text })
       },
     },
     setTheme: (t) => (theme = t),

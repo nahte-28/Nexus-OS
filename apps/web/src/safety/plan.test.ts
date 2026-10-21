@@ -6,10 +6,13 @@ import { sendPlanIfChanged } from './plan'
 const phone = { id: 'p1', name: 'OnePlus 15R', platform: 'android', revokedAt: null }
 const plan: PlannedNotice[] = [{ ref: 'reminder:a@1', at: 1, title: 'Labo' }]
 
-function connect(devices = [phone]) {
+const browserPhone = { id: 'p2', name: 'Chrome op Android', platform: 'web', push: true, revokedAt: null }
+
+function connect(devices: object[] = [phone]) {
   return {
     getSnapshot: () => ({ status: 'ready', devices }) as unknown as ConnectState,
     sendPlan: vi.fn(async () => {}),
+    sendPushPlan: vi.fn(async () => {}),
   }
 }
 
@@ -29,6 +32,17 @@ describe('safety net sending', () => {
     const c = connect()
     expect(await sendPlanIfChanged(c, [], 0)).toBe(0)
     expect(await sendPlanIfChanged(connect([]), plan, 0)).toBe(0)
+    expect(c.sendPlan).not.toHaveBeenCalled()
+  })
+
+  it('plans pushes for a browser phone with web push, not for other browsers or itself', async () => {
+    const c = connect([
+      browserPhone,
+      { id: 'pc', name: 'Chrome op Windows', platform: 'web', revokedAt: null },
+      { id: 'me', name: 'Dit', platform: 'web', push: true, isThisDevice: true, revokedAt: null },
+    ])
+    expect(await sendPlanIfChanged(c, plan, 0)).toBe(1)
+    expect(c.sendPushPlan).toHaveBeenCalledWith('p2', plan)
     expect(c.sendPlan).not.toHaveBeenCalled()
   })
 })

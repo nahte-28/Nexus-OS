@@ -9,9 +9,7 @@ export function reminderDelivery(connect: ConnectEngine) {
     if (reminder.target !== 'phone') return
     const state = await settled(connect)
     if (state.status !== 'ready') throw new Error('NEXUS Connect is niet verbonden, dus de gsm kreeg ze niet.')
-    const phones = state.devices.filter((d) => d.platform === 'android' && !d.revokedAt)
-    if (phones.length === 0) throw new Error('Geen gsm gekoppeld.')
-    await Promise.all(phones.map((p) => connect.sendNotification(p.id, reminder.title, reminder.text, reminderRef(reminder))))
+    await connect.notifyPhones(reminder.title, reminder.text, reminderRef(reminder))
   }
 }
 

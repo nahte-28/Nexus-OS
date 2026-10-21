@@ -1,12 +1,12 @@
 import { parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
-import type { ConnectEngine } from '../connect/engine'
+import { phonesOf, type ConnectEngine } from '../connect/engine'
 import type { RemindersStore } from '../reminders/store'
 
 /** What the assistant's actions may touch. Passed in, so tests can use fakes. */
 export interface ToolContext {
   notes: { getSnapshot(): Note[]; add(): string; update(id: string, patch: { title?: string; body?: string }): void }
   reminders: Pick<RemindersStore, 'getSnapshot' | 'add' | 'remove'>
-  connect: Pick<ConnectEngine, 'getSnapshot' | 'sendNotification'>
+  connect: Pick<ConnectEngine, 'getSnapshot' | 'notifyPhones'>
   setTheme(theme: ThemeId): void
   now(): number
 }
@@ -35,8 +35,7 @@ function when(at: number): string {
 }
 
 function phones(ctx: ToolContext) {
-  const state = ctx.connect.getSnapshot()
-  return state.status === 'ready' ? state.devices.filter((d) => d.platform === 'android' && !d.revokedAt) : []
+  return phonesOf(ctx.connect.getSnapshot())
 }
 
 export const TOOL_SPECS: Record<string, ToolSpec> = {
@@ -154,7 +153,7 @@ export const TOOL_SPECS: Record<string, ToolSpec> = {
             : null,
     run: async (input, ctx) => {
       const targets = phones(ctx)
-      await Promise.all(targets.map((p) => ctx.connect.sendNotification(p.id, str(input.title)!, str(input.text))))
+      await ctx.connect.notifyPhones(str(input.title)!, str(input.text))
       return `Verstuurd naar ${targets.map((p) => p.name).join(', ')}.`
     },
   },

@@ -11,6 +11,8 @@ export interface Device {
   createdAt: string
   lastSeenAt: string
   revokedAt: string | null
+  /** NEXUS in a browser that can be woken by web push, also when NEXUS is closed there. */
+  push?: boolean
 }
 
 /** What a device sends, before encryption. The server never sees these fields. */

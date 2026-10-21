@@ -194,11 +194,7 @@ export function defaultEffects(connect: ConnectEngine): FlowEffects {
     async notify(title, text, target, ref) {
       await showLocalNotification(title, text || 'Van Flow Studio', `flow-${title}`)
       if (target !== 'phone') return
-      const state = connect.getSnapshot()
-      if (state.status !== 'ready') throw new Error('NEXUS Connect is niet verbonden, dus de gsm kreeg ze niet.')
-      const phones = state.devices.filter((d) => d.platform === 'android' && !d.revokedAt)
-      if (phones.length === 0) throw new Error('Geen gsm gekoppeld.')
-      await Promise.all(phones.map((p) => connect.sendNotification(p.id, title, text || undefined, ref)))
+      await connect.notifyPhones(title, text || undefined, ref)
     },
     prompt(prompt) {
       addPrompt(prompt)

@@ -11,6 +11,19 @@ export interface OutgoingMessage extends Envelope {
   recipientDeviceId: string
 }
 
+/** Where the browser's push service can wake this device. */
+export interface PushSubscriptionKeys {
+  endpoint: string
+  p256dh: string
+  auth: string
+}
+
+/** A notification for a phone without NEXUS open, sent by the database at [at]. */
+export interface PlannedPush extends OutgoingMessage {
+  ref: string
+  at: number
+}
+
 /** The server side of NEXUS Connect. It only ever sees public keys and ciphertext. */
 export interface ConnectRemote {
   listDevices(): Promise<Device[]>
@@ -21,7 +34,17 @@ export interface ConnectRemote {
   sendMessages(messages: OutgoingMessage[]): Promise<void>
   /** Calls `onMessage` when something arrives for `deviceId`; returns an unsubscribe function. */
   listen(deviceId: string, onMessage: () => void): () => void
+  /** Web push (v0.8.3 migration). Optional so that older fakes and setups keep working. */
+  savePushSubscription?(deviceId: string, keys: PushSubscriptionKeys): Promise<void>
+  removePushSubscription?(deviceId: string): Promise<void>
+  /** Replaces what this sender planned for one phone; pushes that are (almost) due stay. */
+  replacePushPlan?(senderDeviceId: string, recipientDeviceId: string, pushes: PlannedPush[]): Promise<void>
+  /** Adds pushes; one that is already planned for that phone (same ref) is left as it is. */
+  addPushes?(pushes: PlannedPush[]): Promise<void>
 }
+
+/** Planned pushes due within this margin are not replaced, so a notification that is about to go out still does. */
+const KEEP_DUE_MS = 2 * 60_000
 
 /** Thrown when the v0.4 migration has not been run on the Supabase project yet. */
 export class ConnectSetupError extends Error {}
@@ -52,6 +75,9 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
         .select('id,name,platform,public_key,created_at,last_seen_at,revoked_at')
         .order('created_at', { ascending: true })
       check(error)
+      // Without the web-push migration nothing can be woken by push; that is not an error.
+      const pushed = await client.from('push_subscriptions').select('device_id')
+      const push = new Set(pushed.error ? [] : (pushed.data ?? []).map((r) => r.device_id as string))
       return ((data ?? []) as DeviceRow[]).map((r) => ({
         id: r.id,
         name: r.name,
@@ -60,6 +86,7 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
         createdAt: r.created_at,
         lastSeenAt: r.last_seen_at,
         revokedAt: r.revoked_at,
+        ...(push.has(r.id) ? { push: true } : {}),
       }))
     },
 
@@ -112,6 +139,47 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
           iv: m.iv,
           ciphertext: m.ciphertext,
         })),
+      )
+      check(error)
+    },
+
+    async savePushSubscription(deviceId, { endpoint, p256dh, auth }) {
+      const { error } = await client
+        .from('push_subscriptions')
+        .upsert({ device_id: deviceId, endpoint, p256dh, auth, updated_at: new Date().toISOString() }, { onConflict: 'device_id' })
+      check(error)
+    },
+
+    async removePushSubscription(deviceId) {
+      const { error } = await client.from('push_subscriptions').delete().eq('device_id', deviceId)
+      check(error)
+    },
+
+    async replacePushPlan(senderDeviceId, recipientDeviceId, pushes) {
+      const { error } = await client
+        .from('push_schedule')
+        .delete()
+        .eq('sender_device_id', senderDeviceId)
+        .eq('recipient_device_id', recipientDeviceId)
+        .is('sent_at', null)
+        .gt('at', new Date(Date.now() + KEEP_DUE_MS).toISOString())
+      check(error)
+      await this.addPushes!(pushes)
+    },
+
+    async addPushes(pushes) {
+      if (pushes.length === 0) return
+      const { error } = await client.from('push_schedule').upsert(
+        pushes.map((p) => ({
+          sender_device_id: p.senderDeviceId,
+          recipient_device_id: p.recipientDeviceId,
+          ref: p.ref,
+          at: new Date(p.at).toISOString(),
+          ephemeral_key: p.ephemeralKey,
+          iv: p.iv,
+          ciphertext: p.ciphertext,
+        })),
+        { onConflict: 'recipient_device_id,ref', ignoreDuplicates: true },
       )
       check(error)
     },

@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { PLATFORM_LABELS } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { isDesktopApp } from '../platform/desktop'
-import type { DeviceView } from '../connect/engine'
+import { phonesOf, type DeviceView } from '../connect/engine'
+import { disableWebPush, enableWebPush, pushOnHere, pushSupported } from '../push/subscribe'
 
 const RELEASES_URL = 'https://github.com/nahte-28/Nexus-OS/releases'
 
@@ -90,7 +91,8 @@ export function Devices() {
 
   const active = state.devices.filter((d) => !d.revokedAt)
   const revoked = state.devices.filter((d) => d.revokedAt)
-  const phones = active.filter((d) => d.platform === 'android')
+  const phones = phonesOf(state)
+  const pushHere = pushOnHere(state)
 
   return (
     <div className="space-y-4 p-4 text-sm">
@@ -112,6 +114,39 @@ export function Devices() {
         </div>
       )}
 
+      {pushSupported() && (
+        <div className="space-y-2 rounded-lg border border-nx-border p-3">
+          <h3 className="font-medium">Meldingen op dit toestel</h3>
+          <p className="text-nx-muted">
+            {pushHere
+              ? 'Staat aan: herinneringen en flows die naar je gsm gaan, verschijnen hier ook als NEXUS dicht is. Je horloge krijgt ze via je gsm. Ze komen tot een minuut na het tijdstip.'
+              : 'Gebruik je NEXUS in Chrome op je gsm? Zet dit aan, dan krijg je herinneringen ook als NEXUS dicht is, zonder de companion-app. Ze zijn onderweg versleuteld.'}
+          </p>
+          <button
+            type="button"
+            className={pushHere ? button : primaryButton}
+            disabled={busy !== null}
+            onClick={() =>
+              void run('push', async () => {
+                if (pushHere) {
+                  await disableWebPush(engine)
+                  setPermission(Notification.permission)
+                  return 'Meldingen op dit toestel staan uit.'
+                }
+                try {
+                  await enableWebPush(engine)
+                } finally {
+                  setPermission(Notification.permission)
+                }
+                return 'Meldingen staan aan. Je pc plant de herinneringen van de komende dagen voor dit toestel zodra NEXUS daar open is.'
+              })
+            }
+          >
+            {busy === 'push' ? 'Bezig…' : pushHere ? 'Uitzetten' : 'Meldingen aanzetten'}
+          </button>
+        </div>
+      )}
+
       <ul className="space-y-2" aria-label="Gekoppelde apparaten">
         {active.map((d) => (
           <DeviceRow
@@ -123,6 +158,7 @@ export function Devices() {
                 await engine.sendTest(d.id)
                 if (d.isThisDevice) return 'Testmelding verstuurd. Ze verschijnt zo in Meldingen.'
                 if (d.platform === 'android') return `Testmelding verstuurd naar ${d.name}. Ze verschijnt op je gsm en horloge.`
+                if (d.push) return `Testmelding verstuurd naar ${d.name}. Ze verschijnt daar binnen een minuut, ook als NEXUS dicht is.`
                 return `Testmelding verstuurd naar ${d.name}.`
               })
             }
@@ -143,7 +179,7 @@ export function Devices() {
           busy={busy}
           onSend={(deviceId, title, text) =>
             run('send', async () => {
-              await engine.sendNotification(deviceId, title, text)
+              await engine.sendToPhone(deviceId, title, text)
               const name = phones.find((p) => p.id === deviceId)?.name ?? 'je gsm'
               return `Verstuurd naar ${name}. De melding verschijnt op je gsm en horloge.`
             })
@@ -157,12 +193,13 @@ export function Devices() {
         </p>
       )}
 
-      {!active.some((d) => d.platform === 'android') && (
+      {phones.length === 0 && !pushHere && (
         <div className="space-y-1 rounded-lg border border-nx-border p-3">
           <h3 className="font-medium">Android companion</h3>
           <p className="text-nx-muted">
             Installeer de NEXUS Companion op je OnePlus 15R om gekozen meldingen van je gsm hier te zien. Log in met
-            hetzelfde account en vergelijk de code van dit apparaat ({state.device?.fingerprint}).
+            hetzelfde account en vergelijk de code van dit apparaat ({state.device?.fingerprint}). Lukt installeren
+            niet? Open NEXUS dan in Chrome op je gsm, meld je aan en zet in Apparaten de meldingen aan.
           </p>
           <a href={RELEASES_URL} target="_blank" rel="noreferrer" className="inline-block text-nx-accent underline">
             Download de app
@@ -281,7 +318,7 @@ function SendForm({
       }}
     >
       <h3 className="font-medium">Melding naar je gsm en horloge</h3>
-      <p className="text-nx-muted">Versleuteld verstuurd. Je gsm heeft NEXUS Companion 0.6 of nieuwer nodig.</p>
+      <p className="text-nx-muted">Versleuteld verstuurd, naar de companion-app of naar NEXUS in Chrome met meldingen aan.</p>
       {phones.length > 1 && (
         <select value={target} onChange={(e) => setDeviceId(e.target.value)} aria-label="Naar" className={field}>
           {phones.map((p) => (

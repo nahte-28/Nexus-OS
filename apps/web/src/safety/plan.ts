@@ -1,5 +1,5 @@
 import { plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
-import type { ConnectEngine } from '../connect/engine'
+import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
 import { flowsStore, flowStudioEnabled } from '../flows/store'
@@ -41,19 +41,28 @@ function readSent(phoneId: string): Sent | null {
   }
 }
 
-/** Sends each phone the plan when it changed or is getting old. Returns how many phones got it. */
-export async function sendPlanIfChanged(connect: Pick<ConnectEngine, 'getSnapshot' | 'sendPlan'>, plan: PlannedNotice[], now = Date.now()): Promise<number> {
+/**
+ * Sends each phone the plan when it changed or is getting old: the companion gets it to set alarms,
+ * a phone with web push gets each notice as a push the database sends when due. Returns how many
+ * phones got it.
+ */
+export async function sendPlanIfChanged(
+  connect: Pick<ConnectEngine, 'getSnapshot' | 'sendPlan' | 'sendPushPlan'>,
+  plan: PlannedNotice[],
+  now = Date.now(),
+): Promise<number> {
   const state = connect.getSnapshot()
   if (state.status !== 'ready') return 0
   const key = JSON.stringify(plan)
   let sent = 0
-  for (const phone of state.devices.filter((d) => d.platform === 'android' && !d.revokedAt)) {
+  for (const phone of phonesOf(state)) {
     const last = readSent(phone.id)
     // Nothing planned and nothing sent before: the phone has nothing to forget either.
     if (!last && plan.length === 0) continue
     if (last && last.key === key && now - last.at < REFRESH_MS) continue
     try {
-      await connect.sendPlan(phone.id, plan)
+      if (phone.platform === 'android') await connect.sendPlan(phone.id, plan)
+      else await connect.sendPushPlan(phone.id, plan)
       writeStorage(sentKey(phone.id), JSON.stringify({ key, at: now }))
       sent++
     } catch (err) {

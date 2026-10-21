@@ -15,6 +15,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present && tsc -p api"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.135.0"
+    "@anthropic-ai/sdk": "^0.135.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/web-push": "^3.6.4"
   }
 }
