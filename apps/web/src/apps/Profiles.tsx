@@ -42,7 +42,7 @@ const APP_CHOICES: Array<{ id: AppId; title: string }> = [
 
 const WIDGET_CHOICES: Array<{ id: WidgetId; title: string }> = [
   { id: 'next_class', title: 'Volgende les' },
-  { id: 'deadlines', title: 'Deadlines en herinneringen' },
+  { id: 'deadlines', title: 'Deadlines en afspraken' },
   { id: 'klashub', title: 'KlasHub' },
   { id: 'ai_study', title: 'AI Study' },
   { id: 'notes', title: 'Notities' },

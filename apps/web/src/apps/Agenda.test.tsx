@@ -32,4 +32,17 @@ describe('Agenda', () => {
     expect(await screen.findByRole('progressbar', { name: 'Elektronica voortgang' })).toBeTruthy()
     expect(screen.getByText('0/0 klaar')).toBeTruthy()
   })
+
+  it('adds an appointment with a place and shows it in the week', async () => {
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('button', { name: '+ Afspraak' }))
+    const form = screen.getByRole('form', { name: 'Nieuwe afspraak' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Titel' }), { target: { value: 'Tandarts' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Plaats' }), { target: { value: 'Antwerpen' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Toevoegen' }))
+    const list = await screen.findByRole('list', { name: 'Komende afspraken' })
+    expect(within(list).getByText('Tandarts')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Overzicht' }))
+    expect(within(screen.getByRole('region', { name: 'Morgen' })).getByText(/Tandarts/).textContent).toContain('Antwerpen')
+  })
 })

@@ -1,7 +1,6 @@
 import type { ComponentType, SVGProps } from 'react'
-import { PROFILE_IDS, type ActiveReason, type ProfileId, type ProfilesState } from '@nexus/core'
+import { type ActiveReason, type ProfileId, type ProfilesState } from '@nexus/core'
 import { CodeIcon, GamepadIcon, HomeIcon, SchoolIcon } from '../apps/icons'
-import { profilesStore, useProfiles } from './store'
 
 export const PROFILE_ICONS: Record<ProfileId, ComponentType<SVGProps<SVGSVGElement>>> = {
   school: SchoolIcon,
@@ -31,34 +30,4 @@ export function reasonText(reason: ActiveReason, state: ProfilesState): string {
       : 'Met de hand gekozen, tot het tijdschema wisselt'
   if (reason === 'return') return 'Je laatst gekozen profiel buiten het schema'
   return 'Je standaardprofiel'
-}
-
-/** Quick switch between School, Persoonlijk, Gaming and Developer. */
-export function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
-  const { state, active } = useProfiles()
-  return (
-    <div role="radiogroup" aria-label="Profiel" className={`flex gap-1 ${compact ? 'flex-wrap' : 'overflow-x-auto'}`}>
-      {PROFILE_IDS.map((id) => {
-        const profile = state.profiles[id]
-        const Icon = PROFILE_ICONS[id]
-        const selected = active.id === id
-        return (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            title={profile.description}
-            onClick={() => profilesStore.choose(id)}
-            className={`flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${
-              selected ? 'bg-nx-accent font-medium text-nx-accent-text' : 'text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text'
-            }`}
-          >
-            <Icon className="size-4" />
-            {profile.name}
-          </button>
-        )
-      })}
-    </div>
-  )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { agendaDay, deadlineNotices, deadlineRef, openDeadlines, parseDeadline, plannedDeadlineNotices, projectProgress, toLifeItem, type Deadline, type Project } from './life'
+import { agendaDay, appointmentRef, deadlineNotices, parseAppointment, deadlineRef, openDeadlines, parseDeadline, plannedDeadlineNotices, projectProgress, toLifeItem, type Appointment, type Deadline, type Project } from './life'
 
 const H = 60 * 60_000
 const deadline = (over: Partial<Deadline> = {}): Deadline => ({
@@ -76,5 +76,27 @@ describe('NEXUS Life', () => {
     // Lessons from the school calendar replace the typed-in timetable.
     const calendarEvents = [{ start: at(13), end: at(15), subject: 'Labo' }]
     expect(agendaDay({ calendarEvents, timetable, items: [], reminders: [] }, dayStart).map((e) => e.title)).toEqual(['Labo'])
+  })
+
+  it('plans appointments: validation, notices and every day they cover', () => {
+    expect(parseAppointment({ title: 'Tandarts', startAt: '2026-11-03T14:00:00+01:00' })).toMatchObject({
+      ok: true,
+      value: { endAt: Date.parse('2026-11-03T15:00:00+01:00'), remind: [60], target: 'phone', location: '' },
+    })
+    expect(parseAppointment({ title: 'x', startAt: 10 * H, endAt: 9 * H })).toMatchObject({ ok: false })
+    expect(parseAppointment({ title: '', startAt: 1 })).toMatchObject({ ok: false })
+
+    const start = new Date(2026, 10, 3, 14, 0).getTime()
+    const a: Appointment = { kind: 'appointment', id: 'a1', title: 'Tandarts', startAt: start, endAt: start + H, location: 'Antwerpen', notes: '', remind: [60], target: 'phone', updatedAt: 1, deletedAt: null }
+    expect(toLifeItem(a)).toEqual(a)
+    const notices = deadlineNotices([a], start - 2 * H, start)
+    expect(notices.map((n) => [n.ref, n.title])).toEqual([[appointmentRef(a, 60), 'Afspraak over 1 uur: Tandarts']])
+    expect(notices[0].text).toContain('Antwerpen')
+
+    const trip: Appointment = { ...a, id: 'a2', title: 'Uitstap', startAt: new Date(2026, 10, 3, 20).getTime(), endAt: new Date(2026, 10, 4, 18).getTime() }
+    const day = (d: number) => new Date(2026, 10, d).getTime()
+    expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(3)).map((e) => e.title)).toEqual(['Tandarts', 'Uitstap'])
+    expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(4)).map((e) => [e.title, e.at])).toEqual([['Uitstap', day(4)]])
+    expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(5))).toEqual([])
   })
 })

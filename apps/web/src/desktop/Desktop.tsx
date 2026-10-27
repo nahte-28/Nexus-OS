@@ -3,7 +3,6 @@ import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
-import { ProfileSwitcher } from '../profiles/ui'
 import { useWindows } from '../state/WindowsContext'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
@@ -44,7 +43,7 @@ export function Desktop() {
   )
 }
 
-/** Brand, the active profile and its apps. */
+/** Brand, the active profile and its apps. Switching profiles happens in the Profielen app. */
 function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
   const { active } = useProfiles()
   return (
@@ -53,7 +52,6 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
         <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>
         <p className="text-xs text-nx-muted">{active.name} Mode</p>
       </div>
-      <ProfileSwitcher compact />
       <nav aria-label="Apps">
         <ul className="space-y-0.5">
           {apps.map((app) => (
