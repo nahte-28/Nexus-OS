@@ -149,7 +149,7 @@ De app **Studie** heeft een **focustimer** (pomodoro: standaard 25 minuten focus
 
 De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen bestanden (tot 10 MB per bestand) in NEXUS: offline op het apparaat en, met een account, in je eigen privéopslag in Supabase (bucket `nexus-files`, één map per gebruiker, met RLS), zodat ze op al je apparaten staan. **Op deze pc** opent mappen van je computer via de File System Access API (Chrome, Edge en de Windows-app); NEXUS leest alleen de mappen die je kiest en verandert er niets in. Op een gsm kies je losse bestanden.
 
-Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
+Openen toont pdf's, afbeeldingen en tekst, en van Word (.docx) en PowerPoint (.pptx) de tekst zonder opmaak. Een gsm die geen pdf binnen een pagina kan tonen, opent hem in je pdf-app. Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
 
 ## Dagstart
 

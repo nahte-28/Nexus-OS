@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { deflateRawSync } from 'node:zlib'
 import type { FileMeta } from '@nexus/core'
 import { resetDbConnection } from '../state/db'
-import { docxText, documentText } from './docx'
+import { docxText, documentText, pptxText } from './docx'
 import { FilesStore } from './store'
 import { syncFiles, type FilesRemote } from './sync'
 
@@ -60,40 +60,58 @@ describe('Bestanden', () => {
     expect(await docxText(new Blob([docx]))).toBe('Hoofdstuk 1\nWet van Ohm & Kirchhoff')
     await expect(docxText(new Blob(['geen zip']))).rejects.toThrow(/Word-bestand/)
   })
+
+  it('reads the text of a PowerPoint, slide by slide', async () => {
+    const slide = (texts: string[]) => new TextEncoder().encode(`<p:sld>${texts.map((t) => `<a:p><a:r><a:t>${t}</a:t></a:r></a:p>`).join('')}</p:sld>`)
+    const pptx = zip('ppt/slides/slide10.xml', slide(['Einde']), ['ppt/slides/slide2.xml', slide(['Wet van Ohm', 'U = R &amp; I'])], ['ppt/presentation.xml', slide(['niet'])])
+    expect(await pptxText(new Blob([pptx]))).toBe('Dia 2\nWet van Ohm\nU = R & I\n\nDia 10\nEinde')
+    await expect(pptxText(new Blob([zip('word/document.xml', slide([]))]))).rejects.toThrow(/PowerPoint/)
+  })
 })
 
-/** A zip with one deflated entry, as Word writes them. */
-function zip(name: string, content: Uint8Array): Uint8Array<ArrayBuffer> {
-  const nameBytes = new TextEncoder().encode(name)
-  const data = deflateRawSync(content)
-  const local = new Uint8Array(30 + nameBytes.length + data.length)
-  const lv = new DataView(local.buffer)
-  lv.setUint32(0, 0x04034b50, true)
-  lv.setUint16(8, 8, true)
-  lv.setUint32(18, data.length, true)
-  lv.setUint32(22, content.length, true)
-  lv.setUint16(26, nameBytes.length, true)
-  local.set(nameBytes, 30)
-  local.set(data, 30 + nameBytes.length)
-  const central = new Uint8Array(46 + nameBytes.length)
-  const cv = new DataView(central.buffer)
-  cv.setUint32(0, 0x02014b50, true)
-  cv.setUint16(10, 8, true)
-  cv.setUint32(20, data.length, true)
-  cv.setUint32(24, content.length, true)
-  cv.setUint16(28, nameBytes.length, true)
-  cv.setUint32(42, 0, true)
-  central.set(nameBytes, 46)
+/** A zip with deflated entries, as Word and PowerPoint write them. */
+function zip(name: string, content: Uint8Array, ...more: Array<[string, Uint8Array]>): Uint8Array<ArrayBuffer> {
+  const locals: Uint8Array[] = []
+  const centrals: Uint8Array[] = []
+  let offset = 0
+  for (const [entry, bytes] of [[name, content] as [string, Uint8Array], ...more]) {
+    const nameBytes = new TextEncoder().encode(entry)
+    const data = deflateRawSync(bytes)
+    const local = new Uint8Array(30 + nameBytes.length + data.length)
+    const lv = new DataView(local.buffer)
+    lv.setUint32(0, 0x04034b50, true)
+    lv.setUint16(8, 8, true)
+    lv.setUint32(18, data.length, true)
+    lv.setUint32(22, bytes.length, true)
+    lv.setUint16(26, nameBytes.length, true)
+    local.set(nameBytes, 30)
+    local.set(data, 30 + nameBytes.length)
+    const central = new Uint8Array(46 + nameBytes.length)
+    const cv = new DataView(central.buffer)
+    cv.setUint32(0, 0x02014b50, true)
+    cv.setUint16(10, 8, true)
+    cv.setUint32(20, data.length, true)
+    cv.setUint32(24, bytes.length, true)
+    cv.setUint16(28, nameBytes.length, true)
+    cv.setUint32(42, offset, true)
+    central.set(nameBytes, 46)
+    locals.push(local)
+    centrals.push(central)
+    offset += local.length
+  }
+  const centralSize = centrals.reduce((n, c) => n + c.length, 0)
   const end = new Uint8Array(22)
   const ev = new DataView(end.buffer)
   ev.setUint32(0, 0x06054b50, true)
-  ev.setUint16(8, 1, true)
-  ev.setUint16(10, 1, true)
-  ev.setUint32(12, central.length, true)
-  ev.setUint32(16, local.length, true)
-  const out = new Uint8Array(local.length + central.length + end.length)
-  out.set(local)
-  out.set(central, local.length)
-  out.set(end, local.length + central.length)
+  ev.setUint16(8, centrals.length, true)
+  ev.setUint16(10, centrals.length, true)
+  ev.setUint32(12, centralSize, true)
+  ev.setUint32(16, offset, true)
+  const out = new Uint8Array(offset + centralSize + end.length)
+  let at = 0
+  for (const part of [...locals, ...centrals, end]) {
+    out.set(part, at)
+    at += part.length
+  }
   return out
 }
