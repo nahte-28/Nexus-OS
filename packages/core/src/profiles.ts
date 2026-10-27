@@ -102,7 +102,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 2
+export const PROFILES_SCHEMA = 3
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -115,7 +115,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'School',
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
-    apps: ['klashub', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
+    apps: ['klashub', 'agenda', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
     widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
     quietNonEssential: true,
     allowApps: [],
@@ -126,7 +126,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['notes', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    apps: ['agenda', 'notes', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -148,7 +148,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Developer',
     description: 'Met de ontwikkelaarstools en het logboek erbij.',
     theme: 'pulse',
-    apps: ['developer', 'assistant', 'notes', 'notifications', 'reminders', 'devices', 'account', 'about'],
+    apps: ['developer', 'assistant', 'agenda', 'notes', 'notifications', 'reminders', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -308,6 +308,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       const apps = profiles[id].apps
       if (base.profiles[id].apps.includes('klashub') && Array.isArray(apps) && !apps.includes('klashub')) {
         profiles[id] = { ...profiles[id], apps: id === 'school' ? ['klashub', ...apps] : [...apps, 'klashub'] }
+      }
+    }
+  }
+  // Copies from before NEXUS Life get the Agenda app in the profiles that have it by default.
+  if (typeof r.schema !== 'number' || r.schema < 3) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('agenda') && Array.isArray(apps) && !apps.includes('agenda')) {
+        const after = apps.indexOf('klashub')
+        profiles[id] = { ...profiles[id], apps: id === 'school' && after >= 0 ? [...apps.slice(0, after + 1), 'agenda', ...apps.slice(after + 1)] : ['agenda', ...apps] }
       }
     }
   }

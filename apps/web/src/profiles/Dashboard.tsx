@@ -1,10 +1,11 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { nextCalendarEvent, nextLesson, noteTitle, type AppId, type WidgetId } from '@nexus/core'
+import { nextCalendarEvent, nextLesson, noteTitle, openDeadlines, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
 import { dismissPrompt, usePrompts } from '../flows/prompts'
 import { appName } from '../flows/runner'
+import { lifeStore } from '../life/store'
 import { installUpdate, useUpdate } from '../platform/update'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
@@ -208,28 +209,40 @@ function NextClass({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
 
 function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
+  const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
+  const now = Date.now()
+  // Open deadlines (overdue ones too) and reminders together, soonest first.
+  const items = [
+    ...openDeadlines(life).map((d) => ({ id: d.id, title: d.title, at: d.dueAt, deadline: true })),
+    ...reminders.map((r) => ({ id: r.id, title: r.title, at: r.at, deadline: false })),
+  ].sort((a, b) => a.at - b.at)
   return (
     <Card title="Deadlines en herinneringen">
-      {reminders.length === 0 ? (
+      {items.length === 0 ? (
         <p className="text-sm text-nx-muted">Niets gepland.</p>
       ) : (
         <ul className="space-y-1 text-sm">
-          {reminders.slice(0, 4).map((r) => (
+          {items.slice(0, 5).map((r) => (
             <li key={r.id} className="flex justify-between gap-2">
-              <span className="truncate">{r.title}</span>
-              <span className="shrink-0 text-nx-muted tabular-nums">
-                {new Date(r.at).toLocaleString('nl-BE', {
-                  weekday: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+              <span className="truncate">
+                {r.deadline ? '📌 ' : ''}
+                {r.title}
+              </span>
+              <span className={`shrink-0 tabular-nums ${r.deadline && r.at < now ? 'text-red-500' : 'text-nx-muted'}`}>
+                {r.deadline && r.at < now
+                  ? 'te laat'
+                  : new Date(r.at).toLocaleString('nl-BE', {
+                      weekday: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
               </span>
             </li>
           ))}
         </ul>
       )}
-      <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('reminders')}>
-        Herinneringen openen
+      <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('agenda')}>
+        Agenda openen
       </button>
     </Card>
   )

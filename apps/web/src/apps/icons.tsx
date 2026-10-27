@@ -147,3 +147,10 @@ export const FlowIcon = (p: SVGProps<SVGSVGElement>) => (
     <circle cx="9" cy="11.5" r="1.5" />
   </svg>
 )
+
+export const CalendarIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4M8 15h3" />
+  </svg>
+)

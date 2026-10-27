@@ -1,8 +1,9 @@
-import { plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedDeadlineNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
 import { flowsStore, flowStudioEnabled } from '../flows/store'
+import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -14,17 +15,18 @@ const sentKey = (phoneId: string) => `nexus.safety.sent.${phoneId}`
 /** The notifications this device will send the phone in the coming days. */
 export function currentPlan(now = Date.now()): PlannedNotice[] {
   const reminders = remindersStore.getSnapshot()
+  const life = lifeStore.getSnapshot()
   const { flows, settings } = flowsStore.getSnapshot()
   const flowNotices = flowStudioEnabled()
     ? plannedFlowNotices({
         flows,
         paused: settings.paused,
         quietAt: (at, timeZone) => inQuietHours(settings, at, timeZone),
-        deadlines: reminders.map((r) => ({ id: r.id, title: r.title, at: r.at })),
+        deadlines: [...reminders.map((r) => ({ id: r.id, title: r.title, at: r.at })), ...openDeadlines(life).map((d) => ({ id: d.id, title: d.title, at: d.dueAt }))],
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...flowNotices])
 }
 
 interface Sent {
@@ -95,7 +97,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), flowsStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

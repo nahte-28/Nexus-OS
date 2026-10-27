@@ -1,4 +1,5 @@
 import {
+  openDeadlines,
   describeAction,
   failingCondition,
   fillText,
@@ -18,6 +19,7 @@ import {
 import { logEvent } from '../devtools/log'
 import { getUpdateState } from '../platform/update'
 import { chooseFor, profilesStore } from '../profiles/store'
+import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import type { ConnectEngine } from '../connect/engine'
 import { showLocalNotification } from '../platform/notify'
@@ -176,7 +178,10 @@ export function currentContext(connect: ConnectEngine, now = Date.now()): FlowCo
     now,
     activeProfile: profilesStore.getSnapshot().active.id,
     online: typeof navigator === 'undefined' ? true : navigator.onLine,
-    deadlines: remindersStore.getSnapshot().map((r) => ({ id: r.id, title: r.title, at: r.at })),
+    deadlines: [
+      ...remindersStore.getSnapshot().map((r) => ({ id: r.id, title: r.title, at: r.at })),
+      ...openDeadlines(lifeStore.getSnapshot()).map((d) => ({ id: d.id, title: d.title, at: d.dueAt })),
+    ],
     devices:
       connectState.status === 'ready'
         ? connectState.devices
