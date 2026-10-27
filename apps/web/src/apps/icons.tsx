@@ -160,3 +160,10 @@ export const FolderIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
   </svg>
 )
+
+export const TimerIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="14" r="7" />
+    <path d="M12 10v4l2 2M10 3h4M12 3v4" />
+  </svg>
+)

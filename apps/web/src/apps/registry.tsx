@@ -12,12 +12,13 @@ import { Developer } from './Developer'
 import { Devices } from './Devices'
 import { Files } from './Files'
 import { FlowStudio } from './FlowStudio'
-import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon } from './icons'
+import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 import { Inbox } from './Inbox'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
 import { Reminders } from './Reminders'
 import { Settings } from './Settings'
+import { Study } from './Study'
 
 export interface AppDefinition {
   id: AppId
@@ -52,6 +53,7 @@ function KlasHubLauncher() {
 /** Every app in NEXUS. New modules (Life, Gaming, Network...) register here. */
 export const APPS: AppDefinition[] = [
   { id: 'agenda', title: 'Agenda', icon: CalendarIcon, component: Agenda, defaultSize: { width: 760, height: 580 } },
+  { id: 'study', title: 'Studie', icon: TimerIcon, component: Study, defaultSize: { width: 640, height: 600 } },
   { id: 'files', title: 'Bestanden', icon: FolderIcon, component: Files, defaultSize: { width: 780, height: 580 } },
   { id: 'notes', title: 'Notities', icon: NotesIcon, component: Notes, defaultSize: { width: 720, height: 460 } },
   { id: 'notifications', title: 'Meldingen', icon: BellIcon, component: Inbox, defaultSize: { width: 680, height: 480 } },

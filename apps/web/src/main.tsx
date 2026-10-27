@@ -7,6 +7,7 @@ import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
 import { startFlowsSync } from './flows/sync'
 import { startFilesSync } from './files/sync'
+import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
@@ -48,6 +49,8 @@ startLifeSync(supabase)
 startDeadlineAlerts(defaultEngine)
 // Bestanden: your own files, also in your private storage when signed in.
 startFilesSync(supabase)
+// The focus timer's notifications, also with the Studie window closed.
+startFocusTicker(defaultEngine)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
