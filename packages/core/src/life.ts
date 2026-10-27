@@ -29,7 +29,19 @@ export interface Deadline extends SyncRecord {
   target: ReminderTarget
 }
 
-export type LifeItem = Project | Deadline
+export interface Appointment extends SyncRecord {
+  kind: 'appointment'
+  title: string
+  startAt: number
+  endAt: number
+  location: string
+  notes: string
+  /** Minutes before [startAt] to send a notification. */
+  remind: number[]
+  target: ReminderTarget
+}
+
+export type LifeItem = Project | Deadline | Appointment
 
 export const REMIND_OPTIONS: Array<{ minutes: number; label: string }> = [
   { minutes: 7 * 24 * 60, label: '1 week ervoor' },
@@ -41,9 +53,16 @@ export const REMIND_OPTIONS: Array<{ minutes: number; label: string }> = [
 ]
 const REMIND_MINUTES = REMIND_OPTIONS.map((o) => o.minutes)
 export const DEFAULT_REMIND = [24 * 60, 60]
+export const DEFAULT_APPOINTMENT_REMIND = [60]
 
 const MAX_TITLE = 160
 const MAX_NOTES = 4000
+const MAX_LOCATION = 200
+
+function remindList(value: unknown): number[] {
+  const list = Array.isArray(value) ? [...new Set(value.filter((m): m is number => REMIND_MINUTES.includes(m as number)))] : []
+  return list.sort((a, b) => b - a)
+}
 
 function str(value: unknown, max: number): string {
   return typeof value === 'string' ? value.slice(0, max) : ''
@@ -66,7 +85,6 @@ export function toLifeItem(value: unknown): LifeItem | null {
   }
   if (v.kind === 'deadline') {
     if (typeof v.dueAt !== 'number' || !Number.isFinite(v.dueAt)) return null
-    const remind = Array.isArray(v.remind) ? [...new Set(v.remind.filter((m): m is number => REMIND_MINUTES.includes(m as number)))] : []
     return {
       ...base,
       kind: 'deadline',
@@ -75,7 +93,22 @@ export function toLifeItem(value: unknown): LifeItem | null {
       projectId: typeof v.projectId === 'string' ? v.projectId : null,
       notes: str(v.notes, MAX_NOTES),
       doneAt: typeof v.doneAt === 'number' ? v.doneAt : null,
-      remind: remind.sort((a, b) => b - a),
+      remind: remindList(v.remind),
+      target: v.target === 'this_device' ? 'this_device' : 'phone',
+    }
+  }
+  if (v.kind === 'appointment') {
+    if (typeof v.startAt !== 'number' || !Number.isFinite(v.startAt)) return null
+    const endAt = typeof v.endAt === 'number' && v.endAt >= v.startAt ? v.endAt : v.startAt
+    return {
+      ...base,
+      kind: 'appointment',
+      title: str(v.title, MAX_TITLE),
+      startAt: v.startAt,
+      endAt,
+      location: str(v.location, MAX_LOCATION),
+      notes: str(v.notes, MAX_NOTES),
+      remind: remindList(v.remind),
       target: v.target === 'this_device' ? 'this_device' : 'phone',
     }
   }
@@ -110,11 +143,48 @@ export function parseDeadline(input: unknown): { ok: true; value: DeadlineDraft 
   }
 }
 
+export type AppointmentDraft = Pick<Appointment, 'title' | 'startAt' | 'endAt' | 'location' | 'notes' | 'remind' | 'target'>
+
+const toTime = (value: unknown) => (typeof value === 'number' ? value : typeof value === 'string' ? Date.parse(value) : NaN)
+
+/** Validates an appointment from a form or from the AI. */
+export function parseAppointment(input: unknown): { ok: true; value: AppointmentDraft } | { ok: false; error: string } {
+  if (typeof input !== 'object' || input === null) return { ok: false, error: 'Ongeldige afspraak.' }
+  const { title, startAt, endAt, location = '', notes = '', remind = DEFAULT_APPOINTMENT_REMIND, target = 'phone' } = input as Record<string, unknown>
+  if (typeof title !== 'string' || !title.trim()) return { ok: false, error: 'Een afspraak heeft een titel nodig.' }
+  const start = toTime(startAt)
+  if (!Number.isFinite(start)) return { ok: false, error: 'Onbekend begin. Gebruik bv. 2026-11-03T14:00:00+01:00.' }
+  const end = endAt === undefined || endAt === null || endAt === '' ? start + 60 * 60_000 : toTime(endAt)
+  if (!Number.isFinite(end)) return { ok: false, error: 'Onbekend einde.' }
+  if (end < start) return { ok: false, error: 'Het einde ligt voor het begin.' }
+  if (typeof location !== 'string' || typeof notes !== 'string') return { ok: false, error: 'Plaats en notities moeten tekst zijn.' }
+  if (!Array.isArray(remind) || remind.some((m) => !REMIND_MINUTES.includes(m as number))) {
+    return { ok: false, error: `Herinneren kan ${REMIND_MINUTES.join(', ')} minuten ervoor.` }
+  }
+  if (target !== 'phone' && target !== 'this_device') return { ok: false, error: 'Doel moet phone of this_device zijn.' }
+  return {
+    ok: true,
+    value: {
+      title: title.trim().slice(0, MAX_TITLE),
+      startAt: start,
+      endAt: end,
+      location: location.trim().slice(0, MAX_LOCATION),
+      notes: notes.trim().slice(0, MAX_NOTES),
+      remind: [...new Set(remind as number[])].sort((a, b) => b - a),
+      target,
+    },
+  }
+}
+
 const live = <T extends LifeItem>(items: LifeItem[], kind: T['kind']) =>
   items.filter((i): i is T => i.kind === kind && i.deletedAt === null)
 
 export function deadlinesOf(items: LifeItem[]): Deadline[] {
   return live<Deadline>(items, 'deadline').sort((a, b) => a.dueAt - b.dueAt || a.title.localeCompare(b.title))
+}
+
+export function appointmentsOf(items: LifeItem[]): Appointment[] {
+  return live<Appointment>(items, 'appointment').sort((a, b) => a.startAt - b.startAt || a.title.localeCompare(b.title))
 }
 
 export function projectsOf(items: LifeItem[]): Project[] {
@@ -132,6 +202,7 @@ export function projectProgress(project: Project, items: LifeItem[]): { done: nu
 }
 
 export const deadlineRef = (d: Pick<Deadline, 'id' | 'dueAt'>, minutes: number) => `deadline:${d.id}@${d.dueAt}-${minutes}`
+export const appointmentRef = (a: Pick<Appointment, 'id' | 'startAt'>, minutes: number) => `appointment:${a.id}@${a.startAt}-${minutes}`
 
 /** How the time left reads in a notification, e.g. "over 1 dag" or "nu". */
 function leftText(minutes: number): string {
@@ -144,7 +215,11 @@ function leftText(minutes: number): string {
   return `over ${hours} uur`
 }
 
-/** The notifications of open deadlines between [from] (exclusive) and [to] (inclusive). */
+const fullDate = (t: number) =>
+  new Intl.DateTimeFormat('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(t))
+const clockTime = (t: number) => new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit' }).format(new Date(t))
+
+/** The notifications of open deadlines and of appointments between [from] (exclusive) and [to] (inclusive). */
 export function deadlineNotices(items: LifeItem[], from: number, to: number, projects = projectsOf(items)): Array<PlannedNotice & { target: ReminderTarget }> {
   const names = new Map(projects.map((p) => [p.id, p.name]))
   const out: Array<PlannedNotice & { target: ReminderTarget }> = []
@@ -152,21 +227,33 @@ export function deadlineNotices(items: LifeItem[], from: number, to: number, pro
     for (const minutes of d.remind) {
       const at = d.dueAt - minutes * 60_000
       if (at <= from || at > to) continue
-      const when = new Intl.DateTimeFormat('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(d.dueAt))
       const project = d.projectId ? names.get(d.projectId) : undefined
       out.push({
         ref: deadlineRef(d, minutes),
         at,
         title: minutes === 0 ? `Deadline nu: ${d.title}` : `Deadline ${leftText(minutes)}: ${d.title}`,
-        text: [project, `Tegen ${when}`].filter(Boolean).join(' · '),
+        text: [project, `Tegen ${fullDate(d.dueAt)}`].filter(Boolean).join(' · '),
         target: d.target,
+      })
+    }
+  }
+  for (const a of appointmentsOf(items)) {
+    for (const minutes of a.remind) {
+      const at = a.startAt - minutes * 60_000
+      if (at <= from || at > to) continue
+      out.push({
+        ref: appointmentRef(a, minutes),
+        at,
+        title: minutes === 0 ? `Afspraak nu: ${a.title}` : `Afspraak ${leftText(minutes)}: ${a.title}`,
+        text: [`${fullDate(a.startAt)}–${clockTime(a.endAt)}`, a.location].filter(Boolean).join(' · '),
+        target: a.target,
       })
     }
   }
   return out.sort((a, b) => a.at - b.at)
 }
 
-/** The deadline notifications the phone should know about ahead (safety net and web push). */
+/** The deadline and appointment notifications the phone should know about ahead (safety net and web push). */
 export function plannedDeadlineNotices(items: LifeItem[], now: number, horizon = SAFETY_HORIZON_MS): PlannedNotice[] {
   return deadlineNotices(items, now, now + horizon)
     .filter((n) => n.target === 'phone')
@@ -176,6 +263,7 @@ export function plannedDeadlineNotices(items: LifeItem[], now: number, horizon =
 export type AgendaEntry =
   | { kind: 'lesson'; at: number; end: number; title: string; detail?: string }
   | { kind: 'deadline'; at: number; title: string; detail?: string; deadline: Deadline }
+  | { kind: 'appointment'; at: number; end: number; title: string; detail?: string; appointment: Appointment }
   | { kind: 'reminder'; at: number; title: string; detail?: string }
 
 /** UTC ms of HH:MM on the local day of [dayStart]. */
@@ -214,6 +302,12 @@ export function agendaDay({ calendarEvents, timetable, items, reminders }: Agend
     if (inDay(d.dueAt)) {
       const project = d.projectId ? names.get(d.projectId) : undefined
       entries.push({ kind: 'deadline', at: d.dueAt, title: d.title, ...(project ? { detail: project } : {}), deadline: d })
+    }
+  }
+  // An appointment shows on every day it covers, e.g. a two-day trip.
+  for (const a of appointmentsOf(items)) {
+    if (a.startAt < dayEnd && (a.endAt > dayStart || inDay(a.startAt))) {
+      entries.push({ kind: 'appointment', at: Math.max(a.startAt, dayStart), end: Math.min(a.endAt, dayEnd), title: a.title, ...(a.location ? { detail: a.location } : {}), appointment: a })
     }
   }
   for (const r of reminders) if (inDay(r.at)) entries.push({ kind: 'reminder', at: r.at, title: r.title, ...(r.text ? { detail: r.text } : {}) })

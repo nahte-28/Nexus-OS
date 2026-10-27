@@ -1,4 +1,4 @@
-import { toLifeItem, type DeadlineDraft, type LifeItem, type LocalStore, type Project } from '@nexus/core'
+import { toLifeItem, type AppointmentDraft, type DeadlineDraft, type LifeItem, type LocalStore, type Project } from '@nexus/core'
 import { getAll, getMeta, write } from '../state/db'
 
 const DIRTY_KEY = 'life.dirty'
@@ -7,7 +7,7 @@ const CURSOR_KEY = 'life.cursor'
 type Listener = () => void
 
 /**
- * Deadlines and projects on this device. Like notes they live in IndexedDB, work offline and
+ * Deadlines, appointments and projects on this device. Like notes they live in IndexedDB, work offline and
  * stay marked dirty until the sync uploads them.
  */
 export class LifeStore implements LocalStore<LifeItem> {
@@ -82,6 +82,17 @@ export class LifeStore implements LocalStore<LifeItem> {
   async updateDeadline(id: string, patch: Partial<DeadlineDraft & { doneAt: number | null }>, now = Date.now()): Promise<void> {
     const item = this.records.get(id)
     if (item?.kind === 'deadline') await this.save({ ...item, ...patch, updatedAt: now })
+  }
+
+  async addAppointment(draft: AppointmentDraft, now = Date.now()): Promise<string> {
+    const id = crypto.randomUUID()
+    await this.save({ ...draft, kind: 'appointment', id, updatedAt: now, deletedAt: null })
+    return id
+  }
+
+  async updateAppointment(id: string, patch: Partial<AppointmentDraft>, now = Date.now()): Promise<void> {
+    const item = this.records.get(id)
+    if (item?.kind === 'appointment') await this.save({ ...item, ...patch, updatedAt: now })
   }
 
   async addProject(name: string, color: Project['color'] = null, now = Date.now()): Promise<string> {

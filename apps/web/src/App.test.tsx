@@ -26,6 +26,14 @@ const renderApp = () =>
     </ThemeProvider>,
   )
 
+/** Profiles are only switched in the Profielen app. */
+const chooseProfile = (name: string) => {
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+  const dialog = screen.getByRole('dialog', { name: 'Profielen' })
+  fireEvent.click(within(within(dialog).getByRole('list', { name: 'Profielen kiezen' })).getByRole('button', { name: new RegExp(`^${name}`) }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Sluiten' }))
+}
+
 describe('App shell', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -125,18 +133,18 @@ describe('App shell', () => {
     renderApp()
     const sidebar = screen.getByRole('navigation', { name: 'Apps' })
     expect(within(sidebar).getByRole('button', { name: 'Herinneringen' })).toBeTruthy()
-    fireEvent.click(screen.getAllByRole('radio', { name: 'Gaming' })[0])
+    chooseProfile('Gaming')
     expect(within(sidebar).queryByRole('button', { name: 'Herinneringen' })).toBeNull()
     expect(within(sidebar).getByRole('button', { name: 'Profielen' })).toBeTruthy()
     expect(document.documentElement.dataset.theme).toBe('pulse')
-    fireEvent.click(screen.getAllByRole('radio', { name: 'Persoonlijk' })[0])
+    chooseProfile('Persoonlijk')
     expect(document.documentElement.dataset.theme).toBe('focus')
   })
 
   it('shows the next class from the timetable on the School dashboard', () => {
     mockViewport(false)
     renderApp()
-    fireEvent.click(screen.getAllByRole('radio', { name: 'School' })[0])
+    chooseProfile('School')
     expect(screen.getByText('School Workspace')).toBeTruthy()
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Lesrooster' }))
@@ -151,7 +159,7 @@ describe('App shell', () => {
     const open = vi.fn()
     vi.stubGlobal('open', open)
     renderApp()
-    fireEvent.click(screen.getAllByRole('radio', { name: 'School' })[0])
+    chooseProfile('School')
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'KlasHub' }))
     expect(open).toHaveBeenCalledWith('https://klashub.vercel.app', '_blank', 'noopener')
     expect(screen.queryByRole('dialog', { name: 'KlasHub' })).toBeNull()
@@ -173,7 +181,7 @@ describe('App shell', () => {
   it('reorders apps and sets an accent colour per profile', () => {
     mockViewport(false)
     renderApp()
-    fireEvent.click(screen.getAllByRole('radio', { name: 'Persoonlijk' })[0])
+    chooseProfile('Persoonlijk')
     openProfiles()
     fireEvent.click(screen.getByRole('tab', { name: 'Apps & widgets' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Apps' })).getByRole('button', { name: 'Meldingen omhoog' }))
@@ -181,7 +189,7 @@ describe('App shell', () => {
       .getAllByRole('button')
       .map((b) => b.textContent)
     // (Ontwikkelaar may still show from the developer-mode test above.)
-    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 3)).toEqual(['Agenda', 'Meldingen', 'Notities'])
+    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 3)).toEqual(['Agenda', 'Notities', 'Meldingen'])
 
     fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))

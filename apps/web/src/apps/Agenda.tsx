@@ -2,8 +2,11 @@ import { useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
   agendaDay,
+  appointmentsOf,
+  DEFAULT_APPOINTMENT_REMIND,
   DEFAULT_REMIND,
   deadlinesOf,
+  parseAppointment,
   parseDeadline,
   projectProgress,
   projectsOf,
@@ -11,6 +14,7 @@ import {
   TARGET_LABELS,
   type AccentId,
   type AgendaEntry,
+  type Appointment,
   type Deadline,
   type LifeItem,
   type Project,
@@ -25,7 +29,7 @@ import { ACCENTS } from '../theme/accents'
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Overzicht', 'Deadlines', 'Projecten'] as const
+const TABS = ['Overzicht', 'Deadlines', 'Afspraken', 'Projecten'] as const
 const DAY = 24 * 60 * 60_000
 
 const useLife = () => useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
@@ -88,19 +92,21 @@ export function Agenda() {
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem === 'setup' && (
           <p className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
-            Je deadlines staan alleen op dit apparaat: de database mist nog de tabel. Voer{' '}
-            <code className="font-mono text-xs">supabase/migrations/20261027090000_life.sql</code> uit in de SQL Editor van Supabase.
+            Je agenda staat alleen op dit apparaat: de database is nog niet bijgewerkt. Voer{' '}
+            <code className="font-mono text-xs">supabase/migrations/20261027090000_life.sql</code> en{' '}
+            <code className="font-mono text-xs">20261027120000_life_appointments.sql</code> uit in de SQL Editor van Supabase.
           </p>
         )}
-        {tab === 'Overzicht' && <Overview onAdd={() => setTab('Deadlines')} />}
+        {tab === 'Overzicht' && <Overview onAdd={setTab} />}
         {tab === 'Deadlines' && <Deadlines />}
+        {tab === 'Afspraken' && <Appointments />}
         {tab === 'Projecten' && <Projects />}
       </div>
     </div>
   )
 }
 
-function Overview({ onAdd }: { onAdd: () => void }) {
+function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }) {
   const items = useLife()
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
   const { state } = useProfiles()
@@ -115,7 +121,10 @@ function Overview({ onAdd }: { onAdd: () => void }) {
     <>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="min-w-0 flex-1 text-lg font-semibold">Je week</h2>
-        <button type="button" className={primaryButton} onClick={onAdd}>
+        <button type="button" className={button} onClick={() => onAdd('Afspraken')}>
+          + Afspraak
+        </button>
+        <button type="button" className={primaryButton} onClick={() => onAdd('Deadlines')}>
           + Deadline
         </button>
       </div>
@@ -159,10 +168,10 @@ function Entry({ entry, project }: { entry: AgendaEntry; project?: Project }) {
     <li className="flex items-baseline gap-2 rounded-md bg-nx-surface-2 px-2 py-1.5">
       <span className="w-24 shrink-0 text-nx-muted tabular-nums">
         {clock(entry.at)}
-        {entry.kind === 'lesson' ? `–${clock(entry.end)}` : ''}
+        {entry.kind === 'lesson' || entry.kind === 'appointment' ? `–${clock(entry.end)}` : ''}
       </span>
       <span className="min-w-0 flex-1">
-        {entry.kind === 'reminder' ? '⏰ ' : ''}
+        {entry.kind === 'reminder' ? '⏰ ' : entry.kind === 'appointment' ? '📅 ' : ''}
         {entry.title}
         {entry.detail && <span className="text-nx-muted"> · {entry.detail}</span>}
       </span>
@@ -321,19 +330,7 @@ function DeadlineForm({ projects, editing, onDone }: { projects: Project[]; edit
           ))}
         </select>
       </div>
-      <fieldset className="flex flex-wrap gap-x-3 gap-y-1">
-        <legend className="mb-1 text-nx-muted">Herinner me</legend>
-        {REMIND_OPTIONS.map((o) => (
-          <label key={o.minutes} className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={remind.includes(o.minutes)}
-              onChange={(e) => setRemind((r) => (e.target.checked ? [...r, o.minutes] : r.filter((m) => m !== o.minutes)))}
-            />
-            {o.label}
-          </label>
-        ))}
-      </fieldset>
+      <RemindChoice value={remind} onChange={setRemind} />
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Notities (optioneel)" aria-label="Notities" className={field} />
       {error && (
         <p role="alert" className="text-red-500">
@@ -351,6 +348,170 @@ function DeadlineForm({ projects, editing, onDone }: { projects: Project[]; edit
         )}
       </div>
     </form>
+  )
+}
+
+function Appointments() {
+  const items = useLife()
+  const [editing, setEditing] = useState<Appointment | null>(null)
+  const now = Date.now()
+  const all = appointmentsOf(items)
+  const coming = all.filter((a) => a.endAt >= now)
+  const past = all.filter((a) => a.endAt < now).reverse()
+  return (
+    <>
+      <AppointmentForm key={editing?.id ?? 'new'} editing={editing} onDone={() => setEditing(null)} />
+      {coming.length === 0 ? (
+        <p className="text-nx-muted">Geen afspraken gepland.</p>
+      ) : (
+        <ul className="space-y-2" aria-label="Komende afspraken">
+          {coming.map((a) => (
+            <AppointmentRow key={a.id} appointment={a} onEdit={() => setEditing(a)} />
+          ))}
+        </ul>
+      )}
+      {past.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-nx-muted">Voorbij ({past.length})</summary>
+          <ul className="mt-2 space-y-2">
+            {past.map((a) => (
+              <AppointmentRow key={a.id} appointment={a} onEdit={() => setEditing(a)} />
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
+  )
+}
+
+function AppointmentRow({ appointment: a, onEdit }: { appointment: Appointment; onEdit: () => void }) {
+  const sameDay = new Date(a.startAt).toDateString() === new Date(a.endAt).toDateString()
+  return (
+    <li className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{a.title}</p>
+        <p className="text-xs text-nx-muted">
+          {when(a.startAt)}–{sameDay ? clock(a.endAt) : when(a.endAt)}
+          {a.location ? ` · ${a.location}` : ''}
+          {a.remind.length > 0 ? ` · ${TARGET_LABELS[a.target]}` : ''}
+        </p>
+        {a.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{a.notes}</p>}
+      </div>
+      <button type="button" className={button} onClick={onEdit}>
+        Bewerken
+      </button>
+      <button type="button" className={`${button} text-red-500`} onClick={() => window.confirm(`"${a.title}" verwijderen?`) && void lifeStore.remove(a.id)}>
+        Verwijderen
+      </button>
+    </li>
+  )
+}
+
+/** Tomorrow at 10:00, one hour long. */
+function defaultStart(now = new Date()): string {
+  const d = new Date(now)
+  d.setDate(d.getDate() + 1)
+  d.setHours(10, 0, 0, 0)
+  return localInput(d.getTime())
+}
+
+function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onDone: () => void }) {
+  const [title, setTitle] = useState(editing?.title ?? '')
+  const [start, setStart] = useState(editing ? localInput(editing.startAt) : defaultStart)
+  const [end, setEnd] = useState(editing ? localInput(editing.endAt) : () => localInput(new Date(defaultStart()).getTime() + 60 * 60_000))
+  const [location, setLocation] = useState(editing?.location ?? '')
+  const [notes, setNotes] = useState(editing?.notes ?? '')
+  const [remind, setRemind] = useState<number[]>(editing?.remind ?? DEFAULT_APPOINTMENT_REMIND)
+  const [target, setTarget] = useState<ReminderTarget>(editing?.target ?? 'phone')
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <form
+      className="space-y-2 rounded-lg border border-nx-border p-3"
+      aria-label={editing ? 'Afspraak bewerken' : 'Nieuwe afspraak'}
+      onSubmit={(e) => {
+        e.preventDefault()
+        const parsed = parseAppointment({ title, startAt: new Date(start).getTime(), endAt: new Date(end).getTime(), location, notes, remind, target })
+        if (!parsed.ok) {
+          setError(parsed.error)
+          return
+        }
+        setError(null)
+        const saved = editing ? lifeStore.updateAppointment(editing.id, parsed.value) : lifeStore.addAppointment(parsed.value)
+        void saved.then(() => {
+          setTitle('')
+          setLocation('')
+          setNotes('')
+          onDone()
+        })
+      }}
+    >
+      <h3 className="font-medium">{editing ? 'Afspraak bewerken' : 'Nieuwe afspraak'}</h3>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="Bv. Tandarts of Groepswerk" aria-label="Titel" className={field} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex flex-col gap-1">
+          <span className="text-nx-muted">Van</span>
+          <input
+            type="datetime-local"
+            value={start}
+            onChange={(e) => {
+              // Moving the start keeps the length of the appointment.
+              const length = new Date(end).getTime() - new Date(start).getTime()
+              setStart(e.target.value)
+              const next = new Date(e.target.value).getTime()
+              if (Number.isFinite(next) && Number.isFinite(length)) setEnd(localInput(next + Math.max(length, 0)))
+            }}
+            className={field}
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-nx-muted">Tot</span>
+          <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
+        </label>
+        <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={200} placeholder="Plaats (optioneel)" aria-label="Plaats" className={field} />
+        <select value={target} onChange={(e) => setTarget(e.target.value as ReminderTarget)} aria-label="Meldingen" className={field}>
+          {Object.entries(TARGET_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <RemindChoice value={remind} onChange={setRemind} />
+      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Notities (optioneel)" aria-label="Notities" className={field} />
+      {error && (
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!title.trim()}>
+          {editing ? 'Opslaan' : 'Toevoegen'}
+        </button>
+        {editing && (
+          <button type="button" className={button} onClick={onDone}>
+            Annuleren
+          </button>
+        )}
+      </div>
+    </form>
+  )
+}
+
+function RemindChoice({ value, onChange }: { value: number[]; onChange: (next: number[]) => void }) {
+  return (
+    <fieldset className="flex flex-wrap gap-x-3 gap-y-1">
+      <legend className="mb-1 text-nx-muted">Herinner me</legend>
+      {REMIND_OPTIONS.map((o) => (
+        <label key={o.minutes} className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={value.includes(o.minutes)}
+            onChange={(e) => onChange(e.target.checked ? [...value, o.minutes] : value.filter((m) => m !== o.minutes))}
+          />
+          {o.label}
+        </label>
+      ))}
+    </fieldset>
   )
 }
 

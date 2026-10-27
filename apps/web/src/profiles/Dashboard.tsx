@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { nextCalendarEvent, nextLesson, noteTitle, openDeadlines, type AppId, type WidgetId } from '@nexus/core'
+import { nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
@@ -10,7 +10,7 @@ import { installUpdate, useUpdate } from '../platform/update'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
 import { useProfiles } from './store'
-import { PROFILE_ICONS, ProfileSwitcher, reasonText } from './ui'
+import { PROFILE_ICONS, reasonText } from './ui'
 
 type OpenApp = (id: AppId) => void
 
@@ -67,7 +67,9 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
             <span className="rounded-md bg-nx-accent px-2.5 py-1 text-xs font-semibold text-nx-accent-text">ACTIEF</span>
           </div>
           <div className="mt-3 border-t border-nx-border pt-3">
-            <ProfileSwitcher compact />
+            <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>
+              Profiel wisselen in Profielen
+            </button>
           </div>
         </Card>
         {active.widgets.includes('next_class') ? <NextClass now={now} onOpenApp={onOpenApp} /> : <Upcoming onOpenApp={onOpenApp} />}
@@ -211,13 +213,16 @@ function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
   const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
   const now = Date.now()
-  // Open deadlines (overdue ones too) and reminders together, soonest first.
+  // Open deadlines (overdue ones too), coming appointments and reminders together, soonest first.
   const items = [
     ...openDeadlines(life).map((d) => ({ id: d.id, title: d.title, at: d.dueAt, deadline: true })),
+    ...appointmentsOf(life)
+      .filter((a) => a.endAt >= now)
+      .map((a) => ({ id: a.id, title: `📅 ${a.title}`, at: a.startAt, deadline: false })),
     ...reminders.map((r) => ({ id: r.id, title: r.title, at: r.at, deadline: false })),
   ].sort((a, b) => a.at - b.at)
   return (
-    <Card title="Deadlines en herinneringen">
+    <Card title="Deadlines en afspraken">
       {items.length === 0 ? (
         <p className="text-sm text-nx-muted">Niets gepland.</p>
       ) : (

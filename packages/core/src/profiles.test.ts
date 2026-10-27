@@ -134,7 +134,7 @@ describe('next lesson', () => {
   it('adds KlasHub to copies stored before it existed', () => {
     const old = { profiles: { school: { apps: ['notes', 'reminders'] }, gaming: { apps: ['notes'] } }, revision: 3 }
     const s = parseProfilesState(old)
-    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'notes', 'reminders'])
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'files', 'notes', 'reminders'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     expect(s.klashubUrl).toBe('https://klashub.vercel.app')
     // Once upgraded, removing it sticks.
@@ -145,11 +145,19 @@ describe('next lesson', () => {
   it('adds the Agenda app to copies stored before NEXUS Life, once', () => {
     const old = { schema: 2, profiles: { school: { apps: ['klashub', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } }
     const s = parseProfilesState(old)
-    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'notes'])
-    expect(s.profiles.personal.apps).toEqual(['agenda', 'notes'])
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'files', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['agenda', 'files', 'notes'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, apps: ['notes'] } } })
     expect(removed.profiles.personal.apps).toEqual(['notes'])
+  })
+
+  it('adds Bestanden after the Agenda in copies stored before it, once', () => {
+    const s = parseProfilesState({ schema: 3, profiles: { school: { apps: ['klashub', 'agenda', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } })
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'files', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['files', 'notes'])
+    expect(s.profiles.gaming.apps).toEqual(['notes'])
+    expect(parseProfilesState({ ...s, profiles: { ...s.profiles, school: { ...s.profiles.school, apps: ['notes'] } } }).profiles.school.apps).toEqual(['notes'])
   })
 
   it('keeps a calendar link from either side on the first sync of a device', () => {

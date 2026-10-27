@@ -1,11 +1,13 @@
-import { parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
+import { appointmentsOf, openDeadlines, parseAppointment, parseDeadline, parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
+import type { LifeStore } from '../life/store'
 import type { RemindersStore } from '../reminders/store'
 
 /** What the assistant's actions may touch. Passed in, so tests can use fakes. */
 export interface ToolContext {
   notes: { getSnapshot(): Note[]; add(): string; update(id: string, patch: { title?: string; body?: string }): void }
   reminders: Pick<RemindersStore, 'getSnapshot' | 'add' | 'remove'>
+  life: Pick<LifeStore, 'getSnapshot' | 'addDeadline' | 'addAppointment'>
   connect: Pick<ConnectEngine, 'getSnapshot' | 'notifyPhones'>
   setTheme(theme: ThemeId): void
   now(): number
@@ -137,6 +139,60 @@ export const TOOL_SPECS: Record<string, ToolSpec> = {
           ? null
           : 'Geen herinnering met dat id. Gebruik eerst list_reminders.',
     run: async (input, ctx) => ((await ctx.reminders.remove(str(input.id)!)) ? 'Verwijderd.' : 'Niet gevonden.'),
+  },
+
+  list_agenda: {
+    label: 'Agenda bekijken',
+    readOnly: true,
+    describe: () => 'Je open deadlines en komende afspraken bekijken.',
+    validate: () => null,
+    run: async (_input, ctx) => {
+      const items = ctx.life.getSnapshot()
+      const deadlines = openDeadlines(items).map((d) => ({ type: 'deadline', title: d.title, due: new Date(d.dueAt).toISOString() }))
+      const appointments = appointmentsOf(items)
+        .filter((a) => a.endAt >= ctx.now())
+        .map((a) => ({ type: 'afspraak', title: a.title, start: new Date(a.startAt).toISOString(), end: new Date(a.endAt).toISOString(), location: a.location || undefined }))
+      const all = [...deadlines, ...appointments].slice(0, 60)
+      return all.length ? JSON.stringify(all) : 'Geen open deadlines of komende afspraken.'
+    },
+  },
+
+  create_deadline: {
+    label: 'Deadline toevoegen',
+    readOnly: false,
+    describe: (input) => {
+      const parsed = parseDeadline({ ...input, projectId: null, notes: str(input.notes) ?? '' })
+      return parsed.ok ? `Deadline "${parsed.value.title}" toevoegen tegen ${when(parsed.value.dueAt)}.` : `Een deadline "${str(input.title) ?? ''}" toevoegen.`
+    },
+    validate: (input) => {
+      const parsed = parseDeadline({ ...input, projectId: null, notes: str(input.notes) ?? '' })
+      return parsed.ok ? null : parsed.error
+    },
+    run: async (input, ctx) => {
+      const parsed = parseDeadline({ ...input, projectId: null, notes: str(input.notes) ?? '' })
+      if (!parsed.ok) throw new Error(parsed.error)
+      await ctx.life.addDeadline(parsed.value, ctx.now())
+      return `Deadline toegevoegd in de Agenda, tegen ${when(parsed.value.dueAt)}.`
+    },
+  },
+
+  create_appointment: {
+    label: 'Afspraak toevoegen',
+    readOnly: false,
+    describe: (input) => {
+      const parsed = parseAppointment(input)
+      return parsed.ok ? `Afspraak "${parsed.value.title}" toevoegen op ${when(parsed.value.startAt)}.` : `Een afspraak "${str(input.title) ?? ''}" toevoegen.`
+    },
+    validate: (input) => {
+      const parsed = parseAppointment(input)
+      return parsed.ok ? null : parsed.error
+    },
+    run: async (input, ctx) => {
+      const parsed = parseAppointment(input)
+      if (!parsed.ok) throw new Error(parsed.error)
+      await ctx.life.addAppointment(parsed.value, ctx.now())
+      return `Afspraak toegevoegd in de Agenda, op ${when(parsed.value.startAt)}.`
+    },
   },
 
   send_to_phone: {
