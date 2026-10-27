@@ -151,6 +151,10 @@ De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen besta
 
 Openen toont pdf's, afbeeldingen en tekst, en van Word (.docx) en PowerPoint (.pptx) de tekst zonder opmaak. Een gsm die geen pdf binnen een pagina kan tonen, opent hem in je pdf-app. Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
 
+## Cijfers
+
+De app **Cijfers** houdt je punten per vak bij, zoals op AP Hogeschool: elk vak heeft studiepunten en onderdelen (examen, labo, project) die elk voor een deel meetellen. Punten zijn op 20 (een onderdeel mag ook op bv. 50 staan) en je bent geslaagd vanaf 10/20. Per vak zie je je punt tot nu toe en wat je gemiddeld nog nodig hebt op de rest om je doel te halen. Bovenaan staat je gemiddelde, gewogen met de studiepunten, en hoeveel studiepunten je al behaald hebt. Je cijfers werken offline en gaan met een account mee naar je andere apparaten. Eenmalig instellen: `supabase/migrations/20261027150000_grades_habits.sql` in de SQL Editor van Supabase (dat geldt ook voor Gewoontes).
+
 ## Dagstart
 
 Elke ochtend (standaard om 07:30, elke dag) krijg je één melding met je dag: je lessen (uit de agendalink van school of je lesrooster), afspraken, deadlines en herinneringen van die dag, en de open deadlines van de drie dagen erna. Je stelt het in de **Agenda** in, op het tabblad **Dagstart**: aan of uit, het uur, de dagen, of het naar je gsm en horloge gaat of alleen naar het apparaat waar NEXUS openstaat, en of een lege dag een melding krijgt. Daar zie je ook een voorbeeld en stuur je een proef. De instellingen gaan mee met je profielen naar al je apparaten, dus er is geen SQL nodig.

@@ -174,3 +174,9 @@ export const SearchIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="m20 20-4.2-4.2" />
   </svg>
 )
+
+export const GradesIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+  </svg>
+)

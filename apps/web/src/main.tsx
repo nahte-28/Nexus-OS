@@ -10,6 +10,7 @@ import { startFilesSync } from './files/sync'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
+import { startGradesSync } from './grades/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
@@ -50,6 +51,8 @@ startLifeSync(supabase)
 startDeadlineAlerts(defaultEngine)
 // Dagstart: every morning the day ahead, on this device and (through the plan above) the phone.
 startDagstart(defaultEngine)
+// Cijfers: your marks per course, on every device with an account.
+startGradesSync(supabase)
 // Bestanden: your own files, also in your private storage when signed in.
 startFilesSync(supabase)
 // The focus timer's notifications, also with the Studie window closed.

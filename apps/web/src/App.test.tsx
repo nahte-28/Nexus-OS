@@ -214,7 +214,7 @@ describe('App shell', () => {
       .getAllByRole('button')
       .map((b) => b.textContent)
     // (Ontwikkelaar may still show from the developer-mode test above.)
-    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 4)).toEqual(['Agenda', 'Notities', 'Bestanden', 'Meldingen'])
+    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 6)).toEqual(['Agenda', 'Notities', 'Bestanden', 'Studie', 'Meldingen', 'Cijfers'])
 
     fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))

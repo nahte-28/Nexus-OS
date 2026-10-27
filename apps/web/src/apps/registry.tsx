@@ -12,7 +12,8 @@ import { Developer } from './Developer'
 import { Devices } from './Devices'
 import { Files } from './Files'
 import { FlowStudio } from './FlowStudio'
-import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+import { Grades } from './Grades'
 import { Inbox } from './Inbox'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
@@ -54,6 +55,7 @@ function KlasHubLauncher() {
 export const APPS: AppDefinition[] = [
   { id: 'agenda', title: 'Agenda', icon: CalendarIcon, component: Agenda, defaultSize: { width: 760, height: 580 } },
   { id: 'study', title: 'Studie', icon: TimerIcon, component: Study, defaultSize: { width: 640, height: 600 } },
+  { id: 'grades', title: 'Cijfers', icon: GradesIcon, component: Grades, defaultSize: { width: 680, height: 600 } },
   { id: 'files', title: 'Bestanden', icon: FolderIcon, component: Files, defaultSize: { width: 780, height: 580 } },
   { id: 'notes', title: 'Notities', icon: NotesIcon, component: Notes, defaultSize: { width: 720, height: 460 } },
   { id: 'notifications', title: 'Meldingen', icon: BellIcon, component: Inbox, defaultSize: { width: 680, height: 480 } },
