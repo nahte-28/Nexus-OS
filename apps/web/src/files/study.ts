@@ -30,25 +30,11 @@ export async function studyPayload(name: string, file: Blob): Promise<StudyPaylo
 
 type StudyEvent = { type: 'text'; text: string } | { type: 'done' } | { type: 'error'; message: string }
 
-/** Streams NEXUS AI's study summary of a file; returns the whole Markdown text. */
-export async function studyFile(
-  name: string,
-  payload: StudyPayload,
-  options: StudyOptions,
-  onText: (soFar: string) => void,
-  token: () => Promise<string | null> = async () => (await supabase?.auth.getSession())?.data.session?.access_token ?? null,
-  base = apiBase,
-): Promise<string> {
-  const access = await token()
-  if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
-  const response = await fetch(`${base}/api/study`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
-    body: JSON.stringify({ name, ...payload, ...options }),
-  })
+/** Reads NEXUS AI's NDJSON stream (study, review); returns the whole text, errors in Dutch. */
+export async function readAiStream(response: Response, onText: (soFar: string) => void, tooLarge = 'Dit is te groot voor NEXUS AI.'): Promise<string> {
   if (!response.ok || !response.body) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null
-    throw new Error(body?.error ?? (response.status === 413 ? 'Dit bestand is te groot voor NEXUS AI.' : `NEXUS AI gaf een fout (${response.status}).`))
+    throw new Error(body?.error ?? (response.status === 413 ? tooLarge : `NEXUS AI gaf een fout (${response.status}).`))
   }
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
   let buffer = ''
@@ -70,6 +56,26 @@ export async function studyFile(
     }
     if (done) break
   }
+  return text
+}
+
+/** Streams NEXUS AI's study summary of a file; returns the whole Markdown text. */
+export async function studyFile(
+  name: string,
+  payload: StudyPayload,
+  options: StudyOptions,
+  onText: (soFar: string) => void,
+  token: () => Promise<string | null> = async () => (await supabase?.auth.getSession())?.data.session?.access_token ?? null,
+  base = apiBase,
+): Promise<string> {
+  const access = await token()
+  if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
+  const response = await fetch(`${base}/api/study`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+    body: JSON.stringify({ name, ...payload, ...options }),
+  })
+  const text = await readAiStream(response, onText, 'Dit bestand is te groot voor NEXUS AI.')
   logEvent('ai', 'Studiesamenvatting gemaakt')
   return text
 }

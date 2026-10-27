@@ -21,6 +21,9 @@ import {
   type LifeItem,
   type Project,
   type ReminderTarget,
+  reviewedWeek,
+  reviewNoteTitle,
+  weekFacts,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
@@ -29,12 +32,13 @@ import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
+import { autoReview, makeReview, setAutoReview, weekInput } from '../review/week'
 import { ACCENTS } from '../theme/accents'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Overzicht', 'Deadlines', 'Afspraken', 'Projecten', 'Dagstart'] as const
+const TABS = ['Overzicht', 'Deadlines', 'Afspraken', 'Projecten', 'Dagstart', 'Week'] as const
 const DAY = 24 * 60 * 60_000
 
 const useLife = () => useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
@@ -107,6 +111,7 @@ export function Agenda() {
         {tab === 'Afspraken' && <Appointments />}
         {tab === 'Projecten' && <Projects />}
         {tab === 'Dagstart' && <Dagstart />}
+        {tab === 'Week' && <WeekReview />}
       </div>
     </div>
   )
@@ -690,6 +695,73 @@ function Dagstart() {
         </button>
         {status && <span className="text-nx-muted">{status}</span>}
       </div>
+    </div>
+  )
+}
+
+/** Weekoverzicht: NEXUS AI looks back on the week and plans the next one, saved in Notities. */
+function WeekReview() {
+  const [auto, setAuto] = useState(autoReview)
+  const [wish, setWish] = useState('')
+  const [text, setText] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle')
+  const [error, setError] = useState<string | null>(null)
+  // Read once when the tab opens: the facts are a preview, not a live view.
+  const [facts] = useState(() => weekFacts(weekInput()))
+  const title = reviewNoteTitle(reviewedWeek(Date.now()))
+
+  const start = () => {
+    setError(null)
+    setText('')
+    setState('busy')
+    makeReview(wish, setText)
+      .then(() => setState('done'))
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err))
+        setState('idle')
+      })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Weekoverzicht</h2>
+        <p className="text-nx-muted">
+          NEXUS AI kijkt terug op je week (lessen, deadlines, focustijd, gewoontes en cijfers) en maakt een plan voor volgende week. Het overzicht komt in Notities. De AI krijgt alleen de feiten hieronder, geen notities of bestanden.
+        </p>
+      </div>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={auto}
+          onChange={(e) => {
+            setAutoReview(e.target.checked)
+            setAuto(e.target.checked)
+          }}
+        />
+        Elke zondag vanaf 19:00 vanzelf maken, met een melding op je gsm
+      </label>
+      <details className="rounded-lg border border-nx-border p-3">
+        <summary className="cursor-pointer font-medium">Wat NEXUS AI krijgt</summary>
+        <pre className="mt-2 whitespace-pre-wrap font-sans text-nx-muted">{facts}</pre>
+      </details>
+      <input value={wish} onChange={(e) => setWish(e.target.value)} maxLength={500} placeholder="Wens (optioneel), bv. woensdag heb ik geen tijd" aria-label="Wens" className={field} disabled={state === 'busy'} />
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={primaryButton} disabled={state === 'busy'} onClick={start}>
+          {state === 'busy' ? 'Bezig…' : state === 'done' ? 'Opnieuw maken' : 'Weekoverzicht maken'}
+        </button>
+        {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{title}".</span>}
+      </div>
+      {error && (
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+      )}
+      {text && (
+        <article aria-label="Weekoverzicht" className="whitespace-pre-wrap rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+          {text}
+        </article>
+      )}
     </div>
   )
 }

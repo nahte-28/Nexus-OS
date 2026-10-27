@@ -58,4 +58,15 @@ describe('Agenda', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Dagstart aan' }))
     expect(screen.getByLabelText('Tijdstip').matches(':disabled')).toBe(true)
   })
+
+  it('shows what the Weekoverzicht sends and can stop the Sunday run', () => {
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Week' }))
+    expect(screen.getByText(/Afgelopen week/)).toBeTruthy()
+    const auto = screen.getByRole('checkbox', { name: /Elke zondag/ }) as HTMLInputElement
+    expect(auto.checked).toBe(true)
+    fireEvent.click(auto)
+    expect(localStorage.getItem('nexus.review.auto')).toBe('off')
+    expect(screen.getByRole('button', { name: 'Weekoverzicht maken' })).toBeTruthy()
+  })
 })

@@ -12,6 +12,8 @@ import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
 import { startGradesSync } from './grades/store'
 import { startHabitAlerts } from './habits/alerts'
+import { startWeekReview } from './review/week'
+import { openCaptureFromUrl } from './capture/open'
 import { startHabitsSync } from './habits/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
@@ -58,10 +60,15 @@ startGradesSync(supabase)
 // Gewoontes: ticked off on every device, with a reminder when one is still open.
 startHabitsSync(supabase)
 startHabitAlerts(defaultEngine)
+// Weekoverzicht: on Sunday evening NEXUS AI reviews the week and plans the next one.
+startWeekReview(defaultEngine)
 // Bestanden: your own files, also in your private storage when signed in.
 startFilesSync(supabase)
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)
+
+// Snelle notitie from the phone's app shortcut or share sheet.
+openCaptureFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -15,6 +15,9 @@
     },
     "api/study.ts": {
       "maxDuration": 60
+    },
+    "api/review.ts": {
+      "maxDuration": 60
     }
   }
 }

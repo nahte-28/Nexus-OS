@@ -8,6 +8,7 @@ import { useSync } from '../sync/SyncContext'
 import { installUpdate, useUpdate } from '../platform/update'
 import { useWindows } from '../state/WindowsContext'
 import { SearchButton } from '../search/SearchPalette'
+import { CaptureButton } from '../capture/QuickCapture'
 import { StartMenu } from './StartMenu'
 
 export const TASKBAR_HEIGHT = 52
@@ -31,6 +32,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
         <GridIcon />
       </button>
       <SearchButton onClick={onSearch} />
+      <CaptureButton />
 
       <nav aria-label="Geopende vensters" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {state.windows.map((win) => {

@@ -165,6 +165,14 @@ Elke ochtend (standaard om 07:30, elke dag) krijg je één melding met je dag: j
 
 De melding staat in het vangnet van je gsm (companion en web-push), net als herinneringen en deadlines. Ze komt dus ook als NEXUS dicht is, zolang NEXUS in de drie dagen ervoor ergens openstond. Staat NEXUS die ochtend open, dan stuurt het de melding zelf; je gsm toont ze maar één keer.
 
+## Weekoverzicht
+
+Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een plan voor volgende week: wat goed ging en wat bleef liggen, wat eraan komt en per dag één of twee concrete acties rond je lessen. Het komt in **Notities** als "Weekoverzicht week N", en je gsm krijgt een melding als het klaar is. Stond NEXUS zondag nergens open, dan gebeurt het maandagochtend nog. In de **Agenda**, op het tabblad **Week**, zie je welke feiten de AI krijgt (lessen, deadlines, afspraken, focustijd van de Studie-timer, gewoontes en cijfers; geen notities of bestanden), maak je het overzicht met de hand, met een wens erbij, en zet je de zondag uit. Het gebruikt dezelfde toegang als NEXUS AI (`ANTHROPIC_API_KEY` en `NEXUS_AI_ALLOWED_EMAILS`); er is geen SQL nodig.
+
+## Snelle notitie
+
+Met **Alt+N** (of de potloodknop naast Zoeken) typ je snel iets weg zonder een app te openen. NEXUS raadt of het een notitie, een deadline of een herinnering is en leest een Nederlandse datum en tijd uit de tekst: "Verslag labo indienen vrijdag" wordt een deadline tegen vrijdag 23:59, "Mama bellen morgen om 14u" een herinnering morgen om 14:00 op je gsm. Je kunt de soort en het tijdstip nog aanpassen voor je bewaart (Ctrl+Enter). Op je gsm, met NEXUS geïnstalleerd als app, houd je het icoon ingedrukt voor **Snelle notitie**, of deel je tekst of een link uit een andere app naar NEXUS. Er is geen SQL nodig.
+
 ## Zoeken overal
 
 Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.

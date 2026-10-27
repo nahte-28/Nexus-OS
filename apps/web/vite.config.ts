@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => ({
         orientation: 'any',
         background_color: '#0b1020',
         theme_color: '#0b1020',
+        // Snelle notitie: long-press the app icon, or share text from another app to NEXUS.
+        shortcuts: [{ name: 'Snelle notitie', short_name: 'Notitie', url: '/snel', icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] }],
+        share_target: { action: '/snel', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
