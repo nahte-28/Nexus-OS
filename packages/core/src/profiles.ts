@@ -130,7 +130,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 5
+export const PROFILES_SCHEMA = 6
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -143,7 +143,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'School',
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
-    apps: ['klashub', 'agenda', 'study', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
+    apps: ['klashub', 'agenda', 'study', 'grades', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
     widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
     quietNonEssential: true,
     allowApps: [],
@@ -154,7 +154,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['agenda', 'notes', 'files', 'study', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -367,6 +367,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       if (base.profiles[id].apps.includes('study') && Array.isArray(apps) && !apps.includes('study')) {
         const after = apps.indexOf('agenda')
         profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'study', ...apps.slice(after + 1)] }
+      }
+    }
+  }
+  // Copies from before Cijfers get it right after Studie where it is a default.
+  if (typeof r.schema !== 'number' || r.schema < 6) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('grades') && Array.isArray(apps) && !apps.includes('grades')) {
+        const after = apps.indexOf('study')
+        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'grades', ...apps.slice(after + 1)] }
       }
     }
   }
