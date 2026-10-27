@@ -130,7 +130,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 7
+export const PROFILES_SCHEMA = 8
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -143,7 +143,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'School',
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
-    apps: ['klashub', 'agenda', 'study', 'grades', 'habits', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
+    apps: ['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
     widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
     quietNonEssential: true,
     allowApps: [],
@@ -154,7 +154,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -387,6 +387,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       if (base.profiles[id].apps.includes('habits') && Array.isArray(apps) && !apps.includes('habits')) {
         const after = apps.includes('grades') ? apps.indexOf('grades') : apps.indexOf('study')
         profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'habits', ...apps.slice(after + 1)] }
+      }
+    }
+  }
+  // Copies from before Leerkaarten get it right after Gewoontes (or Studie) where it is a default.
+  if (typeof r.schema !== 'number' || r.schema < 8) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('flashcards') && Array.isArray(apps) && !apps.includes('flashcards')) {
+        const after = apps.includes('habits') ? apps.indexOf('habits') : apps.indexOf('study')
+        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'flashcards', ...apps.slice(after + 1)] }
       }
     }
   }
