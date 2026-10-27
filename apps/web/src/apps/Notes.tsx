@@ -1,10 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { noteTitle } from '@nexus/core'
 import { useNotes } from '../state/useNotes'
+import { onReveal, takeReveal } from '../search/reveal'
 
 export function Notes() {
   const { notes, add, update, remove } = useNotes()
-  const [selectedId, setSelectedId] = useState<string | null>(notes[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(() => takeReveal('notes') ?? notes[0]?.id ?? null)
+  // A note picked in the search window, also when Notities is already open.
+  useEffect(
+    () =>
+      onReveal(() => {
+        const id = takeReveal('notes')
+        if (id) setSelectedId(id)
+      }),
+    [],
+  )
   const selected = notes.find((n) => n.id === selectedId) ?? null
 
   return (

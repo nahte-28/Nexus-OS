@@ -1,15 +1,19 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { Dashboard } from '../profiles/Dashboard'
+import { SearchButton, SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
 export function MobileShell() {
   const [openId, setOpenId] = useState<AppId | null>(null)
   const app = openId ? getApp(openId) : null
   const apps = useVisibleApps()
+  const [searching, setSearching] = useState(false)
+  const openSearch = useCallback(() => setSearching(true), [])
+  useSearchShortcut(openSearch)
 
   // Android back button / gesture returns to the app grid instead of leaving NEXUS.
   useEffect(() => {
@@ -46,8 +50,10 @@ export function MobileShell() {
         ) : (
           <span className="pl-2 font-semibold tracking-wide text-nx-accent">NEXUS</span>
         )}
-        <h1 className="truncate font-medium">{app?.title ?? ''}</h1>
+        <h1 className="min-w-0 flex-1 truncate font-medium">{app?.title ?? ''}</h1>
+        <SearchButton onClick={openSearch} className="size-11" />
       </header>
+      {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={switchTo} />}
 
       <main className="min-h-0 flex-1 overflow-auto">
         {app ? (

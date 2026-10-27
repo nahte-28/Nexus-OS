@@ -1,9 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
+import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 
@@ -12,6 +13,9 @@ const SIDEBAR_WIDTH = 224
 export function Desktop() {
   const { state, dispatch } = useWindows()
   const apps = useVisibleApps()
+  const [searching, setSearching] = useState(false)
+  const openSearch = useCallback(() => setSearching(true), [])
+  useSearchShortcut(openSearch)
 
   const openApp = useCallback(
     (appId: AppId) => {
@@ -38,7 +42,8 @@ export function Desktop() {
           ))}
         </main>
       </div>
-      <Taskbar onOpenApp={openApp} />
+      <Taskbar onOpenApp={openApp} onSearch={openSearch} />
+      {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />}
     </div>
   )
 }

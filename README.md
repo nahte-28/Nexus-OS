@@ -151,6 +151,10 @@ De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen besta
 
 Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
 
+## Zoeken overal
+
+Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

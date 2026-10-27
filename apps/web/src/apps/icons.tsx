@@ -167,3 +167,10 @@ export const TimerIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 10v4l2 2M10 3h4M12 3v4" />
   </svg>
 )
+
+export const SearchIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.2-4.2" />
+  </svg>
+)
