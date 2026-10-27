@@ -48,7 +48,13 @@ async function serverKey(fetchFn: typeof fetch): Promise<Uint8Array<ArrayBuffer>
   }
   const body = (await response.json().catch(() => ({}))) as { publicKey?: string; error?: string }
   if (!response.ok || !body.publicKey) throw new Error(body.error ?? 'Web-push is nog niet ingesteld op de server.')
-  return fromBase64Url(body.publicKey)
+  try {
+    const key = fromBase64Url(body.publicKey.trim())
+    if (key.length === 65) return key
+  } catch {
+    // Falls through to the message below.
+  }
+  throw new Error('De publieke web-push-sleutel op de server klopt niet. Zet VAPID_PUBLIC_KEY opnieuw op Vercel (zie Developer › Web-push).')
 }
 
 /** The browser's subscription for the server's current key; a subscription for an old key is replaced. */
