@@ -135,6 +135,12 @@ Sync: met een account staan flows, pauzeren, stille uren en de runs op al je app
 
 Beperkingen: een gesloten browser of PWA voert niets uit; daarvoor is een server nodig, dat zit er nog niet in. "Op het apparaat dat de flow uitvoert" is het eerste apparaat dat het moment ziet, meestal de pc als die aanstaat.
 
+## NEXUS Life
+
+De app **Agenda** zet je lessen, deadlines en projecten samen. **Overzicht** toont wat te laat is en daarna de komende zeven dagen: de lessen uit je lesrooster (of uit de agendalink van school, die dan voorgaat), je deadlines met een vinkje om ze af te werken, en je herinneringen. In **Deadlines** maak je een deadline met tijdstip, project, notities en wanneer je een melding wilt (1 week, 2 dagen, 1 dag, 3 uur of 1 uur ervoor, of op het moment zelf), alleen op dit apparaat of ook op gsm en horloge. **Projecten** groepeert deadlines, bv. per vak, met een kleur en de voortgang; een project verwijderen laat de deadlines staan.
+
+Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, in de tabel `life_items` met RLS. Voer daarvoor eenmalig `supabase/migrations/20261027090000_life.sql` uit in de SQL Editor van Supabase. De meldingen gaan via hetzelfde vangnet als herinneringen: elk apparaat met NEXUS open stuurt ze, en de gsm krijgt ze vooraf (companion of web-push), zodat ze ook komen als de pc uit staat. Dezelfde `ref` zorgt dat je ze maar één keer ziet. Flow Studio en het Dashboard zien je deadlines ook.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
@@ -152,5 +158,7 @@ Beperkingen: een gesloten browser of PWA voert niets uit; daarvoor is een server
 - Van NEXUS naar gsm en horloge: in Apparaten stuur je een melding naar je gsm. De companion houdt een live verbinding open zolang hij meldingstoegang heeft, toont de melding als Android-melding, en de horloge-app (OHealth) zet ze door naar je OnePlus Watch.
 
 - NEXUS AI met acties die je toestemming vragen, herinneringen naar pc, gsm en horloge, en een ontwikkelaarsmodus.
+- Web-push: meldingen op een gsm met NEXUS in Chrome, ook als NEXUS daar gesloten is.
+- NEXUS Life: agenda met lessen, deadlines en projecten, offline en gesynct, met meldingen voor een deadline.
 
-Nog niet klaar: Web Push in de browser (meldingen terwijl NEXUS helemaal gesloten is), een eigen Wear OS-app en herinneringen die ook afgaan als NEXUS nergens open is.
+Nog niet klaar: een eigen Wear OS-app, en deadlines toevoegen via NEXUS AI.
