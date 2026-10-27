@@ -23,7 +23,8 @@ const extension = (name: string) => name.toLowerCase().match(/\.([a-z0-9]+)$/)?.
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'csv', 'json', 'html', 'htm', 'xml', 'log', 'tex', 'py', 'js', 'ts', 'c', 'cpp', 'h', 'java', 'kt', 'cs', 'sql', 'yml', 'yaml'])
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'])
 
-export type PreviewKind = 'pdf' | 'image' | 'text' | 'none'
+/** How NEXUS shows a file; Word and PowerPoint as their text only. */
+export type PreviewKind = 'pdf' | 'image' | 'text' | 'docx' | 'pptx' | 'none'
 
 /** How NEXUS can show a file itself; anything else is offered as a download. */
 export function previewKind(name: string, mediaType = ''): PreviewKind {
@@ -31,6 +32,8 @@ export function previewKind(name: string, mediaType = ''): PreviewKind {
   if (mediaType === 'application/pdf' || ext === 'pdf') return 'pdf'
   if (mediaType.startsWith('image/') || IMAGE_EXTENSIONS.has(ext)) return 'image'
   if (mediaType.startsWith('text/') || TEXT_EXTENSIONS.has(ext)) return 'text'
+  if (ext === 'docx' || mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx'
+  if (ext === 'pptx' || mediaType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'pptx'
   return 'none'
 }
 

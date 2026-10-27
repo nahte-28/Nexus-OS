@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { DEFAULT_STUDY_OPTIONS, formatSize, previewKind, studyKind, studyNoteTitle, type StudyOptions } from '@nexus/core'
+import { docxText, pptxText } from '../files/docx'
 import { addFolder, allowRead, canOpenFolders, forgetFolder, listFolder, savedFolders, type FolderEntry, type SavedFolder } from '../files/folders'
 import { filesStore } from '../files/store'
 import { saveStudyNote, studyFile, studyPayload } from '../files/study'
@@ -310,8 +311,11 @@ function Viewer({ opened, onClose, onStudy }: { opened: Opened; onClose: () => v
   const [text, setText] = useState<string | null>(null)
   const [kept, setKept] = useState(false)
   useEffect(() => {
-    if (kind === 'text') void opened.blob.slice(0, 500_000).text().then(setText)
+    const read = kind === 'text' ? opened.blob.slice(0, 500_000).text() : kind === 'docx' ? docxText(opened.blob) : kind === 'pptx' ? pptxText(opened.blob) : null
+    read?.then(setText, (err: unknown) => setText(err instanceof Error ? err.message : String(err)))
   }, [kind, opened.blob])
+  // Chrome on Android and some webviews cannot show a pdf inside a page.
+  const inlinePdf = typeof navigator === 'undefined' || navigator.pdfViewerEnabled !== false
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
       <Header title={opened.name} onClose={onClose}>
@@ -330,9 +334,23 @@ function Viewer({ opened, onClose, onStudy }: { opened: Opened; onClose: () => v
         </button>
       </Header>
       <div className="min-h-0 flex-1 overflow-auto">
-        {kind === 'pdf' && <iframe title={opened.name} src={url} className="h-full w-full border-0" />}
+        {kind === 'pdf' && inlinePdf && <iframe title={opened.name} src={url} className="h-full w-full border-0" />}
+        {kind === 'pdf' && !inlinePdf && (
+          <div className="space-y-3 p-4">
+            <p className="text-nx-muted">Dit apparaat toont geen pdf binnen NEXUS. Open hem in je pdf-app{studyKind(opened.name) ? ', of laat NEXUS AI hem samenvatten' : ''}.</p>
+            <button type="button" className={primaryButton} onClick={() => download(opened.name, opened.blob)}>
+              Openen in pdf-app
+            </button>
+          </div>
+        )}
         {kind === 'image' && <img src={url} alt={opened.name} className="mx-auto max-h-full max-w-full object-contain p-2" />}
         {kind === 'text' && <pre className="p-4 font-mono text-xs whitespace-pre-wrap">{text ?? 'Laden…'}</pre>}
+        {(kind === 'docx' || kind === 'pptx') && (
+          <div className="space-y-2 p-4">
+            <p className="text-xs text-nx-muted">Alleen de tekst, zonder opmaak of afbeeldingen. Download het bestand voor het origineel.</p>
+            <div className="whitespace-pre-wrap">{text ?? 'Laden…'}</div>
+          </div>
+        )}
         {kind === 'none' && (
           <p className="p-4 text-nx-muted">
             NEXUS kan dit soort bestand niet tonen. Download het om het te openen{studyKind(opened.name) ? ', of laat NEXUS AI het samenvatten' : ''}.
