@@ -67,6 +67,31 @@ describe('App shell', () => {
     })
   })
 
+  it('finds a note with Ctrl+K and opens it in Notities', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Notities' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Nieuw' }))
+    fireEvent.change(screen.getByLabelText('Inhoud'), { target: { value: 'Wiskunde examen\nhoofdstuk 4' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Nieuw' }))
+    fireEvent.change(screen.getByLabelText('Inhoud'), { target: { value: 'Boodschappen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sluiten' }))
+
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
+    const box = screen.getByRole('combobox', { name: 'Zoek overal' })
+    fireEvent.change(box, { target: { value: 'wiskunde hoofdstuk' } })
+    expect(within(screen.getByRole('group', { name: 'Notities' })).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      expect.stringContaining('Wiskunde examen'),
+    ])
+    fireEvent.keyDown(box, { key: 'Enter' })
+    expect(screen.queryByRole('dialog', { name: 'Zoeken' })).toBeNull()
+    expect((screen.getByLabelText('Inhoud') as HTMLTextAreaElement).value).toContain('Wiskunde examen')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoeken (Ctrl+K)' }))
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Zoek overal' }), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Zoeken' })).toBeNull()
+  })
+
   it('explains that sync is local-only until an account is connected', () => {
     mockViewport(false)
     renderApp()
