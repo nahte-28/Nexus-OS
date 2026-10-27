@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { cors, emailForToken, env, json } from './_shared.js'
+import { aiAccess, allowedEmails, cors, DEFAULT_MODEL, env, json } from './_shared.js'
+
+export { allowedEmails, DEFAULT_MODEL }
 
 /**
  * NEXUS AI: a thin, authenticated proxy to Claude. The model only proposes actions;
@@ -12,7 +14,6 @@ import { cors, emailForToken, env, json } from './_shared.js'
  *   NEXUS_AI_MODEL            optional, defaults to claude-opus-5-5
  */
 
-export const DEFAULT_MODEL = 'claude-opus-5-5'
 const MAX_MESSAGES = 80
 const MAX_BODY_BYTES = 400_000
 
@@ -22,6 +23,7 @@ Antwoord in de taal van de gebruiker, meestal Nederlands (Belgisch), kort en con
 Je kunt acties voorstellen met de tools. De gebruiker ziet elke actie en moet ze eerst toestaan; een geweigerde actie probeer je niet opnieuw, maar je zegt wat je anders kunt doen.
 - Notities: zoek met search_notes voor je iets over de notities van de gebruiker beweert. Maak een notitie met create_note als de gebruiker iets wil bewaren.
 - Herinneringen: create_reminder plant een melding op een tijdstip, eventueel herhalend. Reken tijden uit vanaf het huidige tijdstip dat bij het bericht van de gebruiker staat en gebruik de tijdzone van de gebruiker. Herinneringen gaan af op het apparaat waar NEXUS draait; met target "phone" verschijnen ze ook op de gsm en het horloge.
+- Agenda: list_agenda toont open deadlines en komende afspraken. create_deadline zet iets wat af moet tegen een tijdstip in de Agenda (taken, verslagen, examens indienen); create_appointment zet een afspraak met begin en einde (tandarts, groepswerk, vergadering). Reken tijden uit zoals bij herinneringen.
 - send_to_phone stuurt meteen een melding naar de gsm en het horloge.
 - set_theme wisselt tussen de thema's Focus (rustig, licht) en Pulse (donker, futuristisch).
 Doe niets wat de gebruiker niet vroeg, en verzin geen inhoud van notities.`
@@ -91,6 +93,53 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
     },
   },
   {
+    name: 'list_agenda',
+    description: 'Toont de open deadlines en de komende afspraken uit de Agenda.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'create_deadline',
+    description: 'Zet een deadline in de Agenda: iets wat af moet tegen een tijdstip. Standaard komt er 1 dag en 1 uur ervoor een melding.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Wat af moet, bv. "Verslag labo 3".' },
+        dueAt: { type: 'string', description: 'Tegen wanneer, ISO 8601 met tijdzoneverschil, bv. 2026-11-03T23:59:00+01:00.' },
+        notes: { type: 'string', description: 'Optionele notities.' },
+        remind: {
+          type: 'array',
+          items: { type: 'integer', enum: [10080, 2880, 1440, 180, 60, 0] },
+          description: 'Minuten ervoor een melding sturen (10080 = 1 week, 1440 = 1 dag, 0 = op het moment zelf).',
+        },
+        target: { type: 'string', enum: ['this_device', 'phone'], description: 'phone: ook op gsm en horloge. Standaard phone.' },
+      },
+      required: ['title', 'dueAt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_appointment',
+    description: 'Zet een afspraak in de Agenda, met begin en einde. Standaard komt er 1 uur ervoor een melding.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Bv. "Tandarts".' },
+        startAt: { type: 'string', description: 'Begin, ISO 8601 met tijdzoneverschil.' },
+        endAt: { type: 'string', description: 'Einde, ISO 8601; standaard een uur na het begin.' },
+        location: { type: 'string', description: 'Optionele plaats.' },
+        notes: { type: 'string', description: 'Optionele notities.' },
+        remind: {
+          type: 'array',
+          items: { type: 'integer', enum: [10080, 2880, 1440, 180, 60, 0] },
+          description: 'Minuten ervoor een melding sturen (10080 = 1 week, 1440 = 1 dag, 0 = op het moment zelf).',
+        },
+        target: { type: 'string', enum: ['this_device', 'phone'], description: 'phone: ook op gsm en horloge. Standaard phone.' },
+      },
+      required: ['title', 'startAt'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'send_to_phone',
     description: 'Stuurt nu een melding naar de gsm van de gebruiker; het horloge toont ze ook.',
     input_schema: {
@@ -115,15 +164,6 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
   },
 ]
 
-export function allowedEmails(raw: string | undefined): Set<string> {
-  return new Set(
-    (raw ?? '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean),
-  )
-}
-
 /** Checks the shape of the conversation the client sends; returns an error text or null. */
 export function checkMessages(messages: unknown): string | null {
   if (!Array.isArray(messages) || messages.length === 0) return 'Het gesprek is leeg.'
@@ -143,22 +183,8 @@ export function OPTIONS(request: Request): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const apiKey = env('ANTHROPIC_API_KEY')
-  const allowed = allowedEmails(process.env.NEXUS_AI_ALLOWED_EMAILS)
-  if (!apiKey || allowed.size === 0) {
-    return json(request, 503, 'NEXUS AI is nog niet ingesteld: zet ANTHROPIC_API_KEY en NEXUS_AI_ALLOWED_EMAILS in Vercel.')
-  }
-
-  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  if (!token) return json(request, 401, 'Meld je aan om NEXUS AI te gebruiken.')
-  let email: string | null
-  try {
-    email = await emailForToken(token)
-  } catch (err) {
-    return json(request, 503, err instanceof Error ? err.message : 'Aanmelding controleren mislukt.')
-  }
-  if (!email) return json(request, 401, 'Je sessie is verlopen. Meld je opnieuw aan.')
-  if (!allowed.has(email)) return json(request, 403, 'Dit account mag NEXUS AI niet gebruiken.')
+  const denied = await aiAccess(request)
+  if (denied) return denied
 
   const raw = await request.text()
   if (raw.length > MAX_BODY_BYTES) return json(request, 413, 'Dit gesprek is te groot. Begin een nieuw gesprek.')
@@ -171,7 +197,7 @@ export async function POST(request: Request): Promise<Response> {
   const problem = checkMessages(messages)
   if (problem) return json(request, 400, problem)
 
-  const client = new Anthropic({ apiKey })
+  const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') })
   const encoder = new TextEncoder()
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {

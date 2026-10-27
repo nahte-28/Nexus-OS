@@ -137,9 +137,15 @@ Beperkingen: een gesloten browser of PWA voert niets uit; daarvoor is een server
 
 ## NEXUS Life
 
-De app **Agenda** zet je lessen, deadlines en projecten samen. **Overzicht** toont wat te laat is en daarna de komende zeven dagen: de lessen uit je lesrooster (of uit de agendalink van school, die dan voorgaat), je deadlines met een vinkje om ze af te werken, en je herinneringen. In **Deadlines** maak je een deadline met tijdstip, project, notities en wanneer je een melding wilt (1 week, 2 dagen, 1 dag, 3 uur of 1 uur ervoor, of op het moment zelf), alleen op dit apparaat of ook op gsm en horloge. **Projecten** groepeert deadlines, bv. per vak, met een kleur en de voortgang; een project verwijderen laat de deadlines staan.
+De app **Agenda** zet je lessen, deadlines, afspraken en projecten samen. **Overzicht** toont wat te laat is en daarna de komende zeven dagen: de lessen uit je lesrooster (of uit de agendalink van school, die dan voorgaat), je deadlines met een vinkje om ze af te werken, je afspraken en je herinneringen. In **Afspraken** plan je een afspraak met begin, einde, plaats en een melding vooraf. In **Deadlines** maak je een deadline met tijdstip, project, notities en wanneer je een melding wilt (1 week, 2 dagen, 1 dag, 3 uur of 1 uur ervoor, of op het moment zelf), alleen op dit apparaat of ook op gsm en horloge. **Projecten** groepeert deadlines, bv. per vak, met een kleur en de voortgang; een project verwijderen laat de deadlines staan.
 
-Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, in de tabel `life_items` met RLS. Voer daarvoor eenmalig `supabase/migrations/20261027090000_life.sql` uit in de SQL Editor van Supabase. De meldingen gaan via hetzelfde vangnet als herinneringen: elk apparaat met NEXUS open stuurt ze, en de gsm krijgt ze vooraf (companion of web-push), zodat ze ook komen als de pc uit staat. Dezelfde `ref` zorgt dat je ze maar één keer ziet. Flow Studio en het Dashboard zien je deadlines ook.
+Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, in de tabel `life_items` met RLS. Voer daarvoor eenmalig `supabase/migrations/20261027090000_life.sql` en `20261027120000_life_appointments.sql` uit in de SQL Editor van Supabase. De meldingen gaan via hetzelfde vangnet als herinneringen: elk apparaat met NEXUS open stuurt ze, en de gsm krijgt ze vooraf (companion of web-push), zodat ze ook komen als de pc uit staat. Dezelfde `ref` zorgt dat je ze maar één keer ziet. Flow Studio en het Dashboard zien je deadlines ook.
+
+## Bestanden en studiehulp
+
+De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen bestanden (tot 10 MB per bestand) in NEXUS: offline op het apparaat en, met een account, in je eigen privéopslag in Supabase (bucket `nexus-files`, één map per gebruiker, met RLS), zodat ze op al je apparaten staan. **Op deze pc** opent mappen van je computer via de File System Access API (Chrome, Edge en de Windows-app); NEXUS leest alleen de mappen die je kiest en verandert er niets in. Op een gsm kies je losse bestanden.
+
+Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
 
 ## Wat werkt
 
@@ -159,6 +165,8 @@ Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, i
 
 - NEXUS AI met acties die je toestemming vragen, herinneringen naar pc, gsm en horloge, en een ontwikkelaarsmodus.
 - Web-push: meldingen op een gsm met NEXUS in Chrome, ook als NEXUS daar gesloten is.
-- NEXUS Life: agenda met lessen, deadlines en projecten, offline en gesynct, met meldingen voor een deadline.
+- NEXUS Life: agenda met lessen, deadlines, afspraken en projecten, offline en gesynct, met meldingen vooraf.
+- Bestanden: eigen bestanden op al je apparaten, mappen van je pc, en AI-samenvattingen met feedback.
+- Profielen wissel je in de app Profielen.
 
 Nog niet klaar: een eigen Wear OS-app, en deadlines toevoegen via NEXUS AI.

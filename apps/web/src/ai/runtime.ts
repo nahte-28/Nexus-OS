@@ -1,5 +1,6 @@
 import type { ThemeId } from '@nexus/core'
 import { defaultEngine } from '../connect/ConnectContext'
+import { lifeStore } from '../life/store'
 import { apiBase } from '../platform/desktop'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
@@ -19,6 +20,7 @@ export const assistant = new AssistantSession(
   () => ({
     notes: notesStore,
     reminders: remindersStore,
+    life: lifeStore,
     connect: defaultEngine,
     setTheme: (theme) => applyTheme(theme),
     now: Date.now,

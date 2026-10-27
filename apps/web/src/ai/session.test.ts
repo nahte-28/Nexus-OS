@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Note, Reminder, ReminderDraft } from '@nexus/core'
+import type { LifeItem, Note, Reminder, ReminderDraft } from '@nexus/core'
 import { AssistantSession, forgetAlwaysAllowed, type Transport } from './session'
 import { TOOL_SPECS, type ToolContext } from './tools'
 import { TOOLS } from '../../../../api/ai'
@@ -26,6 +26,7 @@ function scripted(turns: Array<{ content: unknown[]; stop_reason: string } | Err
 function fakeContext(now = Date.parse('2026-10-19T12:00:00+02:00')) {
   const notes: Note[] = [{ id: 'n1', title: 'School', body: 'Verslag over Napoleon', updatedAt: 1, deletedAt: null }]
   const reminders: Reminder[] = []
+  const life: LifeItem[] = []
   const sent: Array<{ deviceId: string; title: string; text?: string }> = []
   let theme = 'focus'
   const ctx: ToolContext = {
@@ -46,6 +47,17 @@ function fakeContext(now = Date.parse('2026-10-19T12:00:00+02:00')) {
       },
       remove: async (id: string) => reminders.splice(reminders.findIndex((r) => r.id === id), 1).length > 0,
     },
+    life: {
+      getSnapshot: () => life,
+      addDeadline: async (draft) => {
+        life.push({ ...draft, kind: 'deadline', id: `d${life.length + 1}`, doneAt: null, updatedAt: now, deletedAt: null })
+        return life[life.length - 1].id
+      },
+      addAppointment: async (draft) => {
+        life.push({ ...draft, kind: 'appointment', id: `a${life.length + 1}`, updatedAt: now, deletedAt: null })
+        return life[life.length - 1].id
+      },
+    },
     connect: {
       getSnapshot: () =>
         ({
@@ -59,7 +71,7 @@ function fakeContext(now = Date.parse('2026-10-19T12:00:00+02:00')) {
     setTheme: (t) => (theme = t),
     now: () => now,
   }
-  return { ctx, notes, reminders, sent, theme: () => theme }
+  return { ctx, notes, reminders, life, sent, theme: () => theme }
 }
 
 const toolUse = (id: string, name: string, input: unknown) => ({ type: 'tool_use', id, name, input })
@@ -160,5 +172,16 @@ describe('AssistantSession', () => {
     await TOOL_SPECS.send_to_phone.run({ title: 'Sleutels!' }, fake.ctx)
     expect(fake.sent).toEqual([{ deviceId: 'phone', title: 'Sleutels!', text: undefined }])
     expect(TOOL_SPECS.create_note.validate({ title: 'x' }, fake.ctx)).not.toBeNull()
+  })
+
+  it('puts deadlines and appointments in the Agenda', async () => {
+    const { ctx, life } = fakeContext()
+    expect(TOOL_SPECS.create_deadline.validate({ title: 'Verslag', dueAt: 'morgen' }, ctx)).toMatch(/Onbekend tijdstip/)
+    await TOOL_SPECS.create_deadline.run({ title: 'Verslag', dueAt: '2026-11-03T23:59:00+01:00' }, ctx)
+    await TOOL_SPECS.create_appointment.run({ title: 'Tandarts', startAt: '2026-10-21T14:00:00+02:00', location: 'Antwerpen' }, ctx)
+    expect(life.map((i) => i.kind)).toEqual(['deadline', 'appointment'])
+    expect(life[1]).toMatchObject({ endAt: Date.parse('2026-10-21T15:00:00+02:00'), location: 'Antwerpen', remind: [60] })
+    const agenda = JSON.parse(await TOOL_SPECS.list_agenda.run({}, ctx)) as Array<{ title: string }>
+    expect(agenda.map((a) => a.title)).toEqual(['Verslag', 'Tandarts'])
   })
 })
