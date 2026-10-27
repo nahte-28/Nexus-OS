@@ -63,6 +63,33 @@ export interface ProfileOverride {
   setAt: number
 }
 
+/** Dagstart: a morning overview of the day on the phone, watch or this pc. Days: 1 = Monday ... 7 = Sunday. */
+export interface DagstartSettings {
+  enabled: boolean
+  /** HH:MM, local time. */
+  time: string
+  days: number[]
+  /** 'phone' also reaches the watch; 'this_device' only shows it on the device running NEXUS. */
+  target: 'phone' | 'this_device'
+  /** No notification on a day with nothing planned and no deadline coming up. */
+  skipEmpty: boolean
+}
+
+export const DEFAULT_DAGSTART: DagstartSettings = { enabled: true, time: '07:30', days: [1, 2, 3, 4, 5, 6, 7], target: 'phone', skipEmpty: true }
+
+export function parseDagstart(raw: unknown): DagstartSettings {
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_DAGSTART, days: [...DEFAULT_DAGSTART.days] }
+  const r = raw as Partial<DagstartSettings>
+  const days = Array.isArray(r.days) ? [...new Set(r.days.filter((d) => Number.isInteger(d) && d >= 1 && d <= 7))].sort() : DEFAULT_DAGSTART.days
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_DAGSTART.enabled,
+    time: isTime(r.time) ? r.time : DEFAULT_DAGSTART.time,
+    days: [...days],
+    target: r.target === 'this_device' ? 'this_device' : 'phone',
+    skipEmpty: typeof r.skipEmpty === 'boolean' ? r.skipEmpty : DEFAULT_DAGSTART.skipEmpty,
+  }
+}
+
 export interface ProfilesState {
   profiles: Record<ProfileId, Profile>
   /** The profile outside the schedule window. */
@@ -82,6 +109,7 @@ export interface ProfilesState {
   /** Lessons from that link for the coming weeks, refreshed now and then. */
   calendarEvents: CalendarEvent[]
   calendarSyncedAt: number | null
+  dagstart: DagstartSettings
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -177,6 +205,7 @@ export function defaultProfilesState(): ProfilesState {
     calendarUrl: '',
     calendarEvents: [],
     calendarSyncedAt: null,
+    dagstart: parseDagstart(null),
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -364,6 +393,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     calendarUrl: typeof r.calendarUrl === 'string' ? r.calendarUrl : '',
     calendarEvents: Array.isArray(r.calendarEvents) ? r.calendarEvents.filter(isCalendarEvent) : [],
     calendarSyncedAt: typeof r.calendarSyncedAt === 'number' ? r.calendarSyncedAt : null,
+    dagstart: parseDagstart(r.dagstart),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }
