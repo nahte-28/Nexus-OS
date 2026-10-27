@@ -155,6 +155,10 @@ Openen toont pdf's, afbeeldingen en tekst, en van Word (.docx) en PowerPoint (.p
 
 De app **Cijfers** houdt je punten per vak bij, zoals op AP Hogeschool: elk vak heeft studiepunten en onderdelen (examen, labo, project) die elk voor een deel meetellen. Punten zijn op 20 (een onderdeel mag ook op bv. 50 staan) en je bent geslaagd vanaf 10/20. Per vak zie je je punt tot nu toe en wat je gemiddeld nog nodig hebt op de rest om je doel te halen. Bovenaan staat je gemiddelde, gewogen met de studiepunten, en hoeveel studiepunten je al behaald hebt. Je cijfers werken offline en gaan met een account mee naar je andere apparaten. Eenmalig instellen: `supabase/migrations/20261027150000_grades_habits.sql` in de SQL Editor van Supabase (dat geldt ook voor Gewoontes).
 
+## Gewoontes
+
+De app **Gewoontes** is voor wat je op vaste dagen wilt doen, zoals 30 minuten studeren of sporten. Je vinkt het per dag af en ziet je reeks (dagen op rij, alleen de dagen waarop het moet) en je week. Wil je, dan krijg je op je gsm en horloge een herinnering op een uur dat je kiest, maar alleen als je het die dag nog niet hebt afgevinkt. Ook dat zit in het vangnet van je gsm, dus het werkt als NEXUS dicht is. Gewoontes gaan met een account mee naar je andere apparaten (zelfde SQL als Cijfers).
+
 ## Dagstart
 
 Elke ochtend (standaard om 07:30, elke dag) krijg je één melding met je dag: je lessen (uit de agendalink van school of je lesrooster), afspraken, deadlines en herinneringen van die dag, en de open deadlines van de drie dagen erna. Je stelt het in de **Agenda** in, op het tabblad **Dagstart**: aan of uit, het uur, de dagen, of het naar je gsm en horloge gaat of alleen naar het apparaat waar NEXUS openstaat, en of een lege dag een melding krijgt. Daar zie je ook een voorbeeld en stuur je een proef. De instellingen gaan mee met je profielen naar al je apparaten, dus er is geen SQL nodig.

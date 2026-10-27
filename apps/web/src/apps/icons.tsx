@@ -180,3 +180,10 @@ export const GradesIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
   </svg>
 )
+
+export const HabitIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="4" y="4" width="16" height="16" rx="3" />
+    <path d="m8.5 12 2.5 2.5 4.5-5" />
+  </svg>
+)
