@@ -145,14 +145,17 @@ function AiTab() {
 
 /** One-time setup for web push to a phone in Chrome: keys for Vercel, the address for Supabase. */
 function PushTab() {
-  const [server, setServer] = useState<'checking' | 'ready' | 'missing' | 'offline'>('checking')
+  const [server, setServer] = useState<string>('bezig met nakijken…')
   const [setup, setSetup] = useState<PushSetup | null>(null)
   const origin = apiBase || window.location.origin
   useEffect(() => {
     let cancelled = false
     fetch(`${apiBase}/api/push`, { cache: 'no-store' })
-      .then((r) => !cancelled && setServer(r.ok ? 'ready' : 'missing'))
-      .catch(() => !cancelled && setServer('offline'))
+      .then(async (r) => {
+        const body = (await r.json().catch(() => ({}))) as { error?: string }
+        if (!cancelled) setServer(r.ok ? 'web-push is ingesteld.' : (body.error ?? `fout ${r.status}.`))
+      })
+      .catch(() => !cancelled && setServer('niet bereikbaar.'))
     return () => {
       cancelled = true
     }
@@ -161,8 +164,7 @@ function PushTab() {
   return (
     <div className="space-y-3 leading-relaxed">
       <p>
-        Server:{' '}
-        {server === 'checking' ? 'bezig met nakijken…' : server === 'ready' ? 'web-push is ingesteld.' : server === 'missing' ? 'de sleutels ontbreken nog op Vercel.' : 'niet bereikbaar.'}
+        Server: {server}
       </p>
       <p className="text-nx-muted">
         Eenmalig, zodat je gsm meldingen krijgt als NEXUS daar dicht is. Maak de waarden hier, zet ze op Vercel en in Supabase,
@@ -177,10 +179,25 @@ function PushTab() {
         <ol className="list-decimal space-y-3 pl-5">
           <li className="space-y-1">
             <p>
-              Vercel › je project › Settings › Environment Variables: voeg deze drie toe (Production) en zet daarna de site opnieuw
-              online (Deployments › Redeploy).
+              Vercel › je project › Settings › Environment Variables: voeg deze drie toe (Production), elk met de naam als Key en
+              alleen de waarde als Value. Zet daarna de site opnieuw online (Deployments › Redeploy).
             </p>
-            <code className={code}>{`VAPID_PUBLIC_KEY=${setup.publicKey}\nVAPID_PRIVATE_KEY=${setup.privateKey}\nPUSH_SECRET=${setup.secret}`}</code>
+            <dl className="space-y-2">
+              {(
+                [
+                  ['VAPID_PUBLIC_KEY', setup.publicKey],
+                  ['VAPID_PRIVATE_KEY', setup.privateKey],
+                  ['PUSH_SECRET', setup.secret],
+                ] as const
+              ).map(([name, value]) => (
+                <div key={name}>
+                  <dt className="font-mono text-xs text-nx-muted">{name}</dt>
+                  <dd>
+                    <code className={code}>{value}</code>
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </li>
           <li className="space-y-1">
             <p>

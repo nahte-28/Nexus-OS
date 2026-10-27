@@ -15,6 +15,29 @@ import { cors, env, json } from './_shared.js'
 
 const MAX_PUSHES = 200
 
+/**
+ * A VAPID key as web-push wants it (base64url, no padding), from what was pasted into Vercel:
+ * also accepts a pasted "NAME=value" line, quotes, spaces or line breaks, and standard base64.
+ * Null when it is not a key of the expected length (65 bytes public, 32 private).
+ */
+export function vapidKey(raw: string | undefined, bytes: 65 | 32): string | null {
+  if (!raw) return null
+  const key = raw
+    .replace(/^\s*[A-Z_]+\s*=/, '')
+    .replace(/["'\s]/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+  if (!/^[A-Za-z0-9_-]+$/.test(key)) return null
+  return Buffer.from(key, 'base64url').length === bytes ? key : null
+}
+
+function keys(): { publicKey: string | null; privateKey: string | null } {
+  return { publicKey: vapidKey(process.env.VAPID_PUBLIC_KEY, 65), privateKey: vapidKey(process.env.VAPID_PRIVATE_KEY, 32) }
+}
+
+const BAD_KEYS = 'De web-push-sleutels op Vercel kloppen niet. Maak nieuwe in Developer › Web-push en zet de drie waarden opnieuw op Vercel.'
+
 interface Push {
   endpoint: string
   p256dh: string
@@ -49,8 +72,9 @@ export function OPTIONS(request: Request): Response {
 }
 
 export function GET(request: Request): Response {
-  const publicKey = env('VAPID_PUBLIC_KEY')
-  if (!publicKey) return json(request, 503, 'Web-push is nog niet ingesteld op de server. Zie de Developer-app.')
+  if (!env('VAPID_PUBLIC_KEY')) return json(request, 503, 'Web-push is nog niet ingesteld op de server. Zie de Developer-app.')
+  const { publicKey, privateKey } = keys()
+  if (!publicKey || !privateKey) return json(request, 503, BAD_KEYS)
   return new Response(JSON.stringify({ publicKey }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...cors(request) },
@@ -58,10 +82,9 @@ export function GET(request: Request): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const secret = env('PUSH_SECRET')
-  const publicKey = env('VAPID_PUBLIC_KEY')
-  const privateKey = env('VAPID_PRIVATE_KEY')
-  if (!secret || !publicKey || !privateKey) return json(request, 503, 'Web-push is nog niet ingesteld op de server.')
+  const secret = env('PUSH_SECRET')?.replace(/^PUSH_SECRET\s*=/, '').trim()
+  const { publicKey, privateKey } = keys()
+  if (!secret || !publicKey || !privateKey) return json(request, 503, 'Web-push is nog niet (juist) ingesteld op de server.')
   const given = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
   if (!sameSecret(given, secret)) return json(request, 401, 'Geen toegang.')
 
