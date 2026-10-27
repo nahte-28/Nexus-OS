@@ -1,9 +1,11 @@
-import { openDeadlines, plannedDeadlineNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedDagstart, plannedDeadlineNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
 import { flowsStore, flowStudioEnabled } from '../flows/store'
+import { dagstartInput, dagstartSettings } from '../life/dagstart'
 import { lifeStore } from '../life/store'
+import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -26,7 +28,7 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now), ...flowNotices])
 }
 
 interface Sent {
@@ -97,7 +99,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

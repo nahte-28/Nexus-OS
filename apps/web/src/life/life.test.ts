@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import type { Deadline } from '@nexus/core'
+import { DEFAULT_DAGSTART, type Deadline } from '@nexus/core'
 import { resetDbConnection } from '../state/db'
 import { fireDeadlineNotices } from './alerts'
+import { fireDagstart } from './dagstart'
 import { LifeStore } from './store'
 import { fromRow, toRow } from './sync'
 
@@ -63,5 +64,21 @@ describe('NEXUS Life on this device', () => {
     // A device that was off for a day does not send day-old notices.
     localStorage.clear()
     expect(await fireDeadlineNotices(items, effects, at + 24 * 60 * 60_000)).toBe(0)
+  })
+
+  it('shows the Dagstart once in the morning and sends it to the phone when asked', async () => {
+    const input = { calendarEvents: [], timetable: [{ id: 'l', day: 2, start: '08:30', end: '10:30', subject: 'Wiskunde' }], items: [], reminders: [] }
+    const effects = { local: vi.fn(async () => {}), phones: vi.fn(async () => {}) }
+    const morning = new Date(2026, 10, 3, 7, 30).getTime()
+    expect(await fireDagstart(input, DEFAULT_DAGSTART, effects, morning - 60_000)).toBe(0)
+    expect(await fireDagstart(input, DEFAULT_DAGSTART, effects, morning + 20_000)).toBe(1)
+    expect(effects.phones).toHaveBeenCalledWith(expect.stringContaining('1 les'), '08:30 Wiskunde', 'dagstart:2026-11-03')
+    expect(await fireDagstart(input, DEFAULT_DAGSTART, effects, morning + 50_000)).toBe(0)
+
+    // Only on this device, and still shown when the pc starts later that morning.
+    localStorage.clear()
+    effects.phones.mockClear()
+    expect(await fireDagstart(input, { ...DEFAULT_DAGSTART, target: 'this_device' }, effects, morning + 2 * 60 * 60_000)).toBe(1)
+    expect(effects.phones).not.toHaveBeenCalled()
   })
 })

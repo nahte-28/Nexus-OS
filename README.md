@@ -151,6 +151,12 @@ De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen besta
 
 Bij een pdf, Word-bestand (.docx) of tekstbestand maakt **AI-samenvatting** met NEXUS AI een eigen samenvatting om mee te studeren, met als je wilt aanvullingen en feedback op de samenvatting zelf. Het resultaat komt in Notities. Het bestand gaat alleen voor die vraag naar `/api/study` en Claude, en wordt daar niet bewaard; pdf's tot 3 MB (de grens van een aanvraag op Vercel). Eenmalig instellen: `supabase/migrations/20261027130000_files.sql` in de SQL Editor van Supabase.
 
+## Dagstart
+
+Elke ochtend (standaard om 07:30, elke dag) krijg je één melding met je dag: je lessen (uit de agendalink van school of je lesrooster), afspraken, deadlines en herinneringen van die dag, en de open deadlines van de drie dagen erna. Je stelt het in de **Agenda** in, op het tabblad **Dagstart**: aan of uit, het uur, de dagen, of het naar je gsm en horloge gaat of alleen naar het apparaat waar NEXUS openstaat, en of een lege dag een melding krijgt. Daar zie je ook een voorbeeld en stuur je een proef. De instellingen gaan mee met je profielen naar al je apparaten, dus er is geen SQL nodig.
+
+De melding staat in het vangnet van je gsm (companion en web-push), net als herinneringen en deadlines. Ze komt dus ook als NEXUS dicht is, zolang NEXUS in de drie dagen ervoor ergens openstond. Staat NEXUS die ochtend open, dan stuurt het de melding zelf; je gsm toont ze maar één keer.
+
 ## Zoeken overal
 
 Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.

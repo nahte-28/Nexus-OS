@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
   agendaDay,
+  dagstartNotice,
   appointmentsOf,
   DEFAULT_APPOINTMENT_REMIND,
   DEFAULT_REMIND,
@@ -14,22 +15,26 @@ import {
   TARGET_LABELS,
   type AccentId,
   type AgendaEntry,
+  type DagstartSettings,
   type Appointment,
   type Deadline,
   type LifeItem,
   type Project,
   type ReminderTarget,
 } from '@nexus/core'
+import { useConnect } from '../connect/ConnectContext'
+import { defaultDeadlineEffects } from '../life/alerts'
+import { sendDagstartTest } from '../life/dagstart'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
-import { useProfiles } from '../profiles/store'
+import { profilesStore, useProfiles } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
 import { ACCENTS } from '../theme/accents'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Overzicht', 'Deadlines', 'Afspraken', 'Projecten'] as const
+const TABS = ['Overzicht', 'Deadlines', 'Afspraken', 'Projecten', 'Dagstart'] as const
 const DAY = 24 * 60 * 60_000
 
 const useLife = () => useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
@@ -75,7 +80,7 @@ export function Agenda() {
   const problem = useSyncExternalStore(lifeSyncProblem.subscribe, lifeSyncProblem.getSnapshot)
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" className="flex gap-1 border-b border-nx-border px-3 py-2">
+      <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
         {TABS.map((t) => (
           <button
             key={t}
@@ -101,6 +106,7 @@ export function Agenda() {
         {tab === 'Deadlines' && <Deadlines />}
         {tab === 'Afspraken' && <Appointments />}
         {tab === 'Projecten' && <Projects />}
+        {tab === 'Dagstart' && <Dagstart />}
       </div>
     </div>
   )
@@ -598,5 +604,92 @@ function ProjectRow({ project: p, items }: { project: Project; items: LifeItem[]
         </button>
       </div>
     </li>
+  )
+}
+
+const WEEKDAY_SHORT = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
+
+/** Dagstart: every morning one notification with the day ahead. */
+function Dagstart() {
+  const { state } = useProfiles()
+  const { engine } = useConnect()
+  const items = useLife()
+  const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
+  const [status, setStatus] = useState<string | null>(null)
+  const settings = state.dagstart
+  const change = (patch: Partial<DagstartSettings>) => profilesStore.update((s) => ({ ...s, dagstart: { ...s.dagstart, ...patch } }))
+  const now = Date.now()
+  const today = startOfDay(now)
+  // The next morning it comes: today when the time is still ahead, else tomorrow.
+  const nextDay = new Date(today).setHours(Number(settings.time.slice(0, 2)), Number(settings.time.slice(3, 5))) > now ? today : startOfDay(today + DAY + 3_600_000)
+  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, timetable: state.lessons, items, reminders }, nextDay, settings)
+
+  const test = async () => {
+    setStatus('Versturen…')
+    try {
+      await sendDagstartTest(defaultDeadlineEffects(engine))
+      setStatus(settings.target === 'phone' ? 'Verstuurd naar dit apparaat en je gsm.' : 'Getoond op dit apparaat.')
+    } catch (err) {
+      setStatus(`Niet gelukt: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Dagstart</h2>
+        <p className="text-nx-muted">Elke ochtend één melding met je lessen, afspraken, deadlines en herinneringen van die dag, en de deadlines die eraan komen. Ook als NEXUS dicht is, zolang het de dagen ervoor ergens open stond.</p>
+      </div>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={settings.enabled} onChange={(e) => change({ enabled: e.target.checked })} />
+        Dagstart aan
+      </label>
+      <fieldset disabled={!settings.enabled} className="space-y-3 disabled:opacity-60">
+        <label className="flex items-center gap-2">
+          <span className="w-20 shrink-0">Om</span>
+          <input type="time" aria-label="Tijdstip" value={settings.time} onChange={(e) => e.target.value && change({ time: e.target.value })} className={`${field} w-32`} />
+        </label>
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Dagen">
+          <span className="w-20 shrink-0">Op</span>
+          {WEEKDAY_SHORT.map((label, i) => {
+            const day = i + 1
+            const on = settings.days.includes(day)
+            return (
+              <button
+                key={day}
+                type="button"
+                aria-pressed={on}
+                onClick={() => change({ days: on ? settings.days.filter((d) => d !== day) : [...settings.days, day].sort() })}
+                className={`size-9 rounded-full border border-nx-border text-xs ${on ? 'bg-nx-accent font-medium text-nx-accent-text' : 'hover:bg-nx-surface-2'}`}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <label className="flex items-center gap-2">
+          <span className="w-20 shrink-0">Naar</span>
+          <select aria-label="Naar" value={settings.target} onChange={(e) => change({ target: e.target.value as DagstartSettings['target'] })} className={`${field} w-auto`}>
+            <option value="phone">Gsm en horloge (en dit apparaat)</option>
+            <option value="this_device">Alleen het apparaat waar NEXUS openstaat</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={settings.skipEmpty} onChange={(e) => change({ skipEmpty: e.target.checked })} />
+          Geen melding op een dag zonder iets gepland
+        </label>
+      </fieldset>
+      <section aria-label="Voorbeeld" className="space-y-1 rounded-lg border border-nx-border p-3">
+        <h3 className="text-xs font-semibold text-nx-muted">{nextDay === today ? 'Vandaag' : 'Morgen'} om {settings.time}</h3>
+        <p className="font-medium">{preview.title}</p>
+        {preview.text ? <p className="whitespace-pre-line text-nx-muted">{preview.text}</p> : <p className="text-nx-muted">{settings.skipEmpty ? 'Niets gepland: die dag komt er geen melding.' : 'Niets gepland.'}</p>}
+      </section>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={button} onClick={() => void test()}>
+          Stuur nu een proef
+        </button>
+        {status && <span className="text-nx-muted">{status}</span>}
+      </div>
+    </div>
   )
 }

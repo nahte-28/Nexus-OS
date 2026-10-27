@@ -45,4 +45,17 @@ describe('Agenda', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Overzicht' }))
     expect(within(screen.getByRole('region', { name: 'Morgen' })).getByText(/Tandarts/).textContent).toContain('Antwerpen')
   })
+
+  it('sets up Dagstart and shows what the next one will say', () => {
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Dagstart' }))
+    expect((screen.getByRole('checkbox', { name: 'Dagstart aan' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.change(screen.getByLabelText('Tijdstip'), { target: { value: '06:45' } })
+    expect(within(screen.getByRole('region', { name: 'Voorbeeld' })).getByText(/om 06:45$/)).toBeTruthy()
+    const sunday = within(screen.getByRole('group', { name: 'Dagen' })).getByRole('button', { name: 'zo' })
+    fireEvent.click(sunday)
+    expect(sunday.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Dagstart aan' }))
+    expect(screen.getByLabelText('Tijdstip').matches(':disabled')).toBe(true)
+  })
 })

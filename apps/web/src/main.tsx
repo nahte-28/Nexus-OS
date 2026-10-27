@@ -9,6 +9,7 @@ import { startFlowsSync } from './flows/sync'
 import { startFilesSync } from './files/sync'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
+import { startDagstart } from './life/dagstart'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
@@ -47,6 +48,8 @@ startFlowsSync(supabase)
 // NEXUS Life: deadlines and projects, on every device, with notifications before a deadline.
 startLifeSync(supabase)
 startDeadlineAlerts(defaultEngine)
+// Dagstart: every morning the day ahead, on this device and (through the plan above) the phone.
+startDagstart(defaultEngine)
 // Bestanden: your own files, also in your private storage when signed in.
 startFilesSync(supabase)
 // The focus timer's notifications, also with the Studie window closed.
