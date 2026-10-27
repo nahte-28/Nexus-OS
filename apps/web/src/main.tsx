@@ -13,6 +13,7 @@ import { startDagstart } from './life/dagstart'
 import { startGradesSync } from './grades/store'
 import { startHabitAlerts } from './habits/alerts'
 import { startWeekReview } from './review/week'
+import { openCaptureFromUrl } from './capture/open'
 import { startHabitsSync } from './habits/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
@@ -65,6 +66,9 @@ startWeekReview(defaultEngine)
 startFilesSync(supabase)
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)
+
+// Snelle notitie from the phone's app shortcut or share sheet.
+openCaptureFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

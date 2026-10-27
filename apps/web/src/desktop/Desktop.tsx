@@ -4,6 +4,7 @@ import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
+import { QuickCapture, useCaptureShortcut } from '../capture/QuickCapture'
 import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
@@ -16,6 +17,7 @@ export function Desktop() {
   const [searching, setSearching] = useState(false)
   const openSearch = useCallback(() => setSearching(true), [])
   useSearchShortcut(openSearch)
+  useCaptureShortcut()
 
   const openApp = useCallback(
     (appId: AppId) => {
@@ -44,6 +46,7 @@ export function Desktop() {
       </div>
       <Taskbar onOpenApp={openApp} onSearch={openSearch} />
       {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />}
+      <QuickCapture />
     </div>
   )
 }
