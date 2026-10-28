@@ -130,7 +130,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 9
+export const PROFILES_SCHEMA = 10
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -154,7 +154,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'insights', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'insights', 'budget', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -407,6 +407,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       if (base.profiles[id].apps.includes('insights') && Array.isArray(apps) && !apps.includes('insights')) {
         const after = apps.includes('flashcards') ? apps.indexOf('flashcards') : apps.indexOf('study')
         profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'insights', ...apps.slice(after + 1)] }
+      }
+    }
+  }
+  // Copies from before Budget get it right after Inzichten where it is a default (Persoonlijk).
+  if (typeof r.schema !== 'number' || r.schema < 10) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('budget') && Array.isArray(apps) && !apps.includes('budget')) {
+        const after = apps.includes('insights') ? apps.indexOf('insights') : apps.length - 1
+        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'budget', ...apps.slice(after + 1)] }
       }
     }
   }

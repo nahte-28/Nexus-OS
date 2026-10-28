@@ -16,6 +16,7 @@ import { startWeekReview } from './review/week'
 import { openCaptureFromUrl } from './capture/open'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
+import { startBudgetAlerts, startBudgetSync } from './budget/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
 import { startCalendarSync } from './profiles/calendar'
@@ -61,6 +62,9 @@ startGradesSync(supabase)
 // Gewoontes: ticked off on every device, with a reminder when one is still open.
 startHabitsSync(supabase)
 startFlashcardsSync(supabase)
+startBudgetSync(supabase)
+// Budget: a notice at 80% and 100% of the month's budget, here and on the phone.
+startBudgetAlerts(defaultEngine)
 startHabitAlerts(defaultEngine)
 // Weekoverzicht: on Sunday evening NEXUS AI reviews the week and plans the next one.
 startWeekReview(defaultEngine)

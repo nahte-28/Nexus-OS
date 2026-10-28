@@ -209,3 +209,10 @@ export const ChartIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M7 16v-5M12 16V7M17 16v-8" />
   </svg>
 )
+
+export const WalletIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+    <path d="M4 7l11-3v3M16 13.5h.01" />
+  </svg>
+)

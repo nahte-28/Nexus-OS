@@ -173,6 +173,10 @@ De app **Leerkaarten** is voor flashcards, in stapels per vak. Je maakt kaarten 
 
 De app **Inzichten** toont hoe je laatste acht weken liepen: je focustijd met de Studie-timer, hoe vaak je je gewoontes deed en hoeveel deadlines je op tijd afwerkte, elk als staafjes per week (beweeg over een week voor het getal, of open de tabel). Bovenaan staan deze week en het verschil met vorige week, je sterkste gewoonte en je gemiddelde of je leerkaarten. Alles wordt op het apparaat berekend uit de andere apps; er is geen SQL nodig.
 
+## Budget
+
+De app **Budget** (in het profiel Persoonlijk) houdt per maand je uitgaven en inkomsten bij, per categorie. Stel een budget per maand in en je ziet hoeveel er nog over is en wat je aan dit tempo tegen het einde van de maand uitgeeft. Bij 80% en bij 100% van je budget krijg je een melding, ook op je gsm. Je budget synchroniseert via Supabase: voer daarvoor `supabase/migrations/20261028090000_budget.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft het op het apparaat.
+
 ## Weekoverzicht
 
 Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een plan voor volgende week: wat goed ging en wat bleef liggen, wat eraan komt en per dag één of twee concrete acties rond je lessen. Het komt in **Notities** als "Weekoverzicht week N", en je gsm krijgt een melding als het klaar is. Stond NEXUS zondag nergens open, dan gebeurt het maandagochtend nog. In de **Agenda**, op het tabblad **Week**, zie je welke feiten de AI krijgt (lessen, deadlines, afspraken, focustijd van de Studie-timer, gewoontes en cijfers; geen notities of bestanden), maak je het overzicht met de hand, met een wens erbij, en zet je de zondag uit. Het gebruikt dezelfde toegang als NEXUS AI (`ANTHROPIC_API_KEY` en `NEXUS_AI_ALLOWED_EMAILS`); er is geen SQL nodig.
