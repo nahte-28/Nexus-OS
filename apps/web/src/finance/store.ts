@@ -6,13 +6,16 @@ import {
   emptyFinance,
   financeFromBudget,
   mergeFinance,
+  myShare,
   monthOf,
   nextDate,
   parseFinanceState,
   recurringTransactionId,
+  sharedTransactionId,
   subscriptionNotices,
   type CategoryBudget,
   type RecurringItem,
+  type SharedExpense,
   type FinanceState,
   type SavingsGoal,
   type Subscription,
@@ -231,6 +234,63 @@ export function applyRecurring(now = Date.now(), store = financeStore): number {
   return added
 }
 
+export function addFriend(name: string, now = Date.now()): string | null {
+  const clean = name.trim().slice(0, 60)
+  if (!clean) return null
+  const existing = financeStore.getSnapshot().friends.find((f) => f.deletedAt === null && f.name.toLowerCase() === clean.toLowerCase())
+  if (existing) return existing.id
+  const id = crypto.randomUUID()
+  update((s) => ({ ...s, friends: [...s.friends, { id, name: clean, createdAt: now, updatedAt: now, deletedAt: null }] }))
+  return id
+}
+
+export function renameFriend(id: string, name: string, now = Date.now()) {
+  const clean = name.trim().slice(0, 60)
+  if (clean) update((s) => ({ ...s, friends: edit(s.friends, id, (f) => ({ ...f, name: clean, updatedAt: now })) }))
+}
+
+/** Removes a friend; shared costs stay, so your own share in the transactions does not change. */
+export function removeFriend(id: string, now = Date.now()) {
+  update((s) => ({ ...s, friends: edit(s.friends, id, (f) => ({ ...f, name: '', deletedAt: now, updatedAt: now })) }))
+}
+
+export type SharedDraft = Pick<SharedExpense, 'note' | 'amount' | 'date' | 'paidBy' | 'among' | 'category'>
+
+/** Your share of a shared cost as one of your expenses, or deleted when you are not in it (any more). */
+function withMyShare(transactions: Transaction[], e: SharedExpense, now: number): Transaction[] {
+  const id = sharedTransactionId(e)
+  const share = e.deletedAt === null ? myShare(e) : 0
+  const mine = transactions.find((t) => t.id === id)
+  if (share === 0) return mine && mine.deletedAt === null ? edit(transactions, id, (t) => ({ ...t, note: '', deletedAt: now, updatedAt: now })) : transactions
+  const t: Transaction = { id, kind: 'expense', amount: share, category: e.category, note: `Gedeeld: ${e.note || 'kosten'}`.slice(0, 200), date: e.date, subscriptionId: null, createdAt: mine?.createdAt ?? now, updatedAt: now, deletedAt: null }
+  return mine ? edit(transactions, id, () => t) : [...transactions, t]
+}
+
+export function addShared(draft: SharedDraft, now = Date.now()): string {
+  const id = crypto.randomUUID()
+  const e: SharedExpense = { ...draft, note: draft.note.trim().slice(0, 120), among: [...new Set(draft.among)], id, createdAt: now, updatedAt: now, deletedAt: null }
+  update((s) => ({ ...s, shared: [...s.shared, e], transactions: withMyShare(s.transactions, e, now) }))
+  return id
+}
+
+export function removeShared(id: string, now = Date.now()) {
+  update((s) => {
+    const shared = edit(s.shared, id, (e) => ({ ...e, note: '', amount: 0, deletedAt: now, updatedAt: now }))
+    const e = shared.find((x) => x.id === id)
+    return e ? { ...s, shared, transactions: withMyShare(s.transactions, e, now) } : s
+  })
+}
+
+/** A payback: positive when [friendId] paid you, negative when you paid them. */
+export function settle(friendId: string, amount: number, now = Date.now()) {
+  if (amount === 0) return
+  update((s) => ({ ...s, settlements: [...s.settlements, { id: crypto.randomUUID(), friendId, amount, date: dateKey(now), updatedAt: now, deletedAt: null }] }))
+}
+
+export function removeSettlement(id: string, now = Date.now()) {
+  update((s) => ({ ...s, settlements: edit(s.settlements, id, (t) => ({ ...t, deletedAt: now, updatedAt: now })) }))
+}
+
 export function setAlerts(alerts: boolean, now = Date.now()) {
   update((s) => ({ ...s, settings: { alerts, updatedAt: now } }))
 }
@@ -250,6 +310,9 @@ export function clearFinance(now = Date.now()) {
       contributions: s.contributions.map((c) => ({ ...gone(c), amount: 0 })),
       subscriptions: s.subscriptions.map((x) => ({ ...gone(x), name: '', amount: 0 })),
       recurring: s.recurring.map((r) => ({ ...gone(r), name: '', amount: 0 })),
+      friends: s.friends.map((f) => ({ ...gone(f), name: '' })),
+      shared: s.shared.map((e) => ({ ...gone(e), note: '', amount: 0, among: [] })),
+      settlements: s.settlements.map((t) => ({ ...gone(t), amount: 0 })),
       settings: { alerts: true, updatedAt: now },
       revision: s.revision,
     }

@@ -17,6 +17,10 @@ import {
   filterTransactions,
   financeExport,
   formatMoney,
+  friendBalances,
+  ME,
+  myShare,
+  sharedTotals,
   goalProgress,
   INCOME_CATEGORIES,
   KIND_LABELS,
@@ -43,6 +47,8 @@ import {
   addContribution,
   addGoal,
   addRecurring,
+  addFriend,
+  addShared,
   addSubscription,
   addTransaction,
   clearFinance,
@@ -52,12 +58,15 @@ import {
   markPaid,
   removeBudget,
   removeContribution,
+  removeFriend,
+  removeShared,
   removeRecurring,
   removeGoal,
   removeSubscription,
   removeTransaction,
   setAlerts,
   setBudget,
+  settle,
   updateGoal,
   updateRecurring,
   updateSubscription,
@@ -76,12 +85,12 @@ const smallButton = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
 const card = 'rounded-lg border border-nx-border p-3'
 
-const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Inzichten', 'Instellingen'] as const
+const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Delen', 'Inzichten', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const HIDDEN_KEY = 'nexus.finance.hidden'
 
 /** Which tab a shortcut from Zoeken overal opens, and whether its form opens with it. */
-const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen', 'new-recurring': 'Abonnementen' }
+const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen', 'new-recurring': 'Abonnementen', 'new-shared': 'Delen' }
 
 const useFinance = () => useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
 
@@ -143,6 +152,7 @@ export function Finance() {
           {tab === 'Budgetten' && <Budgets />}
           {tab === 'Sparen' && <Goals openAt={opens('new-goal')} />}
           {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} openRecurringAt={opens('new-recurring')} />}
+          {tab === 'Delen' && <Shared openAt={opens('new-shared')} />}
           {tab === 'Inzichten' && <Insights />}
           {tab === 'Instellingen' && <Settings hidden={hidden} onHidden={toggleHidden} />}
         </div>
@@ -1346,5 +1356,180 @@ function ImportPanel({ onDone }: { onDone: (message: string | null) => void }) {
         </button>
       </div>
     </section>
+  )
+}
+
+function SharedForm({ onDone }: { onDone: () => void }) {
+  const state = useFinance()
+  const friends = alive(state.friends)
+  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState(dateKey(Date.now()))
+  const [paidBy, setPaidBy] = useState(ME)
+  // Who is left out, so a friend added while the form is open is in it too.
+  const [left, setLeft] = useState<string[]>([])
+  const [category, setCategory] = useState('Eten en drinken')
+  const people = [{ id: ME, name: 'Ik' }, ...friends.map((f) => ({ id: f.id, name: f.name }))]
+  const among = people.map((p) => p.id).filter((id) => !left.includes(id))
+  const cents = parseAmount(amount)
+  // Only costs between you and friends: you paid, or you are one of those it is for.
+  const valid = cents !== null && among.length > 0 && (paidBy === ME ? among.some((p) => p !== ME) : among.includes(ME))
+  const share = cents !== null && among.length > 0 ? myShare({ amount: cents, among }) : 0
+  return (
+    <form
+      aria-label="Nieuwe gedeelde kosten"
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        addShared({ note, amount: cents, date, paidBy, among, category })
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <input autoFocus value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} placeholder="Waarvoor, bv. Pizza" aria-label="Omschrijving" className={field} />
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Totaal, bv. 36" aria-label="Totaalbedrag" className={field} />
+        <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Datum" className={field} />
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Betaald door</span>
+          <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} aria-label="Betaald door" className={field}>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie van je deel" className={field}>
+          {EXPENSE_CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <fieldset className="flex flex-wrap gap-3">
+        <legend className="mb-1 text-xs text-nx-muted">Gedeeld door</legend>
+        {people.map((p) => (
+          <label key={p.id} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              className="accent-[var(--nx-accent)]"
+              checked={among.includes(p.id)}
+              onChange={(e) => setLeft((list) => (e.target.checked ? list.filter((x) => x !== p.id) : [...list, p.id]))}
+            />
+            {p.name}
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-xs text-nx-muted">
+        Gelijk verdeeld. {share > 0 ? `Jouw deel van ${formatMoney(share)} komt bij je uitgaven.` : 'Jij doet niet mee, dus er komt niets bij je uitgaven.'}
+      </p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          Gedeelde kosten toevoegen
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Shared({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [name, setName] = useState('')
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const balances = friendBalances(state)
+  const totals = sharedTotals(state)
+  const names = new Map(alive(state.friends).map((f) => [f.id, f.name]))
+  const who = (id: string) => (id === ME ? 'jij' : (names.get(id) ?? 'iemand'))
+  const recent = alive(state.shared)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+    .slice(0, 30)
+
+  return (
+    <>
+      <section aria-label="Saldo" className="grid grid-cols-2 gap-2">
+        <Tile label="Ze zijn je schuldig" value={money(totals.owedToMe)} />
+        <Tile label="Jij bent schuldig" value={money(totals.iOwe)} warn={totals.iOwe > 0} />
+      </section>
+      <Section title="Vrienden">
+        <form
+          aria-label="Vriend toevoegen"
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (addFriend(name)) setName('')
+          }}
+        >
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam, bv. Remo" aria-label="Naam van je vriend" className={field} />
+          <button type="submit" className={button} disabled={!name.trim()}>
+            Toevoegen
+          </button>
+        </form>
+        {balances.length === 0 && <p className="text-nx-muted">Voeg eerst de vrienden toe met wie je kosten deelt. Alleen hun naam blijft bewaard.</p>}
+        <ul className="space-y-2">
+          {balances.map(({ friend, balance }) => (
+            <li key={friend.id} className={`${card} flex flex-wrap items-center gap-2`}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{friend.name}</span>
+                <span className={`block text-xs ${balance < 0 ? 'text-red-500' : 'text-nx-muted'}`}>
+                  {balance > 0 ? `is je ${money(balance)} schuldig` : balance < 0 ? `je bent ${money(-balance)} schuldig` : 'jullie staan quitte'}
+                </span>
+              </span>
+              {balance !== 0 && (
+                <button type="button" className={smallButton} aria-label={`${friend.name} terugbetaald`} onClick={() => settle(friend.id, balance)}>
+                  Terugbetaald
+                </button>
+              )}
+              <button
+                type="button"
+                className={smallButton}
+                aria-label={`${friend.name} verwijderen`}
+                title={balance !== 0 ? 'Eerst terugbetalen' : undefined}
+                disabled={balance !== 0}
+                onClick={() => removeFriend(friend.id)}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section
+        title="Gedeelde kosten"
+        action={
+          !adding &&
+          balances.length > 0 && (
+            <button type="button" className={smallButton} onClick={() => setAdding(true)}>
+              + Gedeelde kosten
+            </button>
+          )
+        }
+      >
+        {adding && balances.length > 0 && <SharedForm key={openAt} onDone={() => setAdding(false)} />}
+        {recent.length === 0 && !adding && <p className="text-nx-muted">Nog niets gedeeld.</p>}
+        <ul className="space-y-1">
+          {recent.map((e) => (
+            <li key={e.id} className="flex items-center gap-2 border-b border-nx-border py-1.5 last:border-0">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{e.note || 'Gedeelde kosten'}</span>
+                <span className="block text-xs text-nx-muted">
+                  {dayLabel(e.date)} · {who(e.paidBy) === 'jij' ? 'jij betaalde' : `${who(e.paidBy)} betaalde`} {money(e.amount)} · voor {e.among.map(who).join(', ')}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs tabular-nums">{myShare(e) > 0 ? `jouw deel ${money(myShare(e))}` : ''}</span>
+              <button type="button" className={smallButton} aria-label={`${e.note || 'Gedeelde kosten'} verwijderen`} onClick={() => removeShared(e.id)}>
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </>
   )
 }

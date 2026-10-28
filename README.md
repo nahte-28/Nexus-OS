@@ -189,7 +189,7 @@ De kaart **Financiën** op het dashboard toont alleen percentages, nooit bedrage
 
 Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028100000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat. Financiën vervangt de eerdere app Budget: wat daar stond (transacties en maandbudget, op het apparaat en in je account) neemt Financiën één keer over, het maandbudget als Totaalbudget.
 
-Flow Studio kan starten op een budget dat opraakt, een abonnement dat betaald wordt en een nieuwe uitgave (zie Flow Studio). Nog niet gebouwd: een bankkoppeling.
+Flow Studio kan starten op een budget dat opraakt, een abonnement dat betaald wordt en een nieuwe uitgave (zie Flow Studio). **Delen**: vrienden (alleen hun naam) en kosten die je met hen deelt, gelijk verdeeld. Je ziet per vriend wie wie hoeveel schuldig is (alleen tussen jou en elke vriend), met "Terugbetaald" om quitte te staan; jouw deel komt als uitgave in je transacties. Nog niet gebouwd: een bankkoppeling.
 
 ## Weekoverzicht
 

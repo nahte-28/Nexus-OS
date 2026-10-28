@@ -177,6 +177,31 @@ describe('Financiën', () => {
     expect(s.transactions.filter((t) => t.deletedAt === null)).toHaveLength(1)
   })
 
+  it('shares a cost with friends, puts your own share in the expenses and settles up', () => {
+    render(<Finance />)
+    tab('Delen')
+    for (const name of ['Remo', 'Lina']) {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Naam van je vriend' }), { target: { value: name } })
+      fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
+    }
+    fireEvent.click(screen.getByRole('button', { name: '+ Gedeelde kosten' }))
+    const form = screen.getByRole('form', { name: 'Nieuwe gedeelde kosten' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Omschrijving' }), { target: { value: 'Pizza' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Totaalbedrag' }), { target: { value: '36' } })
+    expect(within(form).getByText(/Jouw deel van € 12,00/)).toBeTruthy()
+    fireEvent.click(within(form).getByRole('button', { name: 'Gedeelde kosten toevoegen' }))
+
+    expect(screen.getAllByText(/is je € 12,00 schuldig/)).toHaveLength(2)
+    expect(financeStore.getSnapshot().transactions).toMatchObject([{ kind: 'expense', amount: 1200, category: 'Eten en drinken', note: 'Gedeeld: Pizza' }])
+    expect(screen.getByRole('button', { name: 'Remo verwijderen' })).toHaveProperty('disabled', true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remo terugbetaald' }))
+    expect(screen.getByText('jullie staan quitte')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Pizza verwijderen' }))
+    // Your share goes with it.
+    expect(financeStore.getSnapshot().transactions[0].deletedAt).not.toBeNull()
+  })
+
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {
     financeStore.update((s): FinanceState => ({ ...s, transactions: [{ id: 'a', kind: 'income', amount: 5000, category: 'Job', note: '', date: '2026-10-01', subscriptionId: null, createdAt: 0, updatedAt: 1, deletedAt: null }] }))
     render(<Finance />)
