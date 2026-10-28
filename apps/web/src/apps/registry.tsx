@@ -13,10 +13,11 @@ import { Devices } from './Devices'
 import { Files } from './Files'
 import { FlowStudio } from './FlowStudio'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 import { Grades } from './Grades'
 import { Habits } from './Habits'
 import { Flashcards } from './Flashcards'
+import { Insights } from './Insights'
 import { Inbox } from './Inbox'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
@@ -61,6 +62,7 @@ export const APPS: AppDefinition[] = [
   { id: 'grades', title: 'Cijfers', icon: GradesIcon, component: Grades, defaultSize: { width: 680, height: 600 } },
   { id: 'habits', title: 'Gewoontes', icon: HabitIcon, component: Habits, defaultSize: { width: 620, height: 580 } },
   { id: 'flashcards', title: 'Leerkaarten', icon: CardsIcon, component: Flashcards, defaultSize: { width: 640, height: 620 } },
+  { id: 'insights', title: 'Inzichten', icon: ChartIcon, component: Insights, defaultSize: { width: 720, height: 640 } },
   { id: 'files', title: 'Bestanden', icon: FolderIcon, component: Files, defaultSize: { width: 780, height: 580 } },
   { id: 'notes', title: 'Notities', icon: NotesIcon, component: Notes, defaultSize: { width: 720, height: 460 } },
   { id: 'notifications', title: 'Meldingen', icon: BellIcon, component: Inbox, defaultSize: { width: 680, height: 480 } },

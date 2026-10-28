@@ -134,7 +134,7 @@ describe('next lesson', () => {
   it('adds KlasHub to copies stored before it existed', () => {
     const old = { profiles: { school: { apps: ['notes', 'reminders'] }, gaming: { apps: ['notes'] } }, revision: 3 }
     const s = parseProfilesState(old)
-    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'files', 'notes', 'reminders'])
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes', 'reminders'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     expect(s.klashubUrl).toBe('https://klashub.vercel.app')
     // Once upgraded, removing it sticks.
@@ -145,8 +145,8 @@ describe('next lesson', () => {
   it('adds the Agenda app to copies stored before NEXUS Life, once', () => {
     const old = { schema: 2, profiles: { school: { apps: ['klashub', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } }
     const s = parseProfilesState(old)
-    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'files', 'notes'])
-    expect(s.profiles.personal.apps).toEqual(['agenda', 'study', 'grades', 'habits', 'flashcards', 'files', 'notes'])
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, apps: ['notes'] } } })
     expect(removed.profiles.personal.apps).toEqual(['notes'])
@@ -154,8 +154,8 @@ describe('next lesson', () => {
 
   it('adds Studie after the Agenda in copies stored before it, once', () => {
     const s = parseProfilesState({ schema: 4, profiles: { school: { apps: ['klashub', 'agenda', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } })
-    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'notes'])
-    expect(s.profiles.personal.apps).toEqual(['study', 'grades', 'habits', 'flashcards', 'notes'])
+    expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['study', 'grades', 'habits', 'flashcards', 'insights', 'notes'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     expect(parseProfilesState({ ...s, profiles: { ...s.profiles, school: { ...s.profiles.school, apps: ['notes'] } } }).profiles.school.apps).toEqual(['notes'])
   })
