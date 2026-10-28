@@ -64,5 +64,8 @@ class ProtocolTest {
         assertEquals("done", action.getString("action"))
         assertEquals("habit:h1@2026-11-03", action.getString("ref"))
         assertEquals(7L, action.getLong("at"))
+        val focus = JSONObject(Protocol.focusPayload(25, 9))
+        assertEquals("focus", focus.getString("action"))
+        assertEquals(25, focus.getInt("minutes"))
     }
 }

@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- The focus timer buzzes at the end of a focus round and of a pause. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name="app.nexusos.watch.WatchApp"
@@ -60,6 +62,7 @@
 
         <receiver android:name="app.nexusos.companion.SafetyReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.RefreshReceiver" android:exported="false" />
+        <receiver android:name="app.nexusos.watch.FocusReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.WatchBootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

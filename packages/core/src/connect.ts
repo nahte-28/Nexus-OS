@@ -39,26 +39,28 @@ export interface PlanPayload {
 }
 
 /**
- * Something done on another device, e.g. a deadline ticked off on the watch. The [ref] is the one of
- * the notice it came from (deadline:<id>@... or habit:<id>@<date>), so the receiver knows what it is about.
+ * Something done on another device. "done": a deadline or habit ticked off on the watch; the [ref] is
+ * the one of the notice it came from (deadline:<id>@... or habit:<id>@<date>). "focus": a focus round
+ * finished on the watch, for the focus log of Studie and Inzichten.
  */
-export interface ActionPayload {
-  v: 1
-  kind: 'action'
-  action: 'done'
-  ref: string
-  at: number
-}
+export type ActionPayload =
+  | { v: 1; kind: 'action'; action: 'done'; ref: string; at: number }
+  | { v: 1; kind: 'action'; action: 'focus'; minutes: number; task: string; at: number }
 
 export type ActionTarget = { kind: 'deadline'; id: string } | { kind: 'habit'; id: string; date: string }
 
 export function parseAction(value: unknown): ActionPayload | null {
   if (typeof value !== 'object' || value === null) return null
   const p = value as Record<string, unknown>
-  const ref = str(p.ref, 300)
-  if (p.v !== 1 || p.kind !== 'action' || p.action !== 'done' || !ref) return null
-  if (typeof p.at !== 'number' || !Number.isFinite(p.at)) return null
-  return { v: 1, kind: 'action', action: 'done', ref, at: p.at }
+  if (p.v !== 1 || p.kind !== 'action' || typeof p.at !== 'number' || !Number.isFinite(p.at)) return null
+  if (p.action === 'done') {
+    const ref = str(p.ref, 300)
+    return ref ? { v: 1, kind: 'action', action: 'done', ref, at: p.at } : null
+  }
+  if (p.action === 'focus' && typeof p.minutes === 'number' && Number.isInteger(p.minutes) && p.minutes >= 1 && p.minutes <= 180) {
+    return { v: 1, kind: 'action', action: 'focus', minutes: p.minutes, task: str(p.task, 160) ?? '', at: p.at }
+  }
+  return null
 }
 
 /** What a notice ref points at, when it can be ticked off: a deadline or a habit on one day. */

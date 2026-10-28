@@ -159,6 +159,9 @@ class WatchActivity : Activity() {
         if (coming.size > MAX_SHOWN) text("en nog ${coming.size - MAX_SHOWN}", muted = true)
 
         space(12)
+        focus(now)
+
+        space(12)
         text(if (Inbox.connected) "Live verbonden met NEXUS." else "Haalt elk halfuur op wat NEXUS stuurde.", muted = true, size = 12f)
         if (!Notifier.enabled(this)) {
             text("Meldingen staan uit, dus het horloge kan je niet waarschuwen.")
@@ -184,6 +187,26 @@ class WatchActivity : Activity() {
         button("Afmelden") {
             Inbox.stop()
             Connect.signOut(this) { status = null; render() }
+        }
+    }
+
+    /** The focus timer: start, see what phase runs until when, stop. */
+    private fun focus(now: Long) {
+        heading("Focus", 15f)
+        val state = Focus.state(this)
+        if (state == null) {
+            text("${Focus.FOCUS_MIN} min focus, ${Focus.PAUSE_MIN} min pauze, tot je stopt. Het horloge trilt bij elke wissel en telt je focustijd mee in NEXUS.", muted = true, size = 12f)
+            button("Focus starten", primary = true) {
+                Focus.start(this)
+                render()
+            }
+        } else {
+            val phase = if (state.phase == Focus.Phase.FOCUS) "Focus" else "Pauze"
+            text("$phase tot ${WatchFormat.at(state.endsAt, now)}", bold = true)
+            button("Stoppen") {
+                Focus.stop(this)
+                render()
+            }
         }
     }
 
