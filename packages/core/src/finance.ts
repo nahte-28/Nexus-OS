@@ -35,6 +35,8 @@ export interface CategoryBudget extends Synced {
   limit: number
   /** Percentage of the limit that gives a first notice; the second comes at 100%. */
   threshold: number
+  /** From this month (YYYY-MM) on, what is left at the end of a month moves on to the next; null when off. */
+  rolloverFrom: string | null
 }
 
 export interface SavingsGoal extends Synced {
@@ -130,7 +132,8 @@ function parseBudget(raw: unknown): CategoryBudget | null {
   const limit = cents(raw.limit)
   if (!base || (limit === null && base.deletedAt === null)) return null
   const threshold = typeof raw.threshold === 'number' && raw.threshold >= 10 && raw.threshold <= 100 ? Math.round(raw.threshold) : DEFAULT_THRESHOLD
-  return { ...base, category: typeof raw.category === 'string' ? raw.category.slice(0, 40) : '', limit: limit ?? 0, threshold }
+  const rolloverFrom = typeof raw.rolloverFrom === 'string' && /^\d{4}-\d{2}$/.test(raw.rolloverFrom) ? raw.rolloverFrom : null
+  return { ...base, category: typeof raw.category === 'string' ? raw.category.slice(0, 40) : '', limit: limit ?? 0, threshold, rolloverFrom }
 }
 
 function parseGoal(raw: unknown): SavingsGoal | null {
@@ -196,7 +199,7 @@ export function financeFromBudget(raw: unknown): FinanceState {
     ...empty,
     transactions: list(raw.transactions, parseTransaction, MAX_TRANSACTIONS),
     // A fixed id, so taking it over on two devices gives one budget.
-    budgets: limit ? [{ id: 'budget-total', category: '', limit, threshold: DEFAULT_THRESHOLD, updatedAt: at, deletedAt: null }] : [],
+    budgets: limit ? [{ id: 'budget-total', category: '', limit, threshold: DEFAULT_THRESHOLD, rolloverFrom: null, updatedAt: at, deletedAt: null }] : [],
   }
 }
 
@@ -324,18 +327,44 @@ export interface BudgetStatus {
   budget: CategoryBudget
   label: string
   spent: number
+  /** Left over from earlier months (rollover), 0 when off. */
+  carried: number
+  /** The limit plus what was carried over. */
+  available: number
   left: number
-  /** Share of the limit spent, 0–100+. */
+  /** Share of what is available that was spent, 0–100+. */
   used: number
+}
+
+/** How much of [month] the budget's category spent: expenses minus refunds. */
+function spentIn(s: FinanceState, budget: CategoryBudget, month: string, now: number): number {
+  const { expenses, byCategory } = monthSummary(s, month, now)
+  return budget.category === '' ? expenses : (byCategory.find((c) => c.category === budget.category)?.amount ?? 0)
+}
+
+/** How many months back a rollover is followed at most. */
+const MAX_ROLLOVER_MONTHS = 24
+
+/**
+ * What a budget with rollover brings into [month]: each month from [rolloverFrom] on passes on what
+ * was left of its limit plus what it got itself. Overspending is not carried as debt; it ends at 0.
+ */
+export function carriedInto(s: FinanceState, budget: CategoryBudget, month: string, now: number): number {
+  if (!budget.rolloverFrom || budget.rolloverFrom >= month) return 0
+  let m = budget.rolloverFrom < shiftMonth(month, -MAX_ROLLOVER_MONTHS) ? shiftMonth(month, -MAX_ROLLOVER_MONTHS) : budget.rolloverFrom
+  let carry = 0
+  for (; m < month; m = shiftMonth(m, 1)) carry = Math.max(0, budget.limit + carry - spentIn(s, budget, m, now))
+  return carry
 }
 
 /** Each budget against what was spent in [month]; the total budget first, then by category name. */
 export function budgetStatus(s: FinanceState, month: string, now: number): BudgetStatus[] {
-  const { expenses, byCategory } = monthSummary(s, month, now)
   return alive(s.budgets)
     .map((budget) => {
-      const used = budget.category === '' ? expenses : (byCategory.find((c) => c.category === budget.category)?.amount ?? 0)
-      return { budget, label: budget.category || TOTAL_BUDGET, spent: used, left: budget.limit - used, used: Math.round((Math.max(0, used) / budget.limit) * 100) }
+      const spent = spentIn(s, budget, month, now)
+      const carried = carriedInto(s, budget, month, now)
+      const available = budget.limit + carried
+      return { budget, label: budget.category || TOTAL_BUDGET, spent, carried, available, left: available - spent, used: Math.round((Math.max(0, spent) / available) * 100) }
     })
     .sort((a, b) => (a.budget.category === '' ? -1 : b.budget.category === '' ? 1 : a.label.localeCompare(b.label, 'nl')))
 }
@@ -357,8 +386,8 @@ export function budgetWarnings(s: FinanceState, month: string, now: number, warn
       title: p >= 100 ? `${b.label}: budget op` : `${b.label}: ${p}% van je budget gebruikt`,
       text:
         b.left < 0
-          ? `Je gaf deze maand ${formatMoney(b.spent)} uit, ${formatMoney(-b.left)} meer dan je budget van ${formatMoney(b.budget.limit)}.`
-          : `Je gaf deze maand ${formatMoney(b.spent)} uit van ${formatMoney(b.budget.limit)}. Nog ${formatMoney(b.left)} over.`,
+          ? `Je gaf deze maand ${formatMoney(b.spent)} uit, ${formatMoney(-b.left)} meer dan je budget van ${formatMoney(b.available)}.`
+          : `Je gaf deze maand ${formatMoney(b.spent)} uit van ${formatMoney(b.available)}. Nog ${formatMoney(b.left)} over.`,
     })
   }
   return out

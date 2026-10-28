@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
   addDays,
+  guessColumns,
+  importCandidates,
+  parseCsv,
+  type ImportCandidate,
+  type ImportColumns,
   alive,
   amountText,
   budgetStatus,
@@ -40,6 +45,7 @@ import {
   clearFinance,
   financeStore,
   financeSyncProblem,
+  importTransactions,
   markPaid,
   removeBudget,
   removeContribution,
@@ -397,6 +403,8 @@ function Transactions({ openAt }: { openAt: number }) {
   const state = useFinance()
   const money = useMoney()
   const [adding, setAdding] = useState(openAt > 0)
+  const [importing, setImporting] = useState(false)
+  const [imported, setImported] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState<MoneyKind | ''>('')
@@ -414,12 +422,31 @@ function Transactions({ openAt }: { openAt: number }) {
 
   return (
     <>
+      {imported && <p role="status">{imported}</p>}
       {adding ? (
         <TransactionForm key={openAt} onDone={() => setAdding(false)} />
+      ) : importing ? (
+        <ImportPanel
+          onDone={(message) => {
+            setImporting(false)
+            setImported(message)
+            if (message) setMonth('')
+          }}
+        />
       ) : (
         <div className="flex flex-wrap gap-2">
           <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
             + Transactie
+          </button>
+          <button
+            type="button"
+            className={button}
+            onClick={() => {
+              setImported(null)
+              setImporting(true)
+            }}
+          >
+            Importeren uit CSV
           </button>
           <button type="button" className={button} onClick={exportCsv} disabled={alive(state.transactions).length === 0}>
             Exporteren als CSV
@@ -521,13 +548,14 @@ function Budgets() {
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium">{b.label}</span>
                 <span className="tabular-nums text-nx-muted">
-                  {money(b.spent)} van {money(b.budget.limit)}
+                  {money(b.spent)} van {money(b.available)}
                 </span>
               </div>
               <Meter label={`${b.label} gebruikt`} percent={b.used} over={b.used >= 100} />
               <div className="flex items-center justify-between gap-2 text-xs text-nx-muted">
                 <span>
                   {b.used}% gebruikt · melding bij {b.budget.threshold}% en 100%
+                  {b.budget.rolloverFrom && (b.carried > 0 ? ` · ${money(b.carried)} overgedragen van vorige maand` : ' · overschot schuift door')}
                 </span>
                 <span className="flex gap-1">
                   <button type="button" className={smallButton} onClick={() => setEditing(b.budget.id)}>
@@ -547,7 +575,8 @@ function Budgets() {
   )
 }
 
-function BudgetForm({ categories, initial, onDone }: { categories: string[]; initial?: { category: string; limit: number; threshold: number }; onDone: () => void }) {
+function BudgetForm({ categories, initial, onDone }: { categories: string[]; initial?: { category: string; limit: number; threshold: number; rolloverFrom: string | null }; onDone: () => void }) {
+  const [rollover, setRollover] = useState(!!initial?.rolloverFrom)
   const [category, setCategory] = useState(initial?.category ?? categories[0])
   const [limit, setLimit] = useState(initial ? amountText(initial.limit) : '')
   const [threshold, setThreshold] = useState(String(initial?.threshold ?? DEFAULT_THRESHOLD))
@@ -561,7 +590,7 @@ function BudgetForm({ categories, initial, onDone }: { categories: string[]; ini
       onSubmit={(e) => {
         e.preventDefault()
         if (!valid) return
-        setBudget(category, cents, percent)
+        setBudget(category, cents, percent, rollover)
         setLimit('')
         onDone()
       }}
@@ -586,6 +615,13 @@ function BudgetForm({ categories, initial, onDone }: { categories: string[]; ini
           <input type="number" min={10} max={100} step={5} value={threshold} onChange={(e) => setThreshold(e.target.value)} className={field} />
         </label>
       </div>
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked={rollover} onChange={(e) => setRollover(e.target.checked)} className="mt-0.5" />
+        <span>
+          Wat overblijft, schuift door naar de volgende maand
+          <span className="block text-xs text-nx-muted">Geef je meer uit dan je budget, dan begint de volgende maand gewoon bij je budget, zonder schuld.</span>
+        </span>
+      </label>
       <div className="flex gap-2">
         <button type="submit" className={primaryButton} disabled={!valid}>
           {initial ? 'Bewaren' : 'Budget instellen'}
@@ -1029,5 +1065,151 @@ function Settings({ hidden, onHidden }: { hidden: boolean; onHidden: (v: boolean
         )}
       </Section>
     </>
+  )
+}
+
+/** A bank file as text: UTF-8, or Windows-1252 as many Belgian banks still write. */
+async function readBankFile(file: File): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const utf8 = new TextDecoder('utf-8').decode(bytes)
+  return utf8.includes('\uFFFD') ? new TextDecoder('windows-1252').decode(bytes) : utf8
+}
+
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024
+
+/** Import from a bank's CSV: pick the file, check the columns, untick what you do not want, import. */
+function ImportPanel({ onDone }: { onDone: (message: string | null) => void }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [rows, setRows] = useState<string[][] | null>(null)
+  const [headerRow, setHeaderRow] = useState(-1)
+  const [columns, setColumns] = useState<ImportColumns | null>(null)
+  const [picked, setPicked] = useState<Record<string, boolean>>({})
+  const [categories, setCategories] = useState<Record<string, string>>({})
+  const [error, setError] = useState<string | null>(null)
+
+  const load = async (file: File | undefined) => {
+    setError(null)
+    if (!file) return
+    if (file.size > MAX_IMPORT_BYTES) return setError('Dat bestand is te groot (meer dan 5 MB). Exporteer een kortere periode.')
+    const parsed = parseCsv(await readBankFile(file))
+    const guess = guessColumns(parsed)
+    if (!guess) return setError('Ik vond geen kolommen met een datum en een bedrag. Is dit een CSV-export van je bank?')
+    setRows(parsed)
+    setHeaderRow(guess.headerRow)
+    setColumns(guess.columns)
+    setPicked({})
+    setCategories({})
+  }
+
+  const result = rows && columns ? importCandidates(rows, headerRow, columns, state) : null
+  const isPicked = (c: ImportCandidate) => picked[c.id] ?? !c.duplicate
+  const chosen = result?.candidates.filter(isPicked) ?? []
+  const header = rows && headerRow >= 0 ? rows[headerRow] : null
+  const width = rows ? Math.max(...rows.slice(0, 20).map((r) => r.length)) : 0
+  const columnName = (i: number) => (header?.[i] ? header[i] : `Kolom ${i + 1}${rows?.[headerRow + 1]?.[i] ? ` (bv. ${rows[headerRow + 1][i].slice(0, 20)})` : ''}`)
+  const columnSelect = (label: string, value: number, onChange: (i: number) => void, none = false) => (
+    <label className="space-y-1">
+      <span className="text-xs text-nx-muted">{label}</span>
+      <select value={value} onChange={(e) => onChange(Number(e.target.value))} className={field}>
+        {none && <option value={-1}>Geen</option>}
+        {Array.from({ length: width }, (_, i) => (
+          <option key={i} value={i}>
+            {columnName(i)}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+
+  return (
+    <section aria-label="Importeren uit CSV" className={`${card} space-y-3`}>
+      <h3 className="font-medium">Importeren uit CSV</h3>
+      <p className="text-nx-muted">
+        Exporteer je rekeningverrichtingen als CSV in de app of op de website van je bank (KBC, Belfius, BNP Paribas Fortis, ING, Argenta…) en kies het bestand hier. Het bestand blijft op dit apparaat; je ziet alles eerst voor er iets
+        wordt toegevoegd.
+      </p>
+      <input type="file" accept=".csv,text/csv,text/plain" aria-label="CSV-bestand van je bank" onChange={(e) => void load(e.target.files?.[0])} className="block text-sm" />
+      {error && (
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+      )}
+      {result && columns && (
+        <>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            {columnSelect('Datum', columns.date, (date) => setColumns({ ...columns, date }))}
+            {columnSelect('Bedrag', columns.amount, (amount) => setColumns({ ...columns, amount }))}
+            {columnSelect('Omschrijving', columns.description[0] ?? -1, (i) => setColumns({ ...columns, description: i < 0 ? [] : [i, ...columns.description.slice(1).filter((d) => d !== i)] }), true)}
+            {columnSelect('Extra omschrijving', columns.description[1] ?? -1, (i) => setColumns({ ...columns, description: [columns.description[0] ?? -1, i].filter((d) => d >= 0) }), true)}
+          </div>
+          <p className="text-xs text-nx-muted">
+            {result.candidates.length} gevonden
+            {result.candidates.some((c) => c.duplicate) && `, waarvan ${result.candidates.filter((c) => c.duplicate).length} al in Financiën (niet aangevinkt)`}
+            {result.skipped > 0 && `; ${result.skipped} ${result.skipped === 1 ? 'rij' : 'rijen'} zonder geldige datum of bedrag overgeslagen`}. Een negatief bedrag is een uitgave, een positief bedrag inkomen.
+          </p>
+          <div className="max-h-80 overflow-y-auto rounded-md border border-nx-border">
+            <table className="w-full text-left text-xs">
+              <thead className="sticky top-0 bg-nx-surface text-nx-muted">
+                <tr>
+                  <th className="p-1.5 font-normal">
+                    <input
+                      type="checkbox"
+                      aria-label="Alles aanvinken"
+                      checked={chosen.length === result.candidates.length && chosen.length > 0}
+                      onChange={(e) => setPicked(Object.fromEntries(result.candidates.map((c) => [c.id, e.target.checked])))}
+                    />
+                  </th>
+                  <th className="p-1.5 font-normal">Datum</th>
+                  <th className="p-1.5 font-normal">Omschrijving</th>
+                  <th className="p-1.5 text-right font-normal">Bedrag</th>
+                  <th className="p-1.5 font-normal">Categorie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.candidates.map((c) => (
+                  <tr key={c.id} className={`border-t border-nx-border ${isPicked(c) ? '' : 'text-nx-muted'}`}>
+                    <td className="p-1.5">
+                      <input type="checkbox" aria-label={`${c.date} ${c.note || 'transactie'} importeren`} checked={isPicked(c)} onChange={(e) => setPicked({ ...picked, [c.id]: e.target.checked })} />
+                    </td>
+                    <td className="p-1.5 whitespace-nowrap tabular-nums">{dayLabel(c.date)}</td>
+                    <td className="max-w-48 truncate p-1.5" title={c.note}>
+                      {c.duplicate && <span className="mr-1 rounded bg-nx-surface-2 px-1">staat er al</span>}
+                      {c.note || '–'}
+                    </td>
+                    <td className="p-1.5 text-right whitespace-nowrap tabular-nums">{money(c.kind === 'expense' ? -c.amount : c.amount, true)}</td>
+                    <td className="p-1.5">
+                      <select value={categories[c.id] ?? c.category} onChange={(e) => setCategories({ ...categories, [c.id]: e.target.value })} aria-label={`Categorie van ${c.note || c.date}`} className={`${fieldBase} py-0.5 text-xs`}>
+                        {categoriesFor(c.kind).map((k) => (
+                          <option key={k}>{k}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      <div className="flex gap-2">
+        {result && (
+          <button
+            type="button"
+            className={primaryButton}
+            disabled={chosen.length === 0}
+            onClick={() => {
+              const n = importTransactions(chosen.map((c) => ({ id: c.id, kind: c.kind, amount: c.amount, category: categories[c.id] ?? c.category, note: c.note, date: c.date })))
+              onDone(`${n} ${n === 1 ? 'transactie' : 'transacties'} geïmporteerd.`)
+            }}
+          >
+            {chosen.length === 1 ? '1 transactie importeren' : `${chosen.length} transacties importeren`}
+          </button>
+        )}
+        <button type="button" className={button} onClick={() => onDone(null)}>
+          Annuleren
+        </button>
+      </div>
+    </section>
   )
 }

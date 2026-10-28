@@ -178,8 +178,8 @@ De app **Inzichten** toont hoe je laatste acht weken liepen: je focustijd met de
 De app **Financiën** (in het profiel Persoonlijk) is je persoonlijke budgetbeheer, volgens het ontwerp "NEXUS Finance". Alles typ je zelf in: er is geen bankkoppeling en NEXUS betaalt of zegt niets op. De app heeft zeven tabs:
 
 - **Overzicht**: per maand je uitgaven, inkomsten en het saldo van de maand, je budgetten, uitgaven per categorie, komende betalingen en spaardoelen.
-- **Transacties**: uitgaven, inkomsten en terugbetalingen toevoegen, bewerken, zoeken, filteren op maand, soort en categorie, en exporteren als CSV. Een terugbetaling verlaagt de uitgaven van haar categorie.
-- **Budgetten**: een grens per maand voor al je uitgaven samen of per categorie. Je kiest bij welke drempel je de eerste melding krijgt (standaard 80%), en bij 100% krijg je de tweede. Elke melding komt één keer per maand, hier en op je gsm.
+- **Transacties**: uitgaven, inkomsten en terugbetalingen toevoegen, bewerken, zoeken, filteren op maand, soort en categorie, en exporteren als CSV. Een terugbetaling verlaagt de uitgaven van haar categorie. Met **Importeren uit CSV** lees je de CSV-export van je bank in (KBC, Belfius, BNP Paribas Fortis, ING, Argenta…): NEXUS zoekt zelf de kolommen voor datum, bedrag en omschrijving (je kunt ze wijzigen), raadt de categorie uit de omschrijving en toont alles eerst. Wat er al staat, is niet aangevinkt, en hetzelfde bestand twee keer importeren geeft geen dubbels. Het bestand blijft op het apparaat.
+- **Budgetten**: een grens per maand voor al je uitgaven samen of per categorie. Je kiest bij welke drempel je de eerste melding krijgt (standaard 80%), en bij 100% krijg je de tweede. Elke melding komt één keer per maand, hier en op je gsm. Vink je aan dat het overschot doorschuift, dan komt wat aan het einde van de maand overblijft bij het budget van de volgende maand; meer uitgeven dan je budget wordt geen schuld.
 - **Sparen**: spaardoelen met een doelbedrag en optioneel een datum. Je ziet hoeveel je per maand opzij moet zetten om op tijd te zijn.
 - **Abonnementen**: vaste kosten met hun frequentie en volgende betaaldatum, en een herinnering om 09:00 (op de dag zelf of tot een week ervoor), ook als NEXUS dicht is via het gsm-vangnet. "Betaald" zet de betaling bij je transacties.
 - **Inzichten**: inkomsten en uitgaven per maand over 6 of 12 maanden, per categorie, en deze maand tegenover vorige maand.
@@ -189,7 +189,7 @@ De kaart **Financiën** op het dashboard toont alleen percentages, nooit bedrage
 
 Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028100000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat. Financiën vervangt de eerdere app Budget: wat daar stond (transacties en maandbudget, op het apparaat en in je account) neemt Financiën één keer over, het maandbudget als Totaalbudget.
 
-Nog niet gebouwd: triggers in Flow Studio, budgetten die overlopen naar de volgende maand, CSV-import en een bankkoppeling.
+Nog niet gebouwd: triggers in Flow Studio en een bankkoppeling.
 
 ## Weekoverzicht
 

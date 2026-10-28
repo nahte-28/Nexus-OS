@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { emptyFinance, type FinanceState } from '@nexus/core'
 import { financeStore, fireBudgetWarnings, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
 import { reveal } from '../search/reveal'
@@ -105,6 +105,48 @@ describe('Financiën', () => {
     const s = financeStore.getSnapshot()
     expect(s.transactions.map((t) => t.id)).toEqual(['old'])
     expect(s.budgets).toHaveLength(1)
+  })
+
+  it('imports a bank CSV after showing it, without doubles the second time', async () => {
+    const csv = 'Datum;Omschrijving;Bedrag;Naam tegenpartij\n31/10/2026;KAART;-23,45;DELHAIZE\n30/10/2026;OVERSCHRIJVING;1.250,00;RANDSTAD\n'
+    // Windows-1252, as some banks write: "é" is one byte that is no valid UTF-8.
+    const bytes = new Uint8Array([...new TextEncoder().encode(csv), ...[0x33, 0x30, 0x2f, 0x31, 0x30, 0x2f, 0x32, 0x30, 0x32, 0x36, 0x3b, 0x43, 0x61, 0x66, 0xe9, 0x3b, 0x2d, 0x34, 0x2c, 0x30, 0x30, 0x3b, 0x0a]])
+    render(<Finance />)
+    tab('Transacties')
+    for (const round of [1, 2]) {
+      fireEvent.click(screen.getByRole('button', { name: 'Importeren uit CSV' }))
+      fireEvent.change(screen.getByLabelText('CSV-bestand van je bank'), { target: { files: [new File([bytes], 'bank.csv', { type: 'text/csv' })] } })
+      await waitFor(() => screen.getByRole('table'))
+      expect(screen.getByText('Café')).toBeTruthy()
+      if (round === 1) {
+        expect(screen.getByRole('combobox', { name: 'Categorie van DELHAIZE · KAART' })).toHaveProperty('value', 'Eten en drinken')
+        fireEvent.click(screen.getByRole('checkbox', { name: /Café importeren/ }))
+        fireEvent.click(screen.getByRole('button', { name: '2 transacties importeren' }))
+        expect(screen.getByRole('status').textContent).toBe('2 transacties geïmporteerd.')
+      } else {
+        // The two from before are there already and not ticked; only Café is left.
+        expect(screen.getAllByText('staat er al')).toHaveLength(2)
+        fireEvent.click(screen.getByRole('button', { name: '1 transactie importeren' }))
+      }
+    }
+    const s = financeStore.getSnapshot()
+    expect(s.transactions.map((t) => [t.kind, t.amount, t.category])).toEqual([
+      ['expense', 2345, 'Eten en drinken'],
+      ['income', 125000, 'Job'],
+      ['expense', 400, 'Uitgaan'],
+    ])
+  })
+
+  it('carries what is left of a budget into the next month when asked', () => {
+    render(<Finance />)
+    tab('Budgetten')
+    const form = screen.getByRole('form', { name: 'Nieuw budget' })
+    fireEvent.change(within(form).getByPlaceholderText('bv. 250'), { target: { value: '100' } })
+    fireEvent.click(within(form).getByRole('checkbox', { name: /schuift door/ }))
+    fireEvent.click(within(form).getByRole('button', { name: 'Budget instellen' }))
+    const today = new Date()
+    expect(financeStore.getSnapshot().budgets[0].rolloverFrom).toBe(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
+    expect(screen.getByText(/overschot schuift door/)).toBeTruthy()
   })
 
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {

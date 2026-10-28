@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   budgetStatus,
+  carriedInto,
   budgetWarnings,
   emptyFinance,
   financeFromBudget,
@@ -59,8 +60,8 @@ describe('finance', () => {
 
   it('warns once per threshold per budget, only the highest when both pass at once', () => {
     const budgets = [
-      { id: 'all', category: '', limit: 10000, threshold: 80, updatedAt: 1, deletedAt: null },
-      { id: 'out', category: 'Uitgaan', limit: 2000, threshold: 50, updatedAt: 1, deletedAt: null },
+      { id: 'all', category: '', limit: 10000, threshold: 80, rolloverFrom: null, updatedAt: 1, deletedAt: null },
+      { id: 'out', category: 'Uitgaan', limit: 2000, threshold: 50, rolloverFrom: null, updatedAt: 1, deletedAt: null },
     ]
     const s = state({ budgets, transactions: [tx({ amount: 8500 })] })
     expect(budgetStatus(s, '2026-10', now).map((b) => [b.label, b.used])).toEqual([
@@ -72,6 +73,23 @@ describe('finance', () => {
     expect(first[1].refs).toEqual(['finance:2026-10:out@50', 'finance:2026-10:out@100'])
     expect(budgetWarnings(s, '2026-10', now, first.flatMap((w) => w.refs))).toEqual([])
     expect(budgetWarnings({ ...s, settings: { alerts: false, updatedAt: 2 } }, '2026-10', now, [])).toEqual([])
+  })
+
+  it('carries what is left of a budget into the next months, never a debt', () => {
+    const budget = { id: 'b', category: 'Uitgaan', limit: 5000, threshold: 80, rolloverFrom: '2026-08', updatedAt: 1, deletedAt: null }
+    const s = state({
+      budgets: [budget],
+      transactions: [tx({ amount: 3000, date: '2026-08-05' }), tx({ amount: 9000, date: '2026-09-05' }), tx({ amount: 1000, date: '2026-07-05' })],
+    })
+    // August leaves 20, September spends 90 of 70: nothing left, and no debt into October.
+    expect(carriedInto(s, budget, '2026-09', now)).toBe(2000)
+    expect(carriedInto(s, budget, '2026-10', now)).toBe(0)
+    expect(budgetStatus(s, '2026-09', now)[0]).toMatchObject({ carried: 2000, available: 7000, left: -2000, used: 129 })
+    // Without rollover only the limit counts; before rolloverFrom nothing carries.
+    expect(carriedInto(s, { ...budget, rolloverFrom: null }, '2026-09', now)).toBe(0)
+    expect(carriedInto(s, budget, '2026-08', now)).toBe(0)
+    const quiet = state({ budgets: [budget] })
+    expect(budgetStatus(quiet, '2026-10', now)[0]).toMatchObject({ carried: 10000, available: 15000 })
   })
 
   it('shows goal progress and what to save per month to make the date', () => {
@@ -113,7 +131,7 @@ describe('finance', () => {
     const old = { transactions: [{ id: 'a', kind: 'expense', amount: 450, category: 'Uitgaan', note: 'Cola', date: '2026-10-20', createdAt: 1, updatedAt: 1, deletedAt: null }], monthly: 25000, monthlyAt: 9, revision: 3 }
     const s = financeFromBudget(old)
     expect(s.transactions[0]).toMatchObject({ id: 'a', amount: 450, subscriptionId: null })
-    expect(s.budgets).toEqual([{ id: 'budget-total', category: '', limit: 25000, threshold: 80, updatedAt: 9, deletedAt: null }])
+    expect(s.budgets).toEqual([{ id: 'budget-total', category: '', limit: 25000, threshold: 80, rolloverFrom: null, updatedAt: 9, deletedAt: null }])
     // Taken over on two devices, it is still one budget.
     expect(mergeFinance(s, financeFromBudget(old)).budgets).toHaveLength(1)
     expect(financeFromBudget({ transactions: [], monthly: null }).budgets).toEqual([])
