@@ -91,6 +91,18 @@ export function addTransaction(draft: TransactionDraft, now = Date.now(), subscr
   return id
 }
 
+/** Adds the picked rows of a bank CSV; ids already present (an earlier import) are skipped. Returns how many were added. */
+export function importTransactions(rows: Array<TransactionDraft & { id: string }>, now = Date.now()): number {
+  const have = new Set(financeStore.getSnapshot().transactions.map((t) => t.id))
+  const fresh = rows.filter((r) => !have.has(r.id))
+  if (fresh.length === 0) return 0
+  update((s) => ({
+    ...s,
+    transactions: [...s.transactions, ...fresh.map((r) => ({ id: r.id, kind: r.kind, amount: r.amount, category: r.category, note: r.note.trim().slice(0, 200), date: r.date, subscriptionId: null, createdAt: now, updatedAt: now, deletedAt: null }))],
+  }))
+  return fresh.length
+}
+
 export function updateTransaction(id: string, draft: TransactionDraft, now = Date.now()) {
   update((s) => ({ ...s, transactions: edit(s.transactions, id, (t) => ({ ...t, ...draft, note: draft.note.trim().slice(0, 200), updatedAt: now })) }))
 }
@@ -100,11 +112,13 @@ export function removeTransaction(id: string, now = Date.now()) {
 }
 
 /** Sets the monthly limit for [category] ('' for all expenses), replacing the one it had. */
-export function setBudget(category: string, limit: number, threshold = DEFAULT_THRESHOLD, now = Date.now()) {
+export function setBudget(category: string, limit: number, threshold = DEFAULT_THRESHOLD, rollover = false, now = Date.now()) {
+  // Leftovers carry from the month rollover was switched on; switching off forgets them.
+  const from = (b?: CategoryBudget) => (rollover ? (b?.rolloverFrom ?? monthOf(now)) : null)
   update((s) => {
     const existing = s.budgets.find((b) => b.deletedAt === null && b.category === category)
-    if (existing) return { ...s, budgets: edit(s.budgets, existing.id, (b) => ({ ...b, limit, threshold, updatedAt: now })) }
-    const budget: CategoryBudget = { id: crypto.randomUUID(), category, limit, threshold, updatedAt: now, deletedAt: null }
+    if (existing) return { ...s, budgets: edit(s.budgets, existing.id, (b) => ({ ...b, limit, threshold, rolloverFrom: from(b), updatedAt: now })) }
+    const budget: CategoryBudget = { id: crypto.randomUUID(), category, limit, threshold, rolloverFrom: from(), updatedAt: now, deletedAt: null }
     return { ...s, budgets: [...s.budgets, budget] }
   })
 }
