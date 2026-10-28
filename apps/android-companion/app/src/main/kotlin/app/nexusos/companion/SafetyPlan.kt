@@ -54,12 +54,15 @@ class SafetyPlan(
     fun markShown(ref: String, now: Long): SafetyPlan =
         SafetyPlan(plans.mapValues { (_, items) -> items.filter { it.ref != ref } }, shown + (ref to now)).pruned(now)
 
-    /** The notices the phone has to show itself now. */
-    fun due(now: Long): List<PlannedNotice> =
-        pending().filter { it.at + GRACE_MS <= now && now - it.at <= STALE_MS }
+    /**
+     * The notices the phone has to show itself now. [grace] is how long it waits for NEXUS first;
+     * the watch app shows them on time ([grace] 0) and skips the copy NEXUS delivers later.
+     */
+    fun due(now: Long, grace: Long = GRACE_MS): List<PlannedNotice> =
+        pending().filter { it.at + grace <= now && now - it.at <= STALE_MS }
 
     /** When to look again: the first notice that is not due yet. */
-    fun nextCheck(now: Long): Long? = pending().map { it.at + GRACE_MS }.filter { it > now }.minOrNull()
+    fun nextCheck(now: Long, grace: Long = GRACE_MS): Long? = pending().map { it.at + grace }.filter { it > now }.minOrNull()
 
     /** Waiting notices, each ref once. */
     fun pending(): List<PlannedNotice> =
@@ -71,9 +74,9 @@ class SafetyPlan(
     )
 
     /** After showing what is [due]: drops what is too old to show as well. */
-    fun afterDue(now: Long): SafetyPlan {
+    fun afterDue(now: Long, grace: Long = GRACE_MS): SafetyPlan {
         var next = this
-        for (n in due(now)) next = next.markShown(n.ref, now)
+        for (n in due(now, grace)) next = next.markShown(n.ref, now)
         return next.pruned(now)
     }
 

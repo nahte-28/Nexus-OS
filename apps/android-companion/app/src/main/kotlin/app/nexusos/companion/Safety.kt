@@ -17,6 +17,14 @@ object Safety {
     private const val PREFS = "safety"
     private const val KEY = "plan"
 
+    /** How long to wait for NEXUS before showing a notice itself; the watch app sets 0. */
+    @Volatile
+    var grace: Long = SafetyPlan.GRACE_MS
+
+    /** The small line under a notice the device showed itself. */
+    @Volatile
+    var note: String? = "vangnet: NEXUS was niet bereikbaar"
+
     private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     @Synchronized
@@ -47,16 +55,16 @@ object Safety {
     fun fireDue(context: Context) {
         val now = System.currentTimeMillis()
         val plan = load(context)
-        for (n in plan.due(now)) {
+        for (n in plan.due(now, grace)) {
             Notifier.show(
                 context,
                 n.ref,
                 IncomingNotification("notification", "NEXUS", n.title, n.text, n.at, n.ref),
                 null,
-                note = "vangnet: NEXUS was niet bereikbaar",
+                note = note,
             )
         }
-        update(context) { it.afterDue(now) }
+        update(context) { it.afterDue(now, grace) }
     }
 
     /** Another account, or none: its plans no longer apply. */
@@ -65,7 +73,7 @@ object Safety {
     /** Sets the alarm again, e.g. after a restart of the phone. */
     fun reschedule(context: Context) = schedule(context, load(context))
 
-    fun pendingCount(context: Context): Int = load(context).pending().count { it.at > System.currentTimeMillis() - SafetyPlan.GRACE_MS }
+    fun pendingCount(context: Context): Int = load(context).pending().count { it.at > System.currentTimeMillis() - grace }
 
     private fun schedule(context: Context, plan: SafetyPlan) {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
@@ -76,7 +84,7 @@ object Safety {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val now = System.currentTimeMillis()
-        val next = if (plan.due(now).isNotEmpty()) now + 1000 else plan.nextCheck(now)
+        val next = if (plan.due(now, grace).isNotEmpty()) now + 1000 else plan.nextCheck(now, grace)
         if (next == null) {
             alarms.cancel(intent)
             return

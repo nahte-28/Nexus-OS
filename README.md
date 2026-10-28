@@ -9,7 +9,7 @@ Deze repository bevat versie **0.7**: een webdesktop met vensterbeheer, een mobi
 ```
 apps/web                React + TypeScript + Vite + Tailwind webapp (PWA)
 apps/desktop            Windows-app (Tauri) rond dezelfde interface
-apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt
+apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt, en in wear/ de horloge-app
 packages/core           Gedeelde types en logica: thema's, vensterbeheer, notities, sync, Connect
 supabase                Databaseschema (migraties) voor accounts, sync en Connect
 api                     Vercel-functies op de server, nu alleen NEXUS AI (api/ai.ts)
@@ -67,6 +67,19 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
 
+### Horloge-app (Wear OS)
+
+`apps/android-companion/wear` is een eigen app voor een Wear OS-horloge (Wear OS 4 of nieuwer, zoals de OnePlus Watch). GitHub Actions bouwt ze samen met de companion en zet `nexus-watch.apk` bij dezelfde [release](https://github.com/nahte-28/Nexus-OS/releases). Het horloge wordt een NEXUS Connect-apparaat van zichzelf, met een eigen sleutel in de keystore van het horloge: NEXUS stuurt het hetzelfde versleutelde vangnet als een gsm met de companion, en het horloge zet er zelf wekkers voor. Zo komen deadlines, herinneringen, afspraken, de Dagstart en flows met een melding naar de gsm ook op je pols als je gsm uit staat of ver weg is, zolang het horloge wifi of verbinding via de gsm heeft om het vangnet op te halen. Anders dan op de gsm wacht het horloge niet twee minuten op NEXUS: het toont een melding op het moment zelf, en de kopie die NEXUS daarna stuurt, verschijnt niet nog eens. Op het scherm zie je wat eraan komt.
+
+De app staat niet in de Play Store. Installeren gaat met ADB vanaf je pc:
+
+1. Zet op het horloge de ontwikkelaarsopties aan (Instellingen › Systeem › Over › tik zeven keer op het buildnummer) en zet daarin **ADB-foutopsporing** en **Draadloze foutopsporing** aan. Horloge en pc moeten op hetzelfde wifi zitten.
+2. Installeer op de pc de [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) en download `nexus-watch.apk` van de release.
+3. Tik bij Draadloze foutopsporing op **Koppelen met code** en typ op de pc `adb pair <ip>:<poort>` met het adres en de code van het horloge. Daarna `adb connect <ip>:<poort>` (het adres dat bovenaan Draadloze foutopsporing staat) en `adb install -r nexus-watch.apk`.
+4. Open NEXUS op het horloge, log in met je account en sta meldingen toe. In Apparaten op je pc staat het horloge dan met "(horloge)" achter de naam.
+
+Een nieuwe versie installeer je op dezelfde manier over de vorige heen; de app werkt zichzelf niet bij. Krijg je meldingen nu dubbel op je horloge (via Chrome of de companion op de gsm én via de horloge-app), zet dan in de OHealth-app de meldingen van Chrome of NEXUS Companion uit. Op de achtergrond haalt het horloge elk halfuur op wat NEXUS stuurde; met de app open is het live verbonden.
+
 ### Web-push (gsm zonder companion)
 
 Kan de companion niet op je gsm (bijvoorbeeld door ouderlijk toezicht), open NEXUS dan in Chrome op de gsm, meld je aan en kies in Apparaten "Meldingen aanzetten". De pc versleutelt het vangnet dan per melding voor die browser en zet het in `push_schedule`; elke minuut stuurt Supabase (pg_cron + pg_net) wat aan de beurt is naar `/api/push`, dat de gsm via Chrome wekt. De service worker (`apps/web/public/push-sw.js`) ontsleutelt de melding met de sleutel van het toestel en toont ze, ook als NEXUS dicht is; Chrome geeft ze door aan het horloge. De server ziet alleen versleutelde inhoud en de `ref`. Meldingen komen tot een minuut na het tijdstip. Eenmalig instellen: Developer › Web-push maakt de sleutels voor Vercel (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `PUSH_SECRET`) en de SQL-regel voor `nexus_private.push_config`, na de migratie `supabase/migrations/20261021100000_push.sql`.
@@ -108,6 +121,7 @@ Profielen (School, Persoonlijk, Gaming, Developer) bepalen het thema en de accen
 
 - **Overzicht**: wisselen met de hand, voor een uur, tot het einde van de dag, tot het schema wisselt of tot je zelf terugschakelt.
 - **Lesrooster**: lessen met de hand, of automatisch via de link van "Koppel agenda" op het AP-intranet (dezelfde die KlasHub gebruikt). Ook de KlasHub-link staat hier.
+- **Google Agenda**: plak het "Geheime adres in iCal-indeling" (Google Agenda op een computer, Instellingen, je agenda, "Agenda integreren"). De afspraken verschijnen in de Agenda en de Dagstart, en de Studieplanner plant eromheen. NEXUS leest alleen, haalt de agenda elke paar uur opnieuw op en herhaalt terugkerende afspraken zelf; hele dagen tellen niet mee. Het adres gaat mee met je profielen, dus geen SQL nodig.
 - **Automatisch**: School Mode op een tijdschema (standaard ma–vr 08:30–18:00). Na het schema gaat NEXUS terug naar het profiel dat je ervoor koos, anders naar het standaardprofiel. Open vensters blijven altijd open.
 - **Meldingen**: een stil profiel toont gsm-meldingen alleen in Meldingen; apps die je toevoegt bij "Altijd doorlaten" geven toch een pop-up. Herinneringen gaan altijd af.
 - **Apparaten**: met een account gaan profielen mee naar je andere toestellen, of je houdt ze per toestel apart.
@@ -116,7 +130,7 @@ Instellen (eenmalig):
 
 - Voer `supabase/migrations/20261020100000_settings.sql` uit in de SQL Editor van Supabase, voor het synchroniseren tussen toestellen.
 - Voer ook `supabase/migrations/20261020140000_flows.sql` uit, voor Flow Studio op al je apparaten.
-- Optioneel in Vercel: `NEXUS_CALENDAR_HOSTS` (standaard `apih.ap.be`), de adressen waarvan `api/calendar.ts` een agendalink mag ophalen.
+- Optioneel in Vercel: `NEXUS_CALENDAR_HOSTS` (standaard `apih.ap.be`), de adressen waarvan `api/calendar.ts` een agendalink mag ophalen. Het iCal-adres van Google Agenda (`calendar.google.com/calendar/ical/...`) mag altijd.
 
 Beperkingen: NEXUS kan alleen zijn eigen meldingen stil zetten, niet die van andere apps op je gsm of horloge, en een webapp ziet niet welke andere apps er draaien. Wisselen op basis van een app of agenda-afspraak zit er daarom nog niet in. KlasHub opent in je browser (ook vanuit de Windows-app), omdat de site niet ingesloten mag worden.
 
@@ -144,6 +158,12 @@ Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, i
 ## Studieplanner
 
 De app **Studie** heeft een **focustimer** (pomodoro: standaard 25 minuten focus, 5 minuten pauze, na 4 rondes 15 minuten). De timer loopt door als je het venster sluit, toont hoeveel je vandaag en deze week gefocust hebt, en stuurt aan het einde van elke ronde een melding, als je wilt ook op gsm en horloge. **Planning** verdeelt de tijd die je nog nodig hebt voor je open deadlines over je vrije uren (standaard weekdagen 17–21 u en het weekend 10–17 u), buiten je lessen en afspraken en altijd voor de deadline. Met "In Agenda zetten" komen de blokken als afspraken in de Agenda; opnieuw plannen vervangt de vorige blokken. De timer, schattingen en uren blijven op het apparaat.
+
+**Examens** (Examenplanner): per examen het vak (voorstellen uit Cijfers), datum en uur, duur, lokaal, hoeveel studietijd je nodig hebt en eventueel een stapel Leerkaarten. Elk examen komt als afspraak in de Agenda met herinneringen de dag ervoor en een uur ervoor (ook op gsm). Focustijd waarvan de taak de naam van het vak bevat, telt af van de studietijd; Planning spreidt wat overblijft over de dagen voor het examen (studeren stopt de avond ervoor). Examens syncen met een account (sleutel `exams` in `user_settings`); voer daarvoor eenmalig `supabase/migrations/20261028120000_exams_journal.sql` uit in de SQL Editor van Supabase.
+
+## Dagboek
+
+De app **Dagboek** (in Persoonlijk, na Gewoontes): per dag je stemming (vijf gezichtjes) en een korte notitie. Je ziet hoeveel dagen op rij je schreef, je stemming per week (ook in **Inzichten**) en kunt eerdere dagen openen en doorzoeken. Een dag zonder stemming en notitie wordt gewist. Met een account synct het dagboek (sleutel `journal` in `user_settings`, met RLS); dezelfde migratie als de Examenplanner: `supabase/migrations/20261028120000_exams_journal.sql`. NEXUS AI krijgt het dagboek nooit.
 
 ## Bestanden en studiehulp
 
@@ -226,6 +246,6 @@ Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsbove
 - NEXUS Life: agenda met lessen, deadlines, afspraken en projecten, offline en gesynct, met meldingen vooraf.
 - Bestanden: eigen bestanden op al je apparaten, mappen van je pc, en AI-samenvattingen met feedback.
 - Profielen wissel je in de app Profielen.
-- Studieplanner: focustimer en studieblokken voor je deadlines.
+- Studieplanner: focustimer, examenplanner en studieblokken voor je deadlines en examens.
 
 Nog niet klaar: een eigen Wear OS-app, en deadlines toevoegen via NEXUS AI.

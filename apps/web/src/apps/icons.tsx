@@ -223,3 +223,10 @@ export const MicIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
   </svg>
 )
+
+export const JournalIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+    <path d="M8 3v18M11 8h4M11 12h4" />
+  </svg>
+)

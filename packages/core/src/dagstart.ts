@@ -46,7 +46,7 @@ export function dagstartNotice(input: AgendaInput, dayStart: number, settings: P
   const entries = agendaDay(input, dayStart)
   const lines = entries.map((e) => {
     const time = clock(e.at)
-    const label = e.kind === 'deadline' ? `Deadline: ${e.title}` : e.kind === 'appointment' ? `Afspraak: ${e.title}` : e.kind === 'reminder' ? `Herinnering: ${e.title}` : e.title
+    const label = e.kind === 'deadline' ? `Deadline: ${e.title}` : e.kind === 'appointment' || e.kind === 'event' ? `Afspraak: ${e.title}` : e.kind === 'reminder' ? `Herinnering: ${e.title}` : e.title
     return `${time} ${label}${e.detail && e.kind !== 'reminder' ? ` · ${e.detail}` : ''}`
   })
   const shown = lines.length > MAX_LINES ? [...lines.slice(0, MAX_LINES - 1), `en nog ${lines.length - MAX_LINES + 1}`] : lines
@@ -60,7 +60,7 @@ export function dagstartNotice(input: AgendaInput, dayStart: number, settings: P
 
   const lessons = entries.filter((e) => e.kind === 'lesson').length
   const deadlines = entries.filter((e) => e.kind === 'deadline').length
-  const appointments = entries.filter((e) => e.kind === 'appointment').length
+  const appointments = entries.filter((e) => e.kind === 'appointment' || e.kind === 'event').length
   const parts = [lessons && count(lessons, 'les', 'lessen'), appointments && count(appointments, 'afspraak', 'afspraken'), deadlines && count(deadlines, 'deadline', 'deadlines')].filter(Boolean)
   const summary = parts.length > 0 ? parts.join(', ') : entries.length > 0 ? count(entries.length, 'herinnering', 'herinneringen') : 'niets gepland'
   return {

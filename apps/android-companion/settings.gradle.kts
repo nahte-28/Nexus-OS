@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "nexus-companion"
 include(":app")
+// The Wear OS app: shares the Connect code of :app (see wear/build.gradle.kts).
+include(":wear")

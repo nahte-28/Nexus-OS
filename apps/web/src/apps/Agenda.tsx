@@ -127,7 +127,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   const overdue = deadlinesOf(items).filter((d) => d.doneAt === null && d.dueAt < now)
   // Seven days ahead; +1 hour per step keeps each start on the right day across a time change.
   const days = Array.from({ length: 7 }, (_, i) => startOfDay(today + i * DAY + 3_600_000))
-  const input = { calendarEvents: state.calendarEvents, timetable: state.lessons, items, reminders }
+  const input = { calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -179,10 +179,10 @@ function Entry({ entry, project }: { entry: AgendaEntry; project?: Project }) {
     <li className="flex items-baseline gap-2 rounded-md bg-nx-surface-2 px-2 py-1.5">
       <span className="w-24 shrink-0 text-nx-muted tabular-nums">
         {clock(entry.at)}
-        {entry.kind === 'lesson' || entry.kind === 'appointment' ? `–${clock(entry.end)}` : ''}
+        {entry.kind === 'lesson' || entry.kind === 'appointment' || entry.kind === 'event' ? `–${clock(entry.end)}` : ''}
       </span>
       <span className="min-w-0 flex-1">
-        {entry.kind === 'reminder' ? '⏰ ' : entry.kind === 'appointment' ? '📅 ' : ''}
+        {entry.kind === 'reminder' ? '⏰ ' : entry.kind === 'appointment' ? '📅 ' : entry.kind === 'event' ? '🗓️ ' : ''}
         {entry.title}
         {entry.detail && <span className="text-nx-muted"> · {entry.detail}</span>}
       </span>
@@ -627,7 +627,7 @@ function Dagstart() {
   const today = startOfDay(now)
   // The next morning it comes: today when the time is still ahead, else tomorrow.
   const nextDay = new Date(today).setHours(Number(settings.time.slice(0, 2)), Number(settings.time.slice(3, 5))) > now ? today : startOfDay(today + DAY + 3_600_000)
-  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, timetable: state.lessons, items, reminders }, nextDay, settings)
+  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }, nextDay, settings)
 
   const test = async () => {
     setStatus('Versturen…')

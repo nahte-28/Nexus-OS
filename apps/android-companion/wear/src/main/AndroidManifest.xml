@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Deadlines and reminders go off on the watch itself, on time, also without the phone. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:name="app.nexusos.watch.WatchApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="NEXUS"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- Works on its own, over the watch's Wi-Fi or Bluetooth link: no phone app needed. -->
+        <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />
+
+        <activity
+            android:name="app.nexusos.watch.WatchActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name="app.nexusos.companion.SafetyReceiver" android:exported="false" />
+        <receiver android:name="app.nexusos.watch.RefreshReceiver" android:exported="false" />
+        <receiver android:name="app.nexusos.watch.WatchBootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

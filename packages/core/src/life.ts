@@ -265,6 +265,7 @@ export type AgendaEntry =
   | { kind: 'deadline'; at: number; title: string; detail?: string; deadline: Deadline }
   | { kind: 'appointment'; at: number; end: number; title: string; detail?: string; appointment: Appointment }
   | { kind: 'reminder'; at: number; title: string; detail?: string }
+  | { kind: 'event'; at: number; end: number; title: string; detail?: string }
 
 /** UTC ms of HH:MM on the local day of [dayStart]. */
 function atTime(dayStart: number, time: string): number {
@@ -277,13 +278,15 @@ function atTime(dayStart: number, time: string): number {
 export interface AgendaInput {
   /** Lessons from the school calendar; when there are any, they replace the typed-in timetable. */
   calendarEvents: CalendarEvent[]
+  /** Events from a linked Google Agenda. */
+  googleEvents?: CalendarEvent[]
   timetable: Lesson[]
   items: LifeItem[]
   reminders: Reminder[]
 }
 
 /** Everything on one local day (from [dayStart], a local midnight), in time order. */
-export function agendaDay({ calendarEvents, timetable, items, reminders }: AgendaInput, dayStart: number): AgendaEntry[] {
+export function agendaDay({ calendarEvents, googleEvents = [], timetable, items, reminders }: AgendaInput, dayStart: number): AgendaEntry[] {
   const end = new Date(dayStart)
   end.setDate(end.getDate() + 1)
   const dayEnd = end.getTime()
@@ -295,6 +298,12 @@ export function agendaDay({ calendarEvents, timetable, items, reminders }: Agend
     const weekday = ((new Date(dayStart).getDay() + 6) % 7) + 1
     for (const l of timetable) {
       if (l.day === weekday) entries.push({ kind: 'lesson', at: atTime(dayStart, l.start), end: atTime(dayStart, l.end), title: l.subject, ...(l.room ? { detail: l.room } : {}) })
+    }
+  }
+  // Like appointments, a Google event shows on every day it covers.
+  for (const e of googleEvents) {
+    if (e.start < dayEnd && (e.end > dayStart || inDay(e.start))) {
+      entries.push({ kind: 'event', at: Math.max(e.start, dayStart), end: Math.min(e.end, dayEnd), title: e.subject, ...(e.room ? { detail: e.room } : {}) })
     }
   }
   const names = new Map(projectsOf(items).map((p) => [p.id, p.name]))

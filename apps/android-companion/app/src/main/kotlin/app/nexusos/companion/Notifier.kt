@@ -7,7 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 
-/** Shows messages from NEXUS as Android notifications; the watch app mirrors them to the watch. */
+/** Shows messages from NEXUS as Android notifications; on the phone, the watch app mirrors them to the watch. */
 object Notifier {
     private const val CHANNEL = "nexus"
 
@@ -30,7 +30,8 @@ object Notifier {
         val open = PendingIntent.getActivity(
             context,
             0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            // The app's own start screen: the companion on the phone, the watch app on the watch.
+            (context.packageManager.getLaunchIntentForPackage(context.packageName) ?: Intent()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE,
         )
         val builder = Notification.Builder(context, CHANNEL)

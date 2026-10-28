@@ -1,7 +1,13 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from 'react'
 import {
   agendaDay,
+  activeDecks,
   appointmentsOf,
+  countdownLabel,
+  deckStats,
+  examTasks,
+  studiedMinutes,
+  upcomingExams,
   DEFAULT_WINDOWS,
   openDeadlines,
   PHASE_LABELS,
@@ -10,23 +16,28 @@ import {
   studyBlockTitle,
   timeLeft,
   type Busy,
+  type Exam,
   type PlanResult,
   type StudyWindow,
 } from '@nexus/core'
+import { flashcardsStore } from '../flashcards/store'
+import { gradesStore } from '../grades/store'
 import { lifeStore } from '../life/store'
 import { useProfiles } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
+import { addExam, examsStore, examsSyncProblem, removeExam, updateExam, type ExamDraft } from '../study/exams'
 import { focusMinutes, focusStore } from '../study/timer'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Focus', 'Planning'] as const
+const TABS = ['Focus', 'Examens', 'Planning'] as const
 const DAY = 24 * 60 * 60_000
 const HORIZON_DAYS = 21
 
 const useLife = () => useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
 const useFocus = () => useSyncExternalStore(focusStore.subscribe, focusStore.getSnapshot)
+const useExams = () => useSyncExternalStore(examsStore.subscribe, examsStore.getSnapshot)
 
 function useNow(ms = 1000): number {
   const [now, setNow] = useState(Date.now)
@@ -53,7 +64,7 @@ function startOfDay(t: number): number {
   return d.getTime()
 }
 
-/** Studie: a focus timer, and study time planned before your deadlines. */
+/** Studie: a focus timer, your exams, and study time planned before your deadlines and exams. */
 export function Study() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Focus')
   return (
@@ -72,7 +83,7 @@ export function Study() {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : <Planning />}</div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : <Planning />}</div>
     </div>
   )
 }
@@ -170,6 +181,9 @@ function Planning() {
   const [plan, setPlan] = useState<PlanResult | null>(null)
   const [saved, setSaved] = useState<number | null>(null)
   const deadlines = openDeadlines(items).filter((d) => d.dueAt > now)
+  const exams = useExams()
+  const { log } = useFocus()
+  const examPlan = examTasks(exams, now, log)
 
   const setEstimate = (id: string, minutes: number) => {
     const next = { ...estimates, [id]: minutes }
@@ -185,17 +199,20 @@ function Planning() {
   }
 
   const make = () => {
-    // Lessons and appointments are busy; earlier study blocks are replaced, so they do not count.
+    // Lessons, appointments and Google Agenda events are busy; earlier study blocks are replaced, so they do not count.
     const busy: Busy[] = []
+    // The exams themselves are in the Agenda as appointments, so they count as busy too.
     const life = items.filter((i) => !(i.kind === 'appointment' && i.notes === STUDY_BLOCK_NOTE))
-    for (let d = 0; d <= HORIZON_DAYS; d++) {
+    for (let d = 0; d <= 60; d++) {
       const start = startOfDay(startOfDay(now) + d * DAY + 3_600_000)
-      for (const e of agendaDay({ calendarEvents: state.calendarEvents, timetable: state.lessons, items: life, reminders: [] }, start)) {
-        if (e.kind === 'lesson' || e.kind === 'appointment') busy.push({ start: e.at, end: e.end })
+      for (const e of agendaDay({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: life, reminders: [] }, start)) {
+        if (e.kind === 'lesson' || e.kind === 'appointment' || e.kind === 'event') busy.push({ start: e.at, end: e.end })
       }
     }
-    const tasks = deadlines.map((d) => ({ id: d.id, title: d.title, dueAt: d.dueAt, minutes: estimates[d.id] ?? DEFAULT_ESTIMATE }))
-    setPlan(planStudy(tasks, busy, now, { windows, blockMinutes, horizonDays: HORIZON_DAYS }))
+    const tasks = [...deadlines.map((d) => ({ id: d.id, title: d.title, dueAt: d.dueAt, minutes: estimates[d.id] ?? DEFAULT_ESTIMATE })), ...examPlan]
+    // Exams can be weeks away: look far enough ahead to spread their study time.
+    const horizonDays = Math.max(HORIZON_DAYS, ...examPlan.map((t) => Math.ceil((t.dueAt - now) / DAY)))
+    setPlan(planStudy(tasks, busy, now, { windows, blockMinutes, horizonDays: Math.min(horizonDays, 60) }))
     setSaved(null)
   }
 
@@ -213,9 +230,14 @@ function Planning() {
   const days = plan ? [...new Set(plan.blocks.map((b) => startOfDay(b.start)))] : []
   return (
     <>
-      <p className="text-nx-muted">NEXUS plant studieblokken voor je open deadlines in je vrije tijd: buiten je lessen en afspraken, en altijd voor de deadline. Wat het dichtst bij is, komt eerst.</p>
+      <p className="text-nx-muted">NEXUS plant studieblokken voor je open deadlines en examens in je vrije tijd: buiten je lessen en afspraken, en altijd voor de deadline. Wat het dichtst bij is, komt eerst.</p>
+      {examPlan.length > 0 && (
+        <p>
+          Ook {examPlan.length === 1 ? '1 examen' : `${examPlan.length} examens`} uit de Examenplanner: {examPlan.map((t) => `${t.title} (nog ${Math.round((t.minutes / 60) * 10) / 10} uur)`).join(', ')}.
+        </p>
+      )}
       {deadlines.length === 0 ? (
-        <p className="text-nx-muted">Geen open deadlines. Zet ze eerst in de Agenda.</p>
+        <p className="text-nx-muted">{examPlan.length > 0 ? 'Geen open deadlines.' : 'Geen open deadlines of examens. Zet ze eerst in de Agenda of de Examenplanner.'}</p>
       ) : (
         <section aria-label="Hoeveel tijd nodig" className="space-y-1">
           <h3 className="font-medium">Hoeveel tijd heb je nog nodig?</h3>
@@ -260,7 +282,7 @@ function Planning() {
           </label>
         </div>
       </details>
-      <button type="button" className={primaryButton} disabled={deadlines.length === 0} onClick={make}>
+      <button type="button" className={primaryButton} disabled={deadlines.length === 0 && examPlan.length === 0} onClick={make}>
         Planning maken
       </button>
       {plan && (
@@ -301,6 +323,175 @@ function Planning() {
           )}
         </section>
       )}
+    </>
+  )
+}
+
+const toLocalInput = (t: number) => {
+  const d = new Date(t)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function ExamForm({ initial, onDone }: { initial?: Exam; onDone: () => void }) {
+  const decks = activeDecks(useSyncExternalStore(flashcardsStore.subscribe, flashcardsStore.getSnapshot))
+  const courses = useSyncExternalStore(gradesStore.subscribe, gradesStore.getSnapshot).courses.filter((c) => c.deletedAt === null)
+  const [course, setCourse] = useState(initial?.course ?? '')
+  const [when, setWhen] = useState(() => toLocalInput(initial?.at ?? (() => {
+    const d = new Date(Date.now() + 14 * DAY)
+    d.setHours(9, 0, 0, 0)
+    return d.getTime()
+  })()))
+  const [minutes, setMinutes] = useState(initial?.minutes ?? 120)
+  const [location, setLocation] = useState(initial?.location ?? '')
+  const [hours, setHours] = useState(initial?.studyHours ?? 10)
+  const [deckId, setDeckId] = useState(initial?.deckId ?? '')
+  const at = new Date(when).getTime()
+  const valid = course.trim() !== '' && Number.isFinite(at)
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!valid) return
+    const draft: ExamDraft = { course, at, minutes, location, studyHours: Math.max(0, hours), deckId: deckId || null }
+    void (initial ? updateExam(initial.id, draft) : addExam(draft))
+    onDone()
+  }
+
+  return (
+    <form aria-label={initial ? 'Examen wijzigen' : 'Nieuw examen'} onSubmit={submit} className="space-y-2 rounded-lg border border-nx-border p-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input autoFocus list="exam-courses" value={course} onChange={(e) => setCourse(e.target.value)} maxLength={80} placeholder="Vak, bv. Elektronica 1" aria-label="Vak" className={field} />
+        <datalist id="exam-courses">
+          {courses.map((c) => (
+            <option key={c.id} value={c.name} />
+          ))}
+        </datalist>
+        <input type="datetime-local" value={when} onChange={(e) => e.target.value && setWhen(e.target.value)} aria-label="Wanneer" className={field} />
+        <input value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} placeholder="Lokaal (optioneel)" aria-label="Lokaal" className={field} />
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-nx-muted">Duur</span>
+          <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} aria-label="Duur" className={field}>
+            {[30, 60, 90, 120, 150, 180, 240].map((m) => (
+              <option key={m} value={m}>
+                {m < 60 ? `${m} min` : `${m / 60} uur`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-nx-muted">Studietijd</span>
+          <input type="number" min={0} max={200} step={0.5} value={hours} onChange={(e) => setHours(Number(e.target.value))} aria-label="Studietijd in uren" className={field} />
+          <span className="text-nx-muted">uur</span>
+        </label>
+        <select value={deckId} onChange={(e) => setDeckId(e.target.value)} aria-label="Leerkaarten" className={field}>
+          <option value="">Geen leerkaarten</option>
+          {decks.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="text-xs text-nx-muted">Het examen komt in je Agenda, met een herinnering de dag ervoor en een uur ervoor, ook op je gsm. Focustijd met de naam van het vak telt af van de studietijd.</p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          {initial ? 'Bewaren' : 'Examen toevoegen'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Exams({ onPlan }: { onPlan: () => void }) {
+  const state = useExams()
+  const { log } = useFocus()
+  const cards = useSyncExternalStore(flashcardsStore.subscribe, flashcardsStore.getSnapshot)
+  const problem = useSyncExternalStore(examsSyncProblem.subscribe, examsSyncProblem.getSnapshot)
+  const now = useNow(60_000)
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<string | null>(null)
+  const exams = upcomingExams(state, now)
+  const deckName = new Map(activeDecks(cards).map((d) => [d.id, d.name]))
+
+  return (
+    <>
+      {problem?.startsWith('setup:') && (
+        <p className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+          Je examens staan alleen op dit apparaat: de database is nog niet bijgewerkt. Voer <code className="font-mono text-xs">{problem.slice(6)}</code> uit in de SQL Editor van Supabase.
+        </p>
+      )}
+      <p className="text-nx-muted">Zet je examens erin met hoeveel studietijd je denkt nodig te hebben. De Studieplanner spreidt die tijd over de dagen ervoor, rond je lessen en afspraken.</p>
+      {adding ? (
+        <ExamForm onDone={() => setAdding(false)} />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
+            + Examen
+          </button>
+          {exams.length > 0 && (
+            <button type="button" className={button} onClick={onPlan}>
+              Studietijd plannen
+            </button>
+          )}
+        </div>
+      )}
+      {exams.length === 0 && !adding && <p className="text-nx-muted">Nog geen examens.</p>}
+      <ul className="space-y-2">
+        {exams.map((e) => {
+          if (editing === e.id)
+            return (
+              <li key={e.id}>
+                <ExamForm initial={e} onDone={() => setEditing(null)} />
+              </li>
+            )
+          const studied = studiedMinutes(e.course, log)
+          const needed = e.studyHours * 60
+          const percent = needed > 0 ? Math.min(100, Math.round((studied / needed) * 100)) : 100
+          const deck = e.deckId ? deckStats(cards, e.deckId, now) : null
+          return (
+            <li key={e.id} className="space-y-2 rounded-lg border border-nx-border p-3">
+              <div className="flex flex-wrap items-start gap-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{e.course}</span>
+                  <span className="block text-xs text-nx-muted">
+                    {dayTitle(e.at)} om {clock(e.at)}
+                    {e.location && ` · ${e.location}`}
+                  </span>
+                </span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${countdownLabel(e.at, now) === 'vandaag' || countdownLabel(e.at, now) === 'morgen' ? 'bg-red-500/15 text-red-600' : 'bg-nx-surface-2'}`}>
+                  {countdownLabel(e.at, now)}
+                </span>
+              </div>
+              {needed > 0 && (
+                <div className="space-y-1">
+                  <div role="meter" aria-label={`${e.course} gestudeerd`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-2 rounded-full bg-nx-surface-2">
+                    <div className="h-2 rounded-full bg-nx-accent" style={{ width: `${percent}%` }} />
+                  </div>
+                  <p className="text-xs text-nx-muted">
+                    {Math.round((studied / 60) * 10) / 10} van {e.studyHours} uur gestudeerd met de focustimer
+                  </p>
+                </div>
+              )}
+              {deck && (
+                <p className="text-xs">
+                  Leerkaarten {deckName.get(e.deckId!) ?? ''}: {deck.due > 0 ? `${deck.due} om te herhalen` : 'niets te herhalen vandaag'}, {deck.learned} van {deck.total} gekend.
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button type="button" className="rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2" onClick={() => setEditing(e.id)}>
+                  Wijzigen
+                </button>
+                <button type="button" className="rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2" aria-label={`Examen ${e.course} verwijderen`} onClick={() => void removeExam(e.id)}>
+                  Verwijderen
+                </button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+      <p className="text-xs text-nx-muted">Tip: zet de naam van het vak in de taak van de focustimer, dan telt die tijd mee.</p>
     </>
   )
 }

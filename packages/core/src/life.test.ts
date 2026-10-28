@@ -76,6 +76,12 @@ describe('NEXUS Life', () => {
     // Lessons from the school calendar replace the typed-in timetable.
     const calendarEvents = [{ start: at(13), end: at(15), subject: 'Labo' }]
     expect(agendaDay({ calendarEvents, timetable, items: [], reminders: [] }, dayStart).map((e) => e.title)).toEqual(['Labo'])
+    // Google Agenda events come next to the lessons, not instead of them.
+    const googleEvents = [{ start: at(16), end: at(17), subject: 'Tandarts', room: 'Centrum' }]
+    expect(agendaDay({ calendarEvents, googleEvents, timetable, items: [], reminders: [] }, dayStart).map((e) => [e.kind, e.title, e.detail])).toEqual([
+      ['lesson', 'Labo', undefined],
+      ['event', 'Tandarts', 'Centrum'],
+    ])
   })
 
   it('plans appointments: validation, notices and every day they cover', () => {

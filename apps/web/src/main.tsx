@@ -16,6 +16,8 @@ import { startWeekReview } from './review/week'
 import { openCaptureFromUrl } from './capture/open'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
+import { startExamsSync } from './study/exams'
+import { startJournalSync } from './journal/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
@@ -62,6 +64,8 @@ startGradesSync(supabase)
 // Gewoontes: ticked off on every device, with a reminder when one is still open.
 startHabitsSync(supabase)
 startFlashcardsSync(supabase)
+startExamsSync(supabase)
+startJournalSync(supabase)
 startFinanceSync(supabase)
 // Financiën: budget notices at their threshold and 100%, and subscription reminders, here and on the phone.
 startFinanceAlerts(defaultEngine)

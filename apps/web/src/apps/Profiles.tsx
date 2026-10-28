@@ -15,7 +15,7 @@ import {
   type WidgetId,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
-import { syncCalendar } from '../profiles/calendar'
+import { syncCalendar, syncGoogle } from '../profiles/calendar'
 import { chooseFor, profilesStore, useProfiles, type ChoiceDuration } from '../profiles/store'
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
 import { ACCENTS } from '../theme/accents'
@@ -267,6 +267,7 @@ function Timetable() {
       )}
 
       <CalendarLink />
+      <GoogleLink />
 
       <form
         className="space-y-2 border-t border-nx-border pt-4"
@@ -347,6 +348,65 @@ function CalendarLink() {
       {synced !== null && (
         <p className="text-nx-muted">
           {state.calendarEvents.length} lessen, bijgewerkt{' '}
+          {new Date(synced).toLocaleString('nl-BE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+        </p>
+      )}
+    </form>
+  )
+}
+
+/** A Google Agenda iCal address: its events show in the Agenda and the Studieplanner plans around them. */
+function GoogleLink() {
+  const { state } = useProfiles()
+  const [link, setLink] = useState(state.googleUrl)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const synced = state.googleSyncedAt
+  return (
+    <form
+      aria-label="Google Agenda"
+      className="space-y-2 border-t border-nx-border pt-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setBusy(true)
+        setMessage(null)
+        void syncGoogle(link).then((error) => {
+          setBusy(false)
+          setMessage(error ?? 'Je Google Agenda is opgehaald.')
+        })
+      }}
+    >
+      <label className="flex flex-col gap-1">
+        Google Agenda (iCal-adres)
+        <input type="url" className={field} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/..." />
+      </label>
+      <p className="text-nx-muted">
+        Open Google Agenda op een computer, ga naar Instellingen, kies links je agenda en kopieer onder "Agenda integreren" het "Geheime adres in
+        iCal-indeling". Je afspraken verschijnen dan in de Agenda en de Studieplanner plant eromheen. NEXUS leest alleen; deel dit adres met
+        niemand, want wie het heeft, kan je agenda lezen. Hele dagen tellen niet mee.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="submit" className={primaryButton} disabled={busy || !link.trim()}>
+          {busy ? 'Ophalen...' : 'Google Agenda ophalen'}
+        </button>
+        {state.googleUrl && (
+          <button
+            type="button"
+            className={button}
+            onClick={() => {
+              profilesStore.update((s) => ({ ...s, googleUrl: '', googleEvents: [], googleSyncedAt: null }))
+              setLink('')
+              setMessage(null)
+            }}
+          >
+            Ontkoppelen
+          </button>
+        )}
+      </div>
+      {message && <p role="status">{message}</p>}
+      {synced !== null && (
+        <p className="text-nx-muted">
+          {state.googleEvents.length} afspraken, bijgewerkt{' '}
           {new Date(synced).toLocaleString('nl-BE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
         </p>
       )}
