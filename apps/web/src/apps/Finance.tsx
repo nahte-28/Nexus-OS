@@ -26,6 +26,7 @@ import {
   monthSeries,
   monthSummary,
   parseAmount,
+  recurringPerMonth,
   shiftMonth,
   TOTAL_BUDGET,
   transactionsCsv,
@@ -33,6 +34,7 @@ import {
   type Cycle,
   type FinanceActionId,
   type MoneyKind,
+  type RecurringItem,
   type SavingsGoal,
   type Subscription,
   type Transaction,
@@ -40,6 +42,7 @@ import {
 import {
   addContribution,
   addGoal,
+  addRecurring,
   addSubscription,
   addTransaction,
   clearFinance,
@@ -49,14 +52,17 @@ import {
   markPaid,
   removeBudget,
   removeContribution,
+  removeRecurring,
   removeGoal,
   removeSubscription,
   removeTransaction,
   setAlerts,
   setBudget,
   updateGoal,
+  updateRecurring,
   updateSubscription,
   updateTransaction,
+  type RecurringDraft,
   type SubscriptionDraft,
   type TransactionDraft,
 } from '../finance/store'
@@ -75,7 +81,7 @@ type Tab = (typeof TABS)[number]
 const HIDDEN_KEY = 'nexus.finance.hidden'
 
 /** Which tab a shortcut from Zoeken overal opens, and whether its form opens with it. */
-const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen' }
+const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen', 'new-recurring': 'Abonnementen' }
 
 const useFinance = () => useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
 
@@ -136,7 +142,7 @@ export function Finance() {
           {tab === 'Transacties' && <Transactions openAt={opens('new-transaction')} />}
           {tab === 'Budgetten' && <Budgets />}
           {tab === 'Sparen' && <Goals openAt={opens('new-goal')} />}
-          {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} />}
+          {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} openRecurringAt={opens('new-recurring')} />}
           {tab === 'Inzichten' && <Insights />}
           {tab === 'Instellingen' && <Settings hidden={hidden} onHidden={toggleHidden} />}
         </div>
@@ -849,7 +855,7 @@ function SubscriptionForm({ initial, onDone }: { initial?: Subscription; onDone:
   )
 }
 
-function Subscriptions({ openAt }: { openAt: number }) {
+function Subscriptions({ openAt, openRecurringAt }: { openAt: number; openRecurringAt: number }) {
   const state = useFinance()
   const money = useMoney()
   const [adding, setAdding] = useState(openAt > 0)
@@ -906,7 +912,136 @@ function Subscriptions({ openAt }: { openAt: number }) {
         )}
       </ul>
       {subs.length > 0 && <p className="text-xs text-nx-muted">"Betaald" zet de betaling bij je transacties en schuift de datum één periode op.</p>}
+      <RecurringList openAt={openRecurringAt} />
     </>
+  )
+}
+
+function RecurringForm({ initial, onDone }: { initial?: RecurringItem; onDone: () => void }) {
+  const [kind, setKind] = useState<RecurringItem['kind']>(initial?.kind ?? 'income')
+  const [name, setName] = useState(initial?.name ?? '')
+  const [amount, setAmount] = useState(initial ? amountText(initial.amount) : '')
+  const [cycle, setCycle] = useState<Cycle>(initial?.cycle ?? 'monthly')
+  const [next, setNext] = useState(initial?.next ?? dateKey(Date.now()))
+  const [category, setCategory] = useState(initial?.category ?? (kind === 'income' ? 'Zakgeld' : 'Andere'))
+  const cents = parseAmount(amount)
+  const valid = cents !== null && name.trim() !== ''
+  const categories = categoriesFor(kind)
+  return (
+    <form
+      aria-label={initial ? 'Vast bedrag wijzigen' : 'Nieuw vast bedrag'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        const draft: RecurringDraft = { kind, name, amount: cents, cycle, next, category: categories.includes(category) ? category : 'Andere' }
+        if (initial) updateRecurring(initial.id, draft)
+        else addRecurring(draft)
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <select
+          value={kind}
+          onChange={(e) => {
+            const k = e.target.value as RecurringItem['kind']
+            setKind(k)
+            setCategory(k === 'income' ? 'Zakgeld' : 'Andere')
+          }}
+          aria-label="Soort"
+          className={field}
+        >
+          <option value="income">Inkomen</option>
+          <option value="expense">Uitgave</option>
+        </select>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Naam, bv. Zakgeld" aria-label="Naam" className={field} />
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Bedrag, bv. 50" aria-label="Bedrag" className={field} />
+        <select value={cycle} onChange={(e) => setCycle(e.target.value as Cycle)} aria-label="Frequentie" className={field}>
+          {(Object.keys(CYCLE_LABELS) as Cycle[]).map((c) => (
+            <option key={c} value={c}>
+              {CYCLE_LABELS[c]}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Volgende</span>
+          <input type="date" value={next} onChange={(e) => e.target.value && setNext(e.target.value)} aria-label="Volgende datum" className={field} />
+        </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={field}>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <p className="text-xs text-nx-muted">Op elke datum zet NEXUS het bedrag vanzelf bij je transacties. Ligt de datum in het verleden, dan komen ook de gemiste keren erbij (hoogstens 12).</p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          {initial ? 'Bewaren' : 'Vast bedrag toevoegen'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function RecurringList({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [editing, setEditing] = useState<string | null>(null)
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const items = alive(state.recurring).sort((a, b) => a.next.localeCompare(b.next))
+  const perMonth = recurringPerMonth(state)
+
+  return (
+    <Section
+      title="Vaste bedragen"
+      action={
+        !adding && (
+          <button type="button" className={smallButton} onClick={() => setAdding(true)}>
+            + Vast bedrag
+          </button>
+        )
+      }
+    >
+      <p className="text-xs text-nx-muted">Loon, zakgeld, huur of kotgeld: wat elke keer hetzelfde is, komt vanzelf in je transacties.</p>
+      {items.length > 0 && (
+        <p className="text-xs">
+          Per maand gemiddeld <span className="font-medium">{money(perMonth.income)}</span> erbij en <span className="font-medium">{money(perMonth.expenses)}</span> eraf.
+        </p>
+      )}
+      {adding && <RecurringForm key={openAt} onDone={() => setAdding(false)} />}
+      {items.length === 0 && !adding && <p className="text-nx-muted">Nog geen vaste bedragen.</p>}
+      <ul className="space-y-2">
+        {items.map((r) =>
+          editing === r.id ? (
+            <li key={r.id}>
+              <RecurringForm initial={r} onDone={() => setEditing(null)} />
+            </li>
+          ) : (
+            <li key={r.id} className={`${card} flex flex-wrap items-center gap-2`}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{r.name}</span>
+                <span className="block text-xs text-nx-muted">
+                  {r.kind === 'income' ? '+' : '−'}
+                  {money(r.amount)} {CYCLE_LABELS[r.cycle].toLowerCase()} · {r.category} · volgende {dayLabel(r.next)}
+                </span>
+              </span>
+              <button type="button" className={smallButton} onClick={() => setEditing(r.id)}>
+                Wijzigen
+              </button>
+              <button type="button" className={smallButton} aria-label={`Vast bedrag ${r.name} stoppen`} onClick={() => removeRecurring(r.id)}>
+                ✕
+              </button>
+            </li>
+          ),
+        )}
+      </ul>
+    </Section>
   )
 }
 

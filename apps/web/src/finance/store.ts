@@ -2,14 +2,17 @@ import {
   budgetWarnings,
   dateKey,
   DEFAULT_THRESHOLD,
+  dueRecurring,
   emptyFinance,
   financeFromBudget,
   mergeFinance,
   monthOf,
   nextDate,
   parseFinanceState,
+  recurringTransactionId,
   subscriptionNotices,
   type CategoryBudget,
+  type RecurringItem,
   type FinanceState,
   type SavingsGoal,
   type Subscription,
@@ -179,6 +182,55 @@ export function markPaid(id: string, now = Date.now()) {
   update((s) => ({ ...s, subscriptions: edit(s.subscriptions, id, (x) => ({ ...x, next: nextDate(x.next, x.cycle), updatedAt: now })) }))
 }
 
+export type RecurringDraft = Pick<RecurringItem, 'name' | 'kind' | 'amount' | 'category' | 'cycle' | 'next'>
+
+export function addRecurring(draft: RecurringDraft, now = Date.now()): string {
+  const id = crypto.randomUUID()
+  update((s) => ({ ...s, recurring: [...s.recurring, { ...draft, name: draft.name.trim().slice(0, 80) || 'Vast bedrag', id, createdAt: now, updatedAt: now, deletedAt: null }] }))
+  applyRecurring(now)
+  return id
+}
+
+export function updateRecurring(id: string, draft: RecurringDraft, now = Date.now()) {
+  update((s) => ({ ...s, recurring: edit(s.recurring, id, (r) => ({ ...r, ...draft, name: draft.name.trim().slice(0, 80) || r.name, updatedAt: now })) }))
+  applyRecurring(now)
+}
+
+/** Stops a fixed amount; what it already added stays in the transactions. */
+export function removeRecurring(id: string, now = Date.now()) {
+  update((s) => ({ ...s, recurring: edit(s.recurring, id, (r) => ({ ...r, name: '', amount: 0, deletedAt: now, updatedAt: now })) }))
+}
+
+/**
+ * Adds the transactions of fixed amounts whose date has come, and moves each on to its next date.
+ * A transaction that is there already (from another device, or deleted by hand) is not added again.
+ */
+export function applyRecurring(now = Date.now(), store = financeStore): number {
+  const due = dueRecurring(store.getSnapshot(), dateKey(now))
+  if (due.length === 0) return 0
+  let added = 0
+  store.update((s) => {
+    const have = new Set(s.transactions.map((t) => t.id))
+    const fresh: Transaction[] = []
+    for (const { item, dates } of due) {
+      for (const day of dates) {
+        const id = recurringTransactionId(item, day)
+        if (have.has(id)) continue
+        fresh.push({ id, kind: item.kind, amount: item.amount, category: item.category, note: item.name, date: day, subscriptionId: null, createdAt: now, updatedAt: now, deletedAt: null })
+      }
+    }
+    added = fresh.length
+    const next = new Map(due.map((d) => [d.item.id, d.next]))
+    return {
+      ...s,
+      transactions: [...s.transactions, ...fresh],
+      recurring: s.recurring.map((r) => (next.has(r.id) ? { ...r, next: next.get(r.id)!, updatedAt: now } : r)),
+    }
+  })
+  if (added > 0) logEvent('system', `Financiën: ${added} vaste ${added === 1 ? 'bedrag' : 'bedragen'} toegevoegd`)
+  return added
+}
+
 export function setAlerts(alerts: boolean, now = Date.now()) {
   update((s) => ({ ...s, settings: { alerts, updatedAt: now } }))
 }
@@ -197,6 +249,7 @@ export function clearFinance(now = Date.now()) {
       goals: s.goals.map((g) => ({ ...gone(g), name: '', target: 0, due: null })),
       contributions: s.contributions.map((c) => ({ ...gone(c), amount: 0 })),
       subscriptions: s.subscriptions.map((x) => ({ ...gone(x), name: '', amount: 0 })),
+      recurring: s.recurring.map((r) => ({ ...gone(r), name: '', amount: 0 })),
       settings: { alerts: true, updatedAt: now },
       revision: s.revision,
     }
@@ -244,7 +297,7 @@ export async function fireSubscriptionNotices(state: FinanceState, effects: Dead
   return due.length
 }
 
-/** Budget notices after every change and subscription reminders on time, while NEXUS runs; one tab does it. */
+/** Fixed amounts on their date, budget notices after every change and subscription reminders on time, while NEXUS runs; one tab does it. */
 export function startFinanceAlerts(connect: Pick<ConnectEngine, 'notifyPhones'>, store = financeStore): () => void {
   let stopped = false
   let timer: ReturnType<typeof setInterval> | undefined
@@ -254,6 +307,7 @@ export function startFinanceAlerts(connect: Pick<ConnectEngine, 'notifyPhones'>,
   const run = () => {
     const budgets = () => void fireBudgetWarnings(store.getSnapshot(), effects)
     const tick = () => {
+      applyRecurring()
       budgets()
       void fireSubscriptionNotices(store.getSnapshot(), effects)
     }

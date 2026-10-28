@@ -77,7 +77,7 @@ export interface FlowContext {
 export interface FinanceFlowFacts {
   budgets: { id: string; month: string; label: string; used: number; left: string }[]
   payments: { id: string; name: string; amount: string; date: string; dateLabel: string }[]
-  expenses: { id: string; amount: number; amountText: string; category: string; createdAt: number; imported: boolean }[]
+  expenses: { id: string; amount: number; amountText: string; category: string; createdAt: number; /** From a bank import or a fixed amount, not typed in. */ imported: boolean }[]
 }
 
 /** One thing that happened and may start a flow. The id makes a run happen once per event. */

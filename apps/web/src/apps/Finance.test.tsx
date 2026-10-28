@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { emptyFinance, type FinanceState } from '@nexus/core'
-import { financeStore, fireBudgetWarnings, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
+import { applyRecurring, financeStore, fireBudgetWarnings, removeTransaction, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
 import { reveal } from '../search/reveal'
 
 const { Finance } = await import('./Finance')
@@ -147,6 +147,34 @@ describe('Financiën', () => {
     const today = new Date()
     expect(financeStore.getSnapshot().budgets[0].rolloverFrom).toBe(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
     expect(screen.getByText(/overschot schuift door/)).toBeTruthy()
+  })
+
+  it('adds a fixed amount by itself on its date, once, and not again after deleting it', () => {
+    render(<Finance />)
+    tab('Abonnementen')
+    fireEvent.click(screen.getByRole('button', { name: '+ Vast bedrag' }))
+    const form = screen.getByRole('form', { name: 'Nieuw vast bedrag' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Naam' }), { target: { value: 'Zakgeld' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Bedrag' }), { target: { value: '50' } })
+    const today = new Date()
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const day = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    fireEvent.change(within(form).getByLabelText('Volgende datum'), { target: { value: day(lastMonth) } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Vast bedrag toevoegen' }))
+    let s = financeStore.getSnapshot()
+    // Last month and this month, as income in Zakgeld.
+    expect(s.transactions.map((t) => [t.kind, t.amount, t.category, t.note])).toEqual([
+      ['income', 5000, 'Zakgeld', 'Zakgeld'],
+      ['income', 5000, 'Zakgeld', 'Zakgeld'],
+    ])
+    expect(s.recurring[0].next > day(today)).toBe(true)
+    expect(screen.getByText(/erbij/)).toBeTruthy()
+
+    act(() => removeTransaction(s.transactions[1].id))
+    act(() => financeStore.update((x) => ({ ...x, recurring: x.recurring.map((r) => ({ ...r, next: s.transactions[1].date })) })))
+    expect(applyRecurring()).toBe(0)
+    s = financeStore.getSnapshot()
+    expect(s.transactions.filter((t) => t.deletedAt === null)).toHaveLength(1)
   })
 
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {
