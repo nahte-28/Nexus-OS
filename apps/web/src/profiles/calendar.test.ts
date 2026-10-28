@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { defaultProfilesState } from '@nexus/core'
-import { syncCalendar } from './calendar'
+import { syncCalendar, syncGoogle } from './calendar'
 import { ProfilesStore } from './store'
 
 const NOW = Date.parse('2026-10-20T07:00:00Z')
@@ -28,5 +28,18 @@ describe('school calendar sync', () => {
     expect(await syncCalendar(LINK, store, failing)).toBe('De agenda gaf een fout (404).')
     expect(deps.fetch).not.toHaveBeenCalled()
     expect(store.getSnapshot().state.calendarEvents).toEqual([])
+  })
+
+  it('stores a Google Agenda next to the lessons, and refuses other links', async () => {
+    const store = new ProfilesStore(() => NOW, defaultProfilesState())
+    const google = 'https://calendar.google.com/calendar/ical/me%40gmail.com/private-abc/basic.ics'
+    const fetch = vi.fn(async () => new Response(ICS.replace('Networking', 'Tandarts')))
+    const deps = { fetch, token: async () => 'token', now: () => NOW }
+    expect(await syncGoogle(LINK, store, deps)).toMatch(/geen iCal-adres/)
+    expect(await syncGoogle('https://calendar.google.com/calendar/embed?src=x', store, deps)).toMatch(/geen iCal-adres/)
+    expect(await syncGoogle(google, store, deps)).toBeNull()
+    const { state } = store.getSnapshot()
+    expect(state).toMatchObject({ googleUrl: google, googleSyncedAt: NOW, calendarEvents: [] })
+    expect(state.googleEvents.map((e) => e.subject)).toEqual(['Tandarts'])
   })
 })

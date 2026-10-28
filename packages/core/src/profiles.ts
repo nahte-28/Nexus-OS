@@ -109,6 +109,10 @@ export interface ProfilesState {
   /** Lessons from that link for the coming weeks, refreshed now and then. */
   calendarEvents: CalendarEvent[]
   calendarSyncedAt: number | null
+  /** A Google Agenda iCal address; its events show in the Agenda and count as busy. Empty when not linked. */
+  googleUrl: string
+  googleEvents: CalendarEvent[]
+  googleSyncedAt: number | null
   dagstart: DagstartSettings
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
@@ -205,6 +209,9 @@ export function defaultProfilesState(): ProfilesState {
     calendarUrl: '',
     calendarEvents: [],
     calendarSyncedAt: null,
+    googleUrl: '',
+    googleEvents: [],
+    googleSyncedAt: null,
     dagstart: parseDagstart(null),
     schema: PROFILES_SCHEMA,
     revision: 0,
@@ -303,6 +310,9 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
   let merged = base
   if (!base.calendarUrl && other.calendarUrl) {
     merged = { ...merged, calendarUrl: other.calendarUrl, calendarEvents: other.calendarEvents, calendarSyncedAt: other.calendarSyncedAt }
+  }
+  if (!base.googleUrl && other.googleUrl) {
+    merged = { ...merged, googleUrl: other.googleUrl, googleEvents: other.googleEvents, googleSyncedAt: other.googleSyncedAt }
   }
   if (base.lessons.length === 0 && other.lessons.length > 0) merged = { ...merged, lessons: other.lessons }
   if (merged === remote) return remote
@@ -461,6 +471,9 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     calendarUrl: typeof r.calendarUrl === 'string' ? r.calendarUrl : '',
     calendarEvents: Array.isArray(r.calendarEvents) ? r.calendarEvents.filter(isCalendarEvent) : [],
     calendarSyncedAt: typeof r.calendarSyncedAt === 'number' ? r.calendarSyncedAt : null,
+    googleUrl: typeof r.googleUrl === 'string' ? r.googleUrl : '',
+    googleEvents: Array.isArray(r.googleEvents) ? r.googleEvents.filter(isCalendarEvent) : [],
+    googleSyncedAt: typeof r.googleSyncedAt === 'number' ? r.googleSyncedAt : null,
     dagstart: parseDagstart(r.dagstart),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,

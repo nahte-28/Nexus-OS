@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calendarUrl, nextCalendarEvent, parseIcs } from './calendar'
+import { calendarUrl, googleCalendarUrl, nextCalendarEvent, parseIcs } from './calendar'
 
 const ics = [
   'BEGIN:VCALENDAR',
@@ -57,5 +57,49 @@ describe('school calendar', () => {
     expect(calendarUrl('https://example.com/x.ics')).toBeNull()
     expect(calendarUrl('https://user:pw@apih.ap.be/x')).toBeNull()
     expect(calendarUrl('geen link')).toBeNull()
+  })
+
+  it('accepts only the iCal address of Google Agenda', () => {
+    const link = 'https://calendar.google.com/calendar/ical/me%40gmail.com/private-abc/basic.ics'
+    expect(googleCalendarUrl(` ${link} `)).toBe(link)
+    expect(googleCalendarUrl('https://calendar.google.com/calendar/embed?src=me')).toBeNull()
+    expect(googleCalendarUrl('https://apih.ap.be/ical/x.ics')).toBeNull()
+  })
+})
+
+const vevent = (...lines: string[]) => ['BEGIN:VEVENT', ...lines, 'END:VEVENT']
+const cal = (...events: string[][]) => ['BEGIN:VCALENDAR', ...events.flat(), 'END:VCALENDAR'].join('\r\n')
+
+describe('repeating events', () => {
+  it('repeats weekly on several days, in local time across the change to winter time', () => {
+    const ics = cal(vevent('UID:sport', 'BEGIN:VALARM', 'SUMMARY:Herinnering', 'END:VALARM', 'DTSTART;TZID=Europe/Brussels:20261020T190000', 'DTEND;TZID=Europe/Brussels:20261020T200000', 'RRULE:FREQ=WEEKLY;BYDAY=TU,TH;COUNT=4', 'SUMMARY:Sport'))
+    const starts = parseIcs(ics, from, to).map((e) => e.start)
+    expect(parseIcs(ics, from, to)[0].subject).toBe('Sport')
+    expect(starts).toEqual(['2026-10-20T19:00:00+02:00', '2026-10-22T19:00:00+02:00', '2026-10-27T19:00:00+01:00', '2026-10-29T19:00:00+01:00'].map(Date.parse))
+  })
+
+  it('skips EXDATE, moves a RECURRENCE-ID, drops cancelled times and stops at UNTIL', () => {
+    const ics = cal(
+      vevent('UID:a', 'DTSTART:20261019T080000Z', 'DTEND:20261019T090000Z', 'RRULE:FREQ=DAILY;UNTIL=20261023T235959Z', 'EXDATE:20261020T080000Z', 'SUMMARY:Lopen'),
+      vevent('UID:a', 'RECURRENCE-ID:20261021T080000Z', 'DTSTART:20261021T100000Z', 'DTEND:20261021T110000Z', 'SUMMARY:Lopen (later)'),
+      vevent('UID:a', 'RECURRENCE-ID:20261022T080000Z', 'DTSTART:20261022T080000Z', 'DTEND:20261022T090000Z', 'STATUS:CANCELLED', 'SUMMARY:Lopen'),
+    )
+    expect(parseIcs(ics, from, to).map((e) => [e.subject, new Date(e.start).toISOString()])).toEqual([
+      ['Lopen', '2026-10-19T08:00:00.000Z'],
+      ['Lopen (later)', '2026-10-21T10:00:00.000Z'],
+      ['Lopen', '2026-10-23T08:00:00.000Z'],
+    ])
+  })
+
+  it('repeats monthly on the same date and keeps only the requested period', () => {
+    const ics = cal(vevent('UID:m', 'DTSTART:20260131T120000Z', 'DTEND:20260131T130000Z', 'RRULE:FREQ=MONTHLY;INTERVAL=1', 'SUMMARY:Huur'))
+    // February, April, June and September have no 31st.
+    expect(parseIcs(ics, Date.parse('2026-01-01T00:00:00Z'), Date.parse('2026-09-01T00:00:00Z')).map((e) => new Date(e.start).toISOString().slice(5, 10))).toEqual([
+      '01-31',
+      '03-31',
+      '05-31',
+      '07-31',
+      '08-31',
+    ])
   })
 })

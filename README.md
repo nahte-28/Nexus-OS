@@ -108,6 +108,7 @@ Profielen (School, Persoonlijk, Gaming, Developer) bepalen het thema en de accen
 
 - **Overzicht**: wisselen met de hand, voor een uur, tot het einde van de dag, tot het schema wisselt of tot je zelf terugschakelt.
 - **Lesrooster**: lessen met de hand, of automatisch via de link van "Koppel agenda" op het AP-intranet (dezelfde die KlasHub gebruikt). Ook de KlasHub-link staat hier.
+- **Google Agenda**: plak het "Geheime adres in iCal-indeling" (Google Agenda op een computer, Instellingen, je agenda, "Agenda integreren"). De afspraken verschijnen in de Agenda en de Dagstart, en de Studieplanner plant eromheen. NEXUS leest alleen, haalt de agenda elke paar uur opnieuw op en herhaalt terugkerende afspraken zelf; hele dagen tellen niet mee. Het adres gaat mee met je profielen, dus geen SQL nodig.
 - **Automatisch**: School Mode op een tijdschema (standaard ma–vr 08:30–18:00). Na het schema gaat NEXUS terug naar het profiel dat je ervoor koos, anders naar het standaardprofiel. Open vensters blijven altijd open.
 - **Meldingen**: een stil profiel toont gsm-meldingen alleen in Meldingen; apps die je toevoegt bij "Altijd doorlaten" geven toch een pop-up. Herinneringen gaan altijd af.
 - **Apparaten**: met een account gaan profielen mee naar je andere toestellen, of je houdt ze per toestel apart.
@@ -116,7 +117,7 @@ Instellen (eenmalig):
 
 - Voer `supabase/migrations/20261020100000_settings.sql` uit in de SQL Editor van Supabase, voor het synchroniseren tussen toestellen.
 - Voer ook `supabase/migrations/20261020140000_flows.sql` uit, voor Flow Studio op al je apparaten.
-- Optioneel in Vercel: `NEXUS_CALENDAR_HOSTS` (standaard `apih.ap.be`), de adressen waarvan `api/calendar.ts` een agendalink mag ophalen.
+- Optioneel in Vercel: `NEXUS_CALENDAR_HOSTS` (standaard `apih.ap.be`), de adressen waarvan `api/calendar.ts` een agendalink mag ophalen. Het iCal-adres van Google Agenda (`calendar.google.com/calendar/ical/...`) mag altijd.
 
 Beperkingen: NEXUS kan alleen zijn eigen meldingen stil zetten, niet die van andere apps op je gsm of horloge, en een webapp ziet niet welke andere apps er draaien. Wisselen op basis van een app of agenda-afspraak zit er daarom nog niet in. KlasHub opent in je browser (ook vanuit de Windows-app), omdat de site niet ingesloten mag worden.
 

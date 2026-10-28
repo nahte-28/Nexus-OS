@@ -199,14 +199,14 @@ function Planning() {
   }
 
   const make = () => {
-    // Lessons and appointments are busy; earlier study blocks are replaced, so they do not count.
+    // Lessons, appointments and Google Agenda events are busy; earlier study blocks are replaced, so they do not count.
     const busy: Busy[] = []
     // The exams themselves are in the Agenda as appointments, so they count as busy too.
     const life = items.filter((i) => !(i.kind === 'appointment' && i.notes === STUDY_BLOCK_NOTE))
     for (let d = 0; d <= 60; d++) {
       const start = startOfDay(startOfDay(now) + d * DAY + 3_600_000)
-      for (const e of agendaDay({ calendarEvents: state.calendarEvents, timetable: state.lessons, items: life, reminders: [] }, start)) {
-        if (e.kind === 'lesson' || e.kind === 'appointment') busy.push({ start: e.at, end: e.end })
+      for (const e of agendaDay({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: life, reminders: [] }, start)) {
+        if (e.kind === 'lesson' || e.kind === 'appointment' || e.kind === 'event') busy.push({ start: e.at, end: e.end })
       }
     }
     const tasks = [...deadlines.map((d) => ({ id: d.id, title: d.title, dueAt: d.dueAt, minutes: estimates[d.id] ?? DEFAULT_ESTIMATE })), ...examPlan]
