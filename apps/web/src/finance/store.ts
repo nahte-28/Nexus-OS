@@ -3,6 +3,7 @@ import {
   dateKey,
   DEFAULT_THRESHOLD,
   emptyFinance,
+  financeFromBudget,
   mergeFinance,
   monthOf,
   nextDate,
@@ -18,10 +19,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { defaultDeadlineEffects, type DeadlineEffects } from '../life/alerts'
-import { createProblem, DocStore, startDocSync } from '../state/docStore'
+import { createDocRemote, createProblem, DocStore, startDocSync } from '../state/docStore'
 import { readStorage, writeStorage } from '../state/storage'
 
-export const FINANCE_MIGRATION = 'supabase/migrations/20261028090000_finance.sql'
+export const FINANCE_MIGRATION = 'supabase/migrations/20261028100000_finance.sql'
 const WARNED_KEY = 'nexus.finance.warned'
 const CHECKED_KEY = 'nexus.finance.checkedAt'
 const CHECK_MS = 30_000
@@ -33,7 +34,43 @@ const DOUBLE_MS = 3000
 export const financeStore = new DocStore<FinanceState>('nexus.finance', parseFinanceState)
 export const financeSyncProblem = createProblem()
 
+/** Where the earlier Budget app kept its copy on this device. */
+const BUDGET_KEY = 'nexus.budget'
+const TAKEN_LOCAL = 'nexus.finance.fromBudget'
+const TAKEN_ACCOUNT = 'nexus.finance.fromBudgetAccount'
+
+/** Takes over what the earlier Budget app kept on this device, once. */
+export function takeOverLocalBudget(store = financeStore) {
+  const old = readStorage(BUDGET_KEY)
+  if (!old || readStorage(TAKEN_LOCAL)) return
+  try {
+    store.update((s) => mergeFinance(s, financeFromBudget(JSON.parse(old))))
+  } catch {
+    // A broken copy has nothing to take over.
+  }
+  writeStorage(TAKEN_LOCAL, '1')
+}
+
+/** Takes over the Budget row of the account once per device, so data from other devices comes along too. */
+async function takeOverAccountBudget(client: SupabaseClient) {
+  if (readStorage(TAKEN_ACCOUNT)) return
+  try {
+    const old = await createDocRemote(client, 'budget', financeFromBudget).pull()
+    if (old && (old.transactions.length > 0 || old.budgets.length > 0)) financeStore.update((s) => mergeFinance(s, old))
+    writeStorage(TAKEN_ACCOUNT, '1')
+  } catch (err) {
+    logEvent('sync', `Budget overnemen in Financiën mislukt: ${err instanceof Error ? err.message : err}`)
+  }
+}
+
 export function startFinanceSync(client: SupabaseClient | null): () => void {
+  takeOverLocalBudget()
+  if (client) {
+    void client.auth.getSession().then(({ data }) => data.session && takeOverAccountBudget(client))
+    client.auth.onAuthStateChange((_event, session) => {
+      if (session) void takeOverAccountBudget(client)
+    })
+  }
   return startDocSync(client, financeStore, { key: 'finance', parse: parseFinanceState, merge: mergeFinance, migration: FINANCE_MIGRATION, problem: financeSyncProblem, label: 'Financiën' })
 }
 

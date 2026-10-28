@@ -3,6 +3,7 @@ import {
   budgetStatus,
   budgetWarnings,
   emptyFinance,
+  financeFromBudget,
   filterTransactions,
   goalProgress,
   mergeFinance,
@@ -106,6 +107,16 @@ describe('finance', () => {
     ])
     expect(m.settings.alerts).toBe(false)
     expect(parseFinanceState({ transactions: [{ id: 1 }, tx({ id: 'ok' })], budgets: 'no' }).transactions.map((t) => t.id)).toEqual(['ok'])
+  })
+
+  it('takes over the earlier Budget app: its transactions and its monthly budget as the total budget', () => {
+    const old = { transactions: [{ id: 'a', kind: 'expense', amount: 450, category: 'Uitgaan', note: 'Cola', date: '2026-10-20', createdAt: 1, updatedAt: 1, deletedAt: null }], monthly: 25000, monthlyAt: 9, revision: 3 }
+    const s = financeFromBudget(old)
+    expect(s.transactions[0]).toMatchObject({ id: 'a', amount: 450, subscriptionId: null })
+    expect(s.budgets).toEqual([{ id: 'budget-total', category: '', limit: 25000, threshold: 80, updatedAt: 9, deletedAt: null }])
+    // Taken over on two devices, it is still one budget.
+    expect(mergeFinance(s, financeFromBudget(old)).budgets).toHaveLength(1)
+    expect(financeFromBudget({ transactions: [], monthly: null }).budgets).toEqual([])
   })
 
   it('filters, exports CSV for Excel and is found in search', () => {

@@ -186,6 +186,20 @@ export function parseFinanceState(raw: unknown): FinanceState {
   }
 }
 
+/** A copy of the earlier Budget app as Financiën: the same transactions, its monthly budget as the total budget. */
+export function financeFromBudget(raw: unknown): FinanceState {
+  const empty = emptyFinance()
+  if (!isObject(raw)) return empty
+  const limit = cents(raw.monthly)
+  const at = typeof raw.monthlyAt === 'number' ? raw.monthlyAt : 0
+  return {
+    ...empty,
+    transactions: list(raw.transactions, parseTransaction, MAX_TRANSACTIONS),
+    // A fixed id, so taking it over on two devices gives one budget.
+    budgets: limit ? [{ id: 'budget-total', category: '', limit, threshold: DEFAULT_THRESHOLD, updatedAt: at, deletedAt: null }] : [],
+  }
+}
+
 function mergeById<T extends Synced>(a: T[], b: T[]): T[] {
   const byId = new Map(a.map((t) => [t.id, t]))
   for (const t of b) {

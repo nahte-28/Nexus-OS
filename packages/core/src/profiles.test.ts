@@ -162,6 +162,8 @@ describe('next lesson', () => {
 
   it('adds Financiën and its dashboard card to Persoonlijk in copies stored before it, once', () => {
     const s = parseProfilesState({ schema: 9, profiles: { personal: { apps: ['insights', 'notes'], widgets: ['deadlines', 'notes', 'devices'] }, gaming: { apps: ['notes'], widgets: ['devices'] } } })
+    // Budget, the app before it, is replaced where it stood.
+    expect(parseProfilesState({ schema: 10, profiles: { personal: { apps: ['notes', 'budget', 'insights'] } } }).profiles.personal.apps).toEqual(['notes', 'finance', 'insights'])
     expect(s.profiles.personal.apps).toEqual(['insights', 'finance', 'notes'])
     expect(s.profiles.personal.widgets).toEqual(['deadlines', 'notes', 'finance', 'devices'])
     expect(s.profiles.gaming.widgets).toEqual(['devices'])

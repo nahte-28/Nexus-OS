@@ -130,7 +130,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 10
+export const PROFILES_SCHEMA = 11
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -410,13 +410,17 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       }
     }
   }
-  // Copies from before Financiën get the app right after Inzichten and its card after Notities where they are a default (Persoonlijk).
-  if (typeof r.schema !== 'number' || r.schema < 10) {
+  // Copies from before Financiën get it where Budget was, or right after Inzichten, and its card after
+  // Notities, where they are a default (Persoonlijk). Budget (schema 10) became Financiën.
+  if (typeof r.schema !== 'number' || r.schema < 11) {
     for (const id of PROFILE_IDS) {
       const { apps, widgets } = profiles[id]
-      if (base.profiles[id].apps.includes('finance') && Array.isArray(apps) && !apps.includes('finance')) {
-        const after = apps.includes('insights') ? apps.indexOf('insights') : apps.length - 1
-        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'finance', ...apps.slice(after + 1)] }
+      const list = Array.isArray(apps) ? (apps as string[]) : null
+      if (list?.includes('budget')) {
+        profiles[id] = { ...profiles[id], apps: (list.includes('finance') ? list.filter((a) => a !== 'budget') : list.map((a) => (a === 'budget' ? 'finance' : a))) as AppId[] }
+      } else if (base.profiles[id].apps.includes('finance') && list && !list.includes('finance')) {
+        const after = list.includes('insights') ? list.indexOf('insights') : list.length - 1
+        profiles[id] = { ...profiles[id], apps: [...list.slice(0, after + 1), 'finance', ...list.slice(after + 1)] as AppId[] }
       }
       if (base.profiles[id].widgets.includes('finance') && Array.isArray(widgets) && !widgets.includes('finance')) {
         const after = widgets.includes('notes') ? widgets.indexOf('notes') : widgets.length - 1

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { emptyFinance, type FinanceState } from '@nexus/core'
-import { financeStore, fireBudgetWarnings, fireSubscriptionNotices, clearFinance } from '../finance/store'
+import { financeStore, fireBudgetWarnings, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
 import { reveal } from '../search/reveal'
 
 const { Finance } = await import('./Finance')
@@ -96,6 +96,15 @@ describe('Financiën', () => {
     const effects = { local: vi.fn(async () => {}), phones: vi.fn(async () => {}) }
     expect(await fireSubscriptionNotices(s, effects, dayBefore)).toBe(1)
     expect(effects.phones).toHaveBeenCalledWith('Spotify wordt morgen betaald', expect.stringContaining('11,99'), expect.stringMatching(/^subscription:/))
+  })
+
+  it('takes over what the Budget app kept on this device, once', () => {
+    localStorage.setItem('nexus.budget', JSON.stringify({ transactions: [{ id: 'old', kind: 'expense', amount: 450, category: 'Uitgaan', note: '', date: '2026-10-20', createdAt: 1, updatedAt: 1, deletedAt: null }], monthly: 20000, monthlyAt: 2, revision: 1 }))
+    takeOverLocalBudget()
+    takeOverLocalBudget()
+    const s = financeStore.getSnapshot()
+    expect(s.transactions.map((t) => t.id)).toEqual(['old'])
+    expect(s.budgets).toHaveLength(1)
   })
 
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {

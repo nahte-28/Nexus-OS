@@ -187,7 +187,7 @@ De app **Financiën** (in het profiel Persoonlijk) is je persoonlijke budgetbehe
 
 De kaart **Financiën** op het dashboard toont alleen percentages, nooit bedragen. In Zoeken overal (Ctrl+K) staan de acties "Transactie toevoegen", "Open budgetten", "Nieuw spaardoel" en "Abonnement toevoegen". NEXUS AI en het Weekoverzicht lezen je financiën niet. Bedragen worden bewaard in eurocenten.
 
-Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028090000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat.
+Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028100000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat. Financiën vervangt de eerdere app Budget: wat daar stond (transacties en maandbudget, op het apparaat en in je account) neemt Financiën één keer over, het maandbudget als Totaalbudget.
 
 Nog niet gebouwd: triggers in Flow Studio, budgetten die overlopen naar de volgende maand, CSV-import en een bankkoppeling.
 
