@@ -56,7 +56,7 @@ describe('Snelle notitie', () => {
     try {
       expect(openCaptureFromUrl({ pathname: '/', search: '', hash: '' })).toBe(false)
       expect(openCaptureFromUrl({ pathname: '/snel', search: '?title=Artikel&text=https%3A%2F%2Fa.be', hash: '' })).toBe(true)
-      expect(captureState.getSnapshot()).toEqual({ open: true, text: 'Artikel\nhttps://a.be' })
+      expect(captureState.getSnapshot()).toEqual({ open: true, text: 'Artikel\nhttps://a.be', dictate: false })
       expect(replaced).toEqual(['/'])
     } finally {
       history.replaceState = original

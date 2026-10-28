@@ -216,3 +216,10 @@ export const WalletIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M4 7l11-3v3M16 13.5h.01" />
   </svg>
 )
+
+export const MicIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+  </svg>
+)
