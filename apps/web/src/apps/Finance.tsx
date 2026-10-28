@@ -15,6 +15,7 @@ import {
   DEFAULT_THRESHOLD,
   EXPENSE_CATEGORIES,
   filterTransactions,
+  financeFacts,
   financeExport,
   formatMoney,
   friendBalances,
@@ -75,6 +76,7 @@ import {
   type SubscriptionDraft,
   type TransactionDraft,
 } from '../finance/store'
+import { adviceNoteTitle, saveAdvice, streamFinanceAdvice } from '../finance/advice'
 import { onReveal, takeReveal } from '../search/reveal'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -1143,7 +1145,89 @@ function Insights() {
           <p className="text-xs text-nx-muted">Deze maand is nog niet voorbij, dus de bedragen kunnen nog stijgen.</p>
         </Section>
       )}
+      <Advice />
     </>
+  )
+}
+
+/** NEXUS AI looks at a month and gives tips; saved in Notities. Only totals go out. */
+function Advice() {
+  const now = Date.now()
+  const [month, setMonth] = useState(monthOf(now))
+  const [wish, setWish] = useState('')
+  const [text, setText] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const facts = financeFacts(financeStore.getSnapshot(), now, month)
+  // With amounts hidden on this device, the preview stays closed too.
+  const hidden = useMoney()(1).includes('•')
+
+  const start = () => {
+    setError(null)
+    setText('')
+    setState('busy')
+    streamFinanceAdvice(month, wish, setText)
+      .then((markdown) => {
+        saveAdvice(month, markdown)
+        setState('done')
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err))
+        setState('idle')
+      })
+  }
+
+  return (
+    <Section title="Advies van NEXUS AI">
+      <p className="text-nx-muted">
+        NEXUS AI bekijkt je maand en geeft tips om te besparen of beter te plannen. Het advies komt ook in Notities. De AI krijgt alleen de totalen hieronder: geen omschrijvingen van transacties en geen namen van vrienden.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={month}
+          onChange={(e) => {
+            setMonth(e.target.value)
+            setState('idle')
+            setText('')
+          }}
+          aria-label="Maand voor het advies"
+          className={fieldBase}
+          disabled={state === 'busy'}
+        >
+          {[0, 1, 2].map((n) => {
+            const m = shiftMonth(monthOf(now), -n)
+            return (
+              <option key={m} value={m}>
+                {monthLabel(m)}
+              </option>
+            )
+          })}
+        </select>
+        <input value={wish} onChange={(e) => setWish(e.target.value)} maxLength={500} placeholder="Vraag of wens (optioneel), bv. ik wil sparen voor een laptop" aria-label="Vraag aan NEXUS AI" className={`${fieldBase} min-w-48 flex-1`} disabled={state === 'busy'} />
+      </div>
+      {!hidden && (
+        <details className={card}>
+          <summary className="cursor-pointer">Wat NEXUS AI krijgt</summary>
+          <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-nx-muted">{facts}</pre>
+        </details>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={primaryButton} disabled={state === 'busy'} onClick={start}>
+          {state === 'busy' ? 'Bezig…' : state === 'done' ? 'Opnieuw vragen' : 'Advies vragen'}
+        </button>
+        {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{adviceNoteTitle(month)}".</span>}
+      </div>
+      {error && (
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+      )}
+      {text && (
+        <article aria-label="Advies" className="whitespace-pre-wrap rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+          {text}
+        </article>
+      )}
+    </Section>
   )
 }
 

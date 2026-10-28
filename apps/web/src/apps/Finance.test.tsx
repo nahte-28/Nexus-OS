@@ -202,6 +202,25 @@ describe('Financiën', () => {
     expect(financeStore.getSnapshot().transactions[0].deletedAt).not.toBeNull()
   })
 
+  it('asks NEXUS AI for advice about the month and keeps it as a note', async () => {
+    const ndjson = [{ type: 'text', text: '## Je maand\n- Rustige ' }, { type: 'text', text: 'maand.' }, { type: 'done' }].map((e) => JSON.stringify(e) + '\n').join('')
+    const fetch = vi.fn(async () => new Response(ndjson))
+    vi.stubGlobal('fetch', fetch)
+    const { streamFinanceAdvice, saveAdvice, adviceNoteTitle } = await import('../finance/advice')
+    const text = await streamFinanceAdvice('2026-10', '', () => {}, Date.now(), async () => 'token', '')
+    expect(text).toBe('## Je maand\n- Rustige maand.')
+    const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(body).toMatchObject({ kind: 'finance', facts: expect.stringContaining('oktober') })
+    await expect(streamFinanceAdvice('2026-10', '', () => {}, Date.now(), async () => null, '')).rejects.toThrow(/Meld je aan/)
+
+    const { notesStore } = await import('../state/notesStore')
+    await notesStore.ready
+    const first = saveAdvice('2026-10', 'Eerste')
+    expect(saveAdvice('2026-10', 'Tweede')).toBe(first)
+    expect(notesStore.getSnapshot().find((n) => n.id === first)).toMatchObject({ title: adviceNoteTitle('2026-10'), body: expect.stringContaining('Tweede') })
+    vi.unstubAllGlobals()
+  })
+
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {
     financeStore.update((s): FinanceState => ({ ...s, transactions: [{ id: 'a', kind: 'income', amount: 5000, category: 'Job', note: '', date: '2026-10-01', subscriptionId: null, createdAt: 0, updatedAt: 1, deletedAt: null }] }))
     render(<Finance />)
