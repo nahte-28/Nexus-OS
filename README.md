@@ -199,6 +199,8 @@ Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een pl
 
 Met **Alt+N** (of de potloodknop naast Zoeken) typ je snel iets weg zonder een app te openen. NEXUS raadt of het een notitie, een deadline of een herinnering is en leest een Nederlandse datum en tijd uit de tekst: "Verslag labo indienen vrijdag" wordt een deadline tegen vrijdag 23:59, "Mama bellen morgen om 14u" een herinnering morgen om 14:00 op je gsm. Je kunt de soort en het tijdstip nog aanpassen voor je bewaart (Ctrl+Enter). Op je gsm, met NEXUS geïnstalleerd als app, houd je het icoon ingedrukt voor **Snelle notitie**, of deel je tekst of een link uit een andere app naar NEXUS. Er is geen SQL nodig.
 
+**Spraaknotitie**: met de knop **Inspreken** in Snelle notitie zeg je je notitie in plaats van ze te typen ("mama bellen morgen om 14u"). Wat je zegt, verschijnt in het tekstvak en NEXUS raadt de soort zoals bij typen. Op je gsm houd je het NEXUS-icoon ingedrukt en kies je **Spraaknotitie**, dan luistert het meteen. De browser herkent de spraak zelf: in Chrome gaat het geluid daarvoor naar Google, dus het werkt alleen online, en NEXUS bewaart of verstuurt zelf geen geluid. In de Windows-app is er geen knop; daar klik je in het tekstvak en druk je op Windows+H.
+
 ## Zoeken overal
 
 Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.
