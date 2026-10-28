@@ -27,11 +27,12 @@ import { useProfiles } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
 import { addExam, examsStore, examsSyncProblem, removeExam, updateExam, type ExamDraft } from '../study/exams'
 import { focusMinutes, focusStore } from '../study/timer'
+import { StudyGroupTab } from './StudyGroup'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Focus', 'Examens', 'Planning'] as const
+const TABS = ['Focus', 'Examens', 'Planning', 'Groep'] as const
 const DAY = 24 * 60 * 60_000
 const HORIZON_DAYS = 21
 
@@ -64,7 +65,7 @@ function startOfDay(t: number): number {
   return d.getTime()
 }
 
-/** Studie: a focus timer, your exams, and study time planned before your deadlines and exams. */
+/** Studie: a focus timer, your exams, study time planned before your deadlines and exams, and your study group. */
 export function Study() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Focus')
   return (
@@ -83,7 +84,7 @@ export function Study() {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : <Planning />}</div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : tab === 'Planning' ? <Planning /> : <StudyGroupTab />}</div>
     </div>
   )
 }
