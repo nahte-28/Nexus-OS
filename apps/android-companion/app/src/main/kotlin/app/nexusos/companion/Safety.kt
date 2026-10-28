@@ -25,6 +25,10 @@ object Safety {
     @Volatile
     var note: String? = "vangnet: NEXUS was niet bereikbaar"
 
+    /** Called after the plan changed, e.g. so the watch redraws its tile and complication. */
+    @Volatile
+    var onChange: ((Context) -> Unit)? = null
+
     private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     @Synchronized
@@ -35,6 +39,7 @@ object Safety {
         val next = change(load(context))
         prefs(context).edit().putString(KEY, next.toJson()).apply()
         schedule(context, next)
+        onChange?.invoke(context.applicationContext)
         return next
     }
 

@@ -32,6 +32,32 @@
             </intent-filter>
         </activity>
 
+        <!-- Swipe from the watch face: the coming deadlines and reminders. -->
+        <service
+            android:name="app.nexusos.watch.NexusTileService"
+            android:exported="true"
+            android:label="NEXUS"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data android:name="androidx.wear.tiles.PREVIEW" android:resource="@mipmap/ic_launcher" />
+        </service>
+
+        <!-- On the watch face, for faces that accept complications from other apps. -->
+        <service
+            android:name="app.nexusos.watch.NexusComplicationService"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_nexus"
+            android:label="NEXUS: wat eraan komt"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data android:name="android.support.wearable.complications.SUPPORTED_TYPES" android:value="SHORT_TEXT,LONG_TEXT" />
+            <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="900" />
+        </service>
+
         <receiver android:name="app.nexusos.companion.SafetyReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.RefreshReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.WatchBootReceiver" android:exported="false">

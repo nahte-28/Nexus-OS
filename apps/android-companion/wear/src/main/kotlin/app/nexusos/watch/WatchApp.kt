@@ -25,6 +25,7 @@ class WatchApp : Application() {
         Safety.grace = 0
         Safety.note = null
         Connect.kind = "horloge"
+        Safety.onChange = { Glance.refresh(it) }
         Refresh.schedule(this)
     }
 }

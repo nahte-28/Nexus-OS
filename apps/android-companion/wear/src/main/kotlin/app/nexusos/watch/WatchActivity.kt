@@ -24,7 +24,6 @@ import app.nexusos.companion.ConnectCrypto
 import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
-import app.nexusos.companion.Safety
 import app.nexusos.companion.Store
 import kotlin.math.roundToInt
 
@@ -131,7 +130,7 @@ class WatchActivity : Activity() {
 
     private fun overview() {
         val now = System.currentTimeMillis()
-        val coming = Safety.load(this).pending().filter { it.at > now - Safety.grace }
+        val coming = Glance.coming(this, now)
         heading("Komt eraan", 15f)
         if (coming.isEmpty()) {
             text("Niets gepland. Deadlines, herinneringen en afspraken die naar je gsm gaan, komen hier vanzelf bij zodra NEXUS openstaat.", muted = true)

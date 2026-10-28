@@ -11,6 +11,7 @@ object WatchFormat {
     private val dutch = Locale.forLanguageTag("nl-BE")
     private val clock = DateTimeFormatter.ofPattern("HH:mm", dutch)
     private val day = DateTimeFormatter.ofPattern("EEE d MMM", dutch)
+    private val weekday = DateTimeFormatter.ofPattern("EEE d", dutch)
 
     /** "14:00" today, "morgen 14:00", or "di 3 nov. 14:00". */
     fun at(at: Long, now: Long, zone: ZoneId = ZoneId.systemDefault()): String {
@@ -22,5 +23,12 @@ object WatchFormat {
             -1L -> "gisteren ${clock.format(time)}"
             else -> "${day.format(time)} ${clock.format(time)}"
         }
+    }
+
+    /** At most about seven characters, for a small complication: "14:00" today, else "do 5". */
+    fun short(at: Long, now: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+        val time = Instant.ofEpochMilli(at).atZone(zone)
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return if (time.toLocalDate() == today) clock.format(time) else weekday.format(time).removeSuffix(".")
     }
 }

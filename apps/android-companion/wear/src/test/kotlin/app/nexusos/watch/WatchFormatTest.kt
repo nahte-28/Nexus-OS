@@ -18,4 +18,12 @@ class WatchFormatTest {
         val later = WatchFormat.at(at(5, 10), now, zone)
         assertTrue(later, later.startsWith("do 5 nov") && later.endsWith("10:00"))
     }
+
+    @Test
+    fun fitsAComplication() {
+        val now = at(2, 9)
+        assertEquals("14:00", WatchFormat.short(at(2, 14), now, zone))
+        assertTrue(WatchFormat.short(at(5, 10), now, zone).startsWith("do"))
+        assertTrue(WatchFormat.short(at(5, 10), now, zone).length <= 7)
+    }
 }
