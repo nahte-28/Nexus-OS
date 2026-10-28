@@ -11,7 +11,7 @@ export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
 export type AccentId = 'blue' | 'cyan' | 'violet' | 'green' | 'orange' | 'pink'
 export const ACCENT_IDS: AccentId[] = ['blue', 'cyan', 'violet', 'green', 'orange', 'pink']
 
-export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications'
+export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications' | 'finance'
 
 export interface Profile {
   id: ProfileId
@@ -154,8 +154,8 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'insights', 'budget', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
-    widgets: ['deadlines', 'notes', 'notifications', 'devices'],
+    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'insights', 'finance', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    widgets: ['deadlines', 'notes', 'finance', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
     accent: null,
@@ -410,13 +410,17 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       }
     }
   }
-  // Copies from before Budget get it right after Inzichten where it is a default (Persoonlijk).
+  // Copies from before Financiën get the app right after Inzichten and its card after Notities where they are a default (Persoonlijk).
   if (typeof r.schema !== 'number' || r.schema < 10) {
     for (const id of PROFILE_IDS) {
-      const apps = profiles[id].apps
-      if (base.profiles[id].apps.includes('budget') && Array.isArray(apps) && !apps.includes('budget')) {
+      const { apps, widgets } = profiles[id]
+      if (base.profiles[id].apps.includes('finance') && Array.isArray(apps) && !apps.includes('finance')) {
         const after = apps.includes('insights') ? apps.indexOf('insights') : apps.length - 1
-        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'budget', ...apps.slice(after + 1)] }
+        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'finance', ...apps.slice(after + 1)] }
+      }
+      if (base.profiles[id].widgets.includes('finance') && Array.isArray(widgets) && !widgets.includes('finance')) {
+        const after = widgets.includes('notes') ? widgets.indexOf('notes') : widgets.length - 1
+        profiles[id] = { ...profiles[id], widgets: [...widgets.slice(0, after + 1), 'finance', ...widgets.slice(after + 1)] }
       }
     }
   }

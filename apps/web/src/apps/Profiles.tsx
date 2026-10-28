@@ -31,6 +31,7 @@ const DAYS = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterda
 const APP_CHOICES: Array<{ id: AppId; title: string }> = [
   { id: 'klashub', title: 'KlasHub' },
   { id: 'notes', title: 'Notities' },
+  { id: 'finance', title: 'Financiën' },
   { id: 'notifications', title: 'Meldingen' },
   { id: 'assistant', title: 'NEXUS AI' },
   { id: 'reminders', title: 'Herinneringen' },

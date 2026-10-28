@@ -1,8 +1,9 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, type AppId, type WidgetId } from '@nexus/core'
+import { alive, budgetStatus, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
+import { financeStore } from '../finance/store'
 import { dismissPrompt, usePrompts } from '../flows/prompts'
 import { appName } from '../flows/runner'
 import { lifeStore } from '../life/store'
@@ -150,6 +151,8 @@ function Widget({ id, onOpenApp }: { id: WidgetId; onOpenApp: OpenApp }) {
       return <Notifications onOpenApp={onOpenApp} />
     case 'devices':
       return <DevicesWidget onOpenApp={onOpenApp} />
+    case 'finance':
+      return <FinanceWidget onOpenApp={onOpenApp} />
     case 'next_class':
       return null
   }
@@ -270,6 +273,34 @@ function RecentNotes({ onOpenApp }: { onOpenApp: OpenApp }) {
       )}
       <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('notes')}>
         Notities openen
+      </button>
+    </Card>
+  )
+}
+
+/** Financiën at a glance, in percentages and counts only: no amounts on a screen others may see. */
+function FinanceWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
+  const state = useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
+  const now = Date.now()
+  const budget = budgetStatus(state, monthOf(now), now)[0]
+  const soon = upcomingPayments(state, now, 7).length
+  const goal = alive(state.goals)
+    .map((g) => goalProgress(state, g, now))
+    .filter((g) => g.left > 0)
+    .sort((a, b) => b.percent - a.percent)[0]
+  return (
+    <Card title="Financiën">
+      <ul className="space-y-1 text-sm">
+        <li>{budget ? `${budget.label}: ${budget.used}% gebruikt deze maand` : 'Nog geen budget ingesteld.'}</li>
+        {soon > 0 && <li>{soon === 1 ? '1 betaling' : `${soon} betalingen`} in de komende 7 dagen</li>}
+        {goal && (
+          <li>
+            {goal.goal.name}: {goal.percent}% gespaard
+          </li>
+        )}
+      </ul>
+      <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('finance')}>
+        Financiën openen
       </button>
     </Card>
   )

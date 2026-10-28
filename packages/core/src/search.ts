@@ -8,9 +8,10 @@ import type { FileMeta } from './files'
 import type { LifeItem } from './life'
 import type { Reminder } from './reminders'
 
-export type SearchKind = 'app' | 'note' | 'file' | 'deadline' | 'appointment' | 'project' | 'reminder'
+export type SearchKind = 'action' | 'app' | 'note' | 'file' | 'deadline' | 'appointment' | 'project' | 'reminder'
 
 export const SEARCH_KIND_LABELS: Record<SearchKind, string> = {
+  action: 'Acties',
   app: 'Apps',
   note: 'Notities',
   file: 'Bestanden',
@@ -37,6 +38,8 @@ export interface SearchSources {
   files: FileMeta[]
   life: LifeItem[]
   reminders: Reminder[]
+  /** Shortcuts such as "Transactie toevoegen"; the id tells the app what to open. */
+  actions?: Array<{ id: string; title: string; app: AppId }>
 }
 
 /** Lower case without accents, so "e" finds "é". */
@@ -81,6 +84,10 @@ export function searchAll(query: string, s: SearchSources, now = Date.now(), lim
   for (const a of s.apps) {
     const value = score(terms, a.title)
     add({ kind: 'app', id: a.id, title: a.title, app: a.id }, value && value + 2)
+  }
+  for (const a of s.actions ?? []) {
+    const value = score(terms, a.title)
+    add({ kind: 'action', id: a.id, title: a.title, app: a.app }, value && value + 1)
   }
   for (const n of s.notes) {
     if (n.deletedAt !== null) continue
