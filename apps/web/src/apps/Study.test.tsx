@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { examsStore } from '../study/exams'
 import { focusStore } from '../study/timer'
 
 const { Study } = await import('./Study')
@@ -37,5 +38,33 @@ describe('Studie', () => {
     const blocks = lifeStore.getSnapshot().filter((i) => i.kind === 'appointment')
     expect(blocks.length).toBeGreaterThanOrEqual(2)
     expect(blocks.every((b) => b.kind === 'appointment' && b.title === 'Studeren: Verslag labo 3' && b.endAt <= due)).toBe(true)
+  })
+
+  it('keeps an exam with its study time, puts it in the Agenda and plans study for it', async () => {
+    render(<Study />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Examens' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ Examen' }))
+    const form = screen.getByRole('form', { name: 'Nieuw examen' })
+    fireEvent.change(within(form).getByRole('combobox', { name: 'Vak' }), { target: { value: 'Elektronica 1' } })
+    fireEvent.change(within(form).getByRole('spinbutton', { name: 'Studietijd in uren' }), { target: { value: '4' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Examen toevoegen' }))
+
+    expect(screen.getByText('Elektronica 1')).toBeTruthy()
+    expect(screen.getByText('over 14 dagen')).toBeTruthy()
+    expect(screen.getByText(/0 van 4 uur gestudeerd/)).toBeTruthy()
+    await waitFor(() => expect(examsStore.getSnapshot().exams[0].appointmentId).not.toBeNull())
+    const exam = examsStore.getSnapshot().exams[0]
+    expect(lifeStore.getSnapshot().find((i) => i.id === exam.appointmentId)).toMatchObject({ kind: 'appointment', title: 'Examen Elektronica 1', startAt: exam.at, remind: [1440, 60] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Studietijd plannen' }))
+    expect(screen.getByText(/Elektronica 1 \(nog 4 uur\)/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Planning maken' }))
+    const plan = screen.getByRole('region', { name: 'Voorstel' })
+    expect(within(plan).getAllByText('Elektronica 1').length).toBeGreaterThanOrEqual(4)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Examens' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Examen Elektronica 1 verwijderen' }))
+    await waitFor(() => expect(lifeStore.getSnapshot().find((i) => i.id === exam.appointmentId)?.deletedAt).not.toBeNull())
+    expect(screen.getByText('Nog geen examens.')).toBeTruthy()
   })
 })

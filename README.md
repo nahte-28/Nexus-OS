@@ -145,6 +145,8 @@ Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, i
 
 De app **Studie** heeft een **focustimer** (pomodoro: standaard 25 minuten focus, 5 minuten pauze, na 4 rondes 15 minuten). De timer loopt door als je het venster sluit, toont hoeveel je vandaag en deze week gefocust hebt, en stuurt aan het einde van elke ronde een melding, als je wilt ook op gsm en horloge. **Planning** verdeelt de tijd die je nog nodig hebt voor je open deadlines over je vrije uren (standaard weekdagen 17–21 u en het weekend 10–17 u), buiten je lessen en afspraken en altijd voor de deadline. Met "In Agenda zetten" komen de blokken als afspraken in de Agenda; opnieuw plannen vervangt de vorige blokken. De timer, schattingen en uren blijven op het apparaat.
 
+**Examens** (Examenplanner): per examen het vak (voorstellen uit Cijfers), datum en uur, duur, lokaal, hoeveel studietijd je nodig hebt en eventueel een stapel Leerkaarten. Elk examen komt als afspraak in de Agenda met herinneringen de dag ervoor en een uur ervoor (ook op gsm). Focustijd waarvan de taak de naam van het vak bevat, telt af van de studietijd; Planning spreidt wat overblijft over de dagen voor het examen (studeren stopt de avond ervoor). Examens syncen met een account (sleutel `exams` in `user_settings`); voer daarvoor eenmalig `supabase/migrations/20261028120000_exams_journal.sql` uit in de SQL Editor van Supabase.
+
 ## Bestanden en studiehulp
 
 De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen bestanden (tot 10 MB per bestand) in NEXUS: offline op het apparaat en, met een account, in je eigen privéopslag in Supabase (bucket `nexus-files`, één map per gebruiker, met RLS), zodat ze op al je apparaten staan. **Op deze pc** opent mappen van je computer via de File System Access API (Chrome, Edge en de Windows-app); NEXUS leest alleen de mappen die je kiest en verandert er niets in. Op een gsm kies je losse bestanden.
@@ -226,6 +228,6 @@ Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsbove
 - NEXUS Life: agenda met lessen, deadlines, afspraken en projecten, offline en gesynct, met meldingen vooraf.
 - Bestanden: eigen bestanden op al je apparaten, mappen van je pc, en AI-samenvattingen met feedback.
 - Profielen wissel je in de app Profielen.
-- Studieplanner: focustimer en studieblokken voor je deadlines.
+- Studieplanner: focustimer, examenplanner en studieblokken voor je deadlines en examens.
 
 Nog niet klaar: een eigen Wear OS-app, en deadlines toevoegen via NEXUS AI.
