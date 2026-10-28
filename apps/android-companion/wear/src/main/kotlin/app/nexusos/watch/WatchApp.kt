@@ -25,6 +25,7 @@ class WatchApp : Application() {
         Safety.grace = 0
         Safety.note = null
         Connect.kind = "horloge"
+        Safety.onChange = { Glance.refresh(it) }
         Refresh.schedule(this)
     }
 }
@@ -68,6 +69,7 @@ class WatchBootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
             Safety.reschedule(context.applicationContext)
             Refresh.schedule(context.applicationContext)
+            Focus.reschedule(context.applicationContext)
         }
     }
 }

@@ -7,7 +7,9 @@ import {
   fingerprint,
   generateDeviceKeyPair,
   notificationPopsUp,
+  parseAction,
   parsePayload,
+  type ActionPayload,
   trimInbox,
   type ConnectPayload,
   type PlanPayload,
@@ -87,6 +89,8 @@ export class ConnectEngine {
     private client: SupabaseClient | null,
     private remote: ConnectRemote | null,
     private notify: (item: InboxItem) => void = showSystemNotification,
+    /** Something done on another device, e.g. a deadline ticked off on the watch. */
+    private onAction: (action: ActionPayload) => void | Promise<void> = () => undefined,
   ) {
     this.state = {
       status: client && remote ? 'signed-out' : 'unconfigured',
@@ -255,10 +259,17 @@ export class ConnectEngine {
       const messages = await this.remote.fetchMessages(identity.deviceId)
       if (messages.length === 0) return
       const items: InboxItem[] = []
+      const actions: ActionPayload[] = []
       for (const m of messages) {
         try {
           const plaintext = await decryptWith(identity.privateKey, identity.publicKey, identity.deviceId, m)
-          const payload = parsePayload(JSON.parse(plaintext))
+          const json: unknown = JSON.parse(plaintext)
+          const action = parseAction(json)
+          if (action) {
+            actions.push(action)
+            continue
+          }
+          const payload = parsePayload(json)
           if (payload) {
             items.push({ ...payload, id: m.id, fromDeviceId: m.senderDeviceId, receivedAt: Date.now(), read: false })
           }
@@ -267,6 +278,13 @@ export class ConnectEngine {
         }
       }
       await this.addToInbox(items)
+      for (const action of actions) {
+        try {
+          await this.onAction(action)
+        } catch (err) {
+          logEvent('connect', `Actie van een ander apparaat mislukt: ${err instanceof Error ? err.message : err}`, true)
+        }
+      }
       await this.remote.deleteMessages(messages.map((m) => m.id))
       logEvent('connect', `${items.length} melding(en) ontvangen, ${messages.length - items.length} onleesbaar`)
       // With web push on, the service worker already shows notifications that carry a ref.
@@ -465,7 +483,7 @@ export class ConnectEngine {
 }
 
 /** Shows a system notification when the tab is in the background and the user allowed it. */
-function showSystemNotification(item: InboxItem): void {
+export function showSystemNotification(item: InboxItem): void {
   // A quiet profile (School, Gaming) keeps phone notifications in Meldingen without popping up,
   // except for the apps it lets through.
   if (!notificationPopsUp(profilesStore.getSnapshot().active, item.appName)) return

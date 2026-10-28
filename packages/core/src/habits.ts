@@ -98,6 +98,12 @@ export function toggleDone(habit: Habit, t: number, now = Date.now()): Habit {
   return { ...habit, done, updatedAt: now }
 }
 
+/** Ticks [habit] off for the day [date] (YYYY-MM-DD); already ticked stays ticked. */
+export function markDone(habit: Habit, date: string, now = Date.now()): Habit {
+  if (habit.done.includes(date) || !DATE.test(date)) return habit
+  return { ...habit, done: [...habit.done, date].sort().slice(-MAX_DONE), updatedAt: now }
+}
+
 /**
  * Due days in a row it was done, counting back from today; today still open does not break it.
  * Days it is not due are skipped.

@@ -96,6 +96,13 @@ export class FocusStore {
     this.set({ settings, ...(fresh ? { timer: { ...timer, remaining: phaseMs(timer.phase, settings) } } : {}) })
   }
 
+  /** A focus round done elsewhere, e.g. on the watch. */
+  addLog(entry: FocusLogEntry, now = Date.now()): void {
+    const cutoff = now - KEEP_DAYS * 24 * 60 * 60_000
+    if (entry.at < cutoff) return
+    this.set({ log: [...this.state.log.filter((e) => e.at >= cutoff), entry].sort((a, b) => a.at - b.at) })
+  }
+
   /** Goes to the next phase now; a finished focus round counts in the log. */
   skip = (now = Date.now()) => this.finish(now, false)
 

@@ -123,6 +123,24 @@ describe('ConnectEngine', () => {
     stop()
   })
 
+  it('carries out what was ticked off on the watch instead of showing it', async () => {
+    const remote = new FakeRemote()
+    const notified: InboxItem[] = []
+    const actions: unknown[] = []
+    const engine = new ConnectEngine(fakeClient(), remote, (item) => notified.push(item), (a) => void actions.push(a))
+    const stop = engine.start()
+    await ready(engine)
+    const pc = remote.devices[0]
+    const payload = { v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 }
+    const envelope = await encryptFor(pc.publicKey, pc.id, JSON.stringify(payload))
+    await remote.sendMessages([{ ...envelope, senderDeviceId: 'watch', recipientDeviceId: pc.id }])
+    await vi.waitFor(() => expect(actions).toEqual([payload]))
+    await vi.waitFor(() => expect(remote.messages).toHaveLength(0))
+    expect(engine.getSnapshot().inbox).toHaveLength(0)
+    expect(notified).toHaveLength(0)
+    stop()
+  })
+
   it('sends a test notification to itself and drops messages it cannot read', async () => {
     const remote = new FakeRemote()
     const engine = new ConnectEngine(fakeClient(), remote, () => {})
