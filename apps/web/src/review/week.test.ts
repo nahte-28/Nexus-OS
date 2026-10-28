@@ -21,7 +21,9 @@ describe('Weekoverzicht', () => {
   })
 
   it('checks the request and needs a login', async () => {
-    expect(checkReviewRequest({ facts: 'Lessen: 12' })).toEqual({ ok: true, facts: 'Lessen: 12', wish: '' })
+    expect(checkReviewRequest({ facts: 'Lessen: 12' })).toEqual({ ok: true, facts: 'Lessen: 12', wish: '', kind: 'week' })
+    expect(checkReviewRequest({ facts: 'Uitgaven', kind: 'finance' })).toMatchObject({ ok: true, kind: 'finance' })
+    expect(checkReviewRequest({ facts: '', kind: 'finance' })).toEqual({ ok: false, error: 'Er zijn geen gegevens over je maand.' })
     expect(checkReviewRequest({ facts: '  ' })).toMatchObject({ ok: false })
     expect(checkReviewRequest({ facts: 'x'.repeat(20_001) })).toMatchObject({ ok: false })
     expect(checkReviewRequest({ facts: 'x', wish: ' woensdag vrij ' })).toMatchObject({ wish: 'woensdag vrij' })

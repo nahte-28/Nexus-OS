@@ -15,8 +15,13 @@ import {
   DEFAULT_THRESHOLD,
   EXPENSE_CATEGORIES,
   filterTransactions,
+  financeFacts,
   financeExport,
   formatMoney,
+  friendBalances,
+  ME,
+  myShare,
+  sharedTotals,
   goalProgress,
   INCOME_CATEGORIES,
   KIND_LABELS,
@@ -26,6 +31,7 @@ import {
   monthSeries,
   monthSummary,
   parseAmount,
+  recurringPerMonth,
   shiftMonth,
   TOTAL_BUDGET,
   transactionsCsv,
@@ -33,6 +39,7 @@ import {
   type Cycle,
   type FinanceActionId,
   type MoneyKind,
+  type RecurringItem,
   type SavingsGoal,
   type Subscription,
   type Transaction,
@@ -40,6 +47,9 @@ import {
 import {
   addContribution,
   addGoal,
+  addRecurring,
+  addFriend,
+  addShared,
   addSubscription,
   addTransaction,
   clearFinance,
@@ -49,17 +59,24 @@ import {
   markPaid,
   removeBudget,
   removeContribution,
+  removeFriend,
+  removeShared,
+  removeRecurring,
   removeGoal,
   removeSubscription,
   removeTransaction,
   setAlerts,
   setBudget,
+  settle,
   updateGoal,
+  updateRecurring,
   updateSubscription,
   updateTransaction,
+  type RecurringDraft,
   type SubscriptionDraft,
   type TransactionDraft,
 } from '../finance/store'
+import { adviceNoteTitle, saveAdvice, streamFinanceAdvice } from '../finance/advice'
 import { onReveal, takeReveal } from '../search/reveal'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -70,12 +87,12 @@ const smallButton = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
 const card = 'rounded-lg border border-nx-border p-3'
 
-const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Inzichten', 'Instellingen'] as const
+const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Delen', 'Inzichten', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const HIDDEN_KEY = 'nexus.finance.hidden'
 
 /** Which tab a shortcut from Zoeken overal opens, and whether its form opens with it. */
-const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen' }
+const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen', 'new-recurring': 'Abonnementen', 'new-shared': 'Delen' }
 
 const useFinance = () => useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
 
@@ -136,7 +153,8 @@ export function Finance() {
           {tab === 'Transacties' && <Transactions openAt={opens('new-transaction')} />}
           {tab === 'Budgetten' && <Budgets />}
           {tab === 'Sparen' && <Goals openAt={opens('new-goal')} />}
-          {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} />}
+          {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} openRecurringAt={opens('new-recurring')} />}
+          {tab === 'Delen' && <Shared openAt={opens('new-shared')} />}
           {tab === 'Inzichten' && <Insights />}
           {tab === 'Instellingen' && <Settings hidden={hidden} onHidden={toggleHidden} />}
         </div>
@@ -849,7 +867,7 @@ function SubscriptionForm({ initial, onDone }: { initial?: Subscription; onDone:
   )
 }
 
-function Subscriptions({ openAt }: { openAt: number }) {
+function Subscriptions({ openAt, openRecurringAt }: { openAt: number; openRecurringAt: number }) {
   const state = useFinance()
   const money = useMoney()
   const [adding, setAdding] = useState(openAt > 0)
@@ -906,7 +924,136 @@ function Subscriptions({ openAt }: { openAt: number }) {
         )}
       </ul>
       {subs.length > 0 && <p className="text-xs text-nx-muted">"Betaald" zet de betaling bij je transacties en schuift de datum één periode op.</p>}
+      <RecurringList openAt={openRecurringAt} />
     </>
+  )
+}
+
+function RecurringForm({ initial, onDone }: { initial?: RecurringItem; onDone: () => void }) {
+  const [kind, setKind] = useState<RecurringItem['kind']>(initial?.kind ?? 'income')
+  const [name, setName] = useState(initial?.name ?? '')
+  const [amount, setAmount] = useState(initial ? amountText(initial.amount) : '')
+  const [cycle, setCycle] = useState<Cycle>(initial?.cycle ?? 'monthly')
+  const [next, setNext] = useState(initial?.next ?? dateKey(Date.now()))
+  const [category, setCategory] = useState(initial?.category ?? (kind === 'income' ? 'Zakgeld' : 'Andere'))
+  const cents = parseAmount(amount)
+  const valid = cents !== null && name.trim() !== ''
+  const categories = categoriesFor(kind)
+  return (
+    <form
+      aria-label={initial ? 'Vast bedrag wijzigen' : 'Nieuw vast bedrag'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        const draft: RecurringDraft = { kind, name, amount: cents, cycle, next, category: categories.includes(category) ? category : 'Andere' }
+        if (initial) updateRecurring(initial.id, draft)
+        else addRecurring(draft)
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <select
+          value={kind}
+          onChange={(e) => {
+            const k = e.target.value as RecurringItem['kind']
+            setKind(k)
+            setCategory(k === 'income' ? 'Zakgeld' : 'Andere')
+          }}
+          aria-label="Soort"
+          className={field}
+        >
+          <option value="income">Inkomen</option>
+          <option value="expense">Uitgave</option>
+        </select>
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Naam, bv. Zakgeld" aria-label="Naam" className={field} />
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Bedrag, bv. 50" aria-label="Bedrag" className={field} />
+        <select value={cycle} onChange={(e) => setCycle(e.target.value as Cycle)} aria-label="Frequentie" className={field}>
+          {(Object.keys(CYCLE_LABELS) as Cycle[]).map((c) => (
+            <option key={c} value={c}>
+              {CYCLE_LABELS[c]}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Volgende</span>
+          <input type="date" value={next} onChange={(e) => e.target.value && setNext(e.target.value)} aria-label="Volgende datum" className={field} />
+        </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={field}>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <p className="text-xs text-nx-muted">Op elke datum zet NEXUS het bedrag vanzelf bij je transacties. Ligt de datum in het verleden, dan komen ook de gemiste keren erbij (hoogstens 12).</p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          {initial ? 'Bewaren' : 'Vast bedrag toevoegen'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function RecurringList({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [editing, setEditing] = useState<string | null>(null)
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const items = alive(state.recurring).sort((a, b) => a.next.localeCompare(b.next))
+  const perMonth = recurringPerMonth(state)
+
+  return (
+    <Section
+      title="Vaste bedragen"
+      action={
+        !adding && (
+          <button type="button" className={smallButton} onClick={() => setAdding(true)}>
+            + Vast bedrag
+          </button>
+        )
+      }
+    >
+      <p className="text-xs text-nx-muted">Loon, zakgeld, huur of kotgeld: wat elke keer hetzelfde is, komt vanzelf in je transacties.</p>
+      {items.length > 0 && (
+        <p className="text-xs">
+          Per maand gemiddeld <span className="font-medium">{money(perMonth.income)}</span> erbij en <span className="font-medium">{money(perMonth.expenses)}</span> eraf.
+        </p>
+      )}
+      {adding && <RecurringForm key={openAt} onDone={() => setAdding(false)} />}
+      {items.length === 0 && !adding && <p className="text-nx-muted">Nog geen vaste bedragen.</p>}
+      <ul className="space-y-2">
+        {items.map((r) =>
+          editing === r.id ? (
+            <li key={r.id}>
+              <RecurringForm initial={r} onDone={() => setEditing(null)} />
+            </li>
+          ) : (
+            <li key={r.id} className={`${card} flex flex-wrap items-center gap-2`}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{r.name}</span>
+                <span className="block text-xs text-nx-muted">
+                  {r.kind === 'income' ? '+' : '−'}
+                  {money(r.amount)} {CYCLE_LABELS[r.cycle].toLowerCase()} · {r.category} · volgende {dayLabel(r.next)}
+                </span>
+              </span>
+              <button type="button" className={smallButton} onClick={() => setEditing(r.id)}>
+                Wijzigen
+              </button>
+              <button type="button" className={smallButton} aria-label={`Vast bedrag ${r.name} stoppen`} onClick={() => removeRecurring(r.id)}>
+                ✕
+              </button>
+            </li>
+          ),
+        )}
+      </ul>
+    </Section>
   )
 }
 
@@ -998,7 +1145,89 @@ function Insights() {
           <p className="text-xs text-nx-muted">Deze maand is nog niet voorbij, dus de bedragen kunnen nog stijgen.</p>
         </Section>
       )}
+      <Advice />
     </>
+  )
+}
+
+/** NEXUS AI looks at a month and gives tips; saved in Notities. Only totals go out. */
+function Advice() {
+  const now = Date.now()
+  const [month, setMonth] = useState(monthOf(now))
+  const [wish, setWish] = useState('')
+  const [text, setText] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const facts = financeFacts(financeStore.getSnapshot(), now, month)
+  // With amounts hidden on this device, the preview stays closed too.
+  const hidden = useMoney()(1).includes('•')
+
+  const start = () => {
+    setError(null)
+    setText('')
+    setState('busy')
+    streamFinanceAdvice(month, wish, setText)
+      .then((markdown) => {
+        saveAdvice(month, markdown)
+        setState('done')
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err))
+        setState('idle')
+      })
+  }
+
+  return (
+    <Section title="Advies van NEXUS AI">
+      <p className="text-nx-muted">
+        NEXUS AI bekijkt je maand en geeft tips om te besparen of beter te plannen. Het advies komt ook in Notities. De AI krijgt alleen de totalen hieronder: geen omschrijvingen van transacties en geen namen van vrienden.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={month}
+          onChange={(e) => {
+            setMonth(e.target.value)
+            setState('idle')
+            setText('')
+          }}
+          aria-label="Maand voor het advies"
+          className={fieldBase}
+          disabled={state === 'busy'}
+        >
+          {[0, 1, 2].map((n) => {
+            const m = shiftMonth(monthOf(now), -n)
+            return (
+              <option key={m} value={m}>
+                {monthLabel(m)}
+              </option>
+            )
+          })}
+        </select>
+        <input value={wish} onChange={(e) => setWish(e.target.value)} maxLength={500} placeholder="Vraag of wens (optioneel), bv. ik wil sparen voor een laptop" aria-label="Vraag aan NEXUS AI" className={`${fieldBase} min-w-48 flex-1`} disabled={state === 'busy'} />
+      </div>
+      {!hidden && (
+        <details className={card}>
+          <summary className="cursor-pointer">Wat NEXUS AI krijgt</summary>
+          <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-nx-muted">{facts}</pre>
+        </details>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={primaryButton} disabled={state === 'busy'} onClick={start}>
+          {state === 'busy' ? 'Bezig…' : state === 'done' ? 'Opnieuw vragen' : 'Advies vragen'}
+        </button>
+        {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{adviceNoteTitle(month)}".</span>}
+      </div>
+      {error && (
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+      )}
+      {text && (
+        <article aria-label="Advies" className="whitespace-pre-wrap rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+          {text}
+        </article>
+      )}
+    </Section>
   )
 }
 
@@ -1211,5 +1440,180 @@ function ImportPanel({ onDone }: { onDone: (message: string | null) => void }) {
         </button>
       </div>
     </section>
+  )
+}
+
+function SharedForm({ onDone }: { onDone: () => void }) {
+  const state = useFinance()
+  const friends = alive(state.friends)
+  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState(dateKey(Date.now()))
+  const [paidBy, setPaidBy] = useState(ME)
+  // Who is left out, so a friend added while the form is open is in it too.
+  const [left, setLeft] = useState<string[]>([])
+  const [category, setCategory] = useState('Eten en drinken')
+  const people = [{ id: ME, name: 'Ik' }, ...friends.map((f) => ({ id: f.id, name: f.name }))]
+  const among = people.map((p) => p.id).filter((id) => !left.includes(id))
+  const cents = parseAmount(amount)
+  // Only costs between you and friends: you paid, or you are one of those it is for.
+  const valid = cents !== null && among.length > 0 && (paidBy === ME ? among.some((p) => p !== ME) : among.includes(ME))
+  const share = cents !== null && among.length > 0 ? myShare({ amount: cents, among }) : 0
+  return (
+    <form
+      aria-label="Nieuwe gedeelde kosten"
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        addShared({ note, amount: cents, date, paidBy, among, category })
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <input autoFocus value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} placeholder="Waarvoor, bv. Pizza" aria-label="Omschrijving" className={field} />
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Totaal, bv. 36" aria-label="Totaalbedrag" className={field} />
+        <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Datum" className={field} />
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Betaald door</span>
+          <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)} aria-label="Betaald door" className={field}>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie van je deel" className={field}>
+          {EXPENSE_CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <fieldset className="flex flex-wrap gap-3">
+        <legend className="mb-1 text-xs text-nx-muted">Gedeeld door</legend>
+        {people.map((p) => (
+          <label key={p.id} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              className="accent-[var(--nx-accent)]"
+              checked={among.includes(p.id)}
+              onChange={(e) => setLeft((list) => (e.target.checked ? list.filter((x) => x !== p.id) : [...list, p.id]))}
+            />
+            {p.name}
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-xs text-nx-muted">
+        Gelijk verdeeld. {share > 0 ? `Jouw deel van ${formatMoney(share)} komt bij je uitgaven.` : 'Jij doet niet mee, dus er komt niets bij je uitgaven.'}
+      </p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          Gedeelde kosten toevoegen
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Shared({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [name, setName] = useState('')
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const balances = friendBalances(state)
+  const totals = sharedTotals(state)
+  const names = new Map(alive(state.friends).map((f) => [f.id, f.name]))
+  const who = (id: string) => (id === ME ? 'jij' : (names.get(id) ?? 'iemand'))
+  const recent = alive(state.shared)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
+    .slice(0, 30)
+
+  return (
+    <>
+      <section aria-label="Saldo" className="grid grid-cols-2 gap-2">
+        <Tile label="Ze zijn je schuldig" value={money(totals.owedToMe)} />
+        <Tile label="Jij bent schuldig" value={money(totals.iOwe)} warn={totals.iOwe > 0} />
+      </section>
+      <Section title="Vrienden">
+        <form
+          aria-label="Vriend toevoegen"
+          className="flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (addFriend(name)) setName('')
+          }}
+        >
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam, bv. Remo" aria-label="Naam van je vriend" className={field} />
+          <button type="submit" className={button} disabled={!name.trim()}>
+            Toevoegen
+          </button>
+        </form>
+        {balances.length === 0 && <p className="text-nx-muted">Voeg eerst de vrienden toe met wie je kosten deelt. Alleen hun naam blijft bewaard.</p>}
+        <ul className="space-y-2">
+          {balances.map(({ friend, balance }) => (
+            <li key={friend.id} className={`${card} flex flex-wrap items-center gap-2`}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{friend.name}</span>
+                <span className={`block text-xs ${balance < 0 ? 'text-red-500' : 'text-nx-muted'}`}>
+                  {balance > 0 ? `is je ${money(balance)} schuldig` : balance < 0 ? `je bent ${money(-balance)} schuldig` : 'jullie staan quitte'}
+                </span>
+              </span>
+              {balance !== 0 && (
+                <button type="button" className={smallButton} aria-label={`${friend.name} terugbetaald`} onClick={() => settle(friend.id, balance)}>
+                  Terugbetaald
+                </button>
+              )}
+              <button
+                type="button"
+                className={smallButton}
+                aria-label={`${friend.name} verwijderen`}
+                title={balance !== 0 ? 'Eerst terugbetalen' : undefined}
+                disabled={balance !== 0}
+                onClick={() => removeFriend(friend.id)}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section
+        title="Gedeelde kosten"
+        action={
+          !adding &&
+          balances.length > 0 && (
+            <button type="button" className={smallButton} onClick={() => setAdding(true)}>
+              + Gedeelde kosten
+            </button>
+          )
+        }
+      >
+        {adding && balances.length > 0 && <SharedForm key={openAt} onDone={() => setAdding(false)} />}
+        {recent.length === 0 && !adding && <p className="text-nx-muted">Nog niets gedeeld.</p>}
+        <ul className="space-y-1">
+          {recent.map((e) => (
+            <li key={e.id} className="flex items-center gap-2 border-b border-nx-border py-1.5 last:border-0">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{e.note || 'Gedeelde kosten'}</span>
+                <span className="block text-xs text-nx-muted">
+                  {dayLabel(e.date)} · {who(e.paidBy) === 'jij' ? 'jij betaalde' : `${who(e.paidBy)} betaalde`} {money(e.amount)} · voor {e.among.map(who).join(', ')}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs tabular-nums">{myShare(e) > 0 ? `jouw deel ${money(myShare(e))}` : ''}</span>
+              <button type="button" className={smallButton} aria-label={`${e.note || 'Gedeelde kosten'} verwijderen`} onClick={() => removeShared(e.id)}>
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </>
   )
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   budgetStatus,
+  dueRecurring,
+  recurringPerMonth,
   carriedInto,
   budgetWarnings,
   emptyFinance,
@@ -113,6 +115,14 @@ describe('finance', () => {
       ['2026-10-10', true],
       ['2026-11-10', false],
     ])
+  })
+
+  it('finds the dates a fixed amount still has to add, at most 12 after a long break', () => {
+    const item = { id: 'r1', name: 'Zakgeld', kind: 'income' as const, amount: 5000, category: 'Zakgeld', cycle: 'monthly' as const, next: '2026-09-01', createdAt: 1, updatedAt: 1, deletedAt: null }
+    const s = { ...emptyFinance(), recurring: [item, { ...item, id: 'r2', kind: 'expense' as const, amount: 1000, cycle: 'weekly' as const, next: '2026-11-01' }] }
+    expect(dueRecurring(s, '2026-10-28')).toEqual([{ item, dates: ['2026-09-01', '2026-10-01'], next: '2026-11-01' }])
+    expect(dueRecurring({ ...s, recurring: [{ ...item, next: '2020-01-15' }] }, '2026-10-28')[0].dates).toHaveLength(12)
+    expect(recurringPerMonth(s)).toEqual({ income: 5000, expenses: 4333 })
   })
 
   it('merges copies item by item and survives junk', () => {

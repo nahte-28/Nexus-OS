@@ -1,4 +1,5 @@
 import {
+  financeFlowFacts,
   openDeadlines,
   describeAction,
   failingCondition,
@@ -19,6 +20,7 @@ import {
 import { logEvent } from '../devtools/log'
 import { getUpdateState } from '../platform/update'
 import { chooseFor, profilesStore } from '../profiles/store'
+import { financeStore } from '../finance/store'
 import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import type { ConnectEngine } from '../connect/engine'
@@ -52,6 +54,7 @@ export const APP_NAMES: Partial<Record<string, string>> = {
   notifications: 'Meldingen',
   devices: 'Apparaten',
   profiles: 'Profielen',
+  finance: 'Financiën',
 }
 export const appName = (id: string) => APP_NAMES[id] ?? id
 
@@ -170,7 +173,7 @@ export async function runNow(flow: FlowDefinition, context: FlowContext, effects
   return run
 }
 
-/** The context from Profiles, Reminders, Connect and the updater, right now. */
+/** The context from Profiles, Reminders, Financiën, Connect and the updater, right now. */
 export function currentContext(connect: ConnectEngine, now = Date.now()): FlowContext {
   const connectState = connect.getSnapshot()
   const update = getUpdateState()
@@ -189,6 +192,7 @@ export function currentContext(connect: ConnectEngine, now = Date.now()): FlowCo
             .map((d) => ({ id: d.id, name: d.name, lastSeenAt: Date.parse(d.lastSeenAt) || now }))
         : [],
     update: update.status === 'available' ? { version: update.update.version } : null,
+    finance: financeFlowFacts(financeStore.getSnapshot(), now),
   }
 }
 

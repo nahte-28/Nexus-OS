@@ -5,7 +5,15 @@
 import { isTime, localClock, PROFILE_IDS, type ProfileId } from './profiles'
 import type { AppId } from './windows'
 
-export type TriggerType = 'schedule.at_time' | 'deadline.upcoming' | 'device.offline' | 'update.available' | 'manual'
+export type TriggerType =
+  | 'schedule.at_time'
+  | 'deadline.upcoming'
+  | 'device.offline'
+  | 'update.available'
+  | 'finance.budget_used'
+  | 'finance.payment_due'
+  | 'finance.expense_added'
+  | 'manual'
 export type ConditionType = 'profile.is_active' | 'local_time.in_range' | 'network.online'
 export type ActionType = 'profile.activate' | 'notification.send' | 'app.open_prompt' | 'update.prompt'
 
@@ -17,6 +25,12 @@ export type FlowTrigger =
   | { type: 'deadline.upcoming'; minutesBefore: number }
   | { type: 'device.offline'; minutes: number }
   | { type: 'update.available' }
+  /** A budget passes [percent] of what it has this month. */
+  | { type: 'finance.budget_used'; percent: number }
+  /** A subscription is paid within [daysBefore] days (0 is on the day itself). */
+  | { type: 'finance.payment_due'; daysBefore: number }
+  /** An expense of at least [minAmount] cents is added by hand; imports from the bank do not count. */
+  | { type: 'finance.expense_added'; minAmount: number }
   | { type: 'manual' }
 
 export type FlowCondition =
@@ -55,6 +69,15 @@ export interface FlowContext {
   /** The other devices of the account. */
   devices: { id: string; name: string; lastSeenAt: number }[]
   update: { version: string } | null
+  /** What Financiën knows right now; absent where the app is not used. */
+  finance?: FinanceFlowFacts
+}
+
+/** The parts of Financiën a flow can start on, with amounts already written out. */
+export interface FinanceFlowFacts {
+  budgets: { id: string; month: string; label: string; used: number; left: string }[]
+  payments: { id: string; name: string; amount: string; date: string; dateLabel: string }[]
+  expenses: { id: string; amount: number; amountText: string; category: string; createdAt: number; /** From a bank import or a fixed amount, not typed in. */ imported: boolean }[]
 }
 
 /** One thing that happened and may start a flow. The id makes a run happen once per event. */
@@ -76,6 +99,9 @@ export const TRIGGER_LABELS: Record<TriggerType, string> = {
   'deadline.upcoming': 'Een deadline komt eraan',
   'device.offline': 'Een apparaat is offline',
   'update.available': 'Er is een update',
+  'finance.budget_used': 'Een budget raakt op',
+  'finance.payment_due': 'Een abonnement wordt betaald',
+  'finance.expense_added': 'Een uitgave wordt toegevoegd',
   manual: 'Als ik op Uitvoeren druk',
 }
 export const CONDITION_LABELS: Record<ConditionType, string> = {
@@ -94,7 +120,7 @@ export const CONDITION_TYPES = Object.keys(CONDITION_LABELS) as ConditionType[]
 export const ACTION_TYPES = Object.keys(ACTION_LABELS) as ActionType[]
 
 /** Apps a flow may suggest opening. */
-export const PROMPT_APPS: AppId[] = ['klashub', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'profiles']
+export const PROMPT_APPS: AppId[] = ['klashub', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'profiles', 'finance']
 
 export function defaultTrigger(type: TriggerType): FlowTrigger {
   switch (type) {
@@ -104,6 +130,12 @@ export function defaultTrigger(type: TriggerType): FlowTrigger {
       return { type, minutesBefore: 60 }
     case 'device.offline':
       return { type, minutes: 60 }
+    case 'finance.budget_used':
+      return { type, percent: 90 }
+    case 'finance.payment_due':
+      return { type, daysBefore: 1 }
+    case 'finance.expense_added':
+      return { type, minAmount: 5000 }
     case 'update.available':
     case 'manual':
       return { type }
@@ -165,6 +197,11 @@ export function validateFlow(flow: FlowDefinition): string | null {
     return 'Kies tussen 5 minuten en 7 dagen op voorhand.'
   if (t.type === 'device.offline' && !(Number.isInteger(t.minutes) && t.minutes >= 15 && t.minutes <= 7 * 24 * 60))
     return 'Kies tussen 15 minuten en 7 dagen offline.'
+  if (t.type === 'finance.budget_used' && !(Number.isInteger(t.percent) && t.percent >= 1 && t.percent <= 200)) return 'Kies een percentage tussen 1 en 200.'
+  if (t.type === 'finance.payment_due' && !(Number.isInteger(t.daysBefore) && t.daysBefore >= 0 && t.daysBefore <= 30))
+    return 'Kies tussen 0 en 30 dagen op voorhand.'
+  if (t.type === 'finance.expense_added' && !(Number.isInteger(t.minAmount) && t.minAmount >= 0 && t.minAmount <= 10_000_000))
+    return 'Kies een bedrag tot € 100.000.'
   if (flow.conditions.length > MAX_CONDITIONS) return `Hoogstens ${MAX_CONDITIONS} voorwaarden.`
   for (const c of flow.conditions) {
     if (!CONDITION_TYPES.includes(c?.type)) return 'Onbekende voorwaarde.'
@@ -211,9 +248,30 @@ export function triggerEvents(flow: FlowDefinition, ctx: FlowContext): FlowEvent
         .map((d) => ({ id: `offline:${d.id}@${d.lastSeenAt}`, label: d.name, vars: { apparaat: d.name } }))
     case 'update.available':
       return ctx.update ? [{ id: `update:${ctx.update.version}`, label: `Versie ${ctx.update.version}`, vars: { versie: ctx.update.version } }] : []
+    case 'finance.budget_used':
+      return (ctx.finance?.budgets ?? [])
+        .filter((b) => b.used >= t.percent)
+        // Once per budget per month: the next month starts afresh.
+        .map((b) => ({ id: `budget:${b.month}:${b.id}@${t.percent}`, label: b.label, vars: { categorie: b.label, procent: String(b.used), over: b.left } }))
+    case 'finance.payment_due': {
+      const today = localDate(ctx.now, flow.timeZone)
+      return (ctx.finance?.payments ?? [])
+        .filter((p) => p.date >= today && daysBetween(today, p.date) <= t.daysBefore)
+        .map((p) => ({ id: `payment:${p.id}@${p.date}`, label: p.name, vars: { naam: p.name, bedrag: p.amount, datum: p.dateLabel } }))
+    }
+    case 'finance.expense_added':
+      return (ctx.finance?.expenses ?? [])
+        // Only new ones: added after the flow was saved and not longer ago than a catch-up.
+        .filter((e) => !e.imported && e.amount >= t.minAmount && e.createdAt >= flow.updatedAt && ctx.now - e.createdAt <= CATCH_UP_MINUTES * 60_000)
+        .map((e) => ({ id: `expense:${e.id}`, label: e.category, vars: { bedrag: e.amountText, categorie: e.category } }))
     case 'manual':
       return []
   }
+}
+
+/** Whole days from one YYYY-MM-DD to another. */
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.UTC(+to.slice(0, 4), +to.slice(5, 7) - 1, +to.slice(8, 10)) - Date.UTC(+from.slice(0, 4), +from.slice(5, 7) - 1, +from.slice(8, 10))) / 86_400_000)
 }
 
 function clock(at: number, timeZone?: string): string {
@@ -312,6 +370,12 @@ export function describeTrigger(t: FlowTrigger): string {
       return `Als een apparaat ${t.minutes} minuten offline is`
     case 'update.available':
       return 'Als er een nieuwe versie van de Windows-app is'
+    case 'finance.budget_used':
+      return `Als een budget ${t.percent}% gebruikt heeft`
+    case 'finance.payment_due':
+      return t.daysBefore === 0 ? 'Op de dag dat een abonnement betaald wordt' : t.daysBefore === 1 ? 'De dag voor een abonnement betaald wordt' : `${t.daysBefore} dagen voor een abonnement betaald wordt`
+    case 'finance.expense_added':
+      return t.minAmount > 0 ? `Als je een uitgave van minstens € ${(t.minAmount / 100).toFixed(2).replace('.', ',').replace(/,00$/, '')} toevoegt` : 'Als je een uitgave toevoegt'
     case 'manual':
       return 'Als je op Uitvoeren drukt'
   }
@@ -374,7 +438,7 @@ export function isFlowDefinition(value: unknown): value is FlowDefinition {
 export interface FlowTemplate {
   id: string
   title: string
-  category: 'School' | 'Apparaten' | 'Updates' | 'Productiviteit'
+  category: 'School' | 'Apparaten' | 'Updates' | 'Productiviteit' | 'Geld'
   description: string
   flow: Pick<FlowDefinition, 'name' | 'trigger' | 'conditions' | 'actions'>
 }
@@ -445,6 +509,30 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
         { type: 'profile.activate', profile: 'school', duration: 'hour' },
         { type: 'app.open_prompt', app: 'reminders' },
       ],
+    },
+  },
+  {
+    id: 'budget-almost-up',
+    title: 'Budget bijna op',
+    category: 'Geld',
+    description: 'Een seintje op je gsm als een budget voor 90% gebruikt is, één keer per maand.',
+    flow: {
+      name: 'Budget bijna op',
+      trigger: { type: 'finance.budget_used', percent: 90 },
+      conditions: [],
+      actions: [{ type: 'notification.send', title: '{categorie}: {procent}% gebruikt', text: 'Nog {over} over deze maand.', target: 'phone' }],
+    },
+  },
+  {
+    id: 'big-expense',
+    title: 'Grote uitgave',
+    category: 'Geld',
+    description: 'Bij een uitgave van € 50 of meer voorstellen om Financiën te openen en even je budget te bekijken.',
+    flow: {
+      name: 'Grote uitgave',
+      trigger: { type: 'finance.expense_added', minAmount: 5000 },
+      conditions: [],
+      actions: [{ type: 'app.open_prompt', app: 'finance' }],
     },
   },
 ]

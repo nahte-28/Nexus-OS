@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { emptyFinance, type FinanceState } from '@nexus/core'
-import { financeStore, fireBudgetWarnings, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
+import { applyRecurring, financeStore, fireBudgetWarnings, removeTransaction, fireSubscriptionNotices, clearFinance, takeOverLocalBudget } from '../finance/store'
 import { reveal } from '../search/reveal'
 
 const { Finance } = await import('./Finance')
@@ -147,6 +147,78 @@ describe('Financiën', () => {
     const today = new Date()
     expect(financeStore.getSnapshot().budgets[0].rolloverFrom).toBe(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
     expect(screen.getByText(/overschot schuift door/)).toBeTruthy()
+  })
+
+  it('adds a fixed amount by itself on its date, once, and not again after deleting it', () => {
+    render(<Finance />)
+    tab('Abonnementen')
+    fireEvent.click(screen.getByRole('button', { name: '+ Vast bedrag' }))
+    const form = screen.getByRole('form', { name: 'Nieuw vast bedrag' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Naam' }), { target: { value: 'Zakgeld' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Bedrag' }), { target: { value: '50' } })
+    const today = new Date()
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const day = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    fireEvent.change(within(form).getByLabelText('Volgende datum'), { target: { value: day(lastMonth) } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Vast bedrag toevoegen' }))
+    let s = financeStore.getSnapshot()
+    // Last month and this month, as income in Zakgeld.
+    expect(s.transactions.map((t) => [t.kind, t.amount, t.category, t.note])).toEqual([
+      ['income', 5000, 'Zakgeld', 'Zakgeld'],
+      ['income', 5000, 'Zakgeld', 'Zakgeld'],
+    ])
+    expect(s.recurring[0].next > day(today)).toBe(true)
+    expect(screen.getByText(/erbij/)).toBeTruthy()
+
+    act(() => removeTransaction(s.transactions[1].id))
+    act(() => financeStore.update((x) => ({ ...x, recurring: x.recurring.map((r) => ({ ...r, next: s.transactions[1].date })) })))
+    expect(applyRecurring()).toBe(0)
+    s = financeStore.getSnapshot()
+    expect(s.transactions.filter((t) => t.deletedAt === null)).toHaveLength(1)
+  })
+
+  it('shares a cost with friends, puts your own share in the expenses and settles up', () => {
+    render(<Finance />)
+    tab('Delen')
+    for (const name of ['Remo', 'Lina']) {
+      fireEvent.change(screen.getByRole('textbox', { name: 'Naam van je vriend' }), { target: { value: name } })
+      fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
+    }
+    fireEvent.click(screen.getByRole('button', { name: '+ Gedeelde kosten' }))
+    const form = screen.getByRole('form', { name: 'Nieuwe gedeelde kosten' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Omschrijving' }), { target: { value: 'Pizza' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Totaalbedrag' }), { target: { value: '36' } })
+    expect(within(form).getByText(/Jouw deel van € 12,00/)).toBeTruthy()
+    fireEvent.click(within(form).getByRole('button', { name: 'Gedeelde kosten toevoegen' }))
+
+    expect(screen.getAllByText(/is je € 12,00 schuldig/)).toHaveLength(2)
+    expect(financeStore.getSnapshot().transactions).toMatchObject([{ kind: 'expense', amount: 1200, category: 'Eten en drinken', note: 'Gedeeld: Pizza' }])
+    expect(screen.getByRole('button', { name: 'Remo verwijderen' })).toHaveProperty('disabled', true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remo terugbetaald' }))
+    expect(screen.getByText('jullie staan quitte')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Pizza verwijderen' }))
+    // Your share goes with it.
+    expect(financeStore.getSnapshot().transactions[0].deletedAt).not.toBeNull()
+  })
+
+  it('asks NEXUS AI for advice about the month and keeps it as a note', async () => {
+    const ndjson = [{ type: 'text', text: '## Je maand\n- Rustige ' }, { type: 'text', text: 'maand.' }, { type: 'done' }].map((e) => JSON.stringify(e) + '\n').join('')
+    const fetch = vi.fn(async () => new Response(ndjson))
+    vi.stubGlobal('fetch', fetch)
+    const { streamFinanceAdvice, saveAdvice, adviceNoteTitle } = await import('../finance/advice')
+    const text = await streamFinanceAdvice('2026-10', '', () => {}, Date.now(), async () => 'token', '')
+    expect(text).toBe('## Je maand\n- Rustige maand.')
+    const body = JSON.parse((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(body).toMatchObject({ kind: 'finance', facts: expect.stringContaining('oktober') })
+    await expect(streamFinanceAdvice('2026-10', '', () => {}, Date.now(), async () => null, '')).rejects.toThrow(/Meld je aan/)
+
+    const { notesStore } = await import('../state/notesStore')
+    await notesStore.ready
+    const first = saveAdvice('2026-10', 'Eerste')
+    expect(saveAdvice('2026-10', 'Tweede')).toBe(first)
+    expect(notesStore.getSnapshot().find((n) => n.id === first)).toMatchObject({ title: adviceNoteTitle('2026-10'), body: expect.stringContaining('Tweede') })
+    vi.unstubAllGlobals()
   })
 
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {

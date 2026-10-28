@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { aiAccess, cors, DEFAULT_MODEL, env, json } from './_shared.js'
 
 /**
- * NEXUS AI's Weekoverzicht: gets the facts of the student's week (built on the device: lessons,
+ * NEXUS AI's Weekoverzicht, and with kind "finance" advice about a month in Financiën: gets the facts of the student's week (built on the device: lessons,
  * deadlines, appointments, focus time, habits, marks) and streams back a review of the week and a
  * plan for the next one, in Markdown. Nothing is stored here. Same access rules as /api/ai.
  */
@@ -23,12 +23,30 @@ Per dag van volgende week één of twee concrete acties, rond de lessen en afspr
 
 Gebruik alleen de feiten die je krijgt; verzin geen lessen, deadlines of cijfers. Ontbreken er gegevens (bv. geen lessen of geen cijfers), zeg dat dan kort in plaats van te gokken.`
 
-export function checkReviewRequest(value: unknown): { ok: true; facts: string; wish: string } | { ok: false; error: string } {
+export const FINANCE_PROMPT = `Je bent de geldcoach van NEXUS OS voor een student (hogeschool, België).
+Je krijgt de cijfers van een maand uit de app Financiën: inkomen, uitgaven per categorie, budgetten, vorige maanden, abonnementen, vaste bedragen, spaardoelen en gedeelde kosten. Schrijf in het Nederlands (Belgisch), in Markdown, kort en concreet, met alleen deze koppen in deze volgorde:
+
+## Je maand
+Drie tot vijf punten: hoe de maand loopt tegenover het inkomen, de budgetten en vorige maanden, en wat opvalt.
+
+## Tips
+Drie tot vijf haalbare tips voor een student om te besparen of beter te plannen, elk met het bedrag dat het ongeveer oplevert per maand. Kijk naar de grootste categorieën, budgetten die opraken en abonnementen.
+
+## Volgende stap
+Eén ding om deze week te doen.
+
+Gebruik alleen de cijfers die je krijgt; verzin geen uitgaven of bedragen. Geef geen beleggingsadvies en raad geen leningen of financiële producten aan. Ontbreken er gegevens, zeg dat dan kort.`
+
+export type ReviewKind = 'week' | 'finance'
+
+export function checkReviewRequest(value: unknown): { ok: true; facts: string; wish: string; kind: ReviewKind } | { ok: false; error: string } {
   if (typeof value !== 'object' || value === null) return { ok: false, error: 'Ongeldige aanvraag.' }
   const v = value as Record<string, unknown>
-  if (typeof v.facts !== 'string' || !v.facts.trim()) return { ok: false, error: 'Er zijn geen gegevens over je week.' }
-  if (v.facts.length > MAX_FACTS) return { ok: false, error: 'Je week heeft te veel gegevens voor NEXUS AI.' }
-  return { ok: true, facts: v.facts, wish: typeof v.wish === 'string' ? v.wish.trim().slice(0, 500) : '' }
+  const kind: ReviewKind = v.kind === 'finance' ? 'finance' : 'week'
+  const what = kind === 'finance' ? 'je maand' : 'je week'
+  if (typeof v.facts !== 'string' || !v.facts.trim()) return { ok: false, error: `Er zijn geen gegevens over ${what}.` }
+  if (v.facts.length > MAX_FACTS) return { ok: false, error: `${what.charAt(0).toUpperCase()}${what.slice(1)} heeft te veel gegevens voor NEXUS AI.` }
+  return { ok: true, facts: v.facts, wish: typeof v.wish === 'string' ? v.wish.trim().slice(0, 500) : '', kind }
 }
 
 export function OPTIONS(request: Request): Response {
@@ -60,7 +78,7 @@ export async function POST(request: Request): Promise<Response> {
           output_config: { effort: 'medium' },
           betas: ['server-side-fallback-2026-07-01'],
           fallbacks: 'default',
-          system: REVIEW_PROMPT,
+          system: parsed.kind === 'finance' ? FINANCE_PROMPT : REVIEW_PROMPT,
           messages: [{ role: 'user', content: text }],
         })
         stream.on('text', (t) => send({ type: 'text', text: t }))

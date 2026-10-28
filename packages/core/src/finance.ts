@@ -3,6 +3,7 @@
  * by hand. Amounts are whole euro cents so sums stay exact; nothing here moves money.
  */
 import { dateKey } from './habits'
+import type { FinanceFlowFacts } from './flows'
 import { SAFETY_HORIZON_MS, type PlannedNotice } from './safetyNet'
 
 /** A refund lowers the expenses of its category instead of counting as income. */
@@ -66,6 +67,49 @@ export interface Subscription extends Synced {
   createdAt: number
 }
 
+/** A fixed amount (wages, pocket money, rent) that NEXUS adds to the transactions by itself on each date. */
+export interface RecurringItem extends Synced {
+  name: string
+  kind: 'expense' | 'income'
+  amount: number
+  category: string
+  cycle: Cycle
+  /** The next date it is added on, YYYY-MM-DD. */
+  next: string
+  createdAt: number
+}
+
+/** Someone you share costs with. Only the name is kept: no contact details, no account. */
+export interface Friend extends Synced {
+  name: string
+  createdAt: number
+}
+
+/** "me" is you; any other value is a friend's id. */
+export type PersonId = string
+export const ME = 'me'
+
+/** A cost shared with friends, split equally among [among]. */
+export interface SharedExpense extends Synced {
+  note: string
+  /** The whole amount in cents. */
+  amount: number
+  date: string
+  paidBy: PersonId
+  /** Who it is split between; may include "me". */
+  among: PersonId[]
+  /** The expense category your own share goes into in the transactions. */
+  category: string
+  createdAt: number
+}
+
+/** Money paid back between you and a friend; positive when the friend paid you. */
+export interface Settlement extends Synced {
+  friendId: string
+  amount: number
+  date: string
+}
+
 export interface FinanceSettings {
   /** Budget notices on or off. */
   alerts: boolean
@@ -78,6 +122,10 @@ export interface FinanceState {
   goals: SavingsGoal[]
   contributions: Contribution[]
   subscriptions: Subscription[]
+  recurring: RecurringItem[]
+  friends: Friend[]
+  shared: SharedExpense[]
+  settlements: Settlement[]
   settings: FinanceSettings
   revision: number
 }
@@ -95,7 +143,7 @@ const MAX_ITEMS = 200
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const CYCLES: Cycle[] = ['weekly', 'monthly', 'quarterly', 'yearly']
 
-export const emptyFinance = (): FinanceState => ({ transactions: [], budgets: [], goals: [], contributions: [], subscriptions: [], settings: { alerts: true, updatedAt: 0 }, revision: 0 })
+export const emptyFinance = (): FinanceState => ({ transactions: [], budgets: [], goals: [], contributions: [], subscriptions: [], recurring: [], friends: [], shared: [], settlements: [], settings: { alerts: true, updatedAt: 0 }, revision: 0 })
 
 const isObject = (raw: unknown): raw is Record<string, unknown> => typeof raw === 'object' && raw !== null
 const cents = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v > 0 && v < 1e11 ? v : null)
@@ -171,6 +219,52 @@ function parseSubscription(raw: unknown): Subscription | null {
   }
 }
 
+function parseRecurring(raw: unknown): RecurringItem | null {
+  if (!isObject(raw)) return null
+  const base = synced(raw)
+  const next = date(raw.next)
+  const amount = cents(raw.amount)
+  if (!base || !next || (amount === null && base.deletedAt === null)) return null
+  const kind = raw.kind === 'income' ? 'income' : 'expense'
+  return {
+    ...base,
+    name: text(raw.name, 80, 'Vast bedrag'),
+    kind,
+    amount: amount ?? 0,
+    category: text(raw.category, 40, 'Andere'),
+    cycle: CYCLES.includes(raw.cycle as Cycle) ? (raw.cycle as Cycle) : 'monthly',
+    next,
+    createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : base.updatedAt,
+  }
+}
+
+function parseFriend(raw: unknown): Friend | null {
+  if (!isObject(raw)) return null
+  const base = synced(raw)
+  if (!base || base.id === ME) return null
+  return { ...base, name: text(raw.name, 60, base.deletedAt === null ? 'Vriend' : ''), createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : base.updatedAt }
+}
+
+function parseShared(raw: unknown): SharedExpense | null {
+  if (!isObject(raw)) return null
+  const base = synced(raw)
+  const day = date(raw.date)
+  const amount = cents(raw.amount)
+  const among = Array.isArray(raw.among) ? [...new Set(raw.among.filter((p): p is string => typeof p === 'string'))].slice(0, 50) : []
+  if (!base || !day || typeof raw.paidBy !== 'string') return null
+  if (base.deletedAt === null && (amount === null || among.length === 0)) return null
+  return { ...base, note: text(raw.note, 120), amount: amount ?? 0, date: day, paidBy: raw.paidBy, among, category: text(raw.category, 40, 'Andere'), createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : base.updatedAt }
+}
+
+function parseSettlement(raw: unknown): Settlement | null {
+  if (!isObject(raw)) return null
+  const base = synced(raw)
+  const day = date(raw.date)
+  const amount = typeof raw.amount === 'number' && Number.isInteger(raw.amount) && Math.abs(raw.amount) < 1e11 ? raw.amount : null
+  if (!base || !day || typeof raw.friendId !== 'string' || amount === null) return null
+  return { ...base, friendId: raw.friendId, amount, date: day }
+}
+
 function list<T>(raw: unknown, parse: (r: unknown) => T | null, max: number): T[] {
   return Array.isArray(raw) ? raw.map(parse).filter((t): t is T => t !== null).slice(-max) : []
 }
@@ -184,6 +278,10 @@ export function parseFinanceState(raw: unknown): FinanceState {
     goals: list(raw.goals, parseGoal, MAX_ITEMS),
     contributions: list(raw.contributions, parseContribution, MAX_TRANSACTIONS),
     subscriptions: list(raw.subscriptions, parseSubscription, MAX_ITEMS),
+    recurring: list(raw.recurring, parseRecurring, MAX_ITEMS),
+    friends: list(raw.friends, parseFriend, MAX_ITEMS),
+    shared: list(raw.shared, parseShared, MAX_TRANSACTIONS),
+    settlements: list(raw.settlements, parseSettlement, MAX_TRANSACTIONS),
     settings: { alerts: settings.alerts !== false, updatedAt: typeof settings.updatedAt === 'number' ? settings.updatedAt : 0 },
     revision: typeof raw.revision === 'number' ? raw.revision : 0,
   }
@@ -220,6 +318,10 @@ export function mergeFinance(a: FinanceState, b: FinanceState): FinanceState {
     goals: mergeById(a.goals, b.goals),
     contributions: mergeById(a.contributions, b.contributions),
     subscriptions: mergeById(a.subscriptions, b.subscriptions),
+    recurring: mergeById(a.recurring, b.recurring),
+    friends: mergeById(a.friends, b.friends),
+    shared: mergeById(a.shared, b.shared),
+    settlements: mergeById(a.settlements, b.settlements),
     settings: b.settings.updatedAt > a.settings.updatedAt ? b.settings : a.settings,
     revision: Math.max(a.revision, b.revision),
   }
@@ -434,6 +536,40 @@ export function upcomingPayments(s: FinanceState, now: number, days = 31): Array
     .sort((a, b) => a.date.localeCompare(b.date) || a.sub.name.localeCompare(b.sub.name, 'nl'))
 }
 
+/** At most this many dates of one fixed amount are filled in at once, after a long time without NEXUS. */
+export const MAX_RECURRING_CATCH_UP = 12
+
+/** The id of the transaction a fixed amount makes on [day]; the same on every device, so it is never added twice. */
+export const recurringTransactionId = (item: Pick<RecurringItem, 'id'>, day: string) => `recurring-${item.id}-${day}`
+
+export interface DueRecurring {
+  item: RecurringItem
+  /** The dates up to and including today that still need a transaction, oldest first. */
+  dates: string[]
+  /** The first date after today. */
+  next: string
+}
+
+/** The fixed amounts with dates up to [today] that were not added yet. */
+export function dueRecurring(s: FinanceState, today: string): DueRecurring[] {
+  const out: DueRecurring[] = []
+  for (const item of alive(s.recurring)) {
+    if (item.next > today) continue
+    const dates: string[] = []
+    let day = item.next
+    for (let n = 0; day <= today && n < 1000; n++, day = nextDate(day, item.cycle)) dates.push(day)
+    out.push({ item, dates: dates.slice(-MAX_RECURRING_CATCH_UP), next: day })
+  }
+  return out
+}
+
+/** What the fixed amounts bring in and cost per month, on average. */
+export function recurringPerMonth(s: FinanceState): { income: number; expenses: number } {
+  const items = alive(s.recurring)
+  const sum = (kind: RecurringItem['kind']) => items.filter((r) => r.kind === kind).reduce((n, r) => n + monthlyCost(r), 0)
+  return { income: sum('income'), expenses: sum('expense') }
+}
+
 export const subscriptionRef = (sub: Pick<Subscription, 'id'>, day: string) => `subscription:${sub.id}@${day}`
 
 /** Reminders for subscription payments with a reminder moment in (from, to]. */
@@ -454,6 +590,20 @@ export function subscriptionNotices(s: FinanceState, from: number, to: number): 
 
 /** The subscription reminders the phone should know ahead (safety net and web push). */
 export const plannedSubscriptionNotices = (s: FinanceState, now: number, horizon = SAFETY_HORIZON_MS) => subscriptionNotices(s, now, now + horizon)
+
+/** What Flow Studio may start on: this month's budgets, the payments of the coming month and recent expenses. */
+export function financeFlowFacts(s: FinanceState, now: number): FinanceFlowFacts {
+  const month = monthOf(now)
+  return {
+    budgets: budgetStatus(s, month, now).map((b) => ({ id: b.budget.id, month, label: b.label, used: b.used, left: formatMoney(Math.max(0, b.left)) })),
+    payments: upcomingPayments(s, now)
+      .filter((p) => !p.overdue)
+      .map((p) => ({ id: p.sub.id, name: p.sub.name, amount: formatMoney(p.sub.amount), date: p.date, dateLabel: dayLabel(p.date) })),
+    expenses: alive(s.transactions)
+      .filter((t) => t.kind === 'expense' && now - t.createdAt < 24 * 60 * 60_000)
+      .map((t) => ({ id: t.id, amount: t.amount, amountText: formatMoney(t.amount), category: t.category, createdAt: t.createdAt, imported: t.id.startsWith('import-') || t.id.startsWith('recurring-') })),
+  }
+}
 
 export interface MonthTotals {
   month: string
@@ -512,6 +662,10 @@ export function financeExport(s: FinanceState, now: number) {
     goals: strip(s.goals),
     contributions: strip(s.contributions),
     subscriptions: strip(s.subscriptions),
+    recurring: strip(s.recurring),
+    friends: strip(s.friends),
+    shared: strip(s.shared),
+    settlements: strip(s.settlements),
   }
 }
 
@@ -521,5 +675,7 @@ export const FINANCE_ACTIONS = [
   { id: 'budgets', title: 'Open budgetten' },
   { id: 'new-goal', title: 'Nieuw spaardoel' },
   { id: 'new-subscription', title: 'Abonnement toevoegen' },
+  { id: 'new-recurring', title: 'Vast bedrag toevoegen (loon, zakgeld, huur)' },
+  { id: 'new-shared', title: 'Gedeelde kosten toevoegen' },
 ] as const
 export type FinanceActionId = (typeof FINANCE_ACTIONS)[number]['id']
