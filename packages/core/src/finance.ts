@@ -3,6 +3,7 @@
  * by hand. Amounts are whole euro cents so sums stay exact; nothing here moves money.
  */
 import { dateKey } from './habits'
+import type { FinanceFlowFacts } from './flows'
 import { SAFETY_HORIZON_MS, type PlannedNotice } from './safetyNet'
 
 /** A refund lowers the expenses of its category instead of counting as income. */
@@ -454,6 +455,20 @@ export function subscriptionNotices(s: FinanceState, from: number, to: number): 
 
 /** The subscription reminders the phone should know ahead (safety net and web push). */
 export const plannedSubscriptionNotices = (s: FinanceState, now: number, horizon = SAFETY_HORIZON_MS) => subscriptionNotices(s, now, now + horizon)
+
+/** What Flow Studio may start on: this month's budgets, the payments of the coming month and recent expenses. */
+export function financeFlowFacts(s: FinanceState, now: number): FinanceFlowFacts {
+  const month = monthOf(now)
+  return {
+    budgets: budgetStatus(s, month, now).map((b) => ({ id: b.budget.id, month, label: b.label, used: b.used, left: formatMoney(Math.max(0, b.left)) })),
+    payments: upcomingPayments(s, now)
+      .filter((p) => !p.overdue)
+      .map((p) => ({ id: p.sub.id, name: p.sub.name, amount: formatMoney(p.sub.amount), date: p.date, dateLabel: dayLabel(p.date) })),
+    expenses: alive(s.transactions)
+      .filter((t) => t.kind === 'expense' && now - t.createdAt < 24 * 60 * 60_000)
+      .map((t) => ({ id: t.id, amount: t.amount, amountText: formatMoney(t.amount), category: t.category, createdAt: t.createdAt, imported: t.id.startsWith('import-') })),
+  }
+}
 
 export interface MonthTotals {
   month: string

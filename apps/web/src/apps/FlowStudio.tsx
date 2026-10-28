@@ -76,6 +76,7 @@ function needs(flow: FlowDefinition): string[] {
   if (flow.trigger.type === 'device.offline') list.push('NEXUS Connect')
   if (flow.trigger.type === 'update.available') list.push('de Windows-app')
   if (flow.trigger.type === 'deadline.upcoming') list.push('herinneringen')
+  if (flow.trigger.type.startsWith('finance.')) list.push('Financiën')
   return list
 }
 
@@ -508,7 +509,36 @@ function TriggerEditor({ trigger, onChange }: { trigger: FlowTrigger; onChange: 
           <input type="number" min={15} className={field} value={trigger.minutes} onChange={(e) => onChange({ ...trigger, minutes: Math.round(Number(e.target.value)) })} />
         </label>
       )}
+      {trigger.type === 'finance.budget_used' && (
+        <label className="flex flex-col gap-1 sm:max-w-xs">
+          Percentage van het budget
+          <input type="number" min={1} max={200} className={field} value={trigger.percent} onChange={(e) => onChange({ ...trigger, percent: Math.round(Number(e.target.value)) })} />
+        </label>
+      )}
+      {trigger.type === 'finance.payment_due' && (
+        <label className="flex flex-col gap-1 sm:max-w-xs">
+          Dagen op voorhand
+          <input type="number" min={0} max={30} className={field} value={trigger.daysBefore} onChange={(e) => onChange({ ...trigger, daysBefore: Math.round(Number(e.target.value)) })} />
+        </label>
+      )}
+      {trigger.type === 'finance.expense_added' && (
+        <label className="flex flex-col gap-1 sm:max-w-xs">
+          Vanaf welk bedrag (€)
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            className={field}
+            value={trigger.minAmount / 100}
+            onChange={(e) => onChange({ ...trigger, minAmount: Math.max(0, Math.round(Number(e.target.value) * 100)) })}
+          />
+        </label>
+      )}
       <p className="text-xs text-nx-muted">
+        {trigger.type === 'finance.budget_used' && 'Kijkt naar je budgetten in Financiën, één keer per budget per maand. In de tekst kun je {categorie}, {procent} en {over} gebruiken.'}
+        {trigger.type === 'finance.payment_due' && 'Kijkt naar je abonnementen in Financiën. In de tekst kun je {naam}, {bedrag} en {datum} gebruiken.'}
+        {trigger.type === 'finance.expense_added' &&
+          'Voor uitgaven die je zelf toevoegt, niet voor een import uit je bank. In de tekst kun je {bedrag} en {categorie} gebruiken.'}
         {trigger.type === 'deadline.upcoming' && 'Kijkt naar je herinneringen. In de tekst kun je {titel} en {tijd} gebruiken.'}
         {trigger.type === 'device.offline' && 'Kijkt naar je gekoppelde apparaten. Eén melding per keer offline; {apparaat} is de naam.'}
         {trigger.type === 'update.available' && 'Alleen in de Windows-app. {versie} is het nieuwe versienummer.'}

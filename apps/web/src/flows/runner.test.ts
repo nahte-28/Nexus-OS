@@ -77,4 +77,13 @@ describe('flow runner', () => {
     localStorage.setItem('nexus.flows', JSON.stringify({ flows: [{ id: 'x', name: '', enabled: true, trigger: { type: 'manual' }, conditions: [], actions: [] }] }))
     expect(new FlowsStore().getSnapshot().flows).toEqual([])
   })
+
+  it('warns on the phone when a budget is almost up, with the numbers filled in, once a month', async () => {
+    store.save(fromTemplate('budget-almost-up'))
+    const finance = { budgets: [{ id: 'b1', month: '2026-10', label: 'Uitgaan', used: 92, left: '€ 8' }], payments: [], expenses: [] }
+    const fx = effects()
+    await tickFlows(ctx({ finance }), fx, store)
+    await tickFlows(ctx({ now: now + 60_000, finance }), fx, store)
+    expect(fx.calls).toEqual(['notify:Uitgaan: 92% gebruikt:phone'])
+  })
 })

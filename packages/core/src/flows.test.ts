@@ -13,6 +13,7 @@ import {
   type FlowContext,
   type FlowDefinition,
 } from './flows'
+import { emptyFinance, financeFlowFacts, type FinanceState } from './finance'
 
 const ZONE = 'Europe/Brussels'
 const at = (iso: string) => new Date(iso).getTime()
@@ -128,6 +129,44 @@ describe('flow events', () => {
 
   it('never starts a manual flow by itself', () => {
     expect(triggerEvents(flow({ trigger: { type: 'manual' } }), ctx(now))).toEqual([])
+  })
+})
+
+describe('flow events from Financiën', () => {
+  const now = at('2026-10-20T12:00:00+02:00')
+  const money: FinanceState = {
+    ...emptyFinance(),
+    budgets: [{ id: 'b1', category: 'Uitgaan', limit: 10000, threshold: 80, rolloverFrom: null, updatedAt: 1, deletedAt: null }],
+    subscriptions: [{ id: 's1', name: 'Spotify', amount: 1199, category: 'Abonnementen', cycle: 'monthly', next: '2026-10-21', remindDays: null, createdAt: 1, updatedAt: 1, deletedAt: null }],
+    transactions: [
+      { id: 't1', kind: 'expense', amount: 9500, category: 'Uitgaan', note: 'Concert', date: '2026-10-20', subscriptionId: null, createdAt: now - 60_000, updatedAt: 1, deletedAt: null },
+      { id: 'import-x-1', kind: 'expense', amount: 9000, category: 'Andere', note: '', date: '2026-10-20', subscriptionId: null, createdAt: now - 60_000, updatedAt: 1, deletedAt: null },
+    ],
+  }
+  const c = ctx(now, { finance: financeFlowFacts(money, now) })
+
+  it('starts once per budget per month when it passes the percentage', () => {
+    const f = flow({ trigger: { type: 'finance.budget_used', percent: 90 } })
+    expect(triggerEvents(f, c)).toEqual([{ id: 'budget:2026-10:b1@90', label: 'Uitgaan', vars: { categorie: 'Uitgaan', procent: '95', over: expect.stringMatching(/^€\s5,00$/) } }])
+    expect(triggerEvents(flow({ trigger: { type: 'finance.budget_used', percent: 100 } }), c)).toEqual([])
+  })
+
+  it('starts the given number of days before a payment', () => {
+    const f = (daysBefore: number) => flow({ trigger: { type: 'finance.payment_due', daysBefore } })
+    expect(triggerEvents(f(0), c)).toEqual([])
+    const [e] = triggerEvents(f(1), c)
+    expect(e).toMatchObject({ id: 'payment:s1@2026-10-21', vars: { naam: 'Spotify', bedrag: expect.stringMatching(/11,99/) } })
+  })
+
+  it('starts on a new expense typed in by hand, not on old ones or bank imports', () => {
+    const f = (patch: Partial<FlowDefinition>) => flow({ trigger: { type: 'finance.expense_added', minAmount: 5000 }, ...patch })
+    expect(triggerEvents(f({ updatedAt: now - 120_000 }), c).map((e) => e.id)).toEqual(['expense:t1'])
+    // Saved after the expense, or the expense too small: nothing.
+    expect(triggerEvents(f({ updatedAt: now }), c)).toEqual([])
+    expect(triggerEvents(flow({ trigger: { type: 'finance.expense_added', minAmount: 10000 } }), c)).toEqual([])
+    // Long after: no catching up.
+    expect(triggerEvents(f({ updatedAt: 0 }), ctx(now + 2 * 60 * 60_000, { finance: financeFlowFacts(money, now + 2 * 60 * 60_000) }))).toEqual([])
+    expect(validateFlow(flow({ trigger: { type: 'finance.budget_used', percent: 0 } }))).toMatch(/percentage/)
   })
 })
 

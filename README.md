@@ -124,10 +124,10 @@ Beperkingen: NEXUS kan alleen zijn eigen meldingen stil zetten, niet die van and
 
 Automatiseringen als **Wanneer → Alleen als → Doe dit**, in de app **Flow Studio** (aan of uit onder Instellingen › Beta):
 
-- **Wanneer**: op een vast tijdstip (dagen en uur), een deadline komt eraan (je herinneringen), een gekoppeld apparaat is offline, er is een update van de Windows-app, of met de hand.
+- **Wanneer**: op een vast tijdstip (dagen en uur), een deadline komt eraan (je herinneringen), een gekoppeld apparaat is offline, er is een update van de Windows-app, in Financiën een budget raakt op (vanaf een percentage, één keer per budget per maand), een abonnement wordt binnenkort betaald, of je voegt zelf een uitgave vanaf een bedrag toe (imports uit je bank tellen niet), of met de hand.
 - **Alleen als**: een profiel is actief, tussen twee uren, dit apparaat is online. Alle voorwaarden moeten kloppen.
 - **Doe dit** (hoogstens 5): een profiel activeren (via Profiles), een melding sturen (hier of via NEXUS Connect ook op gsm en horloge), voorstellen om een app te openen, voorstellen om de update te installeren. Flows openen nooit zelf apps en installeren nooit zelf iets: een voorstel staat op het dashboard tot je kiest.
-- Tabs: **Mijn flows** (aan/uit, uitvoeren, dupliceren, verwijderen met bevestiging), **Sjablonen** (School Start, Deadline eraan, Update-moment, Apparaat offline, Studiesessie), **Bouwer** (stappen met proefrun, ongedaan maken en opnieuw), **Runs** (wat elke run deed en waarom iets mislukte) en **Instellingen** (synchroniseren, alles pauzeren, stille uren).
+- Tabs: **Mijn flows** (aan/uit, uitvoeren, dupliceren, verwijderen met bevestiging), **Sjablonen** (School Start, Deadline eraan, Update-moment, Apparaat offline, Studiesessie, Budget bijna op, Grote uitgave), **Bouwer** (stappen met proefrun, ongedaan maken en opnieuw), **Runs** (wat elke run deed en waarom iets mislukte) en **Instellingen** (synchroniseren, alles pauzeren, stille uren).
 
 Hoe het loopt: zolang NEXUS open is op het apparaat (de Windows-app in het systeemvak is het betrouwbaarst), elke 30 seconden en meteen na slaap of terugkeren naar het venster. Elke gebeurtenis loopt hoogstens één keer per flow, ook na herladen; een gemist tijdstip wordt tot een halfuur later nog ingehaald. Hoogstens 6 runs per flow per uur. Tijden volgen de tijdzone van het apparaat, ook rond de overgang naar zomer- en wintertijd.
 
@@ -189,7 +189,7 @@ De kaart **Financiën** op het dashboard toont alleen percentages, nooit bedrage
 
 Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028100000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat. Financiën vervangt de eerdere app Budget: wat daar stond (transacties en maandbudget, op het apparaat en in je account) neemt Financiën één keer over, het maandbudget als Totaalbudget.
 
-Nog niet gebouwd: triggers in Flow Studio en een bankkoppeling.
+Flow Studio kan starten op een budget dat opraakt, een abonnement dat betaald wordt en een nieuwe uitgave (zie Flow Studio). Nog niet gebouwd: een bankkoppeling.
 
 ## Weekoverzicht
 
