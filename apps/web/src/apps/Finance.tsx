@@ -1,0 +1,1033 @@
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import {
+  addDays,
+  alive,
+  amountText,
+  budgetStatus,
+  CYCLE_LABELS,
+  dateKey,
+  dayLabel,
+  DEFAULT_THRESHOLD,
+  EXPENSE_CATEGORIES,
+  filterTransactions,
+  financeExport,
+  formatMoney,
+  goalProgress,
+  INCOME_CATEGORIES,
+  KIND_LABELS,
+  monthLabel,
+  monthlyCost,
+  monthOf,
+  monthSeries,
+  monthSummary,
+  parseAmount,
+  shiftMonth,
+  TOTAL_BUDGET,
+  transactionsCsv,
+  upcomingPayments,
+  type Cycle,
+  type FinanceActionId,
+  type MoneyKind,
+  type SavingsGoal,
+  type Subscription,
+  type Transaction,
+} from '@nexus/core'
+import {
+  addContribution,
+  addGoal,
+  addSubscription,
+  addTransaction,
+  clearFinance,
+  financeStore,
+  financeSyncProblem,
+  markPaid,
+  removeBudget,
+  removeContribution,
+  removeGoal,
+  removeSubscription,
+  removeTransaction,
+  setAlerts,
+  setBudget,
+  updateGoal,
+  updateSubscription,
+  updateTransaction,
+  type SubscriptionDraft,
+  type TransactionDraft,
+} from '../finance/store'
+import { onReveal, takeReveal } from '../search/reveal'
+import { readStorage, writeStorage } from '../state/storage'
+
+const fieldBase = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
+const field = `w-full ${fieldBase}`
+const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
+const smallButton = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-60'
+const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
+const card = 'rounded-lg border border-nx-border p-3'
+
+const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Inzichten', 'Instellingen'] as const
+type Tab = (typeof TABS)[number]
+const HIDDEN_KEY = 'nexus.finance.hidden'
+
+/** Which tab a shortcut from Zoeken overal opens, and whether its form opens with it. */
+const ACTION_TABS: Record<FinanceActionId, Tab> = { 'new-transaction': 'Transacties', budgets: 'Budgetten', 'new-goal': 'Sparen', 'new-subscription': 'Abonnementen' }
+
+const useFinance = () => useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
+
+/** Amounts as text, or dots when they are hidden on this device. */
+const MoneyContext = createContext((value: number, sign = false) => formatMoney(value, sign))
+const useMoney = () => useContext(MoneyContext)
+
+/** NEXUS Financiën: income, expenses, budgets, savings goals and subscriptions, typed in by hand. */
+export function Finance() {
+  const [tab, setTab] = useState<Tab>('Overzicht')
+  // Bumped by a shortcut so the form of that tab opens, also when the tab was already shown.
+  const [intent, setIntent] = useState<{ action: FinanceActionId; at: number } | null>(null)
+  const [hidden, setHidden] = useState(() => readStorage(HIDDEN_KEY) === '1')
+  const problem = useSyncExternalStore(financeSyncProblem.subscribe, financeSyncProblem.getSnapshot)
+
+  useEffect(() => {
+    const open = () => {
+      const id = takeReveal('finance') as FinanceActionId | null
+      if (!id || !(id in ACTION_TABS)) return
+      setTab(ACTION_TABS[id])
+      setIntent({ action: id, at: Date.now() })
+    }
+    open()
+    return onReveal(open)
+  }, [])
+
+  const toggleHidden = (value: boolean) => {
+    setHidden(value)
+    writeStorage(HIDDEN_KEY, value ? '1' : '0')
+  }
+  const money = (value: number, sign = false) => (hidden ? '€ •••' : formatMoney(value, sign))
+  const opens = (action: FinanceActionId) => (intent?.action === action ? intent.at : 0)
+
+  return (
+    <MoneyContext.Provider value={money}>
+      <div className="flex h-full min-h-0 flex-col text-sm">
+        <div role="tablist" aria-label="Financiën" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={`shrink-0 rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div role="tabpanel" aria-label={tab} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          {problem?.startsWith('setup:') && (
+            <p className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+              Je financiën staan alleen op dit apparaat: de database is nog niet bijgewerkt. Voer <code className="font-mono text-xs">{problem.slice(6)}</code> uit in de SQL Editor van Supabase.
+            </p>
+          )}
+          {tab === 'Overzicht' && <Overview onTab={setTab} />}
+          {tab === 'Transacties' && <Transactions openAt={opens('new-transaction')} />}
+          {tab === 'Budgetten' && <Budgets />}
+          {tab === 'Sparen' && <Goals openAt={opens('new-goal')} />}
+          {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} />}
+          {tab === 'Inzichten' && <Insights />}
+          {tab === 'Instellingen' && <Settings hidden={hidden} onHidden={toggleHidden} />}
+        </div>
+      </div>
+    </MoneyContext.Provider>
+  )
+}
+
+function MonthSwitcher({ month, onChange }: { month: string; onChange: (m: string) => void }) {
+  const current = monthOf(Date.now())
+  return (
+    <div className="flex items-center gap-2">
+      <button type="button" className={smallButton} aria-label="Vorige maand" onClick={() => onChange(shiftMonth(month, -1))}>
+        ‹
+      </button>
+      <h2 className="min-w-0 flex-1 text-center text-lg font-semibold first-letter:uppercase">{monthLabel(month)}</h2>
+      <button type="button" className={smallButton} aria-label="Volgende maand" disabled={month >= current} onClick={() => onChange(shiftMonth(month, 1))}>
+        ›
+      </button>
+    </div>
+  )
+}
+
+function Tile({ label, value, note, warn = false }: { label: string; value: string; note?: string; warn?: boolean }) {
+  return (
+    <div className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+      <p className="text-xs text-nx-muted">
+        {warn && <span aria-hidden="true">⚠️ </span>}
+        {label}
+      </p>
+      <p className="text-lg font-semibold tabular-nums">{value}</p>
+      {note && <p className="text-xs text-nx-muted">{note}</p>}
+    </div>
+  )
+}
+
+function Meter({ label, percent, over = false }: { label: string; percent: number; over?: boolean }) {
+  const shown = Math.max(0, Math.min(100, percent))
+  return (
+    <div role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={shown} className="h-2 rounded-full bg-nx-surface-2">
+      <div className={`h-2 rounded-full ${over ? 'bg-red-500' : 'bg-nx-accent'}`} style={{ width: `${shown}%` }} />
+    </div>
+  )
+}
+
+function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  return (
+    <section aria-label={title} className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-medium">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Overview({ onTab }: { onTab: (t: Tab) => void }) {
+  const state = useFinance()
+  const money = useMoney()
+  const now = Date.now()
+  const [month, setMonth] = useState(() => monthOf(now))
+  const summary = monthSummary(state, month, now)
+  const budgets = budgetStatus(state, month, now)
+  const payments = upcomingPayments(state, now, 14)
+  const goals = alive(state.goals).map((g) => goalProgress(state, g, now))
+  const top = summary.byCategory[0]?.amount ?? 0
+  const empty = alive(state.transactions).length === 0 && budgets.length === 0 && goals.length === 0 && payments.length === 0
+
+  return (
+    <>
+      <MonthSwitcher month={month} onChange={setMonth} />
+      <section aria-label="Deze maand" className="grid grid-cols-3 gap-2">
+        <Tile label="Uitgegeven" value={money(summary.expenses)} note={summary.projected !== null && summary.expenses > 0 ? `aan dit tempo ${money(summary.projected)}` : undefined} />
+        <Tile label="Inkomsten" value={money(summary.income)} />
+        <Tile label="Saldo van de maand" value={money(summary.net, true)} note="inkomsten min uitgaven" />
+      </section>
+      {empty && (
+        <div className={`${card} space-y-2`}>
+          <p>Hou hier bij wat je uitgeeft en verdient. Alles typ je zelf in: NEXUS koppelt geen bankrekening en betaalt niets.</p>
+          <button type="button" className={primaryButton} onClick={() => onTab('Transacties')}>
+            Eerste transactie toevoegen
+          </button>
+        </div>
+      )}
+      {budgets.length > 0 && (
+        <Section
+          title="Budgetten"
+          action={
+            <button type="button" className={smallButton} onClick={() => onTab('Budgetten')}>
+              Beheren
+            </button>
+          }
+        >
+          <ul className="space-y-2">
+            {budgets.map((b) => (
+              <li key={b.budget.id} className="space-y-1">
+                <div className="flex justify-between gap-2">
+                  <span>{b.label}</span>
+                  <span className="tabular-nums text-nx-muted">
+                    {b.used}% · {b.left < 0 ? `${money(-b.left)} te veel` : `nog ${money(b.left)}`}
+                  </span>
+                </div>
+                <Meter label={`${b.label} gebruikt`} percent={b.used} over={b.used >= 100} />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {summary.byCategory.length > 0 && (
+        <Section title="Uitgaven per categorie">
+          <ul className="space-y-1">
+            {summary.byCategory.map((c) => (
+              <li key={c.category} className="grid grid-cols-[8rem_1fr_auto] items-center gap-2">
+                <span className="truncate">{c.category}</span>
+                <span className="h-2 rounded-full bg-nx-surface-2">
+                  <span className="block h-2 rounded-full bg-nx-accent" style={{ width: `${Math.max(2, (c.amount / top) * 100)}%` }} />
+                </span>
+                <span className="tabular-nums text-nx-muted">{money(c.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {payments.length > 0 && (
+        <Section title="Komende betalingen">
+          <PaymentList payments={payments} />
+        </Section>
+      )}
+      {goals.length > 0 && (
+        <Section
+          title="Spaardoelen"
+          action={
+            <button type="button" className={smallButton} onClick={() => onTab('Sparen')}>
+              Beheren
+            </button>
+          }
+        >
+          <ul className="space-y-2">
+            {goals.map((g) => (
+              <li key={g.goal.id} className="space-y-1">
+                <div className="flex justify-between gap-2">
+                  <span>{g.goal.name}</span>
+                  <span className="tabular-nums text-nx-muted">
+                    {money(g.saved)} van {money(g.goal.target)}
+                  </span>
+                </div>
+                <Meter label={`${g.goal.name} gespaard`} percent={g.percent} />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+    </>
+  )
+}
+
+function PaymentList({ payments }: { payments: ReturnType<typeof upcomingPayments> }) {
+  const money = useMoney()
+  // Only the first payment of each subscription can be marked paid: that is the one its date points at.
+  const firsts = new Set<string>()
+  return (
+    <ul className="divide-y divide-nx-border">
+      {payments.map((p) => {
+        const first = !firsts.has(p.sub.id)
+        firsts.add(p.sub.id)
+        return (
+          <li key={`${p.sub.id}@${p.date}`} className="flex items-center gap-2 py-1.5">
+            <span className="min-w-0 flex-1 truncate">
+              {p.sub.name}
+              <span className="text-nx-muted"> · {p.overdue ? `was ${dayLabel(p.date)}` : dayLabel(p.date)}</span>
+            </span>
+            <span className="tabular-nums">{money(p.sub.amount)}</span>
+            {first && (
+              <button type="button" className={smallButton} aria-label={`${p.sub.name} van ${dayLabel(p.date)} betaald`} onClick={() => markPaid(p.sub.id)}>
+                Betaald
+              </button>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+function categoriesFor(kind: MoneyKind) {
+  return kind === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+}
+
+function TransactionForm({ initial, onDone }: { initial?: Transaction; onDone: () => void }) {
+  const [kind, setKind] = useState<MoneyKind>(initial?.kind ?? 'expense')
+  const [amount, setAmount] = useState(initial ? amountText(initial.amount) : '')
+  const [category, setCategory] = useState(initial?.category ?? EXPENSE_CATEGORIES[0])
+  const [note, setNote] = useState(initial?.note ?? '')
+  const [date, setDate] = useState(initial?.date ?? dateKey(Date.now()))
+  const cents = parseAmount(amount)
+  const categories = categoriesFor(kind)
+  return (
+    <form
+      aria-label={initial ? 'Transactie bewerken' : 'Nieuwe transactie'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (cents === null) return
+        const draft: TransactionDraft = { kind, amount: cents, category, note, date }
+        if (initial) updateTransaction(initial.id, draft)
+        else addTransaction(draft)
+        onDone()
+      }}
+    >
+      <div role="group" aria-label="Soort" className="flex flex-wrap gap-1">
+        {(['expense', 'income', 'refund'] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={kind === k}
+            onClick={() => {
+              setKind(k)
+              if (!categoriesFor(k).includes(category)) setCategory(categoriesFor(k)[0])
+            }}
+            className={`rounded-full border border-nx-border px-3 py-1 ${kind === k ? 'bg-nx-accent font-medium text-nx-accent-text' : 'hover:bg-nx-surface-2'}`}
+          >
+            {KIND_LABELS[k]}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <input autoFocus inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Bedrag, bv. 4,50" aria-label="Bedrag" className={field} />
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={field}>
+          {(categories.includes(category) ? categories : [category, ...categories]).map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} aria-label="Datum" className={field} />
+        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Omschrijving (optioneel)" aria-label="Omschrijving" className={field} />
+      </div>
+      {kind === 'refund' && <p className="text-xs text-nx-muted">Een terugbetaling verlaagt de uitgaven van haar categorie in plaats van als inkomen te tellen.</p>}
+      {amount.trim() !== '' && cents === null && <p className="text-xs text-red-500">Typ een bedrag zoals 4,50.</p>}
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={cents === null}>
+          {initial ? 'Bewaren' : 'Toevoegen'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function download(name: string, type: string, content: string) {
+  const url = URL.createObjectURL(new Blob([content], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+const exportCsv = () => download(`nexus-transacties-${dateKey(Date.now())}.csv`, 'text/csv;charset=utf-8', `﻿${transactionsCsv(financeStore.getSnapshot())}`)
+const exportJson = () => download(`nexus-financien-${dateKey(Date.now())}.json`, 'application/json', JSON.stringify(financeExport(financeStore.getSnapshot(), Date.now()), null, 2))
+
+function Transactions({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [kind, setKind] = useState<MoneyKind | ''>('')
+  const [category, setCategory] = useState('')
+  const [month, setMonth] = useState<string>(() => monthOf(Date.now()))
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+
+  const list = filterTransactions(state, { query, kind: kind || null, category: category || null, month: month || null })
+  const months = [...new Set([monthOf(Date.now()), ...alive(state.transactions).map((t) => monthOf(t.date))])].sort().reverse()
+  const categories = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES, ...alive(state.transactions).map((t) => t.category)])]
+  const days = [...new Set(list.map((t) => t.date))]
+  const total = list.reduce((n, t) => n + (t.kind === 'income' ? t.amount : -t.amount * (t.kind === 'refund' ? -1 : 1)), 0)
+
+  return (
+    <>
+      {adding ? (
+        <TransactionForm key={openAt} onDone={() => setAdding(false)} />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
+            + Transactie
+          </button>
+          <button type="button" className={button} onClick={exportCsv} disabled={alive(state.transactions).length === 0}>
+            Exporteren als CSV
+          </button>
+        </div>
+      )}
+      <div role="search" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoeken…" aria-label="Zoek in transacties" className={field} />
+        <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Maand" className={field}>
+          <option value="">Alle maanden</option>
+          {months.map((m) => (
+            <option key={m} value={m}>
+              {monthLabel(m)}
+            </option>
+          ))}
+        </select>
+        <select value={kind} onChange={(e) => setKind(e.target.value as MoneyKind | '')} aria-label="Soort" className={field}>
+          <option value="">Alle soorten</option>
+          {(['expense', 'income', 'refund'] as const).map((k) => (
+            <option key={k} value={k}>
+              {KIND_LABELS[k]}
+            </option>
+          ))}
+        </select>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={field}>
+          <option value="">Alle categorieën</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <section aria-label="Transacties" className="space-y-2">
+        {list.length === 0 ? (
+          <p className="text-nx-muted">{alive(state.transactions).length === 0 ? 'Nog geen transacties.' : 'Niets gevonden met deze filters.'}</p>
+        ) : (
+          <p className="text-xs text-nx-muted tabular-nums">
+            {list.length} {list.length === 1 ? 'transactie' : 'transacties'}, samen {money(total, true)}
+          </p>
+        )}
+        {days.map((day) => (
+          <div key={day}>
+            <h4 className="text-xs font-semibold text-nx-muted first-letter:uppercase">{dayLabel(day)}</h4>
+            <ul className="divide-y divide-nx-border">
+              {list
+                .filter((t) => t.date === day)
+                .map((t) =>
+                  editing === t.id ? (
+                    <li key={t.id} className="py-1.5">
+                      <TransactionForm initial={t} onDone={() => setEditing(null)} />
+                    </li>
+                  ) : (
+                    <li key={t.id} className="flex items-center gap-2 py-1.5">
+                      <span className="min-w-0 flex-1 truncate">
+                        {t.category}
+                        {t.kind === 'refund' && <span className="text-nx-muted"> · terugbetaling</span>}
+                        {t.note && <span className="text-nx-muted"> · {t.note}</span>}
+                      </span>
+                      <span className={`tabular-nums ${t.kind === 'expense' ? '' : 'font-medium'}`}>{money(t.kind === 'expense' ? -t.amount : t.amount, true)}</span>
+                      <button type="button" className={smallButton} aria-label={`${t.category} ${formatMoney(t.amount)} bewerken`} onClick={() => setEditing(t.id)}>
+                        ✎
+                      </button>
+                      <button type="button" className={smallButton} aria-label={`${t.category} ${formatMoney(t.amount)} verwijderen`} onClick={() => removeTransaction(t.id)}>
+                        ✕
+                      </button>
+                    </li>
+                  ),
+                )}
+            </ul>
+          </div>
+        ))}
+      </section>
+    </>
+  )
+}
+
+function Budgets() {
+  const state = useFinance()
+  const money = useMoney()
+  const now = Date.now()
+  const status = budgetStatus(state, monthOf(now), now)
+  const taken = new Set(status.map((b) => b.budget.category))
+  const free = ['', ...EXPENSE_CATEGORIES].filter((c) => !taken.has(c))
+  const [editing, setEditing] = useState<string | null>(null)
+
+  return (
+    <>
+      <p className="text-nx-muted">
+        Een budget is een grens per maand, voor al je uitgaven samen of voor één categorie. Bij de drempel die je kiest en bij 100% krijg je één melding per maand, ook op je gsm{state.settings.alerts ? '' : ' (nu uitgezet in Instellingen)'}.
+      </p>
+      {status.length === 0 && <p>Nog geen budgetten.</p>}
+      <ul className="space-y-3">
+        {status.map((b) =>
+          editing === b.budget.id ? (
+            <li key={b.budget.id}>
+              <BudgetForm categories={[b.budget.category]} initial={b.budget} onDone={() => setEditing(null)} />
+            </li>
+          ) : (
+            <li key={b.budget.id} className={`${card} space-y-1`}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-medium">{b.label}</span>
+                <span className="tabular-nums text-nx-muted">
+                  {money(b.spent)} van {money(b.budget.limit)}
+                </span>
+              </div>
+              <Meter label={`${b.label} gebruikt`} percent={b.used} over={b.used >= 100} />
+              <div className="flex items-center justify-between gap-2 text-xs text-nx-muted">
+                <span>
+                  {b.used}% gebruikt · melding bij {b.budget.threshold}% en 100%
+                </span>
+                <span className="flex gap-1">
+                  <button type="button" className={smallButton} onClick={() => setEditing(b.budget.id)}>
+                    Wijzigen
+                  </button>
+                  <button type="button" className={smallButton} aria-label={`Budget ${b.label} verwijderen`} onClick={() => removeBudget(b.budget.id)}>
+                    ✕
+                  </button>
+                </span>
+              </div>
+            </li>
+          ),
+        )}
+      </ul>
+      {free.length > 0 && <BudgetForm key={free.join()} categories={free} onDone={() => {}} />}
+    </>
+  )
+}
+
+function BudgetForm({ categories, initial, onDone }: { categories: string[]; initial?: { category: string; limit: number; threshold: number }; onDone: () => void }) {
+  const [category, setCategory] = useState(initial?.category ?? categories[0])
+  const [limit, setLimit] = useState(initial ? amountText(initial.limit) : '')
+  const [threshold, setThreshold] = useState(String(initial?.threshold ?? DEFAULT_THRESHOLD))
+  const cents = parseAmount(limit)
+  const percent = Number(threshold)
+  const valid = cents !== null && Number.isInteger(percent) && percent >= 10 && percent <= 100
+  return (
+    <form
+      aria-label={initial ? 'Budget wijzigen' : 'Nieuw budget'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        setBudget(category, cents, percent)
+        setLimit('')
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <label className="space-y-1">
+          <span className="text-xs text-nx-muted">Voor</span>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={!!initial} className={field}>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c || `${TOTAL_BUDGET} (alle uitgaven)`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs text-nx-muted">Per maand (€)</span>
+          <input inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="bv. 250" className={field} />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs text-nx-muted">Eerste melding bij (%)</span>
+          <input type="number" min={10} max={100} step={5} value={threshold} onChange={(e) => setThreshold(e.target.value)} className={field} />
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          {initial ? 'Bewaren' : 'Budget instellen'}
+        </button>
+        {initial && (
+          <button type="button" className={button} onClick={onDone}>
+            Annuleren
+          </button>
+        )}
+      </div>
+    </form>
+  )
+}
+
+function GoalForm({ initial, onDone }: { initial?: SavingsGoal; onDone: () => void }) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [target, setTarget] = useState(initial ? amountText(initial.target) : '')
+  const [due, setDue] = useState(initial?.due ?? '')
+  const cents = parseAmount(target)
+  return (
+    <form
+      aria-label={initial ? 'Spaardoel wijzigen' : 'Nieuw spaardoel'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (cents === null || !name.trim()) return
+        const goal = { name, target: cents, due: due || null }
+        if (initial) updateGoal(initial.id, goal)
+        else addGoal(goal)
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Naam, bv. Laptop" aria-label="Naam" className={field} />
+        <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Doelbedrag, bv. 600" aria-label="Doelbedrag" className={field} />
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Tegen</span>
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Einddatum (optioneel)" className={field} />
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={cents === null || !name.trim()}>
+          {initial ? 'Bewaren' : 'Spaardoel maken'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Goals({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [editing, setEditing] = useState<string | null>(null)
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const now = Date.now()
+  const goals = alive(state.goals)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((g) => goalProgress(state, g, now))
+
+  return (
+    <>
+      {adding ? (
+        <GoalForm key={openAt} onDone={() => setAdding(false)} />
+      ) : (
+        <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
+          + Spaardoel
+        </button>
+      )}
+      {goals.length === 0 && !adding && <p className="text-nx-muted">Nog geen spaardoelen. Een doel met een datum toont hoeveel je per maand opzij moet zetten.</p>}
+      <ul className="space-y-3">
+        {goals.map((g) => (editing === g.goal.id ? (
+            <li key={g.goal.id}>
+              <GoalForm initial={g.goal} onDone={() => setEditing(null)} />
+            </li>
+          ) : <GoalCard key={g.goal.id} progress={g} onEdit={() => setEditing(g.goal.id)} />))}
+      </ul>
+    </>
+  )
+}
+
+function GoalCard({ progress, onEdit }: { progress: ReturnType<typeof goalProgress>; onEdit: () => void }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [amount, setAmount] = useState('')
+  const cents = parseAmount(amount)
+  const { goal, saved, left, percent, perMonth } = progress
+  const history = alive(state.contributions)
+    .filter((c) => c.goalId === goal.id)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt)
+  const put = (sign: 1 | -1) => {
+    if (cents === null) return
+    addContribution(goal.id, sign * cents)
+    setAmount('')
+  }
+  return (
+    <li className={`${card} space-y-2`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-medium">{goal.name}</span>
+        <span className="tabular-nums text-nx-muted">
+          {money(saved)} van {money(goal.target)}
+        </span>
+      </div>
+      <Meter label={`${goal.name} gespaard`} percent={percent} />
+      <p className="text-xs text-nx-muted">
+        {left === 0
+          ? 'Doelbedrag bereikt.'
+          : `Nog ${money(left)}${goal.due ? ` tot ${dayLabel(goal.due)}` : ''}${perMonth !== null ? `: dat is ongeveer ${money(perMonth)} per maand.` : '.'}`}
+      </p>
+      <form
+        className="flex flex-wrap gap-2"
+        aria-label={`Bijdrage aan ${goal.name}`}
+        onSubmit={(e) => {
+          e.preventDefault()
+          put(1)
+        }}
+      >
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Bedrag" aria-label="Bedrag" className={`${fieldBase} w-28`} />
+        <button type="submit" className={button} disabled={cents === null}>
+          Opzijzetten
+        </button>
+        <button type="button" className={button} disabled={cents === null} onClick={() => put(-1)}>
+          Opnemen
+        </button>
+        <span className="flex-1" />
+        <button type="button" className={smallButton} onClick={onEdit}>
+          Wijzigen
+        </button>
+        <button type="button" className={smallButton} aria-label={`Spaardoel ${goal.name} verwijderen`} onClick={() => removeGoal(goal.id)}>
+          ✕
+        </button>
+      </form>
+      {history.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-xs text-nx-muted">Bijdragen ({history.length})</summary>
+          <ul className="mt-1 divide-y divide-nx-border">
+            {history.map((c) => (
+              <li key={c.id} className="flex items-center gap-2 py-1 text-xs">
+                <span className="flex-1">{dayLabel(c.date)}</span>
+                <span className="tabular-nums">{money(c.amount, true)}</span>
+                <button type="button" className={smallButton} aria-label={`Bijdrage van ${dayLabel(c.date)} verwijderen`} onClick={() => removeContribution(c.id)}>
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </li>
+  )
+}
+
+const REMIND_CHOICES: Array<{ value: string; label: string }> = [
+  { value: '', label: 'Geen herinnering' },
+  { value: '0', label: 'Op de dag zelf' },
+  { value: '1', label: '1 dag ervoor' },
+  { value: '2', label: '2 dagen ervoor' },
+  { value: '3', label: '3 dagen ervoor' },
+  { value: '7', label: '1 week ervoor' },
+]
+
+function SubscriptionForm({ initial, onDone }: { initial?: Subscription; onDone: () => void }) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [amount, setAmount] = useState(initial ? amountText(initial.amount) : '')
+  const [cycle, setCycle] = useState<Cycle>(initial?.cycle ?? 'monthly')
+  const [next, setNext] = useState(initial?.next ?? dateKey(Date.now()))
+  const [category, setCategory] = useState(initial?.category ?? 'Abonnementen')
+  const [remind, setRemind] = useState(initial ? (initial.remindDays === null ? '' : String(initial.remindDays)) : '1')
+  const cents = parseAmount(amount)
+  const valid = cents !== null && name.trim() !== ''
+  return (
+    <form
+      aria-label={initial ? 'Abonnement wijzigen' : 'Nieuw abonnement'}
+      className={`${card} space-y-2`}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!valid) return
+        const draft: SubscriptionDraft = { name, amount: cents, cycle, next, category, remindDays: remind === '' ? null : Number(remind) }
+        if (initial) updateSubscription(initial.id, draft)
+        else addSubscription(draft)
+        onDone()
+      }}
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <input autoFocus value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder="Naam, bv. Spotify" aria-label="Naam" className={field} />
+        <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Bedrag, bv. 11,99" aria-label="Bedrag" className={field} />
+        <select value={cycle} onChange={(e) => setCycle(e.target.value as Cycle)} aria-label="Frequentie" className={field}>
+          {(Object.keys(CYCLE_LABELS) as Cycle[]).map((c) => (
+            <option key={c} value={c}>
+              {CYCLE_LABELS[c]}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-xs text-nx-muted">Volgende</span>
+          <input type="date" value={next} onChange={(e) => e.target.value && setNext(e.target.value)} aria-label="Volgende betaaldatum" className={field} />
+        </label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={field}>
+          {EXPENSE_CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <select value={remind} onChange={(e) => setRemind(e.target.value)} aria-label="Herinnering" className={field}>
+          {REMIND_CHOICES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="text-xs text-nx-muted">De herinnering komt om 09:00, hier en op je gsm. NEXUS betaalt of zegt niets op: dat doe je zelf.</p>
+      <div className="flex gap-2">
+        <button type="submit" className={primaryButton} disabled={!valid}>
+          {initial ? 'Bewaren' : 'Abonnement toevoegen'}
+        </button>
+        <button type="button" className={button} onClick={onDone}>
+          Annuleren
+        </button>
+      </div>
+    </form>
+  )
+}
+
+function Subscriptions({ openAt }: { openAt: number }) {
+  const state = useFinance()
+  const money = useMoney()
+  const [adding, setAdding] = useState(openAt > 0)
+  const [editing, setEditing] = useState<string | null>(null)
+  useEffect(() => {
+    if (openAt) setAdding(true)
+  }, [openAt])
+  const subs = alive(state.subscriptions).sort((a, b) => a.next.localeCompare(b.next))
+  const perMonth = subs.reduce((n, s) => n + monthlyCost(s), 0)
+  const today = dateKey(Date.now())
+
+  return (
+    <>
+      {subs.length > 0 && (
+        <section aria-label="Samen" className="grid grid-cols-2 gap-2">
+          <Tile label="Per maand" value={money(perMonth)} note="gemiddeld, alle abonnementen" />
+          <Tile label="Per jaar" value={money(perMonth * 12)} />
+        </section>
+      )}
+      {adding ? (
+        <SubscriptionForm key={openAt} onDone={() => setAdding(false)} />
+      ) : (
+        <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
+          + Abonnement
+        </button>
+      )}
+      {subs.length === 0 && !adding && <p className="text-nx-muted">Nog geen abonnementen of vaste kosten.</p>}
+      <ul className="space-y-2">
+        {subs.map((s) =>
+          editing === s.id ? (
+            <li key={s.id}>
+              <SubscriptionForm initial={s} onDone={() => setEditing(null)} />
+            </li>
+          ) : (
+            <li key={s.id} className={`${card} flex flex-wrap items-center gap-2`}>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{s.name}</span>
+                <span className="block text-xs text-nx-muted">
+                  {money(s.amount)} {CYCLE_LABELS[s.cycle].toLowerCase()} · {s.next < today ? <span className="text-red-500">verlopen sinds {dayLabel(s.next)}</span> : `volgende ${dayLabel(s.next)}`}
+                  {s.remindDays !== null && ' · 🔔'}
+                </span>
+              </span>
+              <button type="button" className={smallButton} aria-label={`${s.name} betaald`} onClick={() => markPaid(s.id)} disabled={s.next > addDays(today, 31)}>
+                Betaald
+              </button>
+              <button type="button" className={smallButton} onClick={() => setEditing(s.id)}>
+                Wijzigen
+              </button>
+              <button type="button" className={smallButton} aria-label={`Abonnement ${s.name} verwijderen`} onClick={() => removeSubscription(s.id)}>
+                ✕
+              </button>
+            </li>
+          ),
+        )}
+      </ul>
+      {subs.length > 0 && <p className="text-xs text-nx-muted">"Betaald" zet de betaling bij je transacties en schuift de datum één periode op.</p>}
+    </>
+  )
+}
+
+function Insights() {
+  const state = useFinance()
+  const money = useMoney()
+  const now = Date.now()
+  const [count, setCount] = useState(6)
+  const [category, setCategory] = useState('')
+  const month = monthOf(now)
+  const series = monthSeries(state, month, count, category || null)
+  const top = Math.max(1, ...series.flatMap((m) => [m.income, m.expenses]))
+  const average = Math.round(series.reduce((n, m) => n + m.expenses, 0) / series.length)
+  const thisMonth = monthSummary(state, month, now).byCategory
+  const lastMonth = monthSummary(state, shiftMonth(month, -1), now).byCategory
+  const rows = [...new Set([...thisMonth, ...lastMonth].map((c) => c.category))].map((c) => ({
+    category: c,
+    now: thisMonth.find((x) => x.category === c)?.amount ?? 0,
+    before: lastMonth.find((x) => x.category === c)?.amount ?? 0,
+  }))
+  const categories = [...new Set(alive(state.transactions).map((t) => t.category))].sort((a, b) => a.localeCompare(b, 'nl'))
+  const short = (m: string) => new Intl.DateTimeFormat('nl-BE', { month: 'short' }).format(new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1))
+
+  return (
+    <>
+      <div className="flex flex-wrap gap-2">
+        <select value={count} onChange={(e) => setCount(Number(e.target.value))} aria-label="Periode" className={fieldBase}>
+          <option value={6}>Laatste 6 maanden</option>
+          <option value={12}>Laatste 12 maanden</option>
+        </select>
+        <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Categorie" className={fieldBase}>
+          <option value="">Alle categorieën</option>
+          {categories.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+      <figure className="space-y-1">
+        <figcaption className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="font-medium">Inkomsten en uitgaven per maand</span>
+          <span className="flex gap-3 text-xs text-nx-muted">
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true" className="size-2.5 rounded-sm bg-nx-accent" /> Uitgaven
+            </span>
+            <span className="flex items-center gap-1">
+              <span aria-hidden="true" className="size-2.5 rounded-sm bg-nx-muted/50" /> Inkomsten
+            </span>
+          </span>
+        </figcaption>
+        <div role="img" aria-label={series.map((m) => `${monthLabel(m.month)}: uitgaven ${money(m.expenses)}, inkomsten ${money(m.income)}`).join('; ')} className="flex h-32 items-end gap-1 border-b border-nx-border">
+          {series.map((m) => (
+            <div key={m.month} title={`${monthLabel(m.month)}: uitgaven ${money(m.expenses)}, inkomsten ${money(m.income)}`} className="flex h-full flex-1 items-end justify-center gap-0.5">
+              <div className="w-full max-w-4 rounded-t bg-nx-accent" style={{ height: `${(Math.max(0, m.expenses) / top) * 100}%` }} />
+              <div className="w-full max-w-4 rounded-t bg-nx-muted/50" style={{ height: `${(m.income / top) * 100}%` }} />
+            </div>
+          ))}
+        </div>
+        <div aria-hidden="true" className="flex text-xs text-nx-muted">
+          {series.map((m) => (
+            <span key={m.month} className="flex-1 text-center">
+              {short(m.month)}
+            </span>
+          ))}
+        </div>
+      </figure>
+      <p className="text-nx-muted">
+        Gemiddeld gaf je de laatste {count} maanden {money(average)} per maand uit{category ? ` aan ${category}` : ''}. Uitgaven tellen min terugbetalingen; wat je opzijzet voor een spaardoel telt niet mee.
+      </p>
+      {rows.length > 0 && !category && (
+        <Section title="Deze maand tegenover vorige maand">
+          <table className="w-full text-left tabular-nums">
+            <thead className="text-nx-muted">
+              <tr>
+                <th className="py-1 font-normal">Categorie</th>
+                <th className="py-1 font-normal">Vorige maand</th>
+                <th className="py-1 font-normal">Deze maand</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.category} className="border-t border-nx-border">
+                  <td className="py-1">{r.category}</td>
+                  <td className="py-1">{money(r.before)}</td>
+                  <td className="py-1">{money(r.now)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-xs text-nx-muted">Deze maand is nog niet voorbij, dus de bedragen kunnen nog stijgen.</p>
+        </Section>
+      )}
+    </>
+  )
+}
+
+function Settings({ hidden, onHidden }: { hidden: boolean; onHidden: (v: boolean) => void }) {
+  const state = useFinance()
+  const [confirm, setConfirm] = useState(false)
+  const [cleared, setCleared] = useState(false)
+  const count = alive(state.transactions).length + alive(state.budgets).length + alive(state.goals).length + alive(state.subscriptions).length
+  return (
+    <>
+      <Section title="Meldingen">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={state.settings.alerts} onChange={(e) => setAlerts(e.target.checked)} />
+          <span>Melding als een budget zijn drempel of 100% haalt</span>
+        </label>
+        <p className="text-xs text-nx-muted">Herinneringen voor abonnementen stel je per abonnement in.</p>
+      </Section>
+      <Section title="Privacy">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={hidden} onChange={(e) => onHidden(e.target.checked)} />
+          <span>Bedragen verbergen op dit apparaat</span>
+        </label>
+        <p className="text-xs text-nx-muted">
+          Financiën staat alleen in het profiel Persoonlijk. De kaart op het dashboard toont nooit bedragen, alleen percentages. Je gegevens staan op je apparaten en in je eigen NEXUS-account, waar alleen jij ze kunt lezen. NEXUS AI en het Weekoverzicht lezen je financiën niet, en er is geen bankkoppeling.
+        </p>
+      </Section>
+      <Section title="Exporteren">
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={button} onClick={exportCsv} disabled={alive(state.transactions).length === 0}>
+            Transacties als CSV (Excel)
+          </button>
+          <button type="button" className={button} onClick={exportJson} disabled={count === 0}>
+            Alles als JSON
+          </button>
+        </div>
+        <p className="text-xs text-nx-muted">Alle bedragen zijn in euro.</p>
+      </Section>
+      <Section title="Alles verwijderen">
+        {cleared && <p role="status">Je financiële gegevens zijn verwijderd, ook op je andere apparaten zodra die synchroniseren.</p>}
+        {confirm ? (
+          <div className="space-y-2 rounded-lg border border-red-500/60 p-3">
+            <p>Dit verwijdert al je transacties, budgetten, spaardoelen en abonnementen op al je apparaten. Dat kan niet ongedaan worden. Exporteer eerst als je ze wilt bewaren.</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white"
+                onClick={() => {
+                  clearFinance()
+                  setConfirm(false)
+                  setCleared(true)
+                }}
+              >
+                Ja, alles verwijderen
+              </button>
+              <button type="button" className={button} onClick={() => setConfirm(false)}>
+                Annuleren
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className={button} disabled={count === 0} onClick={() => setConfirm(true)}>
+            Financiële gegevens verwijderen…
+          </button>
+        )}
+      </Section>
+    </>
+  )
+}

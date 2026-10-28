@@ -18,7 +18,7 @@ import { Grades } from './Grades'
 import { Habits } from './Habits'
 import { Flashcards } from './Flashcards'
 import { Insights } from './Insights'
-import { Budget } from './Budget'
+import { Finance } from './Finance'
 import { Inbox } from './Inbox'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
@@ -64,7 +64,7 @@ export const APPS: AppDefinition[] = [
   { id: 'habits', title: 'Gewoontes', icon: HabitIcon, component: Habits, defaultSize: { width: 620, height: 580 } },
   { id: 'flashcards', title: 'Leerkaarten', icon: CardsIcon, component: Flashcards, defaultSize: { width: 640, height: 620 } },
   { id: 'insights', title: 'Inzichten', icon: ChartIcon, component: Insights, defaultSize: { width: 720, height: 640 } },
-  { id: 'budget', title: 'Budget', icon: WalletIcon, component: Budget, defaultSize: { width: 640, height: 640 } },
+  { id: 'finance', title: 'Financiën', icon: WalletIcon, component: Finance, defaultSize: { width: 720, height: 680 } },
   { id: 'files', title: 'Bestanden', icon: FolderIcon, component: Files, defaultSize: { width: 780, height: 580 } },
   { id: 'notes', title: 'Notities', icon: NotesIcon, component: Notes, defaultSize: { width: 720, height: 460 } },
   { id: 'notifications', title: 'Meldingen', icon: BellIcon, component: Inbox, defaultSize: { width: 680, height: 480 } },

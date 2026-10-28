@@ -173,9 +173,23 @@ De app **Leerkaarten** is voor flashcards, in stapels per vak. Je maakt kaarten 
 
 De app **Inzichten** toont hoe je laatste acht weken liepen: je focustijd met de Studie-timer, hoe vaak je je gewoontes deed en hoeveel deadlines je op tijd afwerkte, elk als staafjes per week (beweeg over een week voor het getal, of open de tabel). Bovenaan staan deze week en het verschil met vorige week, je sterkste gewoonte en je gemiddelde of je leerkaarten. Alles wordt op het apparaat berekend uit de andere apps; er is geen SQL nodig.
 
-## Budget
+## Financiën
 
-De app **Budget** (in het profiel Persoonlijk) houdt per maand je uitgaven en inkomsten bij, per categorie. Stel een budget per maand in en je ziet hoeveel er nog over is en wat je aan dit tempo tegen het einde van de maand uitgeeft. Bij 80% en bij 100% van je budget krijg je een melding, ook op je gsm. Je budget synchroniseert via Supabase: voer daarvoor `supabase/migrations/20261028090000_budget.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft het op het apparaat.
+De app **Financiën** (in het profiel Persoonlijk) is je persoonlijke budgetbeheer, volgens het ontwerp "NEXUS Finance". Alles typ je zelf in: er is geen bankkoppeling en NEXUS betaalt of zegt niets op. De app heeft zeven tabs:
+
+- **Overzicht**: per maand je uitgaven, inkomsten en het saldo van de maand, je budgetten, uitgaven per categorie, komende betalingen en spaardoelen.
+- **Transacties**: uitgaven, inkomsten en terugbetalingen toevoegen, bewerken, zoeken, filteren op maand, soort en categorie, en exporteren als CSV. Een terugbetaling verlaagt de uitgaven van haar categorie.
+- **Budgetten**: een grens per maand voor al je uitgaven samen of per categorie. Je kiest bij welke drempel je de eerste melding krijgt (standaard 80%), en bij 100% krijg je de tweede. Elke melding komt één keer per maand, hier en op je gsm.
+- **Sparen**: spaardoelen met een doelbedrag en optioneel een datum. Je ziet hoeveel je per maand opzij moet zetten om op tijd te zijn.
+- **Abonnementen**: vaste kosten met hun frequentie en volgende betaaldatum, en een herinnering om 09:00 (op de dag zelf of tot een week ervoor), ook als NEXUS dicht is via het gsm-vangnet. "Betaald" zet de betaling bij je transacties.
+- **Inzichten**: inkomsten en uitgaven per maand over 6 of 12 maanden, per categorie, en deze maand tegenover vorige maand.
+- **Instellingen**: meldingen aan of uit, bedragen verbergen op een apparaat, alles exporteren als JSON en alles verwijderen.
+
+De kaart **Financiën** op het dashboard toont alleen percentages, nooit bedragen. In Zoeken overal (Ctrl+K) staan de acties "Transactie toevoegen", "Open budgetten", "Nieuw spaardoel" en "Abonnement toevoegen". NEXUS AI en het Weekoverzicht lezen je financiën niet. Bedragen worden bewaard in eurocenten.
+
+Je financiën synchroniseren via Supabase als één rij per gebruiker in `user_settings` (sleutel `finance`), met dezelfde row level security als Cijfers en Gewoontes. Voer daarvoor `supabase/migrations/20261028100000_finance.sql` uit in de SQL Editor (New query, plak, Run). Zonder die stap blijft alles op het apparaat. Financiën vervangt de eerdere app Budget: wat daar stond (transacties en maandbudget, op het apparaat en in je account) neemt Financiën één keer over, het maandbudget als Totaalbudget.
+
+Nog niet gebouwd: triggers in Flow Studio, budgetten die overlopen naar de volgende maand, CSV-import en een bankkoppeling.
 
 ## Weekoverzicht
 

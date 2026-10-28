@@ -146,7 +146,7 @@ describe('next lesson', () => {
     const old = { schema: 2, profiles: { school: { apps: ['klashub', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } }
     const s = parseProfilesState(old)
     expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes'])
-    expect(s.profiles.personal.apps).toEqual(['agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'budget', 'files', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'finance', 'files', 'notes'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, apps: ['notes'] } } })
     expect(removed.profiles.personal.apps).toEqual(['notes'])
@@ -155,9 +155,20 @@ describe('next lesson', () => {
   it('adds Studie after the Agenda in copies stored before it, once', () => {
     const s = parseProfilesState({ schema: 4, profiles: { school: { apps: ['klashub', 'agenda', 'notes'] }, personal: { apps: ['notes'] }, gaming: { apps: ['notes'] } } })
     expect(s.profiles.school.apps).toEqual(['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'notes'])
-    expect(s.profiles.personal.apps).toEqual(['study', 'grades', 'habits', 'flashcards', 'insights', 'budget', 'notes'])
+    expect(s.profiles.personal.apps).toEqual(['study', 'grades', 'habits', 'flashcards', 'insights', 'finance', 'notes'])
     expect(s.profiles.gaming.apps).toEqual(['notes'])
     expect(parseProfilesState({ ...s, profiles: { ...s.profiles, school: { ...s.profiles.school, apps: ['notes'] } } }).profiles.school.apps).toEqual(['notes'])
+  })
+
+  it('adds Financiën and its dashboard card to Persoonlijk in copies stored before it, once', () => {
+    const s = parseProfilesState({ schema: 9, profiles: { personal: { apps: ['insights', 'notes'], widgets: ['deadlines', 'notes', 'devices'] }, gaming: { apps: ['notes'], widgets: ['devices'] } } })
+    // Budget, the app before it, is replaced where it stood.
+    expect(parseProfilesState({ schema: 10, profiles: { personal: { apps: ['notes', 'budget', 'insights'] } } }).profiles.personal.apps).toEqual(['notes', 'finance', 'insights'])
+    expect(s.profiles.personal.apps).toEqual(['insights', 'finance', 'notes'])
+    expect(s.profiles.personal.widgets).toEqual(['deadlines', 'notes', 'finance', 'devices'])
+    expect(s.profiles.gaming.widgets).toEqual(['devices'])
+    const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, widgets: ['notes'] } } })
+    expect(removed.profiles.personal.widgets).toEqual(['notes'])
   })
 
   it('keeps a calendar link from either side on the first sync of a device', () => {

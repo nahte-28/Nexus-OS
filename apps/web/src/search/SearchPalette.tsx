@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { SEARCH_KIND_LABELS, searchAll, type AppId, type SearchResult } from '@nexus/core'
+import { FINANCE_ACTIONS, SEARCH_KIND_LABELS, searchAll, type AppId, type SearchResult } from '@nexus/core'
 import { useVisibleApps } from '../apps/registry'
 import { SearchIcon } from '../apps/icons'
 import { filesStore } from '../files/store'
@@ -48,7 +48,16 @@ export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onO
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
 
   const results = useMemo(
-    () => searchAll(query, { apps: apps.map((a) => ({ id: a.id, title: a.title })), notes, files, life, reminders }),
+    () =>
+      searchAll(query, {
+        apps: apps.map((a) => ({ id: a.id, title: a.title })),
+        notes,
+        files,
+        life,
+        reminders,
+        // Shortcuts only for apps this profile shows.
+        actions: apps.some((a) => a.id === 'finance') ? FINANCE_ACTIONS.map((a) => ({ ...a, app: 'finance' as const })) : [],
+      }),
     [query, apps, notes, files, life, reminders],
   )
   // Group by kind in the order the best match of each kind came in.
