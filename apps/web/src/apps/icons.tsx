@@ -194,3 +194,11 @@ export const QuickNoteIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
   </svg>
 )
+
+export const CardsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="7" width="14" height="13" rx="2" />
+    <path d="M7 4h12a2 2 0 0 1 2 2v11" />
+    <path d="M7 12h6M7 15h4" />
+  </svg>
+)

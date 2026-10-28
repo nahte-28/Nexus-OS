@@ -18,6 +18,9 @@
     },
     "api/review.ts": {
       "maxDuration": 60
+    },
+    "api/cards.ts": {
+      "maxDuration": 60
     }
   }
 }
