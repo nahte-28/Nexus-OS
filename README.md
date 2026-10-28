@@ -169,6 +169,10 @@ De melding staat in het vangnet van je gsm (companion en web-push), net als heri
 
 De app **Leerkaarten** is voor flashcards, in stapels per vak. Je maakt kaarten zelf, of NEXUS AI maakt ze uit een notitie of een bestand (pdf, Word of tekst): je kiest hoeveel, eventueel met een wens, en vinkt aan welke je houdt. Bij het oefenen zie je eerst de vraag, dan het antwoord, en zeg je hoe goed je het wist (Opnieuw, Moeilijk, Goed, Makkelijk; ook met spatie en 1 tot 4). Een kaart die je kent komt pas na 1, 3, 8, 20… dagen terug, een kaart die je vergeet nog in dezelfde ronde (spaced repetition). Je kaarten werken offline en gaan met een account mee naar je andere apparaten. Eenmalig instellen: `supabase/migrations/20261027160000_flashcards.sql` in de SQL Editor van Supabase. NEXUS AI gebruikt dezelfde toegang als de assistent.
 
+## Inzichten
+
+De app **Inzichten** toont hoe je laatste acht weken liepen: je focustijd met de Studie-timer, hoe vaak je je gewoontes deed en hoeveel deadlines je op tijd afwerkte, elk als staafjes per week (beweeg over een week voor het getal, of open de tabel). Bovenaan staan deze week en het verschil met vorige week, je sterkste gewoonte en je gemiddelde of je leerkaarten. Alles wordt op het apparaat berekend uit de andere apps; er is geen SQL nodig.
+
 ## Weekoverzicht
 
 Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een plan voor volgende week: wat goed ging en wat bleef liggen, wat eraan komt en per dag één of twee concrete acties rond je lessen. Het komt in **Notities** als "Weekoverzicht week N", en je gsm krijgt een melding als het klaar is. Stond NEXUS zondag nergens open, dan gebeurt het maandagochtend nog. In de **Agenda**, op het tabblad **Week**, zie je welke feiten de AI krijgt (lessen, deadlines, afspraken, focustijd van de Studie-timer, gewoontes en cijfers; geen notities of bestanden), maak je het overzicht met de hand, met een wens erbij, en zet je de zondag uit. Het gebruikt dezelfde toegang als NEXUS AI (`ANTHROPIC_API_KEY` en `NEXUS_AI_ALLOWED_EMAILS`); er is geen SQL nodig.
