@@ -1,8 +1,9 @@
 import { useState, useSyncExternalStore } from 'react'
-import { focusChange, formatMark, insights, isoWeek, percent, type WeekInsight } from '@nexus/core'
+import { focusChange, formatMark, insights, isoWeek, moodEmoji, moodWeeks, percent, type WeekInsight } from '@nexus/core'
 import { flashcardsStore } from '../flashcards/store'
 import { gradesStore } from '../grades/store'
 import { habitsStore } from '../habits/store'
+import { journalStore } from '../journal/store'
 import { lifeStore } from '../life/store'
 import { focusStore } from '../study/timer'
 
@@ -16,8 +17,12 @@ export function Insights() {
   const items = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
   const flashcards = useSyncExternalStore(flashcardsStore.subscribe, flashcardsStore.getSnapshot)
   const grades = useSyncExternalStore(gradesStore.subscribe, gradesStore.getSnapshot)
+  const journal = useSyncExternalStore(journalStore.subscribe, journalStore.getSnapshot)
   const data = insights({ now: Date.now(), focus: focus.log, habits, items, flashcards, grades })
   const [current, previous] = [data.weeks.at(-1)!, data.weeks.at(-2)!]
+  // The same eight weeks, ending with this one.
+  const moods = moodWeeks(journal, Date.now(), data.weeks.length)
+  const moodOf = (w: WeekInsight) => moods[data.weeks.indexOf(w)]?.average ?? null
   const habitRate = percent(current.habitsDone, current.habitsDue)
   const onTime = percent(
     data.weeks.reduce((n, w) => n + w.deadlinesOnTime, 0),
@@ -28,7 +33,7 @@ export function Insights() {
     <div className="h-full space-y-5 overflow-y-auto p-4 text-sm">
       <div>
         <h2 className="text-lg font-semibold">Inzichten</h2>
-        <p className="text-nx-muted">Hoe je laatste acht weken liepen, uit Studie, Gewoontes, Agenda, Leerkaarten en Cijfers. Alles wordt op dit apparaat berekend.</p>
+        <p className="text-nx-muted">Hoe je laatste acht weken liepen, uit Studie, Gewoontes, Dagboek, Agenda, Leerkaarten en Cijfers. Alles wordt op dit apparaat berekend.</p>
       </div>
       <section aria-label="Deze week" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Tile label="Focustijd deze week" value={hours(current.focusMinutes)} note={`${focusChange(current.focusMinutes, previous.focusMinutes)} t.o.v. vorige week`} />
@@ -47,6 +52,9 @@ export function Insights() {
       )}
       <Bars title="Focustijd per week" weeks={data.weeks} value={(w) => w.focusMinutes} format={hours} />
       <Bars title="Gewoontes gedaan per week" weeks={data.weeks} value={(w) => percent(w.habitsDone, w.habitsDue)} format={(v) => `${v}%`} max={100} />
+      {moods.some((m) => m.average !== null) && (
+        <Bars title="Stemming per week (Dagboek)" weeks={data.weeks} value={moodOf} format={(v) => `${moodEmoji(v)} ${String(v).replace('.', ',')} van 5`} max={5} />
+      )}
       <Bars title="Deadlines op tijd per week" weeks={data.weeks} value={(w) => percent(w.deadlinesOnTime, w.deadlinesDue)} format={(v) => `${v}%`} max={100} detail={(w) => `${w.deadlinesOnTime} van ${w.deadlinesDue}`} />
       <details className="rounded-lg border border-nx-border p-3">
         <summary className="cursor-pointer font-medium">Als tabel</summary>

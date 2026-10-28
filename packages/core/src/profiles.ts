@@ -130,7 +130,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 11
+export const PROFILES_SCHEMA = 12
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -154,7 +154,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     name: 'Persoonlijk',
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
-    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'flashcards', 'insights', 'finance', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
+    apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'journal', 'flashcards', 'insights', 'finance', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
     widgets: ['deadlines', 'notes', 'finance', 'notifications', 'devices'],
     quietNonEssential: false,
     allowApps: [],
@@ -425,6 +425,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
       if (base.profiles[id].widgets.includes('finance') && Array.isArray(widgets) && !widgets.includes('finance')) {
         const after = widgets.includes('notes') ? widgets.indexOf('notes') : widgets.length - 1
         profiles[id] = { ...profiles[id], widgets: [...widgets.slice(0, after + 1), 'finance', ...widgets.slice(after + 1)] }
+      }
+    }
+  }
+  // Copies from before the Dagboek get it right after Gewoontes where it is a default (Persoonlijk).
+  if (typeof r.schema !== 'number' || r.schema < 12) {
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps
+      if (base.profiles[id].apps.includes('journal') && Array.isArray(apps) && !apps.includes('journal')) {
+        const after = apps.includes('habits') ? apps.indexOf('habits') : apps.length - 1
+        profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'journal', ...apps.slice(after + 1)] }
       }
     }
   }

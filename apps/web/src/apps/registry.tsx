@@ -13,13 +13,14 @@ import { Devices } from './Devices'
 import { Files } from './Files'
 import { FlowStudio } from './FlowStudio'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, WalletIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 import { Grades } from './Grades'
 import { Habits } from './Habits'
 import { Flashcards } from './Flashcards'
 import { Insights } from './Insights'
 import { Finance } from './Finance'
 import { Inbox } from './Inbox'
+import { Journal } from './Journal'
 import { Notes } from './Notes'
 import { Profiles } from './Profiles'
 import { Reminders } from './Reminders'
@@ -62,6 +63,7 @@ export const APPS: AppDefinition[] = [
   { id: 'study', title: 'Studie', icon: TimerIcon, component: Study, defaultSize: { width: 640, height: 600 } },
   { id: 'grades', title: 'Cijfers', icon: GradesIcon, component: Grades, defaultSize: { width: 680, height: 600 } },
   { id: 'habits', title: 'Gewoontes', icon: HabitIcon, component: Habits, defaultSize: { width: 620, height: 580 } },
+  { id: 'journal', title: 'Dagboek', icon: JournalIcon, component: Journal, defaultSize: { width: 600, height: 640 } },
   { id: 'flashcards', title: 'Leerkaarten', icon: CardsIcon, component: Flashcards, defaultSize: { width: 640, height: 620 } },
   { id: 'insights', title: 'Inzichten', icon: ChartIcon, component: Insights, defaultSize: { width: 720, height: 640 } },
   { id: 'finance', title: 'Financiën', icon: WalletIcon, component: Finance, defaultSize: { width: 720, height: 680 } },

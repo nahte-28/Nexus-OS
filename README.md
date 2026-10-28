@@ -147,6 +147,10 @@ De app **Studie** heeft een **focustimer** (pomodoro: standaard 25 minuten focus
 
 **Examens** (Examenplanner): per examen het vak (voorstellen uit Cijfers), datum en uur, duur, lokaal, hoeveel studietijd je nodig hebt en eventueel een stapel Leerkaarten. Elk examen komt als afspraak in de Agenda met herinneringen de dag ervoor en een uur ervoor (ook op gsm). Focustijd waarvan de taak de naam van het vak bevat, telt af van de studietijd; Planning spreidt wat overblijft over de dagen voor het examen (studeren stopt de avond ervoor). Examens syncen met een account (sleutel `exams` in `user_settings`); voer daarvoor eenmalig `supabase/migrations/20261028120000_exams_journal.sql` uit in de SQL Editor van Supabase.
 
+## Dagboek
+
+De app **Dagboek** (in Persoonlijk, na Gewoontes): per dag je stemming (vijf gezichtjes) en een korte notitie. Je ziet hoeveel dagen op rij je schreef, je stemming per week (ook in **Inzichten**) en kunt eerdere dagen openen en doorzoeken. Een dag zonder stemming en notitie wordt gewist. Met een account synct het dagboek (sleutel `journal` in `user_settings`, met RLS); dezelfde migratie als de Examenplanner: `supabase/migrations/20261028120000_exams_journal.sql`. NEXUS AI krijgt het dagboek nooit.
+
 ## Bestanden en studiehulp
 
 De app **Bestanden** heeft twee delen. **Mijn bestanden** bewaart je eigen bestanden (tot 10 MB per bestand) in NEXUS: offline op het apparaat en, met een account, in je eigen privéopslag in Supabase (bucket `nexus-files`, één map per gebruiker, met RLS), zodat ze op al je apparaten staan. **Op deze pc** opent mappen van je computer via de File System Access API (Chrome, Edge en de Windows-app); NEXUS leest alleen de mappen die je kiest en verandert er niets in. Op een gsm kies je losse bestanden.
