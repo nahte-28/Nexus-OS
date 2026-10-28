@@ -59,4 +59,14 @@ class SafetyPlanTest {
         val plan = SafetyPlan().withPlan("pc", listOf(notice("a")), nine - 1)
         assertTrue(plan.due(nine + SafetyPlan.STALE_MS + 1).isEmpty())
     }
+
+    @Test
+    fun theWatchShowsNoticesOnTimeAndSkipsTheLateCopy() {
+        var plan = SafetyPlan().withPlan("pc", listOf(notice("a")), nine - 60_000)
+        assertEquals(nine, plan.nextCheck(nine - 1, grace = 0))
+        assertEquals(listOf("a"), plan.due(nine, grace = 0).map { it.ref })
+        plan = plan.afterDue(nine, grace = 0)
+        // NEXUS delivers "a" a moment later: already shown, so not again.
+        assertFalse(plan.shouldShow("a"))
+    }
 }

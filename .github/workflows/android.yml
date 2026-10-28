@@ -32,10 +32,13 @@ jobs:
         run: diff app/src/test/resources/connect-vectors.json ../../packages/core/src/fixtures/connect-vectors.json
       - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
       - run: cp app/build/outputs/apk/debug/app-debug.apk nexus-companion.apk
+      - run: cp wear/build/outputs/apk/debug/wear-debug.apk nexus-watch.apk
       - uses: actions/upload-artifact@v4
         with:
           name: nexus-companion
-          path: apps/android-companion/nexus-companion.apk
+          path: |
+            apps/android-companion/nexus-companion.apk
+            apps/android-companion/nexus-watch.apk
       - name: Publish the APK
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -43,7 +46,11 @@ jobs:
           tag_name: companion-v0.8.${{ github.run_number }}
           name: NEXUS Companion 0.8.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          files: apps/android-companion/nexus-companion.apk
+          files: |
+            apps/android-companion/nexus-companion.apk
+            apps/android-companion/nexus-watch.apk
           body: |
             Installeer `nexus-companion.apk` op je gsm. Elke nieuwe versie installeert over de vorige heen.
             Eerste keer: sta installeren uit je browser of bestanden-app toe, en daarna in App-info > ⋮ > "Beperkte instellingen toestaan" zodat je meldingstoegang kunt geven.
+
+            `nexus-watch.apk` is de app voor je Wear OS-horloge. Installeer hem met ADB vanaf je pc (zie "Horloge-app" in de README); een nieuwe versie installeer je op dezelfde manier over de vorige heen.

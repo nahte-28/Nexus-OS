@@ -251,8 +251,13 @@ object Connect {
         }
     }
 
+    /** Added to the device name in NEXUS, e.g. "horloge" for the watch app. */
+    @Volatile
+    var kind: String? = null
+
     fun deviceName(): String {
         val maker = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-        return if (Build.MODEL.startsWith(maker, ignoreCase = true)) Build.MODEL else "$maker ${Build.MODEL}"
+        val name = if (Build.MODEL.startsWith(maker, ignoreCase = true)) Build.MODEL else "$maker ${Build.MODEL}"
+        return kind?.let { "$name ($it)" } ?: name
     }
 }

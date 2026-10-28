@@ -9,7 +9,7 @@ Deze repository bevat versie **0.7**: een webdesktop met vensterbeheer, een mobi
 ```
 apps/web                React + TypeScript + Vite + Tailwind webapp (PWA)
 apps/desktop            Windows-app (Tauri) rond dezelfde interface
-apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt
+apps/android-companion  Kotlin-app die gekozen Android-meldingen versleuteld doorstuurt, en in wear/ de horloge-app
 packages/core           Gedeelde types en logica: thema's, vensterbeheer, notities, sync, Connect
 supabase                Databaseschema (migraties) voor accounts, sync en Connect
 api                     Vercel-functies op de server, nu alleen NEXUS AI (api/ai.ts)
@@ -66,6 +66,19 @@ GitHub Actions bouwt de app bij elke wijziging op `main` en zet `nexus-companion
 **Vangnet**: zolang NEXUS ergens open is, krijgt de gsm versleuteld de meldingen van de komende drie dagen die naar hem gaan: herinneringen met "ook op gsm" en flows met een melding naar de gsm die op een vast tijdstip of bij een deadline starten (alleen flows zonder voorwaarden, of met alleen "tussen twee uren", want een actief profiel of netwerk kun je niet vooraf weten). De gsm zet er wekkers voor. Komt de melding van NEXUS niet binnen twee minuten na het moment, dan toont de gsm ze zelf, met "vangnet" erbij. Komt ze later toch nog van NEXUS (de pc ging weer aan), dan verschijnt ze niet nog eens: de melding en het geplande item delen een `ref`. De companion houdt hoogstens 50 items; ze blijven na een herstart van de gsm staan.
 
 Lokaal bouwen kan met Android Studio of `./gradlew assembleDebug` in `apps/android-companion` (JDK 17 en de Android SDK nodig).
+
+### Horloge-app (Wear OS)
+
+`apps/android-companion/wear` is een eigen app voor een Wear OS-horloge (Wear OS 4 of nieuwer, zoals de OnePlus Watch). GitHub Actions bouwt ze samen met de companion en zet `nexus-watch.apk` bij dezelfde [release](https://github.com/nahte-28/Nexus-OS/releases). Het horloge wordt een NEXUS Connect-apparaat van zichzelf, met een eigen sleutel in de keystore van het horloge: NEXUS stuurt het hetzelfde versleutelde vangnet als een gsm met de companion, en het horloge zet er zelf wekkers voor. Zo komen deadlines, herinneringen, afspraken, de Dagstart en flows met een melding naar de gsm ook op je pols als je gsm uit staat of ver weg is, zolang het horloge wifi of verbinding via de gsm heeft om het vangnet op te halen. Anders dan op de gsm wacht het horloge niet twee minuten op NEXUS: het toont een melding op het moment zelf, en de kopie die NEXUS daarna stuurt, verschijnt niet nog eens. Op het scherm zie je wat eraan komt.
+
+De app staat niet in de Play Store. Installeren gaat met ADB vanaf je pc:
+
+1. Zet op het horloge de ontwikkelaarsopties aan (Instellingen › Systeem › Over › tik zeven keer op het buildnummer) en zet daarin **ADB-foutopsporing** en **Draadloze foutopsporing** aan. Horloge en pc moeten op hetzelfde wifi zitten.
+2. Installeer op de pc de [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) en download `nexus-watch.apk` van de release.
+3. Tik bij Draadloze foutopsporing op **Koppelen met code** en typ op de pc `adb pair <ip>:<poort>` met het adres en de code van het horloge. Daarna `adb connect <ip>:<poort>` (het adres dat bovenaan Draadloze foutopsporing staat) en `adb install -r nexus-watch.apk`.
+4. Open NEXUS op het horloge, log in met je account en sta meldingen toe. In Apparaten op je pc staat het horloge dan met "(horloge)" achter de naam.
+
+Een nieuwe versie installeer je op dezelfde manier over de vorige heen; de app werkt zichzelf niet bij. Krijg je meldingen nu dubbel op je horloge (via Chrome of de companion op de gsm én via de horloge-app), zet dan in de OHealth-app de meldingen van Chrome of NEXUS Companion uit. Op de achtergrond haalt het horloge elk halfuur op wat NEXUS stuurde; met de app open is het live verbonden.
 
 ### Web-push (gsm zonder companion)
 
