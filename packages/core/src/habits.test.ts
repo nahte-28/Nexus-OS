@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { completion, dateKey, habitNotices, mergeHabits, parseHabitsState, plannedHabitNotices, streak, toggleDone, type Habit } from './habits'
+import { completion, dateKey, habitNotices, markDone, mergeHabits, parseHabitsState, plannedHabitNotices, streak, toggleDone, type Habit } from './habits'
 
 const day = (d: number, h = 12) => new Date(2026, 10, d, h).getTime()
 const habit = (over: Partial<Habit> = {}): Habit => ({
@@ -51,5 +51,12 @@ describe('Gewoontes', () => {
       ['h2', []],
     ])
     expect(merged.revision).toBe(3)
+  })
+
+  it('marks a day done from the watch without taking a tick back', () => {
+    const once = markDone(habit(), '2026-11-03', 5)
+    expect(once).toMatchObject({ done: ['2026-11-03'], updatedAt: 5 })
+    expect(markDone(once, '2026-11-03', 9)).toBe(once)
+    expect(markDone(habit(), 'gisteren')).toEqual(habit())
   })
 })

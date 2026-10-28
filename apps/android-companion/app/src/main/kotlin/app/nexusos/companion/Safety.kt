@@ -55,6 +55,11 @@ object Safety {
         return true
     }
 
+    /** Done elsewhere (ticked off on the watch): no alarm for it any more. */
+    fun dismiss(context: Context, ref: String) {
+        update(context) { it.markShown(ref, System.currentTimeMillis()) }
+    }
+
     /** Shows what NEXUS did not deliver in time. */
     @Synchronized
     fun fireDue(context: Context) {

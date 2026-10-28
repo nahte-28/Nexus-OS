@@ -185,6 +185,24 @@ object Connect {
         }
     }
 
+    /**
+     * Tells every NEXUS (browser or Windows app) on the account that [ref] was ticked off here. The
+     * first one that is open marks it done, and it syncs from there.
+     */
+    fun tickOff(context: Context, ref: String, done: (String?) -> Unit) {
+        val store = Store(context)
+        val app = context.applicationContext
+        run(done) {
+            if (!store.signedIn) throw IllegalStateException("Log opnieuw in.")
+            loadDevices(store)
+            val ownId = store.deviceId ?: throw IllegalStateException("Log opnieuw in.")
+            val targets = store.devices.filter { !it.revoked && it.id != ownId && it.platform != "android" }
+            if (targets.isEmpty()) throw IllegalStateException("Er is nog geen NEXUS op een pc of in een browser gekoppeld.")
+            send(store, targets, Protocol.actionPayload(ref, System.currentTimeMillis()))
+            Safety.dismiss(app, ref)
+        }
+    }
+
     /** Encrypts [payload] separately for each chosen device and uploads it. Returns how many. */
     private fun deliver(store: Store, payload: String): Int {
         if (!store.signedIn) return 0
@@ -194,6 +212,12 @@ object Connect {
         val chosen = store.recipients
         val targets = store.devices.filter { it.id in chosen && !it.revoked && it.id != ownId && it.platform != "android" }
         if (targets.isEmpty()) return 0
+        send(store, targets, payload)
+        return targets.size
+    }
+
+    private fun send(store: Store, targets: List<RemoteDevice>, payload: String) {
+        val ownId = store.deviceId!!
         val rows = JSONArray()
         for (device in targets) {
             val envelope = ConnectCrypto.encryptFor(device.publicKey, device.id, payload)
@@ -207,7 +231,6 @@ object Connect {
             )
         }
         api(store).sendMessages(token(store), rows)
-        return targets.size
     }
 
     private fun loadDevices(store: Store) {

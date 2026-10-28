@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultDeviceName, filterInbox, inboxApps, parsePayload, trimInbox, type InboxItem } from './connect'
+import { actionTarget, defaultDeviceName, filterInbox, inboxApps, parseAction, parsePayload, trimInbox, type InboxItem } from './connect'
 
 function item(id: string, patch: Partial<InboxItem> = {}): InboxItem {
   return {
@@ -55,5 +55,15 @@ describe('connect payloads', () => {
     expect(defaultDeviceName(win)).toBe('Chrome op Windows')
     expect(defaultDeviceName(android)).toBe('Chrome op Android')
     expect(defaultDeviceName(`${win} Edg/141.0`)).toBe('Edge op Windows')
+  })
+
+  it('reads an action from the watch and what it ticks off', () => {
+    expect(parseAction({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })).toEqual({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })
+    expect(parseAction({ v: 1, kind: 'action', action: 'delete', ref: 'x', at: 7 })).toBeNull()
+    expect(parseAction({ v: 1, kind: 'notification', title: 'x' })).toBeNull()
+    expect(actionTarget('deadline:d1@1767225600000-1440')).toEqual({ kind: 'deadline', id: 'd1' })
+    expect(actionTarget('habit:h1@2026-11-03')).toEqual({ kind: 'habit', id: 'h1', date: '2026-11-03' })
+    expect(actionTarget('reminder:r1@5')).toBeNull()
+    expect(actionTarget('dagstart:2026-11-03')).toBeNull()
   })
 })

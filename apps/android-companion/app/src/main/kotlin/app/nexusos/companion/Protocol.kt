@@ -56,6 +56,13 @@ object Protocol {
         }
     }
 
+    /** Only deadlines and habits can be ticked off from another device (see actionTarget in connect.ts). */
+    fun canTickOff(ref: String): Boolean = ref.startsWith("deadline:") || Regex("^habit:[^@]+@\\d{4}-\\d{2}-\\d{2}$").matches(ref)
+
+    /** "Ticked off on this device": an ActionPayload in packages/core/src/connect.ts. */
+    fun actionPayload(ref: String, at: Long): String =
+        JSONObject().put("v", 1).put("kind", "action").put("action", "done").put("ref", ref).put("at", at).toString()
+
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.
 
     fun socketUrl(supabaseUrl: String, anonKey: String): String =

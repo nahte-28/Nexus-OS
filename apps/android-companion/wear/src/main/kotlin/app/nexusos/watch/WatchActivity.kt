@@ -24,6 +24,7 @@ import app.nexusos.companion.ConnectCrypto
 import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
+import app.nexusos.companion.Protocol
 import app.nexusos.companion.Store
 import kotlin.math.roundToInt
 
@@ -38,6 +39,7 @@ class WatchActivity : Activity() {
     private lateinit var content: LinearLayout
     private var status: String? = null
     private var busy = false
+    private var ticking: String? = null
     private val onChange: () -> Unit = { render() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,6 +142,19 @@ class WatchActivity : Activity() {
             text(WatchFormat.at(n.at, now), muted = true, size = 12f)
             text(n.title, bold = true)
             n.text?.let { text(it.lineSequence().first(), muted = true, size = 12f) }
+            if (Protocol.canTickOff(n.ref)) {
+                button(if (ticking == n.ref) "Bezig…" else "✓ Afvinken") {
+                    if (ticking != null) return@button
+                    ticking = n.ref
+                    Connect.tickOff(this, n.ref) { error ->
+                        ticking = null
+                        status = error ?: "Afgevinkt. NEXUS werkt het bij zodra het op je pc of gsm openstaat."
+                        Glance.refresh(this)
+                        render()
+                    }
+                    render()
+                }
+            }
         }
         if (coming.size > MAX_SHOWN) text("en nog ${coming.size - MAX_SHOWN}", muted = true)
 

@@ -38,6 +38,38 @@ export interface PlanPayload {
   sentAt: number
 }
 
+/**
+ * Something done on another device, e.g. a deadline ticked off on the watch. The [ref] is the one of
+ * the notice it came from (deadline:<id>@... or habit:<id>@<date>), so the receiver knows what it is about.
+ */
+export interface ActionPayload {
+  v: 1
+  kind: 'action'
+  action: 'done'
+  ref: string
+  at: number
+}
+
+export type ActionTarget = { kind: 'deadline'; id: string } | { kind: 'habit'; id: string; date: string }
+
+export function parseAction(value: unknown): ActionPayload | null {
+  if (typeof value !== 'object' || value === null) return null
+  const p = value as Record<string, unknown>
+  const ref = str(p.ref, 300)
+  if (p.v !== 1 || p.kind !== 'action' || p.action !== 'done' || !ref) return null
+  if (typeof p.at !== 'number' || !Number.isFinite(p.at)) return null
+  return { v: 1, kind: 'action', action: 'done', ref, at: p.at }
+}
+
+/** What a notice ref points at, when it can be ticked off: a deadline or a habit on one day. */
+export function actionTarget(ref: string): ActionTarget | null {
+  const deadline = /^deadline:([^@]+)@/.exec(ref)
+  if (deadline) return { kind: 'deadline', id: deadline[1] }
+  const habit = /^habit:([^@]+)@(\d{4}-\d{2}-\d{2})$/.exec(ref)
+  if (habit) return { kind: 'habit', id: habit[1], date: habit[2] }
+  return null
+}
+
 /** A received notification as kept on the device (never in the cloud). */
 export interface InboxItem extends ConnectPayload {
   id: string

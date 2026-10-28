@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { defaultSyncEngine } from '../sync/SyncContext'
 import { supabase } from '../sync/supabase'
-import { ConnectEngine } from './engine'
+import { applyAction } from './actions'
+import { ConnectEngine, showSystemNotification } from './engine'
 import { createConnectRemote } from './remote'
 
-export const defaultEngine = new ConnectEngine(supabase, supabase ? createConnectRemote(supabase) : null)
+export const defaultEngine = new ConnectEngine(supabase, supabase ? createConnectRemote(supabase) : null, showSystemNotification, applyAction)
 defaultSyncEngine.beforeSignOut(() => defaultEngine.leave())
 
 const ConnectContext = createContext<ConnectEngine>(defaultEngine)
