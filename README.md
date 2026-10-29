@@ -41,7 +41,8 @@ Zonder Supabase werkt de app volledig lokaal. Voor synchronisatie zet je in Verc
 2. Open de SQL Editor en voer de bestanden in `supabase/migrations` in volgorde uit: eerst `20261019000000_notes.sql` (notities), dan `20261019120000_connect.sql` (apparaten en meldingen) en `20261020100000_settings.sql` (profielen op al je toestellen). Dat maakt de tabellen, de toegangsregels (row-level security) en realtime aan.
 3. Zet onder Authentication > URL Configuration de **Site URL** op je Vercel-adres en voeg `http://localhost:5173` en je preview-URL's (bijvoorbeeld `https://*-jouwnaam.vercel.app/**`) toe bij **Redirect URLs**. De inloglink in de mail komt anders niet terug in de app.
 4. Kopieer onder Project Settings > API de project-URL en de anon/publishable key naar de omgevingsvariabelen.
-5. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
+5. **Database-check**: voer ook `20261029090000_schema_check.sql` uit. Daarna toont **Account** (als je aangemeld bent) welke SQL-stappen nog ontbreken, in de juiste volgorde, met per stap een knop **SQL kopiëren**. Zonder die stap kijkt NEXUS alleen na welke tabellen bestaan. Wie een nieuwe migratie toevoegt, zet ze ook in `SCHEMA_STEPS` in `packages/core/src/schemaCheck.ts` (een test controleert dat elk bestand bestaat).
+6. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
 
 ## Hoe synchronisatie werkt
 
