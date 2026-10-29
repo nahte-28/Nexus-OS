@@ -21,6 +21,8 @@ export type Capability =
   | 'native'
   /** NEXUS Connect keys (Web Crypto + IndexedDB). */
   | 'connect'
+  /** Running your own widgets in a sandboxed frame (Developer Hub). */
+  | 'sandbox'
 
 export type Capabilities = Record<Capability, boolean>
 
@@ -39,6 +41,7 @@ export const CAPABILITY_INFO: Record<Capability, CapabilityInfo> = {
   clipboardRead: { title: 'Plakken uit het klembord', missing: 'Deze browser laat NEXUS het klembord niet lezen.' },
   native: { title: 'Windows-functies', missing: 'Alleen in de Windows-app van NEXUS.' },
   connect: { title: 'NEXUS Connect', missing: 'Deze browser mist de versleuteling die Connect nodig heeft.' },
+  sandbox: { title: 'Eigen widgets', missing: 'De Windows-app laat geen scripts toe in een afgeschermd venster; gebruik NEXUS in de browser.' },
 }
 
 /** The capabilities [needs] lists that this device lacks; empty when the feature can run here. */

@@ -3,6 +3,8 @@ import { alive, budgetStatus, goalProgress, monthOf, nextCalendarEvent, nextLess
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
+import { ExtensionWidgets } from '../devhub/ExtensionWidgets'
+import { useFeature } from '../features/store'
 import { financeStore } from '../finance/store'
 import { dismissPrompt, usePrompts } from '../flows/prompts'
 import { appName } from '../flows/runner'
@@ -37,6 +39,7 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
   const { state, active, reason } = useProfiles()
   const now = useMinute()
   const Icon = PROFILE_ICONS[active.id]
+  const devHub = useFeature('devHub')
   return (
     <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 ${compact ? 'p-4' : 'p-6'}`}>
       <header className="space-y-1">
@@ -83,6 +86,8 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
             <Widget key={w} id={w} onOpenApp={onOpenApp} />
           ))}
       </div>
+
+      {devHub && <ExtensionWidgets />}
     </section>
   )
 }

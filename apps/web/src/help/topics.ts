@@ -156,6 +156,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Drie regels: School, Deadlines en Updates. Je zet ze aan of uit in Automatiseringen. Ze draaien op dit toestel, zonder AI.',
     ],
   },
+  devhub: {
+    summary: 'Developer Hub: je eigen widgets bouwen, testen in een sandbox en na een review op je dashboard zetten.',
+    tips: [
+      'Begin met het voorbeeldproject in Projecten: een manifest (naam, versie, permissies) en de code van de widget.',
+      'In Sandbox draait je code afgeschermd: zonder netwerk, opslag of toegang tot je account. Gegevens vraag je met nexus.call, en alleen met een toegestane permissie.',
+      'Reviews kijkt je code na. Pas als alles klopt, publiceer je een versie; installeren vraagt eerst je toestemming voor de permissies.',
+      'Een oudere versie terugzetten of de widget weghalen kan altijd in Reviews. Widgets draaien in de browser, niet in de Windows-app.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

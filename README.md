@@ -314,6 +314,17 @@ Zet **Intelligence** aan in **Instellingen > Nieuwe modules**. NEXUS kijkt dan n
 
 De regels draaien op het toestel, zonder AI en zonder server; alles staat in localStorage `nexus.intelligence`, dus er is geen SQL voor nodig. Logica: `packages/core/src/intelligence.ts`, web: `apps/web/src/intelligence/store.ts`, app: `apps/web/src/apps/Intelligence.tsx`.
 
+## Developer Hub (blueprint fase 6)
+
+Zet **Developer Hub** aan in **Instellingen > Nieuwe modules**. Daarmee bouw je je eigen widgets voor het dashboard:
+
+- **Projecten:** een manifest (`id`, `name`, `version`, `description`, `permissions`) en de code. Je begint met een voorbeeldproject dat je deadlines van deze week telt. Wijzigingen worden meteen bewaard.
+- **SDK:** de methodes die een widget kan aanroepen met `await nexus.call('…')`: `agenda.deadlines`, `notes.recent` (alleen titels), `profile.active` en `notify` (een melding in de Inbox, hoogstens drie per minuut). Elke methode vraagt een permissie uit het manifest.
+- **Sandbox:** de code draait in een afgeschermd venster (`iframe` met `sandbox="allow-scripts"`, zonder same-origin, en een eigen content policy `default-src 'none'`). Ze heeft dus geen netwerk, geen opslag, geen sessie of Supabase-token en geen toegang tot NEXUS. Alles loopt via de permission broker (`devhub/broker.ts`), die elke aanroep nakijkt en logt. Je kan permissies uitzetten om te zien wat er gebeurt als ze geweigerd worden.
+- **Reviews:** de review kijkt het manifest, de grootte, de SDK-aanroepen, verboden code (netwerk, `eval`, opslag, `parent`), ongebruikte permissies en de versie na. Pas als alles klopt, publiceer je een versie. Installeren toont eerst een venster met de permissies; terugdraaien naar een vorige versie of de widget van het dashboard halen kan altijd.
+
+Geïnstalleerde widgets staan onderaan het dashboard, elk in een eigen sandbox. Alles blijft op het toestel (localStorage `nexus.devhub`): er is geen SQL voor nodig en er komen geen externe extensies of uploads, zoals de blueprint voor de eerste versie vraagt. De Windows-app laat geen scripts toe in zo'n afgeschermd venster, dus widgets draaien in de browser en als web-app. Logica: `packages/core/src/extensions.ts`, web: `apps/web/src/devhub/`, app: `apps/web/src/apps/DeveloperHub.tsx`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
