@@ -8,7 +8,9 @@ import {
   generateDeviceKeyPair,
   notificationPopsUp,
   parseAction,
+  parseBridge,
   parsePayload,
+  type BridgeMessage,
   type ActionPayload,
   trimInbox,
   type ConnectPayload,
@@ -64,6 +66,9 @@ export function phonesOf(state: ConnectState): DeviceView[] {
   return state.devices.filter((d) => !d.revokedAt && !d.isThisDevice && (d.platform === 'android' || d.push))
 }
 
+/** Bridge messages from one fetch, with the device that sent each. */
+export type BridgeBatch = Array<{ from: string; message: BridgeMessage }>
+
 /** Push messages may be 4 KB; with encryption and JSON this keeps a notification well within it. */
 const MAX_PUSH_TEXT = 300
 
@@ -84,6 +89,7 @@ export class ConnectEngine {
   private stopListening: (() => void) | null = null
   private receiving: Promise<void> | null = null
   private again = false
+  private bridgeHandler: ((batch: BridgeBatch) => void | Promise<void>) | null = null
 
   constructor(
     private client: SupabaseClient | null,
@@ -260,10 +266,16 @@ export class ConnectEngine {
       if (messages.length === 0) return
       const items: InboxItem[] = []
       const actions: ActionPayload[] = []
+      const bridged: BridgeBatch = []
       for (const m of messages) {
         try {
           const plaintext = await decryptWith(identity.privateKey, identity.publicKey, identity.deviceId, m)
           const json: unknown = JSON.parse(plaintext)
+          const bridge = parseBridge(json)
+          if (bridge) {
+            bridged.push({ from: m.senderDeviceId, message: bridge })
+            continue
+          }
           const action = parseAction(json)
           if (action) {
             actions.push(action)
@@ -285,8 +297,15 @@ export class ConnectEngine {
           logEvent('connect', `Actie van een ander apparaat mislukt: ${err instanceof Error ? err.message : err}`, true)
         }
       }
+      if (bridged.length > 0 && this.bridgeHandler) {
+        try {
+          await this.bridgeHandler(bridged)
+        } catch (err) {
+          logEvent('connect', `Bridge verwerken mislukt: ${err instanceof Error ? err.message : err}`, true)
+        }
+      }
       await this.remote.deleteMessages(messages.map((m) => m.id))
-      logEvent('connect', `${items.length} melding(en) ontvangen, ${messages.length - items.length} onleesbaar`)
+      logEvent('connect', `${items.length} melding(en) en ${bridged.length} Bridge-bericht(en) ontvangen, ${messages.length - items.length - actions.length - bridged.length} onleesbaar`)
       // With web push on, the service worker already shows notifications that carry a ref.
       const pushHere = this.state.devices.some((d) => d.isThisDevice && d.push)
       for (const item of items) if (!(pushHere && item.ref)) this.notify(item)
@@ -405,6 +424,21 @@ export class ConnectEngine {
     return { ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id, ref: item.ref, at: item.at }
   }
 
+  /** What arrives for NEXUS Bridge goes to [handler] (bridge/store.ts), in one batch per fetch. */
+  setBridgeHandler(handler: ((batch: BridgeBatch) => void | Promise<void>) | null): void {
+    this.bridgeHandler = handler
+  }
+
+  /** A Bridge transfer or status, end-to-end encrypted like every Connect message. */
+  async sendBridge(deviceId: string, message: BridgeMessage): Promise<void> {
+    await this.send(deviceId, message)
+  }
+
+  /** A push right now to a phone with web push, so it shows while NEXUS is closed there; nothing for other devices. */
+  async pushNotice(deviceId: string, title: string, text: string | undefined, ref: string): Promise<void> {
+    await this.pushNow(deviceId, title, text, ref)
+  }
+
   /** Lets this browser be woken by web push (the subscription comes from the service worker). */
   async enablePush(keys: PushSubscriptionKeys): Promise<void> {
     const identity = this.requireIdentity()
@@ -423,13 +457,14 @@ export class ConnectEngine {
     await this.send(deviceId, { v: 1, app: 'nexus', appName: 'NEXUS', postedAt: Date.now(), ...content })
   }
 
-  private async send(deviceId: string, payload: ConnectPayload | PlanPayload): Promise<void> {
+  private async send(deviceId: string, payload: ConnectPayload | PlanPayload | BridgeMessage): Promise<void> {
     const identity = this.requireIdentity()
     const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
     if (!target) throw new Error('Dit apparaat is niet meer actief.')
     const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
     await this.remote!.sendMessages([{ ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id }])
-    logEvent('connect', payload.kind === 'plan' ? `Vangnet (${payload.items.length} meldingen) versleuteld verstuurd naar ${target.name}` : `Melding (${payload.kind}) versleuteld verstuurd naar ${target.name}`)
+    const what = payload.kind === 'plan' ? `Vangnet (${payload.items.length} meldingen)` : payload.kind === 'bridge' || payload.kind === 'bridge_status' ? 'Bridge-bericht' : `Melding (${payload.kind})`
+    logEvent('connect', `${what} versleuteld verstuurd naar ${target.name}`)
   }
 
   async rename(deviceId: string, name: string): Promise<void> {
