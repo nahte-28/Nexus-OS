@@ -303,6 +303,17 @@ Zet **Bridge** aan in **Instellingen > Nieuwe modules**, op het toestel dat vers
 
 Alles gaat als een end-to-end versleuteld bericht van NEXUS Connect, dus de server ziet de inhoud nooit. Er is geen SQL voor nodig. Elk toestel bewaart zijn eigen lijst (localStorage `nexus.bridge`); ontvangen inhoud verdwijnt na de vervaltijd. De gsm-app en het horloge tonen alleen meldingen, dus Bridge stuurt daar niet naartoe. Bestanden en een gedeeld klembord komen later. Logica: `packages/core/src/bridge.ts`, web: `apps/web/src/bridge/store.ts`, routering in `connect/engine.ts` (`setBridgeHandler`, `sendBridge`).
 
+## Intelligence (blueprint fase 5)
+
+Zet **Intelligence** aan in **Instellingen > Nieuwe modules**. NEXUS kijkt dan naar je eigen gegevens en doet voorstellen voor een automatisering. Er gebeurt niets voor je op **Goedkeuren** drukt.
+
+- **Drie regels:** *School* (je hebt op minstens twee dagen les, maar School Mode staat niet op een schema: een flow die School Mode 15 minuten voor de eerste les aanzet), *Deadlines* (je hebt deadlines binnen 7 dagen en geen flow die je waarschuwt: een seintje een dag op voorhand) en *Updates* (in de Windows-app: een avondvenster van 18:00 tot 23:00 om updates te installeren).
+- **Voorstellen:** elk voorstel toont **Waarom**, **Gebruikte gegevens** (alleen dagen, uren en aantallen, nooit titels of inhoud) en **Wat goedkeuren doet**. Met **Aanpassen** wijzig je dagen, uur of tijd op voorhand. **Goedkeuren** maakt er een gewone flow van in Flow Studio (en zet Flow Studio aan als die uit stond).
+- **Geen spam:** hoogstens één nieuw voorstel per uur. **Later** verbergt het een dag, **Weigeren** houdt die regel 14 dagen stil en hetzelfde voorstel komt nooit terug. Een voorstel waar je een week niets mee doet, verloopt. Een voorstel verdwijnt vanzelf als je het zelf al geregeld hebt.
+- **Automatiseringen, Geschiedenis en Privacy:** regels aan- of uitzetten, de flows die uit een voorstel kwamen, wat je eerder koos, en je keuzes vergeten.
+
+De regels draaien op het toestel, zonder AI en zonder server; alles staat in localStorage `nexus.intelligence`, dus er is geen SQL voor nodig. Logica: `packages/core/src/intelligence.ts`, web: `apps/web/src/intelligence/store.ts`, app: `apps/web/src/apps/Intelligence.tsx`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

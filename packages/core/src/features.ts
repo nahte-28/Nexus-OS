@@ -19,7 +19,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'inbox', title: 'Universal Inbox', description: 'Eén plek voor wat NEXUS je meldt: flows, updates, apparaten en deadlines.', defaultOn: false, available: true },
   { id: 'timeMachine', title: 'Time Machine', description: 'Herstelpunten van je profielen, flows en Spaces, met een overzicht van wat verandert voor je herstelt.', defaultOn: false, available: true },
   { id: 'bridge', title: 'Bridge', description: 'Tekst en links naar een van je eigen toestellen sturen, end-to-end versleuteld.', defaultOn: false, available: true },
-  { id: 'intelligence', title: 'Intelligence', description: 'Voorstellen met uitleg, die pas iets doen als jij ze goedkeurt.', defaultOn: false, available: false },
+  { id: 'intelligence', title: 'Intelligence', description: 'Voorstellen met uitleg, die pas iets doen als jij ze goedkeurt.', defaultOn: false, available: true },
   { id: 'devHub', title: 'Developer Hub', description: 'Eigen widgets bouwen en testen in een afgeschermde sandbox.', defaultOn: false, available: false },
 ]
 
