@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { isDesktopApp } from '../platform/desktop'
 import { useSync } from '../sync/SyncContext'
 import type { SyncState } from '../sync/engine'
-import { missingSupabaseEnv } from '../sync/supabase'
+import { DatabaseCheck } from '../account/DatabaseCheck'
+import { missingSupabaseEnv, supabase } from '../sync/supabase'
 
 export function statusText(state: SyncState): string {
   switch (state.status) {
@@ -224,6 +225,7 @@ export function Account() {
           </p>
         )}
       </form>
+      {supabase && <DatabaseCheck client={supabase} />}
     </div>
   )
 }

@@ -41,7 +41,8 @@ Zonder Supabase werkt de app volledig lokaal. Voor synchronisatie zet je in Verc
 2. Open de SQL Editor en voer de bestanden in `supabase/migrations` in volgorde uit: eerst `20261019000000_notes.sql` (notities), dan `20261019120000_connect.sql` (apparaten en meldingen) en `20261020100000_settings.sql` (profielen op al je toestellen). Dat maakt de tabellen, de toegangsregels (row-level security) en realtime aan.
 3. Zet onder Authentication > URL Configuration de **Site URL** op je Vercel-adres en voeg `http://localhost:5173` en je preview-URL's (bijvoorbeeld `https://*-jouwnaam.vercel.app/**`) toe bij **Redirect URLs**. De inloglink in de mail komt anders niet terug in de app.
 4. Kopieer onder Project Settings > API de project-URL en de anon/publishable key naar de omgevingsvariabelen.
-5. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
+5. **Database-check**: voer ook `20261029090000_schema_check.sql` uit. Daarna toont **Account** (als je aangemeld bent) welke SQL-stappen nog ontbreken, in de juiste volgorde, met per stap een knop **SQL kopiëren**. Zonder die stap kijkt NEXUS alleen na welke tabellen bestaan. Wie een nieuwe migratie toevoegt, zet ze ook in `SCHEMA_STEPS` in `packages/core/src/schemaCheck.ts` (een test controleert dat elk bestand bestaat).
+6. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
 
 ## Hoe synchronisatie werkt
 
@@ -232,6 +233,14 @@ Met **Alt+N** (of de potloodknop naast Zoeken) typ je snel iets weg zonder een a
 ## Zoeken overal
 
 Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.
+
+## Rondleiding
+
+Op een nieuw apparaat (nog niet aangemeld, nog geen notities of Agenda) opent NEXUS één keer een **rondleiding**: aanmelden, meldingen toestaan, gsm en horloge koppelen, lesrooster in Profielen. Elke stap heeft een knop en toont ✓ zodra hij in orde is. Bestaande installaties krijgen ze niet vanzelf; starten kan altijd in **Instellingen > Rondleiding**.
+
+## Back-up
+
+In **Instellingen > Back-up** maak je met **Back-up maken** één JSON-bestand met al je gegevens: notities, Agenda (deadlines, afspraken, projecten), herinneringen, bestanden (optioneel), Cijfers, Gewoontes, Leerkaarten, Financiën, Examens, Dagboek, Profielen, flows en het focuslogboek. Met **Back-up terugzetten…** zet je zo'n bestand terug, ook op een ander apparaat of account. Eerst toont NEXUS wat erin zit, dan voegt het samen: per item wint de nieuwste versie en wat alleen op het apparaat staat, blijft; Profielen nemen de instellingen uit de back-up over. Teruggezette items syncen daarna gewoon naar je account. De sleutels van NEXUS Connect en wat je in een studiegroep deelt, gaan er bewust niet in. Het bestand is niet versleuteld: bewaar het veilig. Formaat en controle: `packages/core/src/backup.ts`.
 
 ## Wat werkt
 
