@@ -248,6 +248,10 @@ In **Instellingen > Back-up** maak je met **Back-up maken** één JSON-bestand m
 
 De app **Help** staat in elk profiel, net als Profielen en Instellingen. Ze legt per app in een paar zinnen uit waarvoor die dient, met enkele tips, en je kunt erin zoeken. De teksten staan in `apps/web/src/help/topics.ts`; een nieuwe app bouwt pas als ze daar een uitleg heeft.
 
+## Probleem melden
+
+Loopt een app vast, dan staat onder de foutmelding de knop **Probleem melden**; in **Help > Probleem melden** kan het ook, met een korte beschrijving. Eén klik zet de melding in de tabel `error_reports` van Supabase (migratie `20261029150000_error_reports.sql`): de fout, de versie en build, browser of Windows-app, en de laatste 30 regels van het logboek van NEXUS. Nooit notities, berichten of andere inhoud. Lezen doe je in Supabase onder **Table Editor > error_reports**; een gebruiker ziet alleen zijn eigen meldingen en kan er hoogstens 20 per dag sturen. Niet aangemeld of de tabel ontbreekt nog: dan kan je de melding kopiëren.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

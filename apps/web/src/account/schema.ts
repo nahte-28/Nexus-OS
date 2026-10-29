@@ -30,7 +30,7 @@ export async function checkSchema(client: SupabaseClient): Promise<SchemaReport>
   return { missing: [CHECK_STEP, ...missing], unknown, checkInstalled: false }
 }
 
-// Every migration, loaded only when its SQL is copied.
+// Every migration in supabase/migrations, loaded only when its SQL is copied.
 const sources = import.meta.glob<string>('../../../../supabase/migrations/*.sql', { query: '?raw', import: 'default' })
 
 /** The SQL of a step, to paste in the SQL Editor of Supabase. */

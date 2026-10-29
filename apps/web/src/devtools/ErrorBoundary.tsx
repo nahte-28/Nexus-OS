@@ -1,5 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { logEvent } from './log'
+import { rememberError } from './report'
+import { ReportButton } from './ReportButton'
 
 interface Props {
   /** Shown in the message, e.g. the app's name. */
@@ -17,6 +19,7 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     logEvent('system', `${this.props.name} liep vast: ${error.message}`, true)
+    rememberError(this.props.name, error)
     console.error(error, info.componentStack)
   }
 
@@ -30,13 +33,16 @@ export class ErrorBoundary extends Component<Props, { error: Error | null }> {
           {error.name}: {error.message}
           {error.stack ? `\n${error.stack.split('\n').slice(1, 6).join('\n')}` : ''}
         </pre>
-        <button
-          type="button"
-          className="rounded-lg border border-nx-border px-3 py-1.5 hover:bg-nx-surface-2"
-          onClick={() => this.setState({ error: null })}
-        >
-          Opnieuw proberen
-        </button>
+        <div className="flex flex-wrap items-start gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-nx-border px-3 py-1.5 hover:bg-nx-surface-2"
+            onClick={() => this.setState({ error: null })}
+          >
+            Opnieuw proberen
+          </button>
+          <ReportButton app={this.props.name} error={error} />
+        </div>
       </div>
     )
   }

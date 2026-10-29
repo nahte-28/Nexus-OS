@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { preloadApps } from './apps/registry'
+import { watchGlobalErrors } from './devtools/report'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
@@ -79,6 +80,8 @@ startWeekReview(defaultEngine)
 startFilesSync(supabase)
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)
+
+watchGlobalErrors()
 
 // Snelle notitie from the phone's app shortcut or share sheet.
 openCaptureFromUrl()
