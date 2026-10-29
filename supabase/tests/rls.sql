@@ -31,6 +31,13 @@ insert into public.connect_messages (sender_device_id, recipient_device_id, ephe
   values ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000d2', 'e', 'i', 'c');
 insert into public.automation_flows (id, name, definition, revision) values ('f1', 'Flow', '{"actions": [{}], "conditions": []}', 1);
 insert into public.error_reports (app, message, version, build, platform) values ('Notities', 'boom', '1.0.0', 'abc', 'test');
+insert into public.inbox_items (id, source, type, title, at, updated_at) values ('flow:f1|e1', 'flow', 'flow.failed', 'Flow mislukt', (extract(epoch from now()) * 1000)::bigint, 10);
+-- An older change from another device does not overwrite a newer one.
+update public.inbox_items set read_at = 5, updated_at = 5 where id = 'flow:f1|e1';
+do $$ begin if (select read_at from public.inbox_items) is not null then raise exception 'Een oudere wijziging overschreef een nieuwere in inbox_items'; end if; end $$;
+-- Items older than 60 days are cleaned up.
+insert into public.inbox_items (id, source, type, title, at, updated_at) values ('oud', 'system', 'x', 'Oud', 1, 1);
+do $$ begin if exists (select 1 from public.inbox_items where id = 'oud') then raise exception 'Oude inboxitems blijven staan'; end if; end $$;
 select (public.create_study_group('Groep A', 'A')).id as group_id \gset
 insert into public.study_group_tasks (group_id, title, due_at) values (:'group_id', 'Taak', 1);
 reset role;
@@ -92,5 +99,6 @@ begin
   if (select count(*) from public.notes) <> 1 then raise exception 'A ziet de eigen notitie niet meer'; end if;
   if (select count(*) from public.study_group_tasks) <> 1 then raise exception 'A ziet de eigen groepsdeadline niet meer'; end if;
   if (select count(*) from public.error_reports) <> 1 then raise exception 'A ziet de eigen melding niet meer'; end if;
+  if (select count(*) from public.inbox_items) <> 1 then raise exception 'A ziet het eigen inboxitem niet meer'; end if;
 end $$;
 reset role;

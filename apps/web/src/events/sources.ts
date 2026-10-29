@@ -1,3 +1,7 @@
+import { deadlineEvents, openDeadlines } from '@nexus/core'
+import { isFeatureOn, onFeaturesChange } from '../features/store'
+import { inboxStore } from '../inbox/store'
+import { lifeStore } from '../life/store'
 import { getUpdateState, subscribeUpdate } from '../platform/update'
 import { eventBus } from './bus'
 
@@ -17,4 +21,20 @@ export function startEventSources(): void {
   }
   onUpdate()
   subscribeUpdate(onUpdate)
+
+  // Deadlines within a day, and ones that just passed; the id keeps each to one event.
+  const checkDeadlines = () => {
+    for (const e of deadlineEvents(openDeadlines(lifeStore.getSnapshot()), Date.now())) eventBus.publish(e)
+  }
+  void lifeStore.ready.then(checkDeadlines)
+  lifeStore.subscribe(checkDeadlines)
+  setInterval(checkDeadlines, 60_000)
+
+  // InboxIngest: while the Universal Inbox is on, every event passes its policy into the Inbox.
+  const toInbox = () => {
+    if (isFeatureOn('inbox')) inboxStore.add(eventBus.getSnapshot())
+  }
+  toInbox()
+  eventBus.subscribe(toInbox)
+  onFeaturesChange(toInbox)
 }

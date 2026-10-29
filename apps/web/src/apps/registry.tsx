@@ -6,7 +6,7 @@ import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, SpacesIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -47,6 +47,7 @@ const Notes = load('Notes', () => import('./Notes'))
 const Profiles = load('Profiles', () => import('./Profiles'))
 const Reminders = load('Reminders', () => import('./Reminders'))
 const Settings = load('Settings', () => import('./Settings'))
+const UniversalInbox = load('UniversalInbox', () => import('./UniversalInbox'))
 const Spaces = load('Spaces', () => import('./Spaces'))
 const Study = load('Study', () => import('./Study'))
 
@@ -101,6 +102,7 @@ export const APPS: AppDefinition[] = [
   { id: 'account', title: 'Account', icon: AccountIcon, component: Account, defaultSize: { width: 480, height: 340 } },
   { id: 'klashub', title: 'KlasHub', icon: BookIcon, component: KlasHubLauncher, defaultSize: { width: 420, height: 200 }, launch: openKlasHub },
   { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, beta: true },
+  { id: 'inbox', title: 'Inbox', icon: InboxIcon, component: UniversalInbox, defaultSize: { width: 640, height: 560 }, feature: 'inbox' },
   { id: 'spaces', title: 'Spaces', icon: SpacesIcon, component: Spaces, defaultSize: { width: 680, height: 560 }, feature: 'spaces' },
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },

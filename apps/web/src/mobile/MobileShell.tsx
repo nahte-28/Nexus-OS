@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
+import { setAppOpener } from '../shell/openApp'
 import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
@@ -40,6 +41,11 @@ export function MobileShell() {
     if (openId) setOpenId(id)
     else open(id)
   }
+  // Deep links from other apps (the Inbox) land here.
+  useEffect(() => {
+    setAppOpener(switchTo)
+    return () => setAppOpener(null)
+  })
   const goHome = () => {
     if (openId) history.back()
   }

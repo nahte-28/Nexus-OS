@@ -120,6 +120,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Wisselen sluit je vensters, maar je notities en andere gegevens zijn al bewaard.',
     ],
   },
+  inbox: {
+    summary: 'Universal Inbox: alles wat NEXUS je meldt op één plek, op al je apparaten.',
+    tips: [
+      'Prioriteit toont alleen wat dringend is, zoals een deadline binnen een dag of een mislukte flow.',
+      'Vink items aan om ze samen te archiveren of te snoozen; gesnoozede items staan in Gepland.',
+      'Klik op een item om de app te openen waar het over gaat.',
+      'Onderaan kies je welke bronnen in de Inbox mogen. Berichten van je gsm komen er nooit in; die staan in Meldingen.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

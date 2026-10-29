@@ -272,6 +272,17 @@ Zet **Spaces** aan in **Instellingen > Nieuwe modules**. Een Space is een werkru
 
 Opslag: `user_settings` met key `spaces` (migratie `20261029170000_spaces.sql`). Per Space wint de nieuwste wijziging. Welke Space open is, wordt per toestel bewaard. Syncen start pas als de module aan staat. Op een gsm beheer je je Spaces, maar openen gebeurt op een groter scherm. Logica: `packages/core/src/spaces.ts`.
 
+## Universal Inbox (blueprint fase 2)
+
+Zet **Universal Inbox** aan in **Instellingen > Nieuwe modules**. De app **Inbox** verzamelt wat NEXUS meldt, op al je apparaten:
+
+- **Bronnen:** flows, updates en deadlines (een dag vooraf en als ze verstreken zijn).
+- **Tabs:** Inbox, Prioriteit (alleen hoog), Gepland (gesnoozed) en Archief.
+- **Werken met items:** filter op bron, prioriteit, apparaat of ongelezen. Vink items aan om ze samen te markeren als gelezen, te archiveren of te snoozen. Een klik opent de app waar het over gaat.
+- **Wat erin komt:** onderaan kies je per bron of ze in de Inbox mag (geldt per toestel). Berichten van andere apps op je gsm komen er nooit in; die blijven end-to-end versleuteld in Meldingen.
+
+Opslag: tabel `inbox_items` (migratie `20261029190000_inbox.sql`), één rij per event-id, dus er komen geen dubbels. Per item wint de nieuwste wijziging: de database negeert een oudere update. Items ouder dan 60 dagen worden opgeruimd, en er blijven er hoogstens 1000. Logica: `packages/core/src/inbox.ts`, web: `apps/web/src/inbox/store.ts`. Apps openen elkaar via `shell/openApp.ts`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
