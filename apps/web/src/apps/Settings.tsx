@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
+import { BackupSection } from '../backup/BackupSection'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
 import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
@@ -38,6 +39,7 @@ export function Settings() {
       </fieldset>
       <p className="text-sm text-nx-muted">Je keuze wordt bewaard en geldt direct, zonder dat open vensters sluiten.</p>
       {isDesktopApp && <WindowsSettings />}
+      <BackupSection />
       <BetaSettings />
       <DeveloperSettings />
     </div>

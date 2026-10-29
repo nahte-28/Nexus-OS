@@ -1,4 +1,4 @@
-import { createNote, parseNotes, sortNotes, toNote, type LocalStore, type Note } from '@nexus/core'
+import { createNote, parseNotes, restoreRecords, sortNotes, toNote, type LocalStore, type Note } from '@nexus/core'
 import { clearAll, getAll, getMeta, write } from './db'
 import { readStorage } from './storage'
 
@@ -107,6 +107,21 @@ export class NotesStore implements LocalStore<Note> {
       const now = Date.now()
       this.save({ ...note, title: '', body: '', updatedAt: now, deletedAt: now })
     }
+  }
+
+  /** Puts records from a back-up back when they are absent or newer here; they sync like your own changes. */
+  async restore(items: Note[]): Promise<number> {
+    await this.ready
+    const fresh = restoreRecords(this.all(), items)
+    for (const r of fresh) {
+      this.records.set(r.id, r)
+      this.dirty.add(r.id)
+    }
+    if (fresh.length > 0) {
+      await this.persist(fresh)
+      this.emit()
+    }
+    return fresh.length
   }
 
   // LocalStore, used by the sync engine.

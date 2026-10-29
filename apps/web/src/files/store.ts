@@ -83,6 +83,14 @@ export class FilesStore {
     return id
   }
 
+  /** Adds files from a back-up that are not on this device; the sync puts them in your account. */
+  async restore(files: Array<FileMeta & { data: ArrayBuffer }>): Promise<number> {
+    await this.ready
+    const fresh = files.filter((f) => !this.records.has(f.id) && f.data.byteLength <= MAX_FILE_BYTES)
+    await this.put(fresh.map((f) => ({ ...f, remote: false, deletedAt: null })))
+    return fresh.length
+  }
+
   async remove(id: string, now = Date.now()): Promise<void> {
     const file = this.records.get(id)
     if (!file) return

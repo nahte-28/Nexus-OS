@@ -47,6 +47,17 @@ export class RemindersStore {
     return reminder
   }
 
+  /** Adds reminders from a back-up that are not on this device yet. */
+  async restore(reminders: Reminder[]): Promise<number> {
+    await this.ready
+    const ids = new Set(this.list.map((r) => r.id))
+    const fresh = reminders.filter((r) => !ids.has(r.id))
+    if (fresh.length === 0) return 0
+    await update('reminders', { put: fresh })
+    this.set([...this.list, ...fresh])
+    return fresh.length
+  }
+
   async remove(id: string): Promise<boolean> {
     await this.ready
     if (!this.list.some((r) => r.id === id)) return false

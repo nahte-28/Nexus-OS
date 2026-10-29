@@ -1,4 +1,4 @@
-import { toLifeItem, type AppointmentDraft, type DeadlineDraft, type LifeItem, type LocalStore, type Project } from '@nexus/core'
+import { restoreRecords, toLifeItem, type AppointmentDraft, type DeadlineDraft, type LifeItem, type LocalStore, type Project } from '@nexus/core'
 import { getAll, getMeta, write } from '../state/db'
 
 const DIRTY_KEY = 'life.dirty'
@@ -116,6 +116,21 @@ export class LifeStore implements LocalStore<LifeItem> {
       }
     }
     await this.save({ ...item, deletedAt: now, updatedAt: now })
+  }
+
+  /** Puts records from a back-up back when they are absent or newer here; they sync like your own changes. */
+  async restore(items: LifeItem[]): Promise<number> {
+    await this.ready
+    const fresh = restoreRecords(this.all(), items)
+    for (const r of fresh) {
+      this.records.set(r.id, r)
+      this.dirty.add(r.id)
+    }
+    if (fresh.length > 0) {
+      await this.persist(fresh)
+      this.emit()
+    }
+    return fresh.length
   }
 
   // LocalStore, used by the sync.
