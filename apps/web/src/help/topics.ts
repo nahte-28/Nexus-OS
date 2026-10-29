@@ -147,6 +147,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'In Toestemmingen kies je welke toestellen naar dit toestel mogen sturen. Bridge moet aan staan op het toestel dat ontvangt.',
     ],
   },
+  intelligence: {
+    summary: 'Intelligence: voorstellen voor flows, met uitleg, die pas iets doen als jij ze goedkeurt.',
+    tips: [
+      'Elk voorstel toont waarom het verschijnt, welke gegevens de regel gebruikte en wat goedkeuren doet.',
+      'Goedkeuren maakt een gewone flow in Flow Studio; met Aanpassen verander je eerst de dag, het uur of hoelang vooraf.',
+      'Later brengt een voorstel morgen terug; Weigeren houdt die regel 14 dagen stil.',
+      'Drie regels: School, Deadlines en Updates. Je zet ze aan of uit in Automatiseringen. Ze draaien op dit toestel, zonder AI.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

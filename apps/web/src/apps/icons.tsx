@@ -48,6 +48,13 @@ export const BridgeIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const BulbIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M9 18h6M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
+  </svg>
+)
+
 export const SpacesIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <rect x="3" y="4" width="8" height="7" rx="1.5" />

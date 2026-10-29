@@ -26,6 +26,7 @@ import { startSpacesSync } from './spaces/store'
 import { startInboxSync } from './inbox/store'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
+import { startIntelligence } from './intelligence/store'
 import { showSystemNotification } from './connect/engine'
 import { isFeatureOn, onFeaturesChange } from './features/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
@@ -81,6 +82,8 @@ startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
+// Intelligence: rules that propose flows; nothing happens until you approve one.
+startIntelligence(() => isFeatureOn('intelligence'), onFeaturesChange)
 // Bridge: text and links from your other devices, through Connect. A phone with web push already
 // showed the push, so only devices without it get a notification here.
 startBridge(defaultEngine, () => isFeatureOn('bridge'), (t) => {
