@@ -261,6 +261,17 @@ De basis voor de modules uit de *NEXUS Ecosystem Expansion Blueprint*:
 - **Wat dit toestel kan** (`capabilities.ts`, `platform/capabilities.ts`): meldingen, web-push, mappen van je pc, inspreken, klembord, Windows-functies en Connect. Modules tonen alleen wat hier werkt.
 - **RLS-tests** (`supabase/tests`): CI zet elke migratie op een lege Postgres (`stub.sql` speelt Supabase na) en controleert dat elke tabel RLS heeft, dat een tweede gebruiker niets van de eerste ziet of verwijdert, en dat je zonder aanmelden niets ziet. Lokaal: `supabase/tests/run.sh <database-url>`.
 
+## Spaces (blueprint fase 1)
+
+Zet **Spaces** aan in **Instellingen > Nieuwe modules**. Een Space is een werkruimte binnen een profiel: ze onthoudt welke apps open staan en waar hun vensters staan.
+
+- **Mijn Spaces:** bewaar je huidige vensters als Space, en open, hernoem, dupliceer, archiveer of verwijder er een (verwijderen vraagt eerst bevestiging). Een Space openen zet ook haar profiel aan en vervangt de open vensters; notities en andere gegevens zijn al bewaard.
+- **Templates:** Studeren, Examens en Geld en planning zetten de juiste apps meteen naast elkaar.
+- **Indeling:** een gewijzigde indeling is een concept tot je **Indeling bewaren** kiest; **Bewaarde indeling terugzetten** maakt het ongedaan. **Netjes naast elkaar zetten** schikt de open vensters.
+- **Regels:** gaat een profiel aan (ook via School Mode), dan stelt NEXUS de Space voor die je daar het laatst gebruikte. Het opent ze pas na je klik.
+
+Opslag: `user_settings` met key `spaces` (migratie `20261029170000_spaces.sql`). Per Space wint de nieuwste wijziging. Welke Space open is, wordt per toestel bewaard. Syncen start pas als de module aan staat. Op een gsm beheer je je Spaces, maar openen gebeurt op een groter scherm. Logica: `packages/core/src/spaces.ts`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

@@ -1,4 +1,6 @@
 import {
+  mergeSpaces,
+  parseSpacesState,
   BACKUP_FORMAT,
   BACKUP_VERSION,
   fromBase64,
@@ -26,6 +28,7 @@ import { flowsStore, parseFlowsState } from '../flows/store'
 import { gradesStore } from '../grades/store'
 import { habitsStore } from '../habits/store'
 import { journalStore } from '../journal/store'
+import { spacesStore } from '../spaces/store'
 import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
@@ -48,6 +51,7 @@ const DOCS: Record<BackupDoc, Doc<any>> = {
   finance: doc(financeStore, parseFinanceState, mergeFinance),
   exams: doc(examsStore, parseExamsState, mergeExams),
   journal: doc(journalStore, parseJournalState, mergeJournal),
+  spaces: doc(spacesStore, parseSpacesState, mergeSpaces),
 }
 
 /** Everything on this device in one back-up. Files kept only in your account are fetched first when [withFiles]. */

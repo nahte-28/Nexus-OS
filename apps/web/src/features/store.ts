@@ -19,6 +19,14 @@ export function setFeature(id: FeatureId, on: boolean): void {
   listeners.forEach((l) => l())
 }
 
+/** Whether a module is on right now, outside React. */
+export const isFeatureOn = (id: FeatureId) => featureOn(switches, id)
+
+export function onFeaturesChange(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
+
 export function useFeatureSwitches(): FeatureSwitches {
   return useSyncExternalStore(
     (l) => {

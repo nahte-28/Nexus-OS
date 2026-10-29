@@ -13,3 +13,8 @@ export function useWindows() {
   if (!ctx) throw new Error('useWindows must be used inside WindowsProvider')
   return ctx
 }
+
+/** The window manager on the desktop; null on phones, which show one app at a time. */
+export function useOptionalWindows() {
+  return useContext(WindowsContext)
+}

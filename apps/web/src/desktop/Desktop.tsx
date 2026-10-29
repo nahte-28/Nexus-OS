@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { AppId } from '@nexus/core'
+import { SpaceSuggestion } from '../spaces/Suggestion'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
@@ -10,7 +11,7 @@ import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 
-const SIDEBAR_WIDTH = 224
+export const SIDEBAR_WIDTH = 224
 
 export function Desktop() {
   const { state, dispatch } = useWindows()
@@ -43,6 +44,7 @@ export function Desktop() {
           {state.windows.map((win) => (
             <Window key={win.id} win={win} focused={state.focusedId === win.id} />
           ))}
+          <SpaceSuggestion />
         </main>
       </div>
       <Taskbar onOpenApp={openApp} onSearch={openSearch} />
