@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -28,11 +29,14 @@ function companionConfig(mode: string): Plugin {
   }
 }
 
+// Read from package.json so About and Developer follow every version bump.
+const appVersion = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }).version
+
 export default defineConfig(({ mode }) => ({
   define: {
     // Shown in the Account app so a deployment can be identified when checking setup.
     __BUILD_COMMIT__: JSON.stringify((process.env.VERCEL_GIT_COMMIT_SHA ?? 'lokaal').slice(0, 7)),
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.8.0'),
+    __APP_VERSION__: JSON.stringify(appVersion),
   },
   plugins: [
     companionConfig(mode),
