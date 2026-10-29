@@ -26,6 +26,13 @@ export const SettingsIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const InboxIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 13h4l2 3h4l2-3h4" />
+    <path d="M5.5 5h13L21 13v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z" />
+  </svg>
+)
+
 export const SpacesIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <rect x="3" y="4" width="8" height="7" rx="1.5" />
