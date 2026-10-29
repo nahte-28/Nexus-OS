@@ -13,7 +13,7 @@ android {
         minSdk = 31
         targetSdk = 35
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "0.8.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
+        versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
     }
 
     signingConfigs {

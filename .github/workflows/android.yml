@@ -43,8 +43,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: companion-v0.8.${{ github.run_number }}
-          name: NEXUS Companion 0.8.${{ github.run_number }}
+          tag_name: companion-v1.0.${{ github.run_number }}
+          name: NEXUS Companion 1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           files: |
             apps/android-companion/nexus-companion.apk

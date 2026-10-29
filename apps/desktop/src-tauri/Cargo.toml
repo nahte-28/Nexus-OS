@@ -1,6 +1,6 @@
 [package]
 name = "nexus-desktop"
-version = "0.8.0"
+version = "1.0.0"
 description = "NEXUS OS for Windows"
 edition = "2021"
 

@@ -23,6 +23,11 @@ export function logEvent(source: LogSource, message: string, error = false): voi
   listeners.forEach((l) => l())
 }
 
+/** The log as it is now, newest first. */
+export function getLog(): LogEntry[] {
+  return entries
+}
+
 export function clearLog(): void {
   entries = []
   listeners.forEach((l) => l())
