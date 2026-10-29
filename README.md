@@ -252,6 +252,15 @@ De app **Help** staat in elk profiel, net als Profielen en Instellingen. Ze legt
 
 Loopt een app vast, dan staat onder de foutmelding de knop **Probleem melden**; in **Help > Probleem melden** kan het ook, met een korte beschrijving. Eén klik zet de melding in de tabel `error_reports` van Supabase (migratie `20261029150000_error_reports.sql`): de fout, de versie en build, browser of Windows-app, en de laatste 30 regels van het logboek van NEXUS. Nooit notities, berichten of andere inhoud. Lezen doe je in Supabase onder **Table Editor > error_reports**; een gebruiker ziet alleen zijn eigen meldingen en kan er hoogstens 20 per dag sturen. Niet aangemeld of de tabel ontbreekt nog: dan kan je de melding kopiëren.
 
+## Foundation (blueprint fase 0)
+
+De basis voor de modules uit de *NEXUS Ecosystem Expansion Blueprint*:
+
+- **Event bus** (`packages/core/src/events.ts`, `apps/web/src/events/bus.ts`): één vorm (`NexusEvent`, versie 1) voor wat er in NEXUS gebeurt. Het id is de idempotency key, dus een retry of een tweede tabblad geeft geen dubbel. De laatste 200 blijven op het toestel. Flow-runs en beschikbare updates staan er al op.
+- **Schakelaars per module** (`features.ts`): **Instellingen > Nieuwe modules**. Een module die nog niet gebouwd is, kan niet aan; uit betekent dat ze helemaal verdwijnt (kill switch).
+- **Wat dit toestel kan** (`capabilities.ts`, `platform/capabilities.ts`): meldingen, web-push, mappen van je pc, inspreken, klembord, Windows-functies en Connect. Modules tonen alleen wat hier werkt.
+- **RLS-tests** (`supabase/tests`): CI zet elke migratie op een lege Postgres (`stub.sql` speelt Supabase na) en controleert dat elke tabel RLS heeft, dat een tweede gebruiker niets van de eerste ziet of verwijdert, en dat je zonder aanmelden niets ziet. Lokaal: `supabase/tests/run.sh <database-url>`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

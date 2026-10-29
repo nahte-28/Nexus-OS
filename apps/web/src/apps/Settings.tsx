@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
 import { BackupSection } from '../backup/BackupSection'
+import { ModuleSettings } from '../features/ModuleSettings'
 import { startTour } from '../onboarding/Tour'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
@@ -49,6 +50,7 @@ export function Settings() {
       </fieldset>
       <BackupSection />
       <BetaSettings />
+      <ModuleSettings />
       <DeveloperSettings />
     </div>
   )

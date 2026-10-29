@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { preloadApps } from './apps/registry'
 import { watchGlobalErrors } from './devtools/report'
+import { startEventSources } from './events/sources'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
@@ -82,6 +83,7 @@ startFilesSync(supabase)
 startFocusTicker(defaultEngine)
 
 watchGlobalErrors()
+startEventSources()
 
 // Snelle notitie from the phone's app shortcut or share sheet.
 openCaptureFromUrl()
