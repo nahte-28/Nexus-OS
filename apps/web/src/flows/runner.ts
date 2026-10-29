@@ -18,6 +18,7 @@ import {
   type ProfileId,
 } from '@nexus/core'
 import { logEvent } from '../devtools/log'
+import { eventBus } from '../events/bus'
 import { getUpdateState } from '../platform/update'
 import { chooseFor, profilesStore } from '../profiles/store'
 import { financeStore } from '../finance/store'
@@ -156,7 +157,18 @@ export async function tickFlows(context: FlowContext, effects: FlowEffects, stor
   }
   store.addRuns(runs, context.now)
   for (const run of runs) {
-    if (run.status !== 'skipped') logEvent('system', `Flow ${run.flowName}: ${run.status === 'ok' ? 'gelukt' : 'deels mislukt'}`, run.status === 'failed')
+    if (run.status === 'skipped') continue
+    logEvent('system', `Flow ${run.flowName}: ${run.status === 'ok' ? 'gelukt' : 'deels mislukt'}`, run.status === 'failed')
+    eventBus.publish({
+      id: `flow:${run.flowId}|${run.eventId ?? run.id}`,
+      source: 'flow',
+      type: run.status === 'ok' ? 'flow.ran' : 'flow.failed',
+      at: run.at,
+      title: run.status === 'ok' ? `Flow ${run.flowName} is uitgevoerd` : `Flow ${run.flowName} is deels mislukt`,
+      body: run.event,
+      priority: run.status === 'ok' ? 'low' : 'high',
+      link: { app: 'flows', id: run.flowId },
+    })
   }
   return runs
 }
