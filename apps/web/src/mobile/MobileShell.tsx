@@ -5,6 +5,7 @@ import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { Dashboard } from '../profiles/Dashboard'
 import { CaptureButton, QuickCapture, useCaptureShortcut } from '../capture/QuickCapture'
+import { Tour } from '../onboarding/Tour'
 import { SearchButton, SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
@@ -57,6 +58,7 @@ export function MobileShell() {
         <SearchButton onClick={openSearch} className="size-11" />
       </header>
       {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={switchTo} />}
+      <Tour onOpenApp={switchTo} />
       <QuickCapture />
 
       <main className="min-h-0 flex-1 overflow-auto">

@@ -5,6 +5,7 @@ import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
 import { QuickCapture, useCaptureShortcut } from '../capture/QuickCapture'
+import { Tour } from '../onboarding/Tour'
 import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
@@ -46,6 +47,7 @@ export function Desktop() {
       </div>
       <Taskbar onOpenApp={openApp} onSearch={openSearch} />
       {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />}
+      <Tour onOpenApp={openApp} />
       <QuickCapture />
     </div>
   )

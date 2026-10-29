@@ -234,6 +234,10 @@ Met **Alt+N** (of de potloodknop naast Zoeken) typ je snel iets weg zonder een a
 
 Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsboven op je gsm zoek je in één venster door je notities (titel en tekst), bestanden, deadlines, afspraken, projecten, herinneringen en apps. Hoofdletters en accenten tellen niet mee, en elk woord moet voorkomen. Met de pijltjes kies je, Enter opent het resultaat in zijn app; een notitie gaat meteen open in Notities. Zoeken gebeurt op het apparaat, er gaat niets naar een server.
 
+## Rondleiding
+
+Op een nieuw apparaat (nog niet aangemeld, nog geen notities of Agenda) opent NEXUS één keer een **rondleiding**: aanmelden, meldingen toestaan, gsm en horloge koppelen, lesrooster in Profielen. Elke stap heeft een knop en toont ✓ zodra hij in orde is. Bestaande installaties krijgen ze niet vanzelf; starten kan altijd in **Instellingen > Rondleiding**.
+
 ## Back-up
 
 In **Instellingen > Back-up** maak je met **Back-up maken** één JSON-bestand met al je gegevens: notities, Agenda (deadlines, afspraken, projecten), herinneringen, bestanden (optioneel), Cijfers, Gewoontes, Leerkaarten, Financiën, Examens, Dagboek, Profielen, flows en het focuslogboek. Met **Back-up terugzetten…** zet je zo'n bestand terug, ook op een ander apparaat of account. Eerst toont NEXUS wat erin zit, dan voegt het samen: per item wint de nieuwste versie en wat alleen op het apparaat staat, blijft; Profielen nemen de instellingen uit de back-up over. Teruggezette items syncen daarna gewoon naar je account. De sleutels van NEXUS Connect en wat je in een studiegroep deelt, gaan er bewust niet in. Het bestand is niet versleuteld: bewaar het veilig. Formaat en controle: `packages/core/src/backup.ts`.

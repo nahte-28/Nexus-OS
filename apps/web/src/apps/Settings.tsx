@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
 import { BackupSection } from '../backup/BackupSection'
+import { startTour } from '../onboarding/Tour'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
 import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
@@ -39,6 +40,13 @@ export function Settings() {
       </fieldset>
       <p className="text-sm text-nx-muted">Je keuze wordt bewaard en geldt direct, zonder dat open vensters sluiten.</p>
       {isDesktopApp && <WindowsSettings />}
+      <fieldset className="space-y-2 border-t border-nx-border pt-4 text-sm">
+        <legend className="mb-2 text-sm font-semibold text-nx-muted">Rondleiding</legend>
+        <p className="text-nx-muted">De eerste stappen opnieuw: aanmelden, meldingen, gsm en horloge, lesrooster.</p>
+        <button type="button" onClick={startTour} className="rounded-lg border border-nx-border px-3 py-1.5 hover:bg-nx-surface-2">
+          Rondleiding starten
+        </button>
+      </fieldset>
       <BackupSection />
       <BetaSettings />
       <DeveloperSettings />
