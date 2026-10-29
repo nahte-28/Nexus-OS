@@ -138,6 +138,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Herstelpunten staan alleen op dit toestel. Notities, deadlines en bestanden horen er niet bij; daarvoor is de back-up in Instellingen.',
     ],
   },
+  bridge: {
+    summary: 'Bridge: tekst en links naar een van je eigen toestellen sturen, end-to-end versleuteld via NEXUS Connect.',
+    tips: [
+      'Plak een link of typ een tekst, kies het toestel en verstuur. Een gsm met meldingen aan krijgt het ook als NEXUS daar dicht is.',
+      'In Overdrachten zie je of het afgeleverd of geopend is; zolang het niet afgeleverd is, kan je het nog annuleren.',
+      'Wat je ontvangt, open je zelf: Link openen, Kopiëren of Als notitie bewaren. Na de gekozen tijd verdwijnt het.',
+      'In Toestemmingen kies je welke toestellen naar dit toestel mogen sturen. Bridge moet aan staan op het toestel dat ontvangt.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

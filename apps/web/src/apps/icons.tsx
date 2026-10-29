@@ -41,6 +41,13 @@ export const HistoryIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const BridgeIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 8h13l-3-3" />
+    <path d="M20 16H7l3 3" />
+  </svg>
+)
+
 export const SpacesIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <rect x="3" y="4" width="8" height="7" rx="1.5" />

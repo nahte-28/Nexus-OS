@@ -25,6 +25,8 @@ import { startJournalSync } from './journal/store'
 import { startSpacesSync } from './spaces/store'
 import { startInboxSync } from './inbox/store'
 import { startTimeMachine } from './timemachine/store'
+import { startBridge } from './bridge/store'
+import { showSystemNotification } from './connect/engine'
 import { isFeatureOn, onFeaturesChange } from './features/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
 import { startLifeSync } from './life/sync'
@@ -79,6 +81,12 @@ startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
+// Bridge: text and links from your other devices, through Connect. A phone with web push already
+// showed the push, so only devices without it get a notification here.
+startBridge(defaultEngine, () => isFeatureOn('bridge'), (t) => {
+  if (defaultEngine.getSnapshot().devices.some((d) => d.isThisDevice && d.push)) return
+  showSystemNotification({ v: 1, kind: 'notification', app: 'nexus', appName: 'NEXUS Bridge', title: `${t.type === 'link' ? 'Link' : 'Tekst'} van ${t.deviceName}`, text: t.content.slice(0, 200), postedAt: t.sentAt, id: `bridge:${t.id}`, fromDeviceId: t.deviceId, receivedAt: Date.now(), read: false })
+})
 startFinanceSync(supabase)
 // Financiën: budget notices at their threshold and 100%, and subscription reminders, here and on the phone.
 startFinanceAlerts(defaultEngine)

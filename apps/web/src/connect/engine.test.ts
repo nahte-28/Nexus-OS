@@ -141,6 +141,24 @@ describe('ConnectEngine', () => {
     stop()
   })
 
+  it('hands Bridge messages to Bridge, encrypted on the way, never to the inbox', async () => {
+    const remote = new FakeRemote()
+    const engine = new ConnectEngine(fakeClient(), remote, () => {})
+    const batches: unknown[] = []
+    engine.setBridgeHandler((batch) => void batches.push(...batch))
+    const stop = engine.start()
+    await ready(engine)
+    const pc = remote.devices[0]
+    const payload = { v: 1 as const, kind: 'bridge' as const, transferId: 't1', type: 'text' as const, content: 'Lokaal B2.14', senderName: 'Pc', sentAt: 1, expiresAt: Date.now() + 60_000 }
+    await engine.sendBridge(pc.id, payload)
+    expect(JSON.stringify(remote.messages)).not.toContain('Lokaal')
+    await engine.receive()
+    expect(batches).toEqual([{ from: pc.id, message: payload }])
+    expect(engine.getSnapshot().inbox).toHaveLength(0)
+    expect(remote.messages).toHaveLength(0)
+    stop()
+  })
+
   it('sends a test notification to itself and drops messages it cannot read', async () => {
     const remote = new FakeRemote()
     const engine = new ConnectEngine(fakeClient(), remote, () => {})

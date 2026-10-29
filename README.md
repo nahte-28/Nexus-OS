@@ -293,6 +293,16 @@ Zet **Time Machine** aan in **Instellingen > Nieuwe modules**. De app **Time Mac
 
 Herstelpunten staan alleen op dit toestel (localStorage, hoogstens ongeveer 1,5 MB). Wat je herstelt, gaat via de gewone sync naar je andere toestellen: herstelde items krijgen een nieuwe wijzigingstijd en wat sindsdien bijkwam, wordt verwijderd zoals bij een gewone delete. Er is geen SQL voor nodig. Logica: `packages/core/src/timeMachine.ts`, web: `apps/web/src/timemachine/store.ts`.
 
+## Bridge (blueprint fase 4)
+
+Zet **Bridge** aan in **Instellingen > Nieuwe modules**, op het toestel dat verstuurt én op het toestel dat ontvangt. Met de app **Bridge** stuur je tekst en links naar je eigen toestellen met NEXUS (browser of Windows-app):
+
+- **Versturen:** plak een link of typ een tekst (hoogstens 4000 tekens), kies een of meer toestellen en hoelang het beschikbaar blijft (1 uur, 1 dag of 7 dagen). Een gsm met web-push krijgt ook een melding, dus het komt aan als NEXUS daar dicht is.
+- **Overdrachten:** de status per overdracht: verstuurd, afgeleverd, geopend, geweigerd, verlopen, geannuleerd of mislukt. Je kan annuleren zolang het niet afgeleverd is, en opnieuw proberen. Wat je ontvangt, open je zelf: Link openen (alleen http en https), Kopiëren of Als notitie bewaren. Het verschijnt ook in de Universal Inbox.
+- **Apparaten en Toestemmingen:** welke toestellen iets kunnen ontvangen, en welke naar dit toestel mogen sturen.
+
+Alles gaat als een end-to-end versleuteld bericht van NEXUS Connect, dus de server ziet de inhoud nooit. Er is geen SQL voor nodig. Elk toestel bewaart zijn eigen lijst (localStorage `nexus.bridge`); ontvangen inhoud verdwijnt na de vervaltijd. De gsm-app en het horloge tonen alleen meldingen, dus Bridge stuurt daar niet naartoe. Bestanden en een gedeeld klembord komen later. Logica: `packages/core/src/bridge.ts`, web: `apps/web/src/bridge/store.ts`, routering in `connect/engine.ts` (`setBridgeHandler`, `sendBridge`).
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.
