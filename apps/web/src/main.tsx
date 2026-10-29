@@ -24,6 +24,7 @@ import { startGroupSync } from './study/group'
 import { startJournalSync } from './journal/store'
 import { startSpacesSync } from './spaces/store'
 import { startInboxSync } from './inbox/store'
+import { startTimeMachine } from './timemachine/store'
 import { isFeatureOn, onFeaturesChange } from './features/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
 import { startLifeSync } from './life/sync'
@@ -76,6 +77,8 @@ startGroupSync(supabase)
 startJournalSync(supabase)
 startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
+// Time Machine: restore points of profiles, flows and Spaces, on this device.
+startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 startFinanceSync(supabase)
 // Financiën: budget notices at their threshold and 100%, and subscription reminders, here and on the phone.
 startFinanceAlerts(defaultEngine)

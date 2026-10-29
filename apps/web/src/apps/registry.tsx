@@ -6,7 +6,7 @@ import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -49,6 +49,7 @@ const Reminders = load('Reminders', () => import('./Reminders'))
 const Settings = load('Settings', () => import('./Settings'))
 const UniversalInbox = load('UniversalInbox', () => import('./UniversalInbox'))
 const Spaces = load('Spaces', () => import('./Spaces'))
+const TimeMachine = load('TimeMachine', () => import('./TimeMachine'))
 const Study = load('Study', () => import('./Study'))
 
 export interface AppDefinition {
@@ -104,6 +105,7 @@ export const APPS: AppDefinition[] = [
   { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, beta: true },
   { id: 'inbox', title: 'Inbox', icon: InboxIcon, component: UniversalInbox, defaultSize: { width: 640, height: 560 }, feature: 'inbox' },
   { id: 'spaces', title: 'Spaces', icon: SpacesIcon, component: Spaces, defaultSize: { width: 680, height: 560 }, feature: 'spaces' },
+  { id: 'timemachine', title: 'Time Machine', icon: HistoryIcon, component: TimeMachine, defaultSize: { width: 680, height: 600 }, feature: 'timeMachine' },
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },
   { id: 'developer', title: 'Ontwikkelaar', icon: CodeIcon, component: Developer, defaultSize: { width: 640, height: 480 }, developer: true },

@@ -144,9 +144,9 @@ describe('App shell', () => {
     const sidebar = screen.getByRole('navigation', { name: 'Apps' })
     expect(within(sidebar).queryByRole('button', { name: 'Spaces' })).toBeNull()
     fireEvent.click(screen.getAllByRole('button', { name: 'Instellingen' })[0])
-    fireEvent.click(screen.getByRole('checkbox', { name: /Spaces/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
     expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('checkbox', { name: /Spaces/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
     expect(within(sidebar).queryByRole('button', { name: 'Spaces' })).toBeNull()
   })
 
