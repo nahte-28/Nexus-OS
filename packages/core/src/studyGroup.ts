@@ -121,3 +121,27 @@ export function alreadyInAgenda(item: Pick<SharedItem, 'title' | 'at'>, items: L
   const title = item.title.trim().toLowerCase()
   return items.some((i) => i.kind === 'deadline' && i.deletedAt === null && i.dueAt === item.at && i.title.trim().toLowerCase() === title)
 }
+
+/** A deadline for the whole group; every member ticks it off for themselves. */
+export interface GroupTask {
+  id: string
+  groupId: string
+  createdBy: string
+  title: string
+  dueAt: number
+  /** User ids of the members who are done. */
+  doneBy: string[]
+}
+
+export const GROUP_TASKS_MAX = 100
+
+/** The group deadlines still worth showing, soonest first. */
+export function openGroupTasks(tasks: GroupTask[], now: number): GroupTask[] {
+  return tasks.filter((t) => t.dueAt >= now - SHARED_PAST_MS).sort((a, b) => a.dueAt - b.dueAt || a.title.localeCompare(b.title))
+}
+
+/** How far the group is with a deadline: only current members count. */
+export function taskProgress(task: GroupTask, members: GroupMember[], me: string): { done: number; total: number; mine: boolean; names: string[] } {
+  const done = members.filter((m) => task.doneBy.includes(m.userId))
+  return { done: done.length, total: members.length, mine: task.doneBy.includes(me), names: done.map((m) => (m.userId === me ? 'jij' : m.displayName)) }
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXAM_NOTE } from './exams'
 import type { Appointment, Deadline, LifeItem } from './life'
 import { STUDY_BLOCK_NOTE } from './study'
-import { alreadyInAgenda, formatInvite, groupFeed, normalizeInvite, reconcileShared, shareableItems, type SharedItem } from './studyGroup'
+import { alreadyInAgenda, formatInvite, groupFeed, normalizeInvite, openGroupTasks, reconcileShared, shareableItems, taskProgress, type SharedItem } from './studyGroup'
 
 const NOW = new Date(2026, 10, 2, 12).getTime()
 const H = 60 * 60_000
@@ -54,5 +54,22 @@ describe('studiegroep', () => {
   it('knows when a deadline is already yours', () => {
     expect(alreadyInAgenda({ title: ' taak A ', at: NOW }, [deadline('a', NOW)])).toBe(true)
     expect(alreadyInAgenda({ title: 'Taak a', at: NOW + 1 }, [deadline('a', NOW)])).toBe(false)
+  })
+})
+
+describe('groepsdeadlines', () => {
+  const members = [
+    { groupId: 'g', userId: 'me', displayName: 'Ethan' },
+    { groupId: 'g', userId: 'z', displayName: 'Zoë' },
+  ]
+  const task = (id: string, dueAt: number, doneBy: string[] = []) => ({ id, groupId: 'g', createdBy: 'z', title: `Taak ${id}`, dueAt, doneBy })
+
+  it('lists open group deadlines soonest first', () => {
+    expect(openGroupTasks([task('b', NOW + 2 * H), task('a', NOW + H), task('old', NOW - 3 * 24 * H)], NOW).map((t) => t.id)).toEqual(['a', 'b'])
+  })
+
+  it('counts who is done among current members', () => {
+    expect(taskProgress(task('a', NOW, ['me', 'gone']), members, 'me')).toEqual({ done: 1, total: 2, mine: true, names: ['jij'] })
+    expect(taskProgress(task('a', NOW, ['z']), members, 'me')).toMatchObject({ done: 1, mine: false, names: ['Zoë'] })
   })
 })

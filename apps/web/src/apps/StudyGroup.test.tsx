@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import type { GroupMember, SharedItem, StudyGroup } from '@nexus/core'
+import type { GroupMember, GroupTask, SharedItem, StudyGroup } from '@nexus/core'
 import type { StudyGroups } from '../study/group'
 
 const { StudyGroupTab } = await import('./StudyGroup')
@@ -11,6 +11,7 @@ function fake(signedIn = true) {
   const groups: StudyGroup[] = []
   const members: GroupMember[] = []
   const items: SharedItem[] = []
+  const tasks: GroupTask[] = []
   const api = {
     me: vi.fn(async () => (signedIn ? { id: ME, email: 'ethan.voorbeeld@student.ap.be' } : null)),
     groups: vi.fn(async () => [...groups]),
@@ -23,7 +24,18 @@ function fake(signedIn = true) {
     }),
     join: vi.fn(async () => null),
     leave: vi.fn(async () => {}),
-    load: vi.fn(async () => ({ members: [...members], items: [...items] })),
+    load: vi.fn(async () => ({ members: [...members], items: [...items], tasks: tasks.map((t) => ({ ...t, doneBy: [...t.doneBy] })) })),
+    watch: vi.fn(() => () => {}),
+    addTask: vi.fn(async (groupId: string, title: string, dueAt: number) => {
+      tasks.push({ id: `t${tasks.length}`, groupId, createdBy: ME, title, dueAt, doneBy: ['z'] })
+    }),
+    removeTask: vi.fn(async (id: string) => {
+      tasks.splice(tasks.findIndex((t) => t.id === id), 1)
+    }),
+    setTaskDone: vi.fn(async (task: GroupTask, done: boolean) => {
+      const t = tasks.find((x) => x.id === task.id)!
+      t.doneBy = done ? [...t.doneBy, ME] : t.doneBy.filter((u) => u !== ME)
+    }),
     share: vi.fn(async (groupId: string, sourceId: string) => {
       const d = lifeStore.getSnapshot().find((i) => i.id === sourceId)
       if (d?.kind === 'deadline') items.push({ groupId, userId: ME, sourceId, kind: 'deadline', title: d.title, at: d.dueAt, endAt: null, done: false })
@@ -61,6 +73,25 @@ describe('Studiegroep', () => {
     fireEvent.click(screen.getByRole('button', { name: 'In mijn Agenda' }))
     await waitFor(() => expect(lifeStore.getSnapshot().some((i) => i.kind === 'deadline' && i.title === 'Verslag Zoë')).toBe(true))
     await waitFor(() => expect(screen.queryByRole('button', { name: 'In mijn Agenda' })).toBeNull())
+  })
+
+  it('adds a group deadline and ticks it off for yourself', async () => {
+    const groups = fake()
+    render(<StudyGroupTab groups={groups} />)
+    fireEvent.click(await screen.findByRole('button', { name: '+ Nieuwe groep' }))
+    fireEvent.change(screen.getByLabelText('Naam van de groep'), { target: { value: 'Project' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Groep maken' }))
+    await screen.findByText('ABCD-EF23')
+    expect(groups.watch).toHaveBeenCalledWith('g1', expect.any(Function))
+
+    fireEvent.change(screen.getByLabelText('Titel van de groepsdeadline'), { target: { value: 'Groepsverslag' } })
+    fireEvent.change(screen.getByLabelText('Wanneer'), { target: { value: '2099-12-01T23:59' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
+    expect(await screen.findByText(/1 van 2 klaar: Zoë/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Groepsverslag klaar' }))
+    expect(await screen.findByText(/2 van 2 klaar: jij, Zoë/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Groepsdeadline Groepsverslag verwijderen' }))
+    expect(await screen.findByText('Nog geen groepsdeadlines.')).toBeTruthy()
   })
 
   it('refuses a malformed invite code', async () => {

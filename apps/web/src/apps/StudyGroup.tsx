@@ -4,9 +4,12 @@ import {
   formatInvite,
   groupFeed,
   normalizeInvite,
+  openGroupTasks,
   shareableItems,
+  taskProgress,
   SHARED_KIND_LABELS,
   type GroupMember,
+  type GroupTask,
   type SharedItem,
   type StudyGroup,
 } from '@nexus/core'
@@ -46,6 +49,9 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
   const [picked, setPicked] = useState<string | null>(() => readStorage(PICKED_KEY))
   const [members, setMembers] = useState<GroupMember[]>([])
   const [items, setItems] = useState<SharedItem[]>([])
+  const [tasks, setTasks] = useState<GroupTask[]>([])
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDue, setTaskDue] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'create' | 'join' | null>(null)
@@ -78,6 +84,7 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
       const data = await groups.load(group.id)
       setMembers(data.members)
       setItems(data.items)
+      setTasks(data.tasks)
     } catch (err) {
       setProblem(message(err))
     }
@@ -86,9 +93,19 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
   useEffect(() => void refreshList(), [refreshList])
   useEffect(() => {
     void refreshGroup()
+    // Live updates; the slow poll also catches deletions, which realtime filters don't report.
     const t = setInterval(() => void refreshGroup(), REFRESH_MS)
-    return () => clearInterval(t)
-  }, [refreshGroup])
+    let debounce: ReturnType<typeof setTimeout> | undefined
+    const stop = groups && group ? groups.watch(group.id, () => {
+      clearTimeout(debounce)
+      debounce = setTimeout(() => void refreshGroup(), 300)
+    }) : () => {}
+    return () => {
+      clearInterval(t)
+      clearTimeout(debounce)
+      stop()
+    }
+  }, [refreshGroup, groups, group])
 
   const pick = (id: string) => {
     setPicked(id)
@@ -207,6 +224,80 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
           </section>
 
           <section className="space-y-2">
+            <h3 className="font-medium">Groepsdeadlines</h3>
+            <p className="text-xs text-nx-muted">Een deadline voor iedereen in de groep, bv. een groepsopdracht. Elk lid vinkt ze voor zichzelf af; je ziet wie al klaar is.</p>
+            <form
+              className="flex flex-wrap gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const due = Date.parse(taskDue)
+                void run(async () => {
+                  if (!Number.isFinite(due)) throw new Error('Kies een datum en uur voor de groepsdeadline.')
+                  await groups.addTask(group.id, taskTitle, due)
+                  setTaskTitle('')
+                  setTaskDue('')
+                  await refreshGroup()
+                })
+              }}
+            >
+              <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} maxLength={160} placeholder="Bv. Verslag groepsproject" aria-label="Titel van de groepsdeadline" className={`${field} flex-1`} />
+              <input type="datetime-local" value={taskDue} onChange={(e) => setTaskDue(e.target.value)} aria-label="Wanneer" className={`${field} w-auto`} />
+              <button type="submit" className={button} disabled={busy || !taskTitle.trim() || !taskDue}>
+                Toevoegen
+              </button>
+            </form>
+            {openGroupTasks(tasks, now).length === 0 && <p className="text-nx-muted">Nog geen groepsdeadlines.</p>}
+            <ul className="space-y-1">
+              {openGroupTasks(tasks, now).map((t) => {
+                const p = taskProgress(t, members, me.id)
+                return (
+                  <li key={t.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={p.mine}
+                      disabled={busy}
+                      aria-label={`${t.title} klaar`}
+                      onChange={(e) =>
+                        void run(async () => {
+                          await groups.setTaskDone(t, e.target.checked)
+                          await refreshGroup()
+                        })
+                      }
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className={`block ${p.mine ? 'text-nx-muted line-through' : ''}`}>{t.title}</span>
+                      <span className="block text-xs text-nx-muted">
+                        {dayTitle(t.dueAt)} om {clock(t.dueAt)} · {p.done} van {p.total} klaar{p.names.length > 0 && `: ${p.names.join(', ')}`}
+                      </span>
+                    </span>
+                    {!alreadyInAgenda({ title: t.title, at: t.dueAt }, life) && (
+                      <button type="button" className={small} disabled={busy} onClick={() => void run(async () => void (await groups.takeOver({ title: t.title, at: t.dueAt })))}>
+                        In mijn Agenda
+                      </button>
+                    )}
+                    {t.createdBy === me.id && (
+                      <button
+                        type="button"
+                        className={small}
+                        disabled={busy}
+                        aria-label={`Groepsdeadline ${t.title} verwijderen`}
+                        onClick={() =>
+                          void run(async () => {
+                            await groups.removeTask(t.id)
+                            await refreshGroup()
+                          })
+                        }
+                      >
+                        Verwijderen
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+
+          <section className="space-y-2">
             <h3 className="font-medium">Wat eraan komt</h3>
             {feed.length === 0 && <p className="text-nx-muted">Nog niets gedeeld in deze groep.</p>}
             {feed.map((d) => (
@@ -278,6 +369,7 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
                       setLeaving(false)
                       setMembers([])
                       setItems([])
+                      setTasks([])
                       await refreshList()
                     })
                   }
