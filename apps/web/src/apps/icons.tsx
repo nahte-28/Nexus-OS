@@ -26,6 +26,14 @@ export const SettingsIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const SpacesIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="8" height="7" rx="1.5" />
+    <rect x="13" y="4" width="8" height="7" rx="1.5" />
+    <rect x="3" y="13" width="18" height="7" rx="1.5" />
+  </svg>
+)
+
 export const HelpIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="12" r="9" />

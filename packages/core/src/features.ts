@@ -15,7 +15,7 @@ export interface FeatureInfo {
 }
 
 export const FEATURES: FeatureInfo[] = [
-  { id: 'spaces', title: 'Spaces', description: 'Werkruimtes binnen je profielen, met hun eigen apps en indeling.', defaultOn: false, available: false },
+  { id: 'spaces', title: 'Spaces', description: 'Werkruimtes binnen je profielen, met hun eigen apps en indeling.', defaultOn: false, available: true },
   { id: 'inbox', title: 'Universal Inbox', description: 'Eén plek voor wat NEXUS je meldt: flows, updates, apparaten en deadlines.', defaultOn: false, available: false },
   { id: 'timeMachine', title: 'Time Machine', description: 'Herstelpunten van je profielen, flows en werkruimtes.', defaultOn: false, available: false },
   { id: 'bridge', title: 'Bridge', description: 'Tekst en links naar een van je eigen toestellen sturen, end-to-end versleuteld.', defaultOn: false, available: false },

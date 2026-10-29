@@ -1,6 +1,6 @@
 /** Pure window-manager state, shared by every runtime (web, Tauri). */
 
-export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'flows' | 'agenda' | 'files' | 'study' | 'grades' | 'habits' | 'flashcards' | 'insights' | 'finance' | 'journal' | 'about' | 'help'
+export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'flows' | 'agenda' | 'files' | 'study' | 'grades' | 'habits' | 'flashcards' | 'insights' | 'finance' | 'journal' | 'about' | 'help' | 'spaces'
 
 export interface Rect {
   x: number
@@ -34,6 +34,8 @@ export type WindowAction =
   | { type: 'toggleMaximize'; id: string }
   | { type: 'move'; id: string; x: number; y: number }
   | { type: 'resize'; id: string; width: number; height: number }
+  /** Replaces every window at once, e.g. when switching to a Space; the last one gets focus. */
+  | { type: 'restore'; windows: Array<{ appId: AppId; title: string; rect: Rect; minimized: boolean; maximized: boolean }> }
 
 export const MIN_WINDOW_WIDTH = 280
 export const MIN_WINDOW_HEIGHT = 180
@@ -72,6 +74,10 @@ export function windowsReducer(state: WindowsState, action: WindowAction): Windo
         maximized: false,
       }
       return { windows: [...state.windows, win], focusedId: id, nextZ: state.nextZ + 1, nextId: state.nextId + 1 }
+    }
+    case 'restore': {
+      const windows = action.windows.map((w, i) => ({ ...w, id: `win-${state.nextId + i}`, z: state.nextZ + i }))
+      return { windows, focusedId: topVisible(windows), nextZ: state.nextZ + windows.length, nextId: state.nextId + windows.length }
     }
     case 'close': {
       const windows = state.windows.filter((w) => w.id !== action.id)

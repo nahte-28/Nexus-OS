@@ -111,6 +111,15 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Welke versie van NEXUS je gebruikt.',
     tips: ['Vermeld de versie als je een probleem meldt.'],
   },
+  spaces: {
+    summary: 'Werkruimtes binnen je profielen: een Space onthoudt welke apps open staan en waar hun vensters staan.',
+    tips: [
+      'Zet je vensters zoals je wilt en kies "Huidige vensters bewaren als Space".',
+      'Een template (Studeren, Examens, Geld en planning) zet meteen de juiste apps naast elkaar.',
+      'Een gewijzigde indeling geldt pas als je ze bewaart; tot dan kan je terug naar de bewaarde.',
+      'Wisselen sluit je vensters, maar je notities en andere gegevens zijn al bewaard.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

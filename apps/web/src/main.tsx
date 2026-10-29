@@ -22,6 +22,8 @@ import { startFlashcardsSync } from './flashcards/store'
 import { startExamsSync } from './study/exams'
 import { startGroupSync } from './study/group'
 import { startJournalSync } from './journal/store'
+import { startSpacesSync } from './spaces/store'
+import { isFeatureOn, onFeaturesChange } from './features/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
 import { startLifeSync } from './life/sync'
 import { isDesktopApp } from './platform/desktop'
@@ -71,6 +73,7 @@ startFlashcardsSync(supabase)
 startExamsSync(supabase)
 startGroupSync(supabase)
 startJournalSync(supabase)
+startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startFinanceSync(supabase)
 // Financiën: budget notices at their threshold and 100%, and subscription reminders, here and on the phone.
 startFinanceAlerts(defaultEngine)

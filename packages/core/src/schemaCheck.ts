@@ -35,6 +35,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261028140000_study_groups.sql', label: 'Studiegroep', needs: [{ table: 'study_groups' }, { table: 'study_group_members' }, { table: 'study_group_items' }, { fn: 'join_study_group' }] },
   { file: '20261029120000_study_groups_live.sql', label: 'Studiegroep live en groepsdeadlines', needs: [{ table: 'study_group_tasks' }, { table: 'study_group_task_done' }] },
   { file: '20261029150000_error_reports.sql', label: 'Probleem melden', needs: [{ table: 'error_reports' }] },
+  { file: '20261029170000_spaces.sql', label: 'Spaces syncen', needs: [{ settingsKey: 'spaces' }] },
 ]
 
 /** What nexus_schema_status() returns. */

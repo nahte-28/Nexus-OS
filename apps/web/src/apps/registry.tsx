@@ -1,11 +1,12 @@
 import { use, type ComponentType, type SVGProps } from 'react'
-import { profileApps, type AppId } from '@nexus/core'
+import { featureOn, profileApps, type AppId, type FeatureId } from '@nexus/core'
 import { useDeveloperMode } from '../devtools/log'
 import { openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
+import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, SpacesIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -46,6 +47,7 @@ const Notes = load('Notes', () => import('./Notes'))
 const Profiles = load('Profiles', () => import('./Profiles'))
 const Reminders = load('Reminders', () => import('./Reminders'))
 const Settings = load('Settings', () => import('./Settings'))
+const Spaces = load('Spaces', () => import('./Spaces'))
 const Study = load('Study', () => import('./Study'))
 
 export interface AppDefinition {
@@ -58,6 +60,8 @@ export interface AppDefinition {
   developer?: boolean
   /** A beta behind its own switch in Instellingen. */
   beta?: boolean
+  /** A blueprint module: shown in every profile while its switch in Nieuwe modules is on. */
+  feature?: FeatureId
   /** Opens outside NEXUS's own windows (a website app) instead of showing [component]. */
   launch?: () => void
 }
@@ -97,6 +101,7 @@ export const APPS: AppDefinition[] = [
   { id: 'account', title: 'Account', icon: AccountIcon, component: Account, defaultSize: { width: 480, height: 340 } },
   { id: 'klashub', title: 'KlasHub', icon: BookIcon, component: KlasHubLauncher, defaultSize: { width: 420, height: 200 }, launch: openKlasHub },
   { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, beta: true },
+  { id: 'spaces', title: 'Spaces', icon: SpacesIcon, component: Spaces, defaultSize: { width: 680, height: 560 }, feature: 'spaces' },
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },
   { id: 'developer', title: 'Ontwikkelaar', icon: CodeIcon, component: Developer, defaultSize: { width: 640, height: 480 }, developer: true },
@@ -117,10 +122,16 @@ export function getApp(id: AppId): AppDefinition {
 export function useVisibleApps(): AppDefinition[] {
   const developerMode = useDeveloperMode()
   const flowStudio = useFlowStudioEnabled()
+  const switches = useFeatureSwitches()
   const { active } = useProfiles()
   const ids = profileApps(active)
   if (developerMode && !ids.includes('developer')) ids.unshift('developer')
   // Flow Studio sits with the apps every profile shows, right before Profielen.
   if (flowStudio && !ids.includes('flows')) ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, 'flows')
-  return ids.flatMap((id) => APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio)))
+  // Modules that are switched on, likewise right before Profielen.
+  const modules = APPS.filter((a) => a.feature && featureOn(switches, a.feature) && !ids.includes(a.id)).map((a) => a.id)
+  ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, ...modules)
+  return ids.flatMap((id) =>
+    APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature))),
+  )
 }
