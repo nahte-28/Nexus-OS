@@ -283,6 +283,16 @@ Zet **Universal Inbox** aan in **Instellingen > Nieuwe modules**. De app **Inbox
 
 Opslag: tabel `inbox_items` (migratie `20261029190000_inbox.sql`), één rij per event-id, dus er komen geen dubbels. Per item wint de nieuwste wijziging: de database negeert een oudere update. Items ouder dan 60 dagen worden opgeruimd, en er blijven er hoogstens 1000. Logica: `packages/core/src/inbox.ts`, web: `apps/web/src/inbox/store.ts`. Apps openen elkaar via `shell/openApp.ts`.
 
+## Time Machine (blueprint fase 3)
+
+Zet **Time Machine** aan in **Instellingen > Nieuwe modules**. De app **Time Machine** bewaart herstelpunten van je configuratie: profielen en lesrooster, flows en Spaces. Notities, deadlines en bestanden horen er niet bij; daarvoor is de back-up.
+
+- **Herstelpunten:** vanzelf bij het openen van NEXUS, na een update en 30 seconden na een wijziging (alleen als er echt iets veranderde), of zelf met een naam.
+- **Herstellen:** toont eerst per deel wat er verandert, en je kiest welke delen je terugzet. Vooraf komt er een herstelpunt van hoe het nu is. Na het herstel leest NEXUS alles terug; komt een deel niet exact terug, dan gaat alles terug naar hoe het was (rollback) en staat dat in Geschiedenis.
+- **Instellingen:** automatisch aan of uit, en hoeveel automatische herstelpunten blijven (10, 30 of 50; 7, 30 of 90 dagen). Zelf gemaakte of bewaarde herstelpunten blijven tot je ze verwijdert.
+
+Herstelpunten staan alleen op dit toestel (localStorage, hoogstens ongeveer 1,5 MB). Wat je herstelt, gaat via de gewone sync naar je andere toestellen: herstelde items krijgen een nieuwe wijzigingstijd en wat sindsdien bijkwam, wordt verwijderd zoals bij een gewone delete. Er is geen SQL voor nodig. Logica: `packages/core/src/timeMachine.ts`, web: `apps/web/src/timemachine/store.ts`.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

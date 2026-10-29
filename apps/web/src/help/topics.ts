@@ -129,6 +129,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Onderaan kies je welke bronnen in de Inbox mogen. Berichten van je gsm komen er nooit in; die staan in Meldingen.',
     ],
   },
+  timemachine: {
+    summary: 'Time Machine: herstelpunten van je profielen en lesrooster, flows en Spaces, zodat je een wijziging kan terugdraaien.',
+    tips: [
+      'NEXUS maakt vanzelf een herstelpunt bij het openen, na een update en na een wijziging; een eigen herstelpunt maak je met een naam.',
+      'Herstellen toont eerst wat er verandert, en je kiest welke delen je terugzet.',
+      'Voor elk herstel komt er een herstelpunt van hoe het nu is, dus je kan het herstel zelf ook terugdraaien.',
+      'Herstelpunten staan alleen op dit toestel. Notities, deadlines en bestanden horen er niet bij; daarvoor is de back-up in Instellingen.',
+    ],
+  },
   help: {
     summary: 'Deze uitleg, per app.',
     tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],

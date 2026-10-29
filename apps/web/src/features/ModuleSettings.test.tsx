@@ -7,12 +7,12 @@ describe('ModuleSettings', () => {
 
   it('lists every blueprint module, and modules not built yet cannot be switched on', () => {
     render(<ModuleSettings />)
-    const timeMachine = screen.getByRole('checkbox', { name: /Time Machine/ }) as HTMLInputElement
-    expect(timeMachine.disabled).toBe(true)
-    const spaces = screen.getByRole('checkbox', { name: /Spaces/ }) as HTMLInputElement
+    const bridge = screen.getByRole('checkbox', { name: /Bridge/ }) as HTMLInputElement
+    expect(bridge.disabled).toBe(true)
+    const spaces = screen.getByRole('checkbox', { name: /^Spaces/ }) as HTMLInputElement
     expect(spaces.disabled).toBe(false)
     expect(spaces.checked).toBe(false)
-    expect(screen.getAllByText('binnenkort')).toHaveLength(4)
+    expect(screen.getAllByText('binnenkort')).toHaveLength(3)
     expect(screen.getByText('Wat dit toestel kan')).toBeTruthy()
   })
 })
