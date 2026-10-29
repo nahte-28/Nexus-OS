@@ -33,6 +33,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261028100000_finance.sql', label: 'Financiën syncen', needs: [{ settingsKey: 'finance' }] },
   { file: '20261028120000_exams_journal.sql', label: 'Examens en Dagboek syncen', needs: [{ settingsKey: 'exams' }, { settingsKey: 'journal' }] },
   { file: '20261028140000_study_groups.sql', label: 'Studiegroep', needs: [{ table: 'study_groups' }, { table: 'study_group_members' }, { table: 'study_group_items' }, { fn: 'join_study_group' }] },
+  { file: '20261029120000_study_groups_live.sql', label: 'Studiegroep live en groepsdeadlines', needs: [{ table: 'study_group_tasks' }, { table: 'study_group_task_done' }] },
 ]
 
 /** What nexus_schema_status() returns. */

@@ -5,6 +5,7 @@ import {
   reconcileShared,
   shareable,
   type GroupMember,
+  type GroupTask,
   type LifeItem,
   type SharedItem,
   type StudyGroup,
@@ -38,6 +39,18 @@ interface ItemRow {
   done: boolean
 }
 
+interface TaskRow {
+  id: string
+  group_id: string
+  created_by: string
+  title: string
+  due_at: number
+}
+interface DoneRow {
+  task_id: string
+  user_id: string
+}
+
 const toGroup = (r: GroupRow): StudyGroup => ({ id: r.id, name: r.name, inviteCode: r.invite_code, createdBy: r.created_by })
 const toMember = (r: MemberRow): GroupMember => ({ groupId: r.group_id, userId: r.user_id, displayName: r.display_name })
 const toItem = (r: ItemRow): SharedItem => ({ groupId: r.group_id, userId: r.user_id, sourceId: r.source_id, kind: r.kind, title: r.title, at: Number(r.at), endAt: r.end_at === null ? null : Number(r.end_at), done: r.done })
@@ -47,6 +60,7 @@ const toRow = (i: SharedItem): ItemRow => ({ group_id: i.groupId, user_id: i.use
 export function groupError(error: { code?: string; message?: string } | null | undefined): string {
   const text = `${error?.code ?? ''} ${error?.message ?? ''}`
   if (/42P01|42883|PGRST202|PGRST205|could not find the (table|function)|does not exist/i.test(text)) return `setup:${GROUP_MIGRATION}`
+  if (/too many group tasks/i.test(text)) return 'Deze groep heeft al 100 groepsdeadlines. Verwijder eerst oude.'
   if (/too many groups/i.test(text)) return 'Je kunt hoogstens 10 groepen maken.'
   if (/group full/i.test(text)) return 'Deze groep is vol: er kunnen 30 leden in.'
   if (/JWT|PGRST30|not signed in/i.test(text)) return 'Je sessie is verlopen. Meld je af en opnieuw aan.'
@@ -105,14 +119,56 @@ export class StudyGroups {
     if (error) fail(error)
   }
 
-  async load(groupId: string): Promise<{ members: GroupMember[]; items: SharedItem[] }> {
-    const [members, items] = await Promise.all([
+  async load(groupId: string): Promise<{ members: GroupMember[]; items: SharedItem[]; tasks: GroupTask[] }> {
+    const [members, items, tasks, done] = await Promise.all([
       this.client.from('study_group_members').select('group_id,user_id,display_name').eq('group_id', groupId).order('joined_at'),
       this.client.from('study_group_items').select('group_id,user_id,source_id,kind,title,at,end_at,done').eq('group_id', groupId),
+      this.client.from('study_group_tasks').select('id,group_id,created_by,title,due_at').eq('group_id', groupId),
+      this.client.from('study_group_task_done').select('task_id,user_id').eq('group_id', groupId),
     ])
     if (members.error) fail(members.error)
     if (items.error) fail(items.error)
-    return { members: (members.data as MemberRow[]).map(toMember), items: (items.data as ItemRow[]).map(toItem) }
+    // Group deadlines came with a later SQL step; without it the rest of the group still works.
+    const taskError = tasks.error ?? done.error
+    if (taskError && !groupError(taskError).startsWith('setup:')) fail(taskError)
+    const doneBy = new Map<string, string[]>()
+    for (const d of taskError ? [] : (done.data as DoneRow[])) doneBy.set(d.task_id, [...(doneBy.get(d.task_id) ?? []), d.user_id])
+    return {
+      members: (members.data as MemberRow[]).map(toMember),
+      items: (items.data as ItemRow[]).map(toItem),
+      tasks: taskError ? [] : (tasks.data as TaskRow[]).map((t) => ({ id: t.id, groupId: t.group_id, createdBy: t.created_by, title: t.title, dueAt: Number(t.due_at), doneBy: doneBy.get(t.id) ?? [] })),
+    }
+  }
+
+  async addTask(groupId: string, title: string, dueAt: number): Promise<void> {
+    const { error } = await this.client.from('study_group_tasks').insert({ group_id: groupId, title: title.trim().slice(0, 160), due_at: dueAt })
+    if (error) fail(error)
+  }
+
+  /** Only the member who added it can remove a group deadline. */
+  async removeTask(taskId: string): Promise<void> {
+    const { error } = await this.client.from('study_group_tasks').delete().eq('id', taskId)
+    if (error) fail(error)
+  }
+
+  /** Ticks a group deadline off (or on again) for you alone. */
+  async setTaskDone(task: GroupTask, done: boolean): Promise<void> {
+    const me = await this.me()
+    if (!me) return
+    const { error } = done
+      ? await this.client.from('study_group_task_done').upsert({ task_id: task.id, group_id: task.groupId, user_id: me.id }, { onConflict: 'task_id,user_id' })
+      : await this.client.from('study_group_task_done').delete().eq('task_id', task.id).eq('user_id', me.id)
+    if (error) fail(error)
+  }
+
+  /** Calls [onChange] when anything in the group changes; returns the way to stop listening. */
+  watch(groupId: string, onChange: () => void): () => void {
+    let channel = this.client.channel(`study-group-${groupId}`)
+    for (const table of ['study_group_items', 'study_group_members', 'study_group_tasks', 'study_group_task_done']) {
+      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `group_id=eq.${groupId}` }, onChange)
+    }
+    channel.subscribe()
+    return () => void this.client.removeChannel(channel)
   }
 
   /** Shares a deadline, exam or study block from your Agenda with the group. */
@@ -149,8 +205,8 @@ export class StudyGroups {
     }
   }
 
-  /** Puts a groupmate's deadline in your own Agenda, with the usual reminders. */
-  takeOver(item: SharedItem): Promise<string> {
+  /** Puts a groupmate's deadline (or a group deadline) in your own Agenda, with the usual reminders. */
+  takeOver(item: Pick<SharedItem, 'title' | 'at'>): Promise<string> {
     return this.life.addDeadline({ title: item.title, dueAt: item.at, projectId: null, notes: 'Overgenomen uit je studiegroep.', remind: DEFAULT_REMIND, target: 'phone' })
   }
 }
