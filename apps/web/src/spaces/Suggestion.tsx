@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { suggestedSpace, type Space } from '@nexus/core'
+import { liveSpaces, suggestedSpace, type Space } from '@nexus/core'
 import { useFeature } from '../features/store'
 import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
 import { switchToSpace } from './actions'
-import { spacesStore, getCurrentSpace } from './store'
+import { spacesStore, getCurrentSpace, setCurrentSpace } from './store'
 
 /** When a profile turns on (also by School Mode), offers the Space last used in it. Never opens it by itself. */
 export function SpaceSuggestion() {
@@ -17,6 +17,9 @@ export function SpaceSuggestion() {
   useEffect(() => {
     if (previous.current === active.id) return
     previous.current = active.id
+    // A Space belongs to a profile: leaving that profile also leaves the Space, so coming back offers it again.
+    const current = liveSpaces(spacesStore.getSnapshot()).find((s) => s.id === getCurrentSpace())
+    if (current && current.profileId !== active.id) setCurrentSpace(null)
     const space = on ? suggestedSpace(spacesStore.getSnapshot(), active.id) : null
     setOffer(space && space.id !== getCurrentSpace() ? space : null)
   }, [active.id, on])

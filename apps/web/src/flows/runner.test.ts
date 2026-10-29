@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLOW_TEMPLATES, type FlowContext, type FlowDefinition } from '@nexus/core'
 import { runNow, tickFlows, type FlowEffects } from './runner'
 import { FlowsStore } from './store'
+import { eventBus } from '../events/bus'
 
 const now = new Date('2026-10-20T08:31:00+02:00').getTime()
 const ctx = (patch: Partial<FlowContext> = {}): FlowContext => ({ now, activeProfile: 'personal', online: true, deadlines: [], devices: [], update: null, ...patch })
@@ -71,6 +72,8 @@ describe('flow runner', () => {
     store.update((s) => ({ ...s, settings: { ...s.settings, paused: false } }))
     await runNow(flow, ctx(), fx, store)
     expect(fx.calls).toEqual(['profile:school:hour', 'prompt:app:reminders'])
+    // Only the run that did something lands in the Inbox.
+    expect(eventBus.getSnapshot().filter((e) => e.title === 'Flow Studiesessie is uitgevoerd')).toHaveLength(1)
   })
 
   it('drops flows that are broken in storage', () => {

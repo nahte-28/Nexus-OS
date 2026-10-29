@@ -47,6 +47,8 @@ describe('Spaces', () => {
     const [space] = liveSpaces(spacesStore.getSnapshot())
     expect(space).toMatchObject({ name: 'Blok', profileId: expect.any(String) })
     expect(space.windows.map((w) => w.appId)).toEqual(['notes', 'agenda'])
+    // It is the Space in use now, so School Mode offers it again after another profile.
+    expect(spacesStore.getSnapshot().lastUsed[space.profileId]?.id).toBe(space.id)
     expect(screen.getByText('Notities, Agenda')).toBeTruthy()
   })
 

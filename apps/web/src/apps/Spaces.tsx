@@ -15,7 +15,7 @@ import { SIDEBAR_WIDTH } from '../desktop/Desktop'
 import { TASKBAR_HEIGHT } from '../desktop/Taskbar'
 import { useProfiles } from '../profiles/store'
 import { newSpace, openLayout, saveLayout, switchToSpace } from '../spaces/actions'
-import { setCurrentSpace, spacesStore, spacesSyncProblem, useCurrentSpace, useSpaces } from '../spaces/store'
+import { spacesStore, spacesSyncProblem, useCurrentSpace, useSpaces } from '../spaces/store'
 import { readStorage, writeStorage } from '../state/storage'
 import { useOptionalWindows } from '../state/WindowsContext'
 import { APPS } from './registry'
@@ -86,11 +86,10 @@ function MySpaces() {
 
   const create = () => {
     try {
-      const id = newSpace({ name, profileId: active.id, windows: windows ? openLayout(windows.state) : [] })
+      // The new Space holds exactly what is open, so it is the one open now.
+      newSpace({ name, profileId: active.id, windows: windows ? openLayout(windows.state) : [] }, Date.now(), !!windows)
       setName('')
       setError(null)
-      // The new Space holds exactly what is open, so it is the one open now.
-      if (windows) setCurrentSpace(id)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
