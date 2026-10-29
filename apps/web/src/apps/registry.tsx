@@ -5,7 +5,7 @@ import { openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -35,6 +35,7 @@ const Devices = load('Devices', () => import('./Devices'))
 const Files = load('Files', () => import('./Files'))
 const FlowStudio = load('FlowStudio', () => import('./FlowStudio'))
 const Grades = load('Grades', () => import('./Grades'))
+const Help = load('Help', () => import('./Help'))
 const Habits = load('Habits', () => import('./Habits'))
 const Flashcards = load('Flashcards', () => import('./Flashcards'))
 const Insights = load('Insights', () => import('./Insights'))
@@ -99,6 +100,7 @@ export const APPS: AppDefinition[] = [
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },
   { id: 'developer', title: 'Ontwikkelaar', icon: CodeIcon, component: Developer, defaultSize: { width: 640, height: 480 }, developer: true },
+  { id: 'help', title: 'Help', icon: HelpIcon, component: Help, defaultSize: { width: 620, height: 600 } },
   { id: 'about', title: 'Over NEXUS', icon: InfoIcon, component: About, defaultSize: { width: 460, height: 360 } },
 ]
 

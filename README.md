@@ -244,6 +244,10 @@ Op een nieuw apparaat (nog niet aangemeld, nog geen notities of Agenda) opent NE
 
 In **Instellingen > Back-up** maak je met **Back-up maken** één JSON-bestand met al je gegevens: notities, Agenda (deadlines, afspraken, projecten), herinneringen, bestanden (optioneel), Cijfers, Gewoontes, Leerkaarten, Financiën, Examens, Dagboek, Profielen, flows en het focuslogboek. Met **Back-up terugzetten…** zet je zo'n bestand terug, ook op een ander apparaat of account. Eerst toont NEXUS wat erin zit, dan voegt het samen: per item wint de nieuwste versie en wat alleen op het apparaat staat, blijft; Profielen nemen de instellingen uit de back-up over. Teruggezette items syncen daarna gewoon naar je account. De sleutels van NEXUS Connect en wat je in een studiegroep deelt, gaan er bewust niet in. Het bestand is niet versleuteld: bewaar het veilig. Formaat en controle: `packages/core/src/backup.ts`.
 
+## Help
+
+De app **Help** staat in elk profiel, net als Profielen en Instellingen. Ze legt per app in een paar zinnen uit waarvoor die dient, met enkele tips, en je kunt erin zoeken. De teksten staan in `apps/web/src/help/topics.ts`; een nieuwe app bouwt pas als ze daar een uitleg heeft.
+
 ## Wat werkt
 
 - Bureaublad met startmenu (met zoeken), taakbalk, klok en app-iconen.

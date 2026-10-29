@@ -100,9 +100,9 @@ describe('sync and storage', () => {
     expect(parsed.override).toBeNull()
   })
 
-  it('always shows Profiles and Settings', () => {
+  it('always shows Profiles, Settings and Help', () => {
     const apps = profileApps({ ...state().profiles.gaming, apps: [] })
-    expect(apps).toEqual(['profiles', 'settings'])
+    expect(apps).toEqual(['profiles', 'settings', 'help'])
   })
 })
 

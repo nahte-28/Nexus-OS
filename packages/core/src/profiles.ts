@@ -138,8 +138,8 @@ export const PROFILES_SCHEMA = 12
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
-/** Always visible, so you can never lock yourself out of switching back. */
-export const ALWAYS_VISIBLE_APPS: AppId[] = ['profiles', 'settings']
+/** Always visible, so you can never lock yourself out of switching back, and help is always at hand. */
+export const ALWAYS_VISIBLE_APPS: AppId[] = ['profiles', 'settings', 'help']
 
 export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
   school: {
