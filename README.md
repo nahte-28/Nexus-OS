@@ -39,7 +39,7 @@ Zonder Supabase werkt de app volledig lokaal. Voor synchronisatie zet je in Verc
 
 1. Maak een project op supabase.com.
 2. Open de SQL Editor en voer de bestanden in `supabase/migrations` in volgorde uit: eerst `20261019000000_notes.sql` (notities), dan `20261019120000_connect.sql` (apparaten en meldingen) en `20261020100000_settings.sql` (profielen op al je toestellen). Dat maakt de tabellen, de toegangsregels (row-level security) en realtime aan.
-3. Zet onder Authentication > URL Configuration de **Site URL** op je Vercel-adres en voeg `http://localhost:5173` en je preview-URL's (bijvoorbeeld `https://*-jouwnaam.vercel.app/**`) toe bij **Redirect URLs**. De inloglink in de mail komt anders niet terug in de app.
+3. Zet onder Authentication > URL Configuration de **Site URL** op je Vercel-adres en voeg `http://localhost:5173` en je preview-URL's (bijvoorbeeld `https://*-jouwnaam.vercel.app/**`) toe bij **Redirect URLs**. De link van "Wachtwoord vergeten?" komt anders niet terug in de app.
 4. Kopieer onder Project Settings > API de project-URL en de anon/publishable key naar de omgevingsvariabelen.
 5. **Database-check**: voer ook `20261029090000_schema_check.sql` uit. Daarna toont **Account** (als je aangemeld bent) welke SQL-stappen nog ontbreken, in de juiste volgorde, met per stap een knop **SQL kopiëren**. Zonder die stap kijkt NEXUS alleen na welke tabellen bestaan. Wie een nieuwe migratie toevoegt, zet ze ook in `SCHEMA_STEPS` in `packages/core/src/schemaCheck.ts` (een test controleert dat elk bestand bestaat).
 6. Optioneel: zet onder Authentication > Sign In / Providers > Email "Confirm email" uit, dan kun je met een wachtwoord een account maken zonder bevestigingsmail. De ingebouwde mailservice van Supabase verstuurt maar een paar mails per uur.
@@ -97,7 +97,7 @@ Kan de companion niet op je gsm (bijvoorbeeld door ouderlijk toezicht), open NEX
 
 - Sluit je het venster, dan blijft NEXUS in het systeemvak draaien en krijg je Windows-meldingen van je gsm. Afsluiten doe je via het icoon in het systeemvak.
 - In Instellingen kun je NEXUS laten starten met Windows; het start dan stil in het systeemvak.
-- Inloggen gaat met e-mail en wachtwoord (een inloglink zou in de browser openen).
+- Inloggen gaat met e-mail en wachtwoord. "Wachtwoord vergeten?" stuurt een link die in de browser opent; daar kies je een nieuw wachtwoord.
 - De installer is nog niet digitaal ondertekend. Windows SmartScreen waarschuwt daarom; kies "Meer informatie" en "Toch uitvoeren".
 
 Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/prerequisites/), zet de Supabase-waarden in `apps/web/.env.local` en voer `npm run dev -w @nexus/desktop` (ontwikkelen) of `npm run build -w @nexus/desktop` (installer) uit.
@@ -250,7 +250,7 @@ In **Instellingen > Back-up** maak je met **Back-up maken** één JSON-bestand m
 - Vensters verplaatsen, vergroten, minimaliseren, maximaliseren (dubbelklik op de titelbalk) en sluiten.
 - Onder 768px breed: appgrid, apps op volledig scherm, onderste navigatie en de Android-terugknop.
 - Notities in een lokale database, offline bruikbaar, gesynchroniseerd tussen tabbladen en (met een account) tussen apparaten.
-- Aanmelden met e-mail en wachtwoord of met een inloglink per e-mail, sync-status in de taakbalk en de Account-app.
+- Aanmelden met e-mail en wachtwoord ("Wachtwoord vergeten?" stuurt een eenmalige link, daarna kies je een nieuw wachtwoord), sync-status in de taakbalk en de Account-app.
 - Apparaten: gekoppelde apparaten met code, testmelding, naam wijzigen en intrekken.
 - Meldingen: wat je gsm doorstuurt, met filter per app, zoeken en een systeemmelding als NEXUS op de achtergrond staat.
 - Android companion: meldingstoegang, keuze per app, pauzeknop en een logboek zonder inhoud.

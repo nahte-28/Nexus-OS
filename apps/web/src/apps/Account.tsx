@@ -22,13 +22,11 @@ export function statusText(state: SyncState): string {
   }
 }
 
-type Mode = 'login' | 'signup' | 'link'
+type Mode = 'login' | 'signup'
 
 const MODES: Array<{ id: Mode; label: string }> = [
   { id: 'login', label: 'Inloggen' },
   { id: 'signup', label: 'Account maken' },
-  // A login link opens in the browser, not in the Windows app, so the app only offers passwords.
-  ...(isDesktopApp ? [] : [{ id: 'link' as const, label: 'Inloglink' }]),
 ]
 
 const inputClass =
@@ -61,16 +59,27 @@ export function Account() {
     e.preventDefault()
     const address = email.trim()
     void run(async () => {
-      if (mode === 'link') {
-        await engine.signIn(address)
-        return `Check je mailbox: we stuurden een inloglink naar ${address}.`
-      }
       if (mode === 'signup') {
         const { needsConfirmation } = await engine.signUp(address, password)
         return needsConfirmation ? `Bijna klaar: bevestig je account via de mail naar ${address}.` : null
       }
       await engine.signInWithPassword(address, password)
       return null
+    })
+  }
+
+  /** The way back in without a password: a one-time link, after which you set a new password. */
+  const forgotPassword = () => {
+    const address = email.trim()
+    if (!address) {
+      setNotice(null)
+      setError('Vul eerst je e-mailadres in.')
+      return
+    }
+    void run(async () => {
+      await engine.signIn(address)
+      // The link opens in the browser, also when you asked for it in the Windows app.
+      return `We stuurden een link naar ${address}. Open hem${isDesktopApp ? ' (hij opent in je browser)' : ''} en kies daarna in Account > Wachtwoord instellen een nieuw wachtwoord.`
     })
   }
 
@@ -134,23 +143,26 @@ export function Account() {
             aria-label="E-mailadres"
             className={inputClass}
           />
-          {mode !== 'link' && (
-            <input
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Wachtwoord"
-              aria-label="Wachtwoord"
-              className={inputClass}
-            />
-          )}
+          <input
+            type="password"
+            required
+            minLength={6}
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Wachtwoord"
+            aria-label="Wachtwoord"
+            className={inputClass}
+          />
           <button type="submit" disabled={busy} className={primaryButton}>
-            {mode === 'login' ? 'Inloggen' : mode === 'signup' ? 'Account maken' : 'Stuur inloglink'}
+            {mode === 'login' ? 'Inloggen' : 'Account maken'}
           </button>
         </form>
+        {mode === 'login' && (
+          <button type="button" disabled={busy} onClick={forgotPassword} className="text-nx-muted underline-offset-2 hover:underline">
+            Wachtwoord vergeten?
+          </button>
+        )}
         {notice && (
           <p role="status" className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
             {notice}
