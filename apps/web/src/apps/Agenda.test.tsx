@@ -31,6 +31,8 @@ describe('Agenda', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
     expect(await screen.findByRole('progressbar', { name: 'Elektronica voortgang' })).toBeTruthy()
     expect(screen.getByText('0/0 klaar')).toBeTruthy()
+    // The form clears once the save has finished; wait for it so nothing updates after the test.
+    await waitFor(() => expect((screen.getByRole('textbox', { name: 'Naam' }) as HTMLInputElement).value).toBe(''))
   })
 
   it('adds an appointment with a place and shows it in the week', async () => {
@@ -42,6 +44,8 @@ describe('Agenda', () => {
     fireEvent.click(within(form).getByRole('button', { name: 'Toevoegen' }))
     const list = await screen.findByRole('list', { name: 'Komende afspraken' })
     expect(within(list).getByText('Tandarts')).toBeTruthy()
+    // The form clears once the save has finished; wait for it so nothing updates after the test.
+    await waitFor(() => expect(screen.queryByDisplayValue('Tandarts')).toBeNull())
     fireEvent.click(screen.getByRole('tab', { name: 'Overzicht' }))
     expect(within(screen.getByRole('region', { name: 'Morgen' })).getByText(/Tandarts/).textContent).toContain('Antwerpen')
   })

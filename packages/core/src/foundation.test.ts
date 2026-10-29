@@ -43,7 +43,7 @@ describe('feature flags', () => {
 
 describe('capabilities', () => {
   it('lists what a device lacks', () => {
-    const have = { notifications: true, webPush: false, folderAccess: false, speech: true, clipboardWrite: true, clipboardRead: false, native: false, connect: true } satisfies Capabilities
+    const have = { notifications: true, webPush: false, folderAccess: false, speech: true, clipboardWrite: true, clipboardRead: false, native: false, connect: true, sandbox: true } satisfies Capabilities
     expect(missingCapabilities(have, ['notifications', 'native', 'folderAccess'])).toEqual(['native', 'folderAccess'])
     expect(missingCapabilities(have, [])).toEqual([])
   })

@@ -14,6 +14,8 @@ export function detectCapabilities(): Capabilities {
     clipboardRead: !!nav?.clipboard?.readText,
     native: isDesktopApp,
     connect: !!w?.crypto?.subtle && !!w && 'indexedDB' in w,
+    // The Windows app's content policy also applies inside a srcdoc frame and blocks its scripts.
+    sandbox: !isDesktopApp && typeof HTMLIFrameElement !== 'undefined' && 'srcdoc' in HTMLIFrameElement.prototype && 'sandbox' in HTMLIFrameElement.prototype,
   }
 }
 
