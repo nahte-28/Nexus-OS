@@ -1,31 +1,51 @@
-import type { ComponentType, SVGProps } from 'react'
+import { use, type ComponentType, type SVGProps } from 'react'
 import { profileApps, type AppId } from '@nexus/core'
-import { About } from './About'
 import { useDeveloperMode } from '../devtools/log'
 import { openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
 import { profilesStore, useProfiles } from '../profiles/store'
-import { Account } from './Account'
-import { Agenda } from './Agenda'
-import { Assistant } from './Assistant'
-import { Developer } from './Developer'
-import { Devices } from './Devices'
-import { Files } from './Files'
-import { FlowStudio } from './FlowStudio'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
   CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, InfoIcon, LayersIcon, NotesIcon, SettingsIcon, SparkIcon, TimerIcon } from './icons'
-import { Grades } from './Grades'
-import { Habits } from './Habits'
-import { Flashcards } from './Flashcards'
-import { Insights } from './Insights'
-import { Finance } from './Finance'
-import { Inbox } from './Inbox'
-import { Journal } from './Journal'
-import { Notes } from './Notes'
-import { Profiles } from './Profiles'
-import { Reminders } from './Reminders'
-import { Settings } from './Settings'
-import { Study } from './Study'
+
+/** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
+const preloads: Array<() => Promise<void>> = []
+function load<K extends string>(name: K, loader: () => Promise<Record<K, ComponentType>>): ComponentType {
+  let loaded: ComponentType | undefined
+  let pending: Promise<void> | undefined
+  const start = () => (pending ??= loader().then((m) => { loaded = m[name] }))
+  preloads.push(start)
+  function LazyApp() {
+    // Suspends only until the first load; after that the app renders at once.
+    if (!loaded) use(start())
+    const Loaded = loaded!
+    return <Loaded />
+  }
+  return LazyApp
+}
+
+/** Loads every app's code ahead of time (tests, and once NEXUS is idle). */
+export const preloadApps = () => Promise.all(preloads.map((start) => start())).then(() => undefined)
+
+const About = load('About', () => import('./About'))
+const Account = load('Account', () => import('./Account'))
+const Agenda = load('Agenda', () => import('./Agenda'))
+const Assistant = load('Assistant', () => import('./Assistant'))
+const Developer = load('Developer', () => import('./Developer'))
+const Devices = load('Devices', () => import('./Devices'))
+const Files = load('Files', () => import('./Files'))
+const FlowStudio = load('FlowStudio', () => import('./FlowStudio'))
+const Grades = load('Grades', () => import('./Grades'))
+const Habits = load('Habits', () => import('./Habits'))
+const Flashcards = load('Flashcards', () => import('./Flashcards'))
+const Insights = load('Insights', () => import('./Insights'))
+const Finance = load('Finance', () => import('./Finance'))
+const Inbox = load('Inbox', () => import('./Inbox'))
+const Journal = load('Journal', () => import('./Journal'))
+const Notes = load('Notes', () => import('./Notes'))
+const Profiles = load('Profiles', () => import('./Profiles'))
+const Reminders = load('Reminders', () => import('./Reminders'))
+const Settings = load('Settings', () => import('./Settings'))
+const Study = load('Study', () => import('./Study'))
 
 export interface AppDefinition {
   id: AppId

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
+import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { Dashboard } from '../profiles/Dashboard'
@@ -65,7 +66,7 @@ export function MobileShell() {
         {app ? (
           <div className="nx-glass h-full">
             <ErrorBoundary key={app.id} name={app.title}>
-              <app.component />
+              <AppView app={app} />
             </ErrorBoundary>
           </div>
         ) : (

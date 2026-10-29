@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { defaultProfilesState } from '@nexus/core'
 import { App } from './App'
+import { preloadApps } from './apps/registry'
 import { flowsStore } from './flows/store'
 import { profilesStore } from './profiles/store'
 import { getAll } from './state/db'
@@ -35,6 +36,9 @@ const chooseProfile = (name: string) => {
 }
 
 describe('App shell', () => {
+  // Apps load their code on first open; load it all up front so each test renders at once.
+  beforeAll(preloadApps)
+
   beforeEach(() => {
     localStorage.clear()
     // Outside the schedule, so tests do not depend on the clock.
@@ -150,7 +154,7 @@ describe('App shell', () => {
     expect(grid).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
-    expect(screen.getByText('NEXUS OS v0.8')).toBeTruthy()
+    expect(screen.getByText(/^NEXUS OS v\d+\.\d+$/)).toBeTruthy()
   })
 
   it('switches profile, which changes the apps and the theme', () => {

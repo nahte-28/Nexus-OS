@@ -1,6 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { WindowState } from '@nexus/core'
 import { getApp } from '../apps/registry'
+import { AppView } from '../apps/AppView'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { useWindows } from '../state/WindowsContext'
 
@@ -15,7 +16,6 @@ export function Window({ win, focused }: Props) {
   const { dispatch } = useWindows()
   const drag = useRef<{ mode: DragMode; startX: number; startY: number; rect: WindowState['rect'] } | null>(null)
   const app = getApp(win.appId)
-  const AppComponent = app.component
 
   const startDrag = (mode: DragMode) => (e: ReactPointerEvent<HTMLElement>) => {
     if (e.button !== 0 || win.maximized) return
@@ -86,7 +86,7 @@ export function Window({ win, focused }: Props) {
 
       <div className="min-h-0 flex-1 overflow-auto">
         <ErrorBoundary name={win.title}>
-          <AppComponent />
+          <AppView app={app} />
         </ErrorBoundary>
       </div>
 

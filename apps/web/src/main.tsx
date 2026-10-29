@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
+import { preloadApps } from './apps/registry'
 import { ConnectProvider, defaultEngine } from './connect/ConnectContext'
 import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
@@ -95,3 +96,6 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+// Once NEXUS has started, fetch the apps' code in the background so opening one is instant.
+window.setTimeout(() => void preloadApps(), 4000)
