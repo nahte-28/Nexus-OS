@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from 'react'
-import { CAPTURE_KIND_LABELS, DEFAULT_REMIND, guessCaptureKind, parseCapture, type CaptureKind } from '@nexus/core'
+import { addToInbox, CAPTURE_TARGET_LABELS, DEFAULT_REMIND, guessCaptureKind, liveTemplates, logCapture, parseCapture, type CaptureKind, type CaptureTarget } from '@nexus/core'
 import { MicIcon, QuickNoteIcon } from '../apps/icons'
 import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
 import { isDesktopApp } from '../platform/desktop'
+import { useFeature } from '../features/store'
+import { capturesStore, useCaptures } from './hub'
 import { captureState, closeCapture, openCapture } from './open'
 import { appendSpoken, speechSupported, startDictation, type Dictation } from './speech'
 
-const KINDS: CaptureKind[] = ['note', 'deadline', 'reminder']
-const SAVED: Record<CaptureKind, string> = { note: 'in Notities', deadline: 'als deadline in de Agenda', reminder: 'als herinnering' }
+const KINDS: CaptureTarget[] = ['note', 'deadline', 'reminder']
+const SAVED: Record<CaptureTarget, string> = { note: 'in Notities', deadline: 'als deadline in de Agenda', reminder: 'als herinnering', later: 'in Te sorteren' }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const toLocalInput = (t: number) => {
@@ -17,11 +19,11 @@ const toLocalInput = (t: number) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** Opens Snelle notitie on Alt+N from anywhere. */
+/** Opens Snelle notitie on Alt+N (or Ctrl+Shift+Space) from anywhere in NEXUS. */
 export function useCaptureShortcut() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN') {
+      if ((e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN') || (e.ctrlKey && e.shiftKey && !e.altKey && e.code === 'Space')) {
         e.preventDefault()
         openCapture()
       }
@@ -45,8 +47,17 @@ export function CaptureButton({ className = '' }: { className?: string }) {
   )
 }
 
-/** Saves one capture where it belongs; returns where, for the message. */
-export async function saveCapture(text: string, kind: CaptureKind, at: number | null, now = Date.now()): Promise<string> {
+/**
+ * Saves one capture where it belongs; returns where, for the message. With Snel vastleggen on,
+ * 'later' keeps it in Te sorteren and every capture lands in Geschiedenis.
+ */
+export async function saveCapture(text: string, target: CaptureTarget, at: number | null, now = Date.now(), log = false): Promise<string> {
+  if (target === 'later') {
+    if (!text.trim()) throw new Error('Typ eerst iets.')
+    capturesStore.update((s) => addToInbox(s, text, crypto.randomUUID(), now))
+    return SAVED.later
+  }
+  const kind: CaptureKind = target
   const capture = parseCapture(text, kind, now)
   if (!capture.title) throw new Error('Typ eerst iets.')
   const moment = at ?? capture.at ?? now
@@ -61,6 +72,7 @@ export async function saveCapture(text: string, kind: CaptureKind, at: number | 
     if (moment <= now) throw new Error('Dat tijdstip ligt in het verleden.')
     await remindersStore.add({ title: capture.title, ...(capture.body ? { text: capture.body } : {}), at: moment, repeat: 'none', target: 'phone' }, now)
   }
+  if (log) capturesStore.update((s) => logCapture(s, text, kind, crypto.randomUUID(), now))
   return SAVED[kind]
 }
 
@@ -77,14 +89,16 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
   const dictation = useRef<Dictation | null>(null)
   // The Windows app's WebView has no speech recognition of its own; Windows dictation (Win+H) works there.
   const canSpeak = speechSupported() && !isDesktopApp
-  const [picked, setPicked] = useState<CaptureKind | null>(null)
+  const hub = useFeature('capture')
+  const captures = useCaptures()
+  const [picked, setPicked] = useState<CaptureTarget | null>(null)
   const [edited, setEdited] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState<string | null>(null)
   const now = Date.now()
-  const kind = picked ?? guessCaptureKind(text, now)
-  const parsed = parseCapture(text, kind, now)
+  const kind: CaptureTarget = picked ?? guessCaptureKind(text, now)
+  const parsed = parseCapture(text, kind === 'later' ? 'note' : kind, now)
   const when = edited ?? (parsed.at !== null ? toLocalInput(parsed.at) : '')
 
   const listen = () => {
@@ -118,9 +132,9 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
     setError(null)
     setBusy(true)
     try {
-      const at = kind === 'note' ? null : Date.parse(when)
+      const at = kind === 'note' || kind === 'later' ? null : Date.parse(when)
       if (at !== null && !Number.isFinite(at)) throw new Error('Kies een geldig tijdstip.')
-      setSaved(`Bewaard ${await saveCapture(text, kind, at)}.`)
+      setSaved(`Bewaard ${await saveCapture(text, kind, at, Date.now(), hub)}.`)
       setTimeout(closeCapture, 1200)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -168,8 +182,29 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
         ) : (
           isDesktopApp && <p className="text-xs text-nx-muted">Inspreken: klik in het tekstvak en druk op Windows+H.</p>
         )}
-        <div role="group" aria-label="Soort" className="flex gap-1">
-          {KINDS.map((k) => (
+        {hub && liveTemplates(captures).length > 0 && (
+          <select
+            aria-label="Sjabloon"
+            value=""
+            onChange={(e) => {
+              const t = liveTemplates(captures).find((x) => x.id === e.target.value)
+              if (!t) return
+              setText(t.text)
+              setPicked(t.target)
+              setEdited(null)
+            }}
+            className="rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none"
+          >
+            <option value="">Sjabloon kiezen…</option>
+            {liveTemplates(captures).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
+        <div role="group" aria-label="Soort" className="flex flex-wrap gap-1">
+          {(hub ? [...KINDS, 'later' as const] : KINDS).map((k) => (
             <button
               key={k}
               type="button"
@@ -180,17 +215,17 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
               }}
               className={`rounded-full border border-nx-border px-3 py-1 ${kind === k ? 'bg-nx-accent font-medium text-nx-accent-text' : 'hover:bg-nx-surface-2'}`}
             >
-              {CAPTURE_KIND_LABELS[k]}
+              {CAPTURE_TARGET_LABELS[k]}
             </button>
           ))}
         </div>
-        {kind !== 'note' && (
+        {kind !== 'note' && kind !== 'later' && (
           <label className="flex items-center gap-2">
             <span className="w-20 shrink-0">{kind === 'deadline' ? 'Tegen' : 'Om'}</span>
             <input type="datetime-local" aria-label="Tijdstip" value={when} onChange={(e) => setEdited(e.target.value)} className="rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none" />
           </label>
         )}
-        {kind !== 'note' && parsed.title && parsed.title !== text.trim().split('\n')[0] && <p className="text-nx-muted">Titel: {parsed.title}</p>}
+        {kind !== 'note' && kind !== 'later' && parsed.title && parsed.title !== text.trim().split('\n')[0] && <p className="text-nx-muted">Titel: {parsed.title}</p>}
         {saved && <p role="status">{saved}</p>}
         {error && (
           <p role="alert" className="text-red-500">
