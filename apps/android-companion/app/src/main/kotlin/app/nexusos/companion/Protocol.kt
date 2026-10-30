@@ -17,6 +17,17 @@ data class IncomingNotification(
 /** A notification NEXUS plans to send; the phone shows it itself if NEXUS cannot. */
 data class PlannedNotice(val ref: String, val at: Long, val title: String, val text: String?)
 
+/** Text or a link sent with NEXUS Bridge; mirrors BridgePayload in packages/core/src/bridge.ts. */
+data class BridgeTransfer(
+    val transferId: String,
+    val content: String,
+    /** The address when the content is one web link (http or https) and nothing else. */
+    val link: String?,
+    val senderName: String,
+    val sentAt: Long,
+    val expiresAt: Long,
+)
+
 /** Pure parsing and framing, kept apart from Android so it can be unit tested. */
 object Protocol {
     private const val MAX_TEXT = 1000
@@ -55,6 +66,43 @@ object Protocol {
             if (ref.isEmpty() || at <= 0 || title.isEmpty()) null else PlannedNotice(ref, at, title, text)
         }
     }
+
+    /** A Bridge transfer, or null when [json] is not one (see parseBridge in packages/core/src/bridge.ts). */
+    fun parseBridge(json: String): BridgeTransfer? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "bridge") return null
+        val id = o.optString("transferId")
+        val content = o.optString("content").take(BRIDGE_MAX_CONTENT)
+        val sentAt = o.optLong("sentAt", 0L)
+        val expiresAt = o.optLong("expiresAt", 0L)
+        if (id.isEmpty() || id.length > 100 || content.isBlank() || sentAt <= 0 || expiresAt <= 0) return null
+        return BridgeTransfer(id, content, safeLink(content), o.optString("senderName").take(80), sentAt, expiresAt)
+    }
+
+    /** The transfer the sender took back, when [json] is a Bridge cancel. */
+    fun parseBridgeCancel(json: String): String? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "bridge_status" || o.optString("status") != "cancel") return null
+        return o.optString("transferId").takeIf { it.isNotEmpty() && it.length <= 100 }
+    }
+
+    /** What this device answers the sender: "delivered", or "declined" with a reason (BridgeStatusPayload). */
+    fun bridgeStatus(transferId: String, status: String, reason: String?, at: Long): String =
+        JSONObject().put("v", 1).put("kind", "bridge_status").put("transferId", transferId).put("status", status)
+            .apply { if (reason != null) put("reason", reason) }
+            .put("at", at).toString()
+
+    /** Like safeLink in bridge.ts: only one http or https address, without a user name or password. */
+    fun safeLink(text: String): String? {
+        val t = text.trim()
+        if (t.isEmpty() || t.any { it.isWhitespace() }) return null
+        val uri = runCatching { java.net.URI(t) }.getOrNull() ?: return null
+        val scheme = uri.scheme?.lowercase()
+        if ((scheme != "https" && scheme != "http") || uri.host.isNullOrEmpty() || uri.rawUserInfo != null) return null
+        return t
+    }
+
+    private const val BRIDGE_MAX_CONTENT = 4000
 
     /** Only deadlines and habits can be ticked off from another device (see actionTarget in connect.ts). */
     fun canTickOff(ref: String): Boolean = ref.startsWith("deadline:") || Regex("^habit:[^@]+@\\d{4}-\\d{2}-\\d{2}$").matches(ref)

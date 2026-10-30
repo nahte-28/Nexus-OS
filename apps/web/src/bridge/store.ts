@@ -78,12 +78,12 @@ const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? c
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /**
- * The devices Bridge can send to: your other active devices that run NEXUS itself (in a browser or
- * as the Windows app). The companion app and the watch only show notifications.
+ * The devices Bridge can send to: your other active devices. NEXUS in a browser or the Windows app
+ * keeps the transfer in its list; the companion app and the watch show it as a notification.
  */
 export function bridgeTargets(state: ConnectState) {
   if (state.status !== 'ready') return []
-  return state.devices.filter((d) => !d.revokedAt && !d.isThisDevice && d.platform !== 'android')
+  return state.devices.filter((d) => !d.revokedAt && !d.isThisDevice)
 }
 
 const preview = (t: Transfer) => (t.content.length > 120 ? `${t.content.slice(0, 119)}…` : t.content)
