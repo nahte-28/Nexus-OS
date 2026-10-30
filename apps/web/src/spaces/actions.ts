@@ -33,8 +33,14 @@ export function saveLayout(id: string, windows: SpaceWindow[], now = Date.now())
   spacesStore.update((s) => changeSpace(s, id, { windows }, now))
 }
 
-export function newSpace(input: { name: string; icon?: string; profileId: ProfileId; windows: SpaceWindow[] }, now = Date.now()): string {
+/** With [current], the new Space holds exactly what is open: it is the one in use now, also for School Mode's offer later. */
+export function newSpace(input: { name: string; icon?: string; profileId: ProfileId; windows: SpaceWindow[] }, now = Date.now(), current = false): string {
   const id = crypto.randomUUID()
   spacesStore.update((s) => createSpace(s, { id, ...input }, now))
+  if (current) {
+    setCurrentSpace(id)
+    const space = spacesStore.getSnapshot().spaces.find((x) => x.id === id)
+    if (space) spacesStore.update((s) => markUsed(s, space, now))
+  }
   return id
 }

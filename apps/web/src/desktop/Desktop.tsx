@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
+import { OfflineBanner } from '../shell/OfflineBanner'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
@@ -58,6 +59,7 @@ export function Desktop() {
       {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />}
       <Tour onOpenApp={openApp} />
       <QuickCapture />
+      <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
     </div>
   )
 }

@@ -82,7 +82,7 @@ describe('Studiegroep', () => {
     fireEvent.change(screen.getByLabelText('Naam van de groep'), { target: { value: 'Project' } })
     fireEvent.click(screen.getByRole('button', { name: 'Groep maken' }))
     await screen.findByText('ABCD-EF23')
-    expect(groups.watch).toHaveBeenCalledWith('g1', expect.any(Function))
+    await waitFor(() => expect(groups.watch).toHaveBeenCalledWith('g1', expect.any(Function)))
 
     fireEvent.change(screen.getByLabelText('Titel van de groepsdeadline'), { target: { value: 'Groepsverslag' } })
     fireEvent.change(screen.getByLabelText('Wanneer'), { target: { value: '2099-12-01T23:59' } })

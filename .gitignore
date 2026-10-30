@@ -12,3 +12,5 @@ apps/android-companion/local.properties
 *.apk
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
+apps/web/test-results/
+apps/web/playwright-report/

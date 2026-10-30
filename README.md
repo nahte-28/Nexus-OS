@@ -27,6 +27,7 @@ npm run dev        # ontwikkelserver op http://localhost:5173
 npm test           # unit- en componenttests
 npm run typecheck
 npm run build      # productiebuild in apps/web/dist
+npm run e2e -w @nexus/web   # rooktests in een echte browser (na de build; eenmalig: npx playwright install chromium)
 ```
 
 ## Deployen op Vercel
@@ -324,6 +325,19 @@ Zet **Developer Hub** aan in **Instellingen > Nieuwe modules**. Daarmee bouw je 
 - **Reviews:** de review kijkt het manifest, de grootte, de SDK-aanroepen, verboden code (netwerk, `eval`, opslag, `parent`), ongebruikte permissies en de versie na. Pas als alles klopt, publiceer je een versie. Installeren toont eerst een venster met de permissies; terugdraaien naar een vorige versie of de widget van het dashboard halen kan altijd.
 
 Geïnstalleerde widgets staan onderaan het dashboard, elk in een eigen sandbox. Alles blijft op het toestel (localStorage `nexus.devhub`): er is geen SQL voor nodig en er komen geen externe extensies of uploads, zoals de blueprint voor de eerste versie vraagt. De Windows-app laat geen scripts toe in zo'n afgeschermd venster, dus widgets draaien in de browser en als web-app. Logica: `packages/core/src/extensions.ts`, web: `apps/web/src/devhub/`, app: `apps/web/src/apps/DeveloperHub.tsx`.
+
+## Hardening (blueprint fase 7)
+
+- **Rooktests in een echte browser** (`apps/web/e2e`, Playwright), als computer (1366×860) en als gsm (Pixel 7). Ze draaien in CI als job `smoke`:
+  - elke app opent zonder fout, met alle modules aan, in het lichte (Focus) en het donkere (Pulse) thema;
+  - toegankelijkheid met axe (WCAG 2 A en AA) op het dashboard en in elke app: geen ernstige of kritieke fouten;
+  - offline: NEXUS start zonder internet uit de service worker, toont "Offline." en bewaart een nieuwe notitie;
+  - de scenario's uit de blueprint: School-profiel, Space, flow en Inbox, en in Time Machine herstellen en dat herstel weer ongedaan maken.
+- **Offline-melding** in beide schermen (`shell/OfflineBanner.tsx`), ook voor schermlezers.
+- **Flow Studio naar Inbox:** ook een flow die je met **Uitvoeren** start, komt in de Inbox (eerder alleen de geplande).
+- **Spaces:** een Space die je bewaart uit je open vensters telt als gebruikt. Verlaat je het profiel en kom je terug, dan biedt NEXUS die Space weer aan.
+
+De Windows-app en de gsm-app hebben eigen builds in CI (`desktop.yml`, `android.yml`); hun rooktest blijft met de hand op een toestel.
 
 ## Wat werkt
 

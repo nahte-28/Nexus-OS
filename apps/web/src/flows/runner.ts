@@ -156,21 +156,24 @@ export async function tickFlows(context: FlowContext, effects: FlowEffects, stor
     runs.push(await finishRun(run, p, effects, settings, context.now))
   }
   store.addRuns(runs, context.now)
-  for (const run of runs) {
-    if (run.status === 'skipped') continue
-    logEvent('system', `Flow ${run.flowName}: ${run.status === 'ok' ? 'gelukt' : 'deels mislukt'}`, run.status === 'failed')
-    eventBus.publish({
-      id: `flow:${run.flowId}|${run.eventId ?? run.id}`,
-      source: 'flow',
-      type: run.status === 'ok' ? 'flow.ran' : 'flow.failed',
-      at: run.at,
-      title: run.status === 'ok' ? `Flow ${run.flowName} is uitgevoerd` : `Flow ${run.flowName} is deels mislukt`,
-      body: run.event,
-      priority: run.status === 'ok' ? 'low' : 'high',
-      link: { app: 'flows', id: run.flowId },
-    })
-  }
+  runs.forEach(announce)
   return runs
+}
+
+/** A run that did something lands in the log and the Inbox: a summary, or the error. */
+function announce(run: FlowRun): void {
+  if (run.status === 'skipped') return
+  logEvent('system', `Flow ${run.flowName}: ${run.status === 'ok' ? 'gelukt' : 'deels mislukt'}`, run.status === 'failed')
+  eventBus.publish({
+    id: `flow:${run.flowId}|${run.eventId ?? run.id}`,
+    source: 'flow',
+    type: run.status === 'ok' ? 'flow.ran' : 'flow.failed',
+    at: run.at,
+    title: run.status === 'ok' ? `Flow ${run.flowName} is uitgevoerd` : `Flow ${run.flowName} is deels mislukt`,
+    body: run.event,
+    priority: run.status === 'ok' ? 'low' : 'high',
+    link: { app: 'flows', id: run.flowId },
+  })
 }
 
 /** "Uitvoeren" in Flow Studio: runs the actions now, whatever the trigger, but still checks conditions. */
@@ -182,6 +185,7 @@ export async function runNow(flow: FlowDefinition, context: FlowContext, effects
   const planned: PlannedRun = { flow, event, ...(skipped ? { skipped } : {}) }
   const run = await finishRun(newRun(planned, effects, context.now, true), planned, effects, settings, context.now)
   store.addRuns([run], context.now)
+  announce(run)
   return run
 }
 

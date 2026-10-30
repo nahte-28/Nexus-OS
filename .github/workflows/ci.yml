@@ -19,6 +19,29 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  smoke:
+    # The built app in a real browser, as a computer and as a phone: every app, accessibility,
+    # offline and the main scenarios (apps/web/e2e).
+    # Playwright 1.56 has no browsers for ubuntu-latest (26.04) yet.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: npm run e2e -w @nexus/web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-traces
+          path: apps/web/test-results/
+          retention-days: 7
+
   database:
     # Every migration on a fresh Postgres, then the row-level security tests (supabase/tests).
     runs-on: ubuntu-latest
