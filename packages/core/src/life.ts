@@ -4,6 +4,7 @@
  */
 import type { CalendarEvent } from './calendar'
 import { ACCENT_IDS, type AccentId, type Lesson } from './profiles'
+import { occurrences, parseRepeat, type AppointmentRepeat, type Occurrence } from './recurrence'
 import type { Reminder, ReminderTarget } from './reminders'
 import { SAFETY_HORIZON_MS, type PlannedNotice } from './safetyNet'
 import type { SyncRecord } from './sync'
@@ -39,6 +40,8 @@ export interface Appointment extends SyncRecord {
   /** Minutes before [startAt] to send a notification. */
   remind: number[]
   target: ReminderTarget
+  /** Smart Calendar: the series this appointment starts, or null for a single one. */
+  repeat?: AppointmentRepeat | null
 }
 
 export type LifeItem = Project | Deadline | Appointment
@@ -110,6 +113,7 @@ export function toLifeItem(value: unknown): LifeItem | null {
       notes: str(v.notes, MAX_NOTES),
       remind: remindList(v.remind),
       target: v.target === 'this_device' ? 'this_device' : 'phone',
+      repeat: parseRepeat(v.repeat),
     }
   }
   return null
@@ -143,14 +147,14 @@ export function parseDeadline(input: unknown): { ok: true; value: DeadlineDraft 
   }
 }
 
-export type AppointmentDraft = Pick<Appointment, 'title' | 'startAt' | 'endAt' | 'location' | 'notes' | 'remind' | 'target'>
+export type AppointmentDraft = Pick<Appointment, 'title' | 'startAt' | 'endAt' | 'location' | 'notes' | 'remind' | 'target'> & { repeat?: AppointmentRepeat | null }
 
 const toTime = (value: unknown) => (typeof value === 'number' ? value : typeof value === 'string' ? Date.parse(value) : NaN)
 
 /** Validates an appointment from a form or from the AI. */
 export function parseAppointment(input: unknown): { ok: true; value: AppointmentDraft } | { ok: false; error: string } {
   if (typeof input !== 'object' || input === null) return { ok: false, error: 'Ongeldige afspraak.' }
-  const { title, startAt, endAt, location = '', notes = '', remind = DEFAULT_APPOINTMENT_REMIND, target = 'phone' } = input as Record<string, unknown>
+  const { title, startAt, endAt, location = '', notes = '', remind = DEFAULT_APPOINTMENT_REMIND, target = 'phone', repeat = null } = input as Record<string, unknown>
   if (typeof title !== 'string' || !title.trim()) return { ok: false, error: 'Een afspraak heeft een titel nodig.' }
   const start = toTime(startAt)
   if (!Number.isFinite(start)) return { ok: false, error: 'Onbekend begin. Gebruik bv. 2026-11-03T14:00:00+01:00.' }
@@ -162,9 +166,13 @@ export function parseAppointment(input: unknown): { ok: true; value: Appointment
     return { ok: false, error: `Herinneren kan ${REMIND_MINUTES.join(', ')} minuten ervoor.` }
   }
   if (target !== 'phone' && target !== 'this_device') return { ok: false, error: 'Doel moet phone of this_device zijn.' }
+  const series = repeat === null ? null : parseRepeat(repeat)
+  if (repeat !== null && !series) return { ok: false, error: 'Herhaling moet freq daily, weekly, monthly of yearly hebben.' }
+  if (series?.until && series.until < localDay(start)) return { ok: false, error: 'De herhaling stopt voor de eerste afspraak.' }
   return {
     ok: true,
     value: {
+      repeat: series,
       title: title.trim().slice(0, MAX_TITLE),
       startAt: start,
       endAt: end,
@@ -174,6 +182,11 @@ export function parseAppointment(input: unknown): { ok: true; value: Appointment
       target,
     },
   }
+}
+
+const localDay = (t: number) => {
+  const d = new Date(t)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const live = <T extends LifeItem>(items: LifeItem[], kind: T['kind']) =>
@@ -202,6 +215,7 @@ export function projectProgress(project: Project, items: LifeItem[]): { done: nu
 }
 
 export const deadlineRef = (d: Pick<Deadline, 'id' | 'dueAt'>, minutes: number) => `deadline:${d.id}@${d.dueAt}-${minutes}`
+/** [startAt] is that of the occurrence, so each time of a series has its own notifications. */
 export const appointmentRef = (a: Pick<Appointment, 'id' | 'startAt'>, minutes: number) => `appointment:${a.id}@${a.startAt}-${minutes}`
 
 /** How the time left reads in a notification, e.g. "over 1 dag" or "nu". */
@@ -238,16 +252,21 @@ export function deadlineNotices(items: LifeItem[], from: number, to: number, pro
     }
   }
   for (const a of appointmentsOf(items)) {
-    for (const minutes of a.remind) {
-      const at = a.startAt - minutes * 60_000
-      if (at <= from || at > to) continue
-      out.push({
-        ref: appointmentRef(a, minutes),
-        at,
-        title: minutes === 0 ? `Afspraak nu: ${a.title}` : `Afspraak ${leftText(minutes)}: ${a.title}`,
-        text: [`${fullDate(a.startAt)}–${clockTime(a.endAt)}`, a.location].filter(Boolean).join(' · '),
-        target: a.target,
-      })
+    if (a.remind.length === 0) continue
+    const earliest = Math.max(...a.remind) * 60_000
+    // Every time of a series whose notification falls in the window.
+    for (const o of occurrences(a, from, to + earliest)) {
+      for (const minutes of a.remind) {
+        const at = o.startAt - minutes * 60_000
+        if (at <= from || at > to) continue
+        out.push({
+          ref: appointmentRef({ id: a.id, startAt: o.startAt }, minutes),
+          at,
+          title: minutes === 0 ? `Afspraak nu: ${a.title}` : `Afspraak ${leftText(minutes)}: ${a.title}`,
+          text: [`${fullDate(o.startAt)}–${clockTime(o.endAt)}`, a.location].filter(Boolean).join(' · '),
+          target: a.target,
+        })
+      }
     }
   }
   return out.sort((a, b) => a.at - b.at)
@@ -263,7 +282,7 @@ export function plannedDeadlineNotices(items: LifeItem[], now: number, horizon =
 export type AgendaEntry =
   | { kind: 'lesson'; at: number; end: number; title: string; detail?: string }
   | { kind: 'deadline'; at: number; title: string; detail?: string; deadline: Deadline }
-  | { kind: 'appointment'; at: number; end: number; title: string; detail?: string; appointment: Appointment }
+  | { kind: 'appointment'; at: number; end: number; title: string; detail?: string; appointment: Appointment; occurrence: Occurrence }
   | { kind: 'reminder'; at: number; title: string; detail?: string }
   | { kind: 'event'; at: number; end: number; title: string; detail?: string }
 
@@ -313,10 +332,10 @@ export function agendaDay({ calendarEvents, googleEvents = [], timetable, items,
       entries.push({ kind: 'deadline', at: d.dueAt, title: d.title, ...(project ? { detail: project } : {}), deadline: d })
     }
   }
-  // An appointment shows on every day it covers, e.g. a two-day trip.
+  // An appointment shows on every day it covers, e.g. a two-day trip, and a series on each of its dates.
   for (const a of appointmentsOf(items)) {
-    if (a.startAt < dayEnd && (a.endAt > dayStart || inDay(a.startAt))) {
-      entries.push({ kind: 'appointment', at: Math.max(a.startAt, dayStart), end: Math.min(a.endAt, dayEnd), title: a.title, ...(a.location ? { detail: a.location } : {}), appointment: a })
+    for (const o of occurrences(a, dayStart, dayEnd)) {
+      entries.push({ kind: 'appointment', at: Math.max(o.startAt, dayStart), end: Math.min(o.endAt, dayEnd), title: a.title, ...(a.location ? { detail: a.location } : {}), appointment: a, occurrence: o })
     }
   }
   for (const r of reminders) if (inDay(r.at)) entries.push({ kind: 'reminder', at: r.at, title: r.title, ...(r.text ? { detail: r.text } : {}) })

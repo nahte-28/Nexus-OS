@@ -50,6 +50,29 @@ describe('Agenda', () => {
     expect(within(screen.getByRole('region', { name: 'Morgen' })).getByText(/Tandarts/).textContent).toContain('Antwerpen')
   })
 
+  it('repeats an appointment, warns about overlaps and skips one time', async () => {
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('button', { name: '+ Afspraak' }))
+    let form = screen.getByRole('form', { name: 'Nieuwe afspraak' })
+    fireEvent.change(within(form).getByRole('textbox', { name: 'Titel' }), { target: { value: 'Bijles' } })
+    fireEvent.change(within(form).getByRole('combobox', { name: 'Herhalen' }), { target: { value: 'daily' } })
+    expect(within(form).getByText('Elke dag', { selector: 'p' })).toBeTruthy()
+    fireEvent.click(within(form).getByRole('button', { name: 'Toevoegen' }))
+    const list = await screen.findByRole('list', { name: 'Komende afspraken' })
+    expect(within(list).getByText(/🔁 Elke dag/)).toBeTruthy()
+    await waitFor(() => expect(screen.queryByDisplayValue('Bijles')).toBeNull())
+
+    // A new appointment at the same time (tomorrow 10:00) overlaps the series.
+    form = screen.getByRole('form', { name: 'Nieuwe afspraak' })
+    expect(within(form).getByRole('status').textContent).toMatch(/^Overlapt met .*Bijles/)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Overzicht' }))
+    const [, tomorrow, dayAfter] = screen.getAllByRole('region')
+    fireEvent.click(within(tomorrow).getByRole('button', { name: 'Deze keer overslaan' }))
+    await waitFor(() => expect(within(screen.getByRole('region', { name: 'Morgen' })).queryByRole('button', { name: 'Deze keer overslaan' })).toBeNull())
+    expect(within(dayAfter).getByRole('button', { name: 'Deze keer overslaan' })).toBeTruthy()
+  })
+
   it('sets up Dagstart and shows what the next one will say', () => {
     render(<Agenda />)
     fireEvent.click(screen.getByRole('tab', { name: 'Dagstart' }))

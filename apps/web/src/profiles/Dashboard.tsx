@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { alive, budgetStatus, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
+import { alive, budgetStatus, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
@@ -224,9 +224,10 @@ function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
   // Open deadlines (overdue ones too), coming appointments and reminders together, soonest first.
   const items = [
     ...openDeadlines(life).map((d) => ({ id: d.id, title: d.title, at: d.dueAt, deadline: true })),
-    ...appointmentsOf(life)
-      .filter((a) => a.endAt >= now)
-      .map((a) => ({ id: a.id, title: `📅 ${a.title}`, at: a.startAt, deadline: false })),
+    ...appointmentsOf(life).flatMap((a) => {
+      const next = nextOccurrence(a, now)
+      return next ? [{ id: a.id, title: `📅 ${a.title}`, at: next.startAt, deadline: false }] : []
+    }),
     ...reminders.map((r) => ({ id: r.id, title: r.title, at: r.at, deadline: false })),
   ].sort((a, b) => a.at - b.at)
   return (

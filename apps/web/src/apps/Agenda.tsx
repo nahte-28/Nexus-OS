@@ -7,6 +7,15 @@ import {
   DEFAULT_APPOINTMENT_REMIND,
   DEFAULT_REMIND,
   deadlinesOf,
+  nextOccurrence,
+  occurrences,
+  overlapsOf,
+  REPEAT_FREQ_LABELS,
+  REPEAT_FREQS,
+  repeatLabel,
+  wallDate,
+  type AppointmentRepeat,
+  type RepeatFreq,
   parseAppointment,
   parseDeadline,
   projectProgress,
@@ -151,6 +160,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
       )}
       {days.map((day) => {
         const entries = agendaDay(input, day)
+        const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
         return (
           <section key={day} aria-label={dayTitle(day, today)} className="space-y-1">
             <h3 className="font-medium">{dayTitle(day, today)}</h3>
@@ -159,7 +169,12 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
             ) : (
               <ul className="space-y-1">
                 {entries.map((e, i) => (
-                  <Entry key={i} entry={e} project={e.kind === 'deadline' ? projects.get(e.deadline.projectId ?? '') : undefined} />
+                  <Entry
+                    key={i}
+                    entry={e}
+                    project={e.kind === 'deadline' ? projects.get(e.deadline.projectId ?? '') : undefined}
+                    clashes={'end' in e ? clashes.get(e) : undefined}
+                  />
                 ))}
               </ul>
             )}
@@ -173,10 +188,11 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   )
 }
 
-function Entry({ entry, project }: { entry: AgendaEntry; project?: Project }) {
+function Entry({ entry, project, clashes }: { entry: AgendaEntry; project?: Project; clashes?: string[] }) {
   if (entry.kind === 'deadline') return <DeadlineLine deadline={entry.deadline} project={project} showTime />
+  const series = entry.kind === 'appointment' && entry.appointment.repeat ? entry.appointment : null
   return (
-    <li className="flex items-baseline gap-2 rounded-md bg-nx-surface-2 px-2 py-1.5">
+    <li className="flex flex-wrap items-baseline gap-x-2 rounded-md bg-nx-surface-2 px-2 py-1.5">
       <span className="w-24 shrink-0 text-nx-muted tabular-nums">
         {clock(entry.at)}
         {entry.kind === 'lesson' || entry.kind === 'appointment' || entry.kind === 'event' ? `–${clock(entry.end)}` : ''}
@@ -184,10 +200,23 @@ function Entry({ entry, project }: { entry: AgendaEntry; project?: Project }) {
       <span className="min-w-0 flex-1">
         {entry.kind === 'reminder' ? '⏰ ' : entry.kind === 'appointment' ? '📅 ' : entry.kind === 'event' ? '🗓️ ' : ''}
         {entry.title}
+        {series && <span className="text-nx-muted" title={repeatLabel(series.repeat!, series.startAt)}> 🔁</span>}
         {entry.detail && <span className="text-nx-muted"> · {entry.detail}</span>}
+        {clashes && clashes.length > 0 && <span className="block text-xs text-amber-600 dark:text-amber-400">Overlapt met {clashes.join(', ')}</span>}
       </span>
+      {series && entry.kind === 'appointment' && (
+        <button type="button" className="text-xs text-nx-muted underline" onClick={() => void skipOnce(series, entry.occurrence.date)}>
+          Deze keer overslaan
+        </button>
+      )}
     </li>
   )
+}
+
+/** Leaves one date out of a series; the rest of the series stays. */
+function skipOnce(a: Appointment, date: string): Promise<void> {
+  if (!a.repeat) return Promise.resolve()
+  return lifeStore.updateAppointment(a.id, { repeat: { ...a.repeat, except: [...a.repeat.except, date] } })
 }
 
 function DeadlineLine({ deadline: d, project, showTime }: { deadline: Deadline; project?: Project; showTime?: boolean }) {
@@ -367,8 +396,9 @@ function Appointments() {
   const [editing, setEditing] = useState<Appointment | null>(null)
   const now = Date.now()
   const all = appointmentsOf(items)
-  const coming = all.filter((a) => a.endAt >= now)
-  const past = all.filter((a) => a.endAt < now).reverse()
+  const next = new Map(all.map((a) => [a.id, nextOccurrence(a, now)]))
+  const coming = all.filter((a) => next.get(a.id)).sort((a, b) => next.get(a.id)!.startAt - next.get(b.id)!.startAt)
+  const past = all.filter((a) => !next.get(a.id)).reverse()
   return (
     <>
       <AppointmentForm key={editing?.id ?? 'new'} editing={editing} onDone={() => setEditing(null)} />
@@ -377,7 +407,7 @@ function Appointments() {
       ) : (
         <ul className="space-y-2" aria-label="Komende afspraken">
           {coming.map((a) => (
-            <AppointmentRow key={a.id} appointment={a} onEdit={() => setEditing(a)} />
+            <AppointmentRow key={a.id} appointment={a} next={next.get(a.id) ?? undefined} onEdit={() => setEditing(a)} />
           ))}
         </ul>
       )}
@@ -395,23 +425,48 @@ function Appointments() {
   )
 }
 
-function AppointmentRow({ appointment: a, onEdit }: { appointment: Appointment; onEdit: () => void }) {
-  const sameDay = new Date(a.startAt).toDateString() === new Date(a.endAt).toDateString()
+function AppointmentRow({ appointment: a, next, onEdit }: { appointment: Appointment; next?: { startAt: number; endAt: number; date: string }; onEdit: () => void }) {
+  const start = next?.startAt ?? a.startAt
+  const end = next?.endAt ?? a.endAt
+  const sameDay = new Date(start).toDateString() === new Date(end).toDateString()
   return (
     <li className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3">
       <div className="min-w-0 flex-1">
         <p className="font-medium">{a.title}</p>
         <p className="text-xs text-nx-muted">
-          {when(a.startAt)}–{sameDay ? clock(a.endAt) : when(a.endAt)}
+          {a.repeat && next ? 'Volgende: ' : ''}
+          {when(start)}–{sameDay ? clock(end) : when(end)}
           {a.location ? ` · ${a.location}` : ''}
           {a.remind.length > 0 ? ` · ${TARGET_LABELS[a.target]}` : ''}
         </p>
+        {a.repeat && (
+          <p className="text-xs text-nx-muted">
+            🔁 {repeatLabel(a.repeat, a.startAt)}
+            {a.repeat.except.length > 0 && (
+              <>
+                {` · ${a.repeat.except.length} keer overgeslagen `}
+                <button type="button" className="underline" onClick={() => void lifeStore.updateAppointment(a.id, { repeat: { ...a.repeat!, except: [] } })}>
+                  terugzetten
+                </button>
+              </>
+            )}
+          </p>
+        )}
         {a.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{a.notes}</p>}
       </div>
+      {a.repeat && next && (
+        <button type="button" className={button} onClick={() => void skipOnce(a, next.date)}>
+          Volgende overslaan
+        </button>
+      )}
       <button type="button" className={button} onClick={onEdit}>
         Bewerken
       </button>
-      <button type="button" className={`${button} text-red-500`} onClick={() => window.confirm(`"${a.title}" verwijderen?`) && void lifeStore.remove(a.id)}>
+      <button
+        type="button"
+        className={`${button} text-red-500`}
+        onClick={() => window.confirm(a.repeat ? `De hele reeks "${a.title}" verwijderen?` : `"${a.title}" verwijderen?`) && void lifeStore.remove(a.id)}
+      >
         Verwijderen
       </button>
     </li>
@@ -434,14 +489,16 @@ function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onD
   const [notes, setNotes] = useState(editing?.notes ?? '')
   const [remind, setRemind] = useState<number[]>(editing?.remind ?? DEFAULT_APPOINTMENT_REMIND)
   const [target, setTarget] = useState<ReminderTarget>(editing?.target ?? 'phone')
+  const [repeat, setRepeat] = useState<AppointmentRepeat | null>(editing?.repeat ?? null)
   const [error, setError] = useState<string | null>(null)
+  const clashes = useClashes(editing?.id ?? null, new Date(start).getTime(), new Date(end).getTime(), repeat)
   return (
     <form
       className="space-y-2 rounded-lg border border-nx-border p-3"
       aria-label={editing ? 'Afspraak bewerken' : 'Nieuwe afspraak'}
       onSubmit={(e) => {
         e.preventDefault()
-        const parsed = parseAppointment({ title, startAt: new Date(start).getTime(), endAt: new Date(end).getTime(), location, notes, remind, target })
+        const parsed = parseAppointment({ title, startAt: new Date(start).getTime(), endAt: new Date(end).getTime(), location, notes, remind, target, repeat })
         if (!parsed.ok) {
           setError(parsed.error)
           return
@@ -452,6 +509,7 @@ function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onD
           setTitle('')
           setLocation('')
           setNotes('')
+          setRepeat(null)
           onDone()
         })
       }}
@@ -487,8 +545,15 @@ function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onD
           ))}
         </select>
       </div>
+      <RepeatChoice value={repeat} onChange={setRepeat} startAt={new Date(start).getTime()} />
       <RemindChoice value={remind} onChange={setRemind} />
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Notities (optioneel)" aria-label="Notities" className={field} />
+      {clashes.length > 0 && (
+        <p role="status" className="text-amber-600 dark:text-amber-400">
+          Overlapt met {clashes.slice(0, 3).join('; ')}
+          {clashes.length > 3 ? ` en nog ${clashes.length - 3} keer` : ''}. Je kan het toch opslaan.
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-red-500">
           {error}
@@ -505,6 +570,93 @@ function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onD
         )}
       </div>
     </form>
+  )
+}
+
+const CLASH_WEEKS = 8
+
+/** What the appointment being edited would overlap in the coming weeks (lessons, appointments, events). */
+function useClashes(id: string | null, startAt: number, endAt: number, repeat: AppointmentRepeat | null): string[] {
+  const items = useLife()
+  const { state } = useProfiles()
+  if (!Number.isFinite(startAt) || !Number.isFinite(endAt) || endAt <= startAt) return []
+  const now = Date.now()
+  const others = items.filter((i) => i.id !== id)
+  const input = { calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: others, reminders: [] }
+  const out: string[] = []
+  for (const o of occurrences({ startAt, endAt, repeat }, now, now + CLASH_WEEKS * 7 * DAY, 20)) {
+    const day = startOfDay(o.startAt)
+    for (const e of agendaDay(input, day)) {
+      if ('end' in e && e.at < o.endAt && e.end > o.startAt) out.push(`${e.title} (${when(Math.max(e.at, o.startAt))})`)
+    }
+  }
+  return [...new Set(out)]
+}
+
+function RepeatChoice({ value, onChange, startAt }: { value: AppointmentRepeat | null; onChange: (next: AppointmentRepeat | null) => void; startAt: number }) {
+  const weekday = Number.isFinite(startAt) ? ((new Date(startAt).getDay() + 6) % 7) + 1 : 1
+  const set = (patch: Partial<AppointmentRepeat>) => value && onChange({ ...value, ...patch })
+  return (
+    <fieldset className="space-y-2">
+      <legend className="mb-1 text-nx-muted">Herhalen</legend>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          aria-label="Herhalen"
+          className={`${field} w-40`}
+          value={value?.freq ?? ''}
+          onChange={(e) => {
+            const freq = e.target.value as RepeatFreq | ''
+            if (!freq) onChange(null)
+            else onChange({ freq, interval: value?.interval ?? 1, days: freq === 'weekly' ? (value?.days.length ? value.days : [weekday]) : [], until: value?.until ?? null, except: value?.except ?? [] })
+          }}
+        >
+          <option value="">Niet herhalen</option>
+          {REPEAT_FREQS.map((f) => (
+            <option key={f} value={f}>
+              {REPEAT_FREQ_LABELS[f]}
+            </option>
+          ))}
+        </select>
+        {value && (
+          <>
+            <label className="flex items-center gap-1">
+              om de
+              <input
+                type="number"
+                min={1}
+                max={52}
+                aria-label="Om de hoeveel"
+                className={`${field} w-16`}
+                value={value.interval}
+                onChange={(e) => set({ interval: Math.min(Math.max(Math.round(Number(e.target.value)) || 1, 1), 52) })}
+              />
+            </label>
+            <label className="flex items-center gap-1">
+              tot
+              <input type="date" aria-label="Herhalen tot" className={`${field} w-40`} value={value.until ?? ''} onChange={(e) => set({ until: e.target.value || null })} />
+            </label>
+          </>
+        )}
+      </div>
+      {value?.freq === 'weekly' && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1" role="group" aria-label="Op deze dagen">
+          {WEEKDAY_SHORT.map((name, i) => (
+            <label key={name} className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={value.days.includes(i + 1)}
+                onChange={(e) => {
+                  const days = e.target.checked ? [...value.days, i + 1].sort() : value.days.filter((d) => d !== i + 1)
+                  set({ days: days.length ? days : [weekday] })
+                }}
+              />
+              {name}
+            </label>
+          ))}
+        </div>
+      )}
+      {value && Number.isFinite(startAt) && <p className="text-xs text-nx-muted">{repeatLabel(value, startAt)}{value.until && value.until < wallDate(startAt) ? ' (stopt voor het begin)' : ''}</p>}
+    </fieldset>
   )
 }
 

@@ -6,6 +6,7 @@ import type { CalendarEvent } from './calendar'
 import { activeCourses, courseResult, formatMark, type GradesState } from './grades'
 import { activeHabits, completion, type HabitsState } from './habits'
 import { agendaDay, appointmentsOf, deadlinesOf, type AgendaEntry, type LifeItem } from './life'
+import { occurrences } from './recurrence'
 import type { Lesson } from './profiles'
 import type { Reminder } from './reminders'
 import { STUDY_BLOCK_NOTE } from './study'
@@ -79,7 +80,8 @@ export function weekFacts(input: WeekInput): string {
   const inNext = (t: number) => t >= nextMonday && t < afterNext
   const agenda = { calendarEvents: input.calendarEvents, timetable: input.timetable, items: input.items, reminders: input.reminders }
   const deadlines = deadlinesOf(input.items)
-  const appointments = appointmentsOf(input.items)
+  // Each time of a series counts as its own appointment.
+  const appointments = appointmentsOf(input.items).flatMap((a) => occurrences(a, monday, afterNext).map((o) => ({ ...a, startAt: o.startAt, endAt: o.endAt })))
   const isStudyBlock = (notes: string) => notes.includes(STUDY_BLOCK_NOTE)
 
   const lessonsPast = Array.from({ length: 7 }, (_, i) => agendaDay(agenda, shiftDay(monday, i)).filter((e) => e.kind === 'lesson').length).reduce((a, b) => a + b, 0)
