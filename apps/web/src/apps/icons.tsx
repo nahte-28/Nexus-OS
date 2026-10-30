@@ -245,6 +245,13 @@ export const QuickNoteIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const FlaskIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M9 3h6M10 3v6l-5.5 9.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3" />
+    <path d="M7.5 15h9" />
+  </svg>
+)
+
 export const LibraryIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M4 4h4v16H4zM10 4h4v16h-4z" />

@@ -167,6 +167,24 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
   },
+  studylab: {
+    summary: 'Study Lab: per vak je onderwerpen, eigen oefenvragen en hoe ver je staat.',
+    tips: [
+      'Maak in Vakken een vak met zijn onderwerpen en kies per onderwerp hoe zeker je bent. Een vak kan een stapel Leerkaarten krijgen.',
+      'In Vragen maak je open vragen of meerkeuzevragen. Oefenen stelt eerst wat je fout had en wat je nog nooit probeerde.',
+      'Voortgang per onderwerp komt voor de helft uit je laatste antwoorden en voor de helft uit hoe zeker je je voelt.',
+      'Het Dashboard toont wat je eerst oefent, je studietijd van de week en je examens; KlasHub open je er alleen, Study Lab leest er niets uit.',
+    ],
+  },
+  gaming: {
+    summary: 'Gaming Companion: je games, sessies, builds en speeltijd.',
+    tips: [
+      'Je voert alles zelf in: NEXUS koppelt geen gameplatform en leest niets uit.',
+      'Noteer na het spelen een sessie; Statistieken toont je speeltijd per week en per game.',
+      'Builds bewaren een loadout of instellingen met tags, en kopieer je met één klik.',
+      'Met een plan in uren per week waarschuwt de app vanaf 80 % en als je erover gaat.',
+    ],
+  },
   knowledge: {
     summary: 'Kennis: je notities als doorzoekbare kennisbank, met collecties, tags, verwijzingen en versies.',
     tips: [
