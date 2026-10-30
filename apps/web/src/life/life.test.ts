@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { IDBFactory } from 'fake-indexeddb'
-import { DEFAULT_DAGSTART, type Deadline } from '@nexus/core'
+import { DEFAULT_DAGSTART, emptyBriefing, type Deadline } from '@nexus/core'
 import { resetDbConnection } from '../state/db'
 import { fireDeadlineNotices } from './alerts'
 import { fireDagstart } from './dagstart'
+import { briefingStore } from '../briefing/store'
+import { setFeature } from '../features/store'
 import { LifeStore } from './store'
 import { fromRow, toRow } from './sync'
 
@@ -80,5 +82,24 @@ describe('NEXUS Life on this device', () => {
     effects.phones.mockClear()
     expect(await fireDagstart(input, { ...DEFAULT_DAGSTART, target: 'this_device' }, effects, morning + 2 * 60 * 60_000)).toBe(1)
     expect(effects.phones).not.toHaveBeenCalled()
+  })
+
+  it('logs a sent Dagstart in the Dagbriefing once per day and channel', async () => {
+    setFeature('briefing', true)
+    briefingStore.adopt(emptyBriefing())
+    try {
+      const input = { calendarEvents: [], timetable: [{ id: 'l', day: 2, start: '08:30', end: '10:30', subject: 'Wiskunde' }], items: [], reminders: [] }
+      const effects = { local: vi.fn(async () => {}), phones: vi.fn(async () => {}) }
+      const morning = new Date(2026, 10, 3, 7, 30).getTime()
+      const extra = () => ['Vrij: 10:30–20:00']
+      expect(await fireDagstart(input, DEFAULT_DAGSTART, effects, morning + 20_000, extra)).toBe(1)
+      expect(effects.phones).toHaveBeenCalledWith(expect.any(String), '08:30 Wiskunde\nVrij: 10:30–20:00', 'dagstart:2026-11-03')
+      // A second device that sends the same morning adds nothing to the history.
+      localStorage.removeItem('nexus.dagstart.checkedAt')
+      expect(await fireDagstart(input, DEFAULT_DAGSTART, effects, morning + 40_000, extra)).toBe(1)
+      expect(briefingStore.getSnapshot().log.map((l) => l.id).sort()).toEqual(['2026-11-03:local', '2026-11-03:phone'])
+    } finally {
+      setFeature('briefing', false)
+    }
   })
 })

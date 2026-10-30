@@ -40,8 +40,13 @@ const clock = (t: number) => new Intl.DateTimeFormat('nl-BE', { hour: '2-digit',
 const shortDay = (t: number) => new Intl.DateTimeFormat('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(t))
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+/** Extra lines for the Dagstart of a day, e.g. from the Dagbriefing; [at] is when it is shown. */
+export type DagstartExtra = (dayStart: number, at: number) => string[]
+/** At most this many extra lines, after the agenda. */
+const MAX_EXTRA = 4
+
 /** The Dagstart of the local day [dayStart], at the time in [settings]; without text when nothing is planned. */
-export function dagstartNotice(input: AgendaInput, dayStart: number, settings: Pick<DagstartSettings, 'time'>): PlannedNotice {
+export function dagstartNotice(input: AgendaInput, dayStart: number, settings: Pick<DagstartSettings, 'time'>, extra?: DagstartExtra): PlannedNotice {
   const at = atTime(dayStart, settings.time)
   const entries = agendaDay(input, dayStart)
   const lines = entries.map((e) => {
@@ -57,6 +62,7 @@ export function dagstartNotice(input: AgendaInput, dayStart: number, settings: P
     .slice(0, 3)
     .map((d) => `${d.title} (${shortDay(d.dueAt)})`)
   if (soon.length > 0) shown.push(`Binnenkort: ${soon.join(', ')}`)
+  if (extra) shown.push(...extra(dayStart, at).slice(0, MAX_EXTRA))
 
   const lessons = entries.filter((e) => e.kind === 'lesson').length
   const deadlines = entries.filter((e) => e.kind === 'deadline').length
@@ -74,7 +80,7 @@ export function dagstartNotice(input: AgendaInput, dayStart: number, settings: P
 const isEmpty = (n: PlannedNotice) => n.text === undefined
 
 /** The Dagstarts with a moment in (from, to]: the days and settings decide which ones. */
-export function dagstartNotices(input: AgendaInput, settings: DagstartSettings, from: number, to: number): PlannedNotice[] {
+export function dagstartNotices(input: AgendaInput, settings: DagstartSettings, from: number, to: number, extra?: DagstartExtra): PlannedNotice[] {
   if (!settings.enabled || settings.days.length === 0) return []
   const out: PlannedNotice[] = []
   for (let day = startOfDay(from); day <= to; day = addDays(day, 1)) {
@@ -83,13 +89,14 @@ export function dagstartNotices(input: AgendaInput, settings: DagstartSettings, 
     const at = atTime(day, settings.time)
     if (at <= from || at > to) continue
     const notice = dagstartNotice(input, day, settings)
+    // Whether a day is empty depends on the agenda only, so a habit alone does not wake you.
     if (settings.skipEmpty && isEmpty(notice)) continue
-    out.push(notice)
+    out.push(extra ? dagstartNotice(input, day, settings, extra) : notice)
   }
   return out
 }
 
 /** The Dagstarts the phone should know ahead (safety net and web push). */
-export function plannedDagstart(input: AgendaInput, settings: DagstartSettings, now: number, horizon = SAFETY_HORIZON_MS): PlannedNotice[] {
-  return settings.target === 'phone' ? dagstartNotices(input, settings, now, now + horizon) : []
+export function plannedDagstart(input: AgendaInput, settings: DagstartSettings, now: number, horizon = SAFETY_HORIZON_MS, extra?: DagstartExtra): PlannedNotice[] {
+  return settings.target === 'phone' ? dagstartNotices(input, settings, now, now + horizon, extra) : []
 }

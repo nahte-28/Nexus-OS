@@ -37,6 +37,7 @@ import {
 import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
 import { sendDagstartTest } from '../life/dagstart'
+import { dagstartExtra } from '../briefing/store'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
 import { profilesStore, useProfiles } from '../profiles/store'
@@ -767,7 +768,7 @@ function ProjectRow({ project: p, items }: { project: Project; items: LifeItem[]
 const WEEKDAY_SHORT = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
 
 /** Dagstart: every morning one notification with the day ahead. */
-function Dagstart() {
+export function Dagstart() {
   const { state } = useProfiles()
   const { engine } = useConnect()
   const items = useLife()
@@ -779,7 +780,7 @@ function Dagstart() {
   const today = startOfDay(now)
   // The next morning it comes: today when the time is still ahead, else tomorrow.
   const nextDay = new Date(today).setHours(Number(settings.time.slice(0, 2)), Number(settings.time.slice(3, 5))) > now ? today : startOfDay(today + DAY + 3_600_000)
-  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }, nextDay, settings)
+  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }, nextDay, settings, dagstartExtra())
 
   const test = async () => {
     setStatus('Versturen…')

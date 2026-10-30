@@ -167,6 +167,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
   },
+  briefing: {
+    summary: 'Dagbriefing: je dag in één overzicht, met wat eerst moet en waar je tijd hebt.',
+    tips: [
+      'Overzicht toont je dag, de belangrijkste prioriteiten en de vrije blokken van minstens een uur tussen 08:00 en 20:00.',
+      'Prioriteiten zet te late deadlines bovenaan, dan die van vandaag, examens van de komende week, deadlines van de komende dagen en gewoontes. Een deadline of gewoonte vink je daar meteen af.',
+      'In Bezorging kies je uur, dagen en of de Dagstart naar je gsm en horloge gaat. Met de Dagbriefing aan staan te laat, examens, gewoontes en je langste vrije blok mee in die melding.',
+      'Geschiedenis toont elke verstuurde Dagstart, één keer per dag en per kanaal, ook als meerdere apparaten openstonden.',
+    ],
+  },
   devhub: {
     summary: 'Developer Hub: je eigen widgets bouwen, testen in een sandbox en na een review op je dashboard zetten.',
     tips: [

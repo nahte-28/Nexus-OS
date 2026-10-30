@@ -1,4 +1,5 @@
-import { dagstartNotice, dagstartNotices, type AgendaInput, type DagstartSettings } from '@nexus/core'
+import { dagstartNotice, dagstartNotices, wallDate, type AgendaInput, type DagstartExtra, type DagstartSettings } from '@nexus/core'
+import { dagstartExtra, recordBriefing } from '../briefing/store'
 import type { ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { profilesStore } from '../profiles/store'
@@ -24,16 +25,21 @@ export const dagstartSettings = (): DagstartSettings => profilesStore.getSnapsho
  * Shows the Dagstart that came due since the last check, and sends it to the phone. Every device
  * that runs NEXUS does this; the phone shows it once, because it carries the day's ref.
  */
-export async function fireDagstart(input: AgendaInput, settings: DagstartSettings, effects: DeadlineEffects, now = Date.now()): Promise<number> {
+export async function fireDagstart(input: AgendaInput, settings: DagstartSettings, effects: DeadlineEffects, now = Date.now(), extra?: DagstartExtra): Promise<number> {
   const checked = Number(readStorage(CHECKED_KEY))
   const from = Math.max(Number.isFinite(checked) && checked > 0 ? checked : 0, now - CATCH_UP_MS)
   writeStorage(CHECKED_KEY, String(now))
-  const notice = dagstartNotices(input, settings, from, now).at(-1)
+  const notice = dagstartNotices(input, settings, from, now, extra).at(-1)
   if (!notice) return 0
-  await effects.local(notice.title, notice.text ?? '', notice.ref).catch(() => {})
+  const date = notice.ref.slice('dagstart:'.length)
+  await effects
+    .local(notice.title, notice.text ?? '', notice.ref)
+    .then(() => recordBriefing(date, 'local', notice.title, false, now))
+    .catch(() => {})
   if (settings.target === 'phone') {
     try {
       await effects.phones(notice.title, notice.text ?? '', notice.ref)
+      recordBriefing(date, 'phone', notice.title, false, now)
     } catch (err) {
       logEvent('reminders', `Dagstart naar gsm versturen mislukt: ${err instanceof Error ? err.message : err}`, true)
     }
@@ -47,10 +53,15 @@ export async function sendDagstartTest(effects: DeadlineEffects, now = Date.now(
   const today = new Date(now)
   today.setHours(0, 0, 0, 0)
   const settings = dagstartSettings()
-  const notice = dagstartNotice(dagstartInput(), today.getTime(), settings)
+  const notice = dagstartNotice(dagstartInput(), today.getTime(), settings, dagstartExtra())
   const ref = `dagstart-proef:${now}`
+  const date = wallDate(today.getTime())
   await effects.local(notice.title, notice.text ?? '', ref)
-  if (settings.target === 'phone') await effects.phones(notice.title, notice.text ?? '', ref)
+  recordBriefing(date, 'local', notice.title, true, now)
+  if (settings.target === 'phone') {
+    await effects.phones(notice.title, notice.text ?? '', ref)
+    recordBriefing(date, 'phone', notice.title, true, now)
+  }
 }
 
 /** Checks for the morning's Dagstart while NEXUS runs; one tab does it (Web Locks). */
@@ -60,7 +71,7 @@ export function startDagstart(connect: ConnectEngine): () => void {
   let release: (() => void) | undefined
   const effects = defaultDeadlineEffects(connect)
   const run = () => {
-    const tick = () => void Promise.all([lifeStore.ready, remindersStore.ready]).then(() => fireDagstart(dagstartInput(), dagstartSettings(), effects))
+    const tick = () => void Promise.all([lifeStore.ready, remindersStore.ready]).then(() => fireDagstart(dagstartInput(), dagstartSettings(), effects, Date.now(), dagstartExtra()))
     tick()
     timer = setInterval(tick, CHECK_MS)
   }
