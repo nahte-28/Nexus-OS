@@ -32,6 +32,8 @@ import {
   type TriggerType,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
+import { builderView, setBuilderView, type BuilderView } from '../flows/canvas'
+import { FlowCanvas } from '../flows/FlowCanvas'
 import { appName, currentContext, defaultEffects, runNow } from '../flows/runner'
 import { flowsStore, useFlowRuns, useFlows, type FlowRun } from '../flows/store'
 import { clearFlowRuns, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn } from '../flows/sync'
@@ -293,6 +295,7 @@ function Templates({ onUse }: { onUse: (template: FlowTemplate) => void }) {
 function Builder({ draft, onNew, onDone }: { draft: ReturnType<typeof useDraft>; onNew: () => void; onDone: () => void }) {
   const flow = draft.draft
   const [message, setMessage] = useState<string | null>(null)
+  const [view, setView] = useState<BuilderView>(builderView)
   if (!flow) {
     return (
       <div className="space-y-2">
@@ -364,55 +367,88 @@ function Builder({ draft, onNew, onDone }: { draft: ReturnType<typeof useDraft>;
       {draft.dirty && <p className="text-nx-muted">Niet bewaard.</p>}
       {message && <p role="status">{message}</p>}
 
-      <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
-        <div className="space-y-3">
-          <section aria-label="Wanneer" className={card}>
-            <h3 className="mb-2 font-semibold">1. Wanneer</h3>
-            <TriggerEditor trigger={flow.trigger} onChange={(trigger) => set({ trigger })} />
-          </section>
-          <section aria-label="Alleen als" className={card}>
-            <h3 className="mb-2 font-semibold">2. Alleen als (allemaal waar)</h3>
-            <ul className="space-y-2">
-              {flow.conditions.map((c, i) => (
-                <li key={i} className="flex flex-wrap items-end gap-2">
-                  <ConditionEditor condition={c} onChange={(next) => set({ conditions: flow.conditions.map((x, j) => (j === i ? next : x)) })} />
-                  <button type="button" className={button} onClick={() => set({ conditions: flow.conditions.filter((_, j) => j !== i) })}>
-                    Weg
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {flow.conditions.length < MAX_CONDITIONS && (
-              <AddSelect
-                label="Voorwaarde toevoegen"
-                options={CONDITION_TYPES.map((t) => ({ id: t, label: CONDITION_LABELS[t] }))}
-                onAdd={(t) => set({ conditions: [...flow.conditions, defaultCondition(t as ConditionType)] })}
-              />
-            )}
-          </section>
-          <section aria-label="Doe dit" className={card}>
-            <h3 className="mb-2 font-semibold">3. Doe dit</h3>
-            <ol className="space-y-3">
-              {flow.actions.map((a, i) => (
-                <li key={i} className="space-y-2 border-b border-nx-border pb-3 last:border-0 last:pb-0">
-                  <ActionEditor action={a} onChange={(next) => set({ actions: flow.actions.map((x, j) => (j === i ? next : x)) })} />
-                  <button type="button" className={button} onClick={() => set({ actions: flow.actions.filter((_, j) => j !== i) })}>
-                    Actie weg
-                  </button>
-                </li>
-              ))}
-            </ol>
-            {flow.actions.length < MAX_ACTIONS && (
-              <AddSelect
-                label="Actie toevoegen"
-                options={ACTION_TYPES.map((t) => ({ id: t, label: ACTION_LABELS[t] }))}
-                onAdd={(t) => set({ actions: [...flow.actions, defaultAction(t as ActionType)] })}
-              />
-            )}
-          </section>
-        </div>
-        <DryRun flow={flow} error={error} />
+      <div role="radiogroup" aria-label="Weergave" className="inline-flex rounded-lg border border-nx-border p-0.5">
+        {(['list', 'canvas'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="radio"
+            aria-checked={view === v}
+            onClick={() => {
+              setView(v)
+              setBuilderView(v)
+            }}
+            className={`rounded-md px-3 py-1 ${view === v ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-muted'}`}
+          >
+            {v === 'list' ? 'Lijst' : 'Canvas'}
+          </button>
+        ))}
       </div>
+
+      {view === 'canvas' ? (
+        <div className="space-y-4">
+          <FlowCanvas
+            flow={flow}
+            onChange={(next) => set(next)}
+            editors={{
+              trigger: (t, onChange) => <TriggerEditor trigger={t} onChange={onChange} />,
+              condition: (c, onChange) => <ConditionEditor condition={c} onChange={onChange} />,
+              action: (a, onChange) => <ActionEditor action={a} onChange={onChange} />,
+            }}
+          />
+          <DryRun flow={flow} error={error} />
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-[3fr_2fr]">
+          <div className="space-y-3">
+            <section aria-label="Wanneer" className={card}>
+              <h3 className="mb-2 font-semibold">1. Wanneer</h3>
+              <TriggerEditor trigger={flow.trigger} onChange={(trigger) => set({ trigger })} />
+            </section>
+            <section aria-label="Alleen als" className={card}>
+              <h3 className="mb-2 font-semibold">2. Alleen als (allemaal waar)</h3>
+              <ul className="space-y-2">
+                {flow.conditions.map((c, i) => (
+                  <li key={i} className="flex flex-wrap items-end gap-2">
+                    <ConditionEditor condition={c} onChange={(next) => set({ conditions: flow.conditions.map((x, j) => (j === i ? next : x)) })} />
+                    <button type="button" className={button} onClick={() => set({ conditions: flow.conditions.filter((_, j) => j !== i) })}>
+                      Weg
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {flow.conditions.length < MAX_CONDITIONS && (
+                <AddSelect
+                  label="Voorwaarde toevoegen"
+                  options={CONDITION_TYPES.map((t) => ({ id: t, label: CONDITION_LABELS[t] }))}
+                  onAdd={(t) => set({ conditions: [...flow.conditions, defaultCondition(t as ConditionType)] })}
+                />
+              )}
+            </section>
+            <section aria-label="Doe dit" className={card}>
+              <h3 className="mb-2 font-semibold">3. Doe dit</h3>
+              <ol className="space-y-3">
+                {flow.actions.map((a, i) => (
+                  <li key={i} className="space-y-2 border-b border-nx-border pb-3 last:border-0 last:pb-0">
+                    <ActionEditor action={a} onChange={(next) => set({ actions: flow.actions.map((x, j) => (j === i ? next : x)) })} />
+                    <button type="button" className={button} onClick={() => set({ actions: flow.actions.filter((_, j) => j !== i) })}>
+                      Actie weg
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {flow.actions.length < MAX_ACTIONS && (
+                <AddSelect
+                  label="Actie toevoegen"
+                  options={ACTION_TYPES.map((t) => ({ id: t, label: ACTION_LABELS[t] }))}
+                  onAdd={(t) => set({ actions: [...flow.actions, defaultAction(t as ActionType)] })}
+                />
+              )}
+            </section>
+          </div>
+          <DryRun flow={flow} error={error} />
+        </div>
+      )}
     </div>
   )
 }
