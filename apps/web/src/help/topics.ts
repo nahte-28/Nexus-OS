@@ -167,6 +167,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
   },
+  projecthub: {
+    summary: 'Project Hub: je projecten van idee tot oplevering, met een bord, mijlpalen en een tijdlijn.',
+    tips: [
+      'Elk project is ook een project in de Agenda: de deadlines ervan staan mee op de Tijdlijn.',
+      'Op het Bord sleep je een taak naar een andere kolom, of gebruik je de pijltjes. Klik op een taak voor prioriteit, datum, mijlpaal en waar ze op wacht.',
+      'Met "In Agenda zetten" wordt een taak met een datum een deadline, met een melding de dag ervoor.',
+      'Activiteit toont wat er veranderde: nieuwe taken, verplaatsingen, mijlpalen en de status.',
+    ],
+  },
   briefing: {
     summary: 'Dagbriefing: je dag in één overzicht, met wat eerst moet en waar je tijd hebt.',
     tips: [

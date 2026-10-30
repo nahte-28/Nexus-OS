@@ -26,6 +26,7 @@ import { startSpacesSync } from './spaces/store'
 import { startInboxSync } from './inbox/store'
 import { startCapturesSync } from './capture/hub'
 import { startBriefingSync } from './briefing/store'
+import { startProjectHubSync } from './projecthub/store'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -86,6 +87,8 @@ startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
 startCapturesSync(supabase, () => isFeatureOn('capture'), onFeaturesChange)
 // Dagbriefing: the history of sent Dagstarts.
 startBriefingSync(supabase, () => isFeatureOn('briefing'), onFeaturesChange)
+// Project Hub: board, milestones and activity of the Agenda projects.
+startProjectHubSync(supabase, () => isFeatureOn('projectHub'), onFeaturesChange)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.
