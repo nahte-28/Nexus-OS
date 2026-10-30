@@ -3,7 +3,7 @@ import {
   alreadyInAgenda,
   formatInvite,
   groupFeed,
-  normalizeInvite,
+  normalizeTeamCode,
   openGroupTasks,
   shareableItems,
   taskProgress,
@@ -136,9 +136,9 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
         const g = await groups.create(name, displayName)
         pick(g.id)
       } else {
-        const normalized = normalizeInvite(code)
-        if (!normalized) throw new Error('Een uitnodigingscode heeft 8 letters en cijfers, bv. ABCD-EF23.')
-        const g = await groups.join(normalized, displayName)
+        const normalized = normalizeTeamCode(code)
+        if (!normalized) throw new Error('Een uitnodigingscode heeft 8 of 10 letters en cijfers, bv. ABCD-EF23.')
+        const g = await groups.join(normalized.code, displayName)
         if (!g) throw new Error('Geen groep gevonden met die code.')
         pick(g.id)
       }
@@ -154,7 +154,7 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
       {mode === 'create' ? (
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam van de groep, bv. 1IT3 projectgroep" aria-label="Naam van de groep" className={field} />
       ) : (
-        <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={12} placeholder="Uitnodigingscode, bv. ABCD-EF23" aria-label="Uitnodigingscode" className={`${field} font-mono uppercase`} />
+        <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={14} placeholder="Uitnodigingscode, bv. ABCD-EF23" aria-label="Uitnodigingscode" className={`${field} font-mono uppercase`} />
       )}
       <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} placeholder="Je naam in de groep" aria-label="Je naam in de groep" className={field} />
       <p className="text-xs text-nx-muted">Je e-mailadres blijft verborgen. De groep ziet alleen deze naam en wat je zelf deelt.</p>
