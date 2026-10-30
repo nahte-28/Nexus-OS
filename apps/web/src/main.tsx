@@ -25,6 +25,7 @@ import { startJournalSync } from './journal/store'
 import { startSpacesSync } from './spaces/store'
 import { startInboxSync } from './inbox/store'
 import { startCapturesSync } from './capture/hub'
+import { startBriefingSync } from './briefing/store'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -83,6 +84,8 @@ startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
 // Snel vastleggen 2.0: Te sorteren, sjablonen and history of Snelle notitie.
 startCapturesSync(supabase, () => isFeatureOn('capture'), onFeaturesChange)
+// Dagbriefing: the history of sent Dagstarts.
+startBriefingSync(supabase, () => isFeatureOn('briefing'), onFeaturesChange)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.

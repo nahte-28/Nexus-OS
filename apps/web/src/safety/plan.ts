@@ -5,6 +5,7 @@ import { inQuietHours } from '../flows/runner'
 import { financeStore } from '../finance/store'
 import { flowsStore, flowStudioEnabled } from '../flows/store'
 import { dagstartInput, dagstartSettings } from '../life/dagstart'
+import { dagstartExtra } from '../briefing/store'
 import { habitsStore } from '../habits/store'
 import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
@@ -30,7 +31,7 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...flowNotices])
 }
 
 interface Sent {
