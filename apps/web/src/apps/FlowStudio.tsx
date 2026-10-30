@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   ACTION_LABELS,
   ACTION_TYPES,
@@ -36,7 +36,7 @@ import { builderView, setBuilderView, type BuilderView } from '../flows/canvas'
 import { FlowCanvas } from '../flows/FlowCanvas'
 import { appName, currentContext, defaultEffects, runNow } from '../flows/runner'
 import { flowsStore, useFlowRuns, useFlows, type FlowRun } from '../flows/store'
-import { clearFlowRuns, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn } from '../flows/sync'
+import { clearFlowRuns, fetchFlowsServerStatus, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn, type FlowsServerStatus } from '../flows/sync'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -856,6 +856,30 @@ function FlowsSyncSetting() {
         Staat een flow op meerdere apparaten, dan voert het eerste apparaat dat het moment ziet ze uit en slaan de andere het over. Zonder
         verbinding voert elk apparaat ze zelf uit, zodat een herinnering nooit op het netwerk wacht.
       </p>
+      {status.state === 'synced' && <FlowsServerSetting />}
     </fieldset>
+  )
+}
+
+/** Whether fixed-time profile flows also run while NEXUS is closed everywhere. */
+function FlowsServerSetting() {
+  const [server, setServer] = useState<FlowsServerStatus | null | undefined>(undefined)
+  useEffect(() => {
+    let live = true
+    void fetchFlowsServerStatus().then((s) => live && setServer(s))
+    return () => {
+      live = false
+    }
+  }, [])
+  if (server === undefined) return null
+  const last = server?.lastRun
+    ? ` Laatst: ${new Date(server.lastRun).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`
+    : ''
+  return (
+    <p className="text-nx-muted" data-testid="flows-server">
+      {server?.scheduled
+        ? `Ook als NEXUS overal dicht is: een flow op een vast tijdstip die een profiel kiest, kiest het een paar minuten later toch in je account.${last}`
+        : 'Flows lopen alleen terwijl NEXUS ergens open is. Voer de SQL voor flows op de server uit (Account › Database-check) om profielkeuzes ook te laten lopen als alles dicht is.'}
+    </p>
   )
 }

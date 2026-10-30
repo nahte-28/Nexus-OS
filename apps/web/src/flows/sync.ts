@@ -325,9 +325,28 @@ export function setFlowsSyncOn(on: boolean): void {
   else setStatus({ state: 'signed-out' })
 }
 
+export interface FlowsServerStatus {
+  /** Whether the database runs fixed-time profile flows itself (20261030090000_flows_server.sql). */
+  scheduled: boolean
+  /** When the server last ran one of this account's flows. */
+  lastRun: number | null
+}
+
+let serverClient: SupabaseClient | null = null
+
+/** Asks the account whether flows also run there; null when signed out or the SQL is missing. */
+export async function fetchFlowsServerStatus(): Promise<FlowsServerStatus | null> {
+  if (!serverClient || !current) return null
+  const { data, error } = await serverClient.rpc('flows_server_status')
+  if (error || !data || typeof data !== 'object') return null
+  const v = data as { scheduled?: unknown; lastRun?: unknown }
+  return { scheduled: v.scheduled === true, lastRun: typeof v.lastRun === 'number' ? v.lastRun : null }
+}
+
 /** Starts syncing flows whenever someone is signed in; stays local-only otherwise. */
 export function startFlowsSync(client: SupabaseClient | null, store: FlowsStore = flowsStore): () => void {
   if (!client) return () => {}
+  serverClient = client
   let userId: string | null = null
   let debounce: ReturnType<typeof setTimeout> | undefined
   const remote = createFlowsRemote(client)
@@ -374,5 +393,6 @@ export function startFlowsSync(client: SupabaseClient | null, store: FlowsStore 
     window.removeEventListener('online', now)
     void client.removeChannel(channel)
     current = null
+    serverClient = null
   }
 }

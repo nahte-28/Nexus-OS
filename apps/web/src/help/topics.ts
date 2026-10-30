@@ -93,7 +93,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   flows: {
     summary: 'Flow Studio (beta): laat NEXUS iets doen als iets gebeurt, zoals een melding bij een bijna volle budgetpot.',
-    tips: ['Begin met een sjabloon en test met een proefrun voor je de flow aanzet.', 'In de Bouwer kies je Lijst of Canvas; op het canvas sleep je blokken erbij, van plaats of naar de prullenbak.', 'Flows draaien zolang NEXUS ergens openstaat.'],
+    tips: ['Begin met een sjabloon en test met een proefrun voor je de flow aanzet.', 'In de Bouwer kies je Lijst of Canvas; op het canvas sleep je blokken erbij, van plaats of naar de prullenbak.', 'Flows draaien zolang NEXUS ergens openstaat. Een flow op een vast tijdstip die een profiel kiest, loopt met de SQL voor flows op de server ook als alles dicht is.'],
   },
   profiles: {
     summary: 'Profielen (School, Persoonlijk, Gaming, Developer) bepalen welke apps en welk thema je ziet.',
