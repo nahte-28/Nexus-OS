@@ -1,4 +1,4 @@
-import { appointmentsOf, openDeadlines, parseAppointment, parseDeadline, parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
+import { appointmentsOf, nextOccurrence, openDeadlines, parseAppointment, repeatLabel, parseDeadline, parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import type { LifeStore } from '../life/store'
 import type { RemindersStore } from '../reminders/store'
@@ -149,9 +149,12 @@ export const TOOL_SPECS: Record<string, ToolSpec> = {
     run: async (_input, ctx) => {
       const items = ctx.life.getSnapshot()
       const deadlines = openDeadlines(items).map((d) => ({ type: 'deadline', title: d.title, due: new Date(d.dueAt).toISOString() }))
-      const appointments = appointmentsOf(items)
-        .filter((a) => a.endAt >= ctx.now())
-        .map((a) => ({ type: 'afspraak', title: a.title, start: new Date(a.startAt).toISOString(), end: new Date(a.endAt).toISOString(), location: a.location || undefined }))
+      const appointments = appointmentsOf(items).flatMap((a) => {
+        // A series shows its next time, with how it repeats.
+        const next = nextOccurrence(a, ctx.now())
+        if (!next) return []
+        return [{ type: 'afspraak', title: a.title, start: new Date(next.startAt).toISOString(), end: new Date(next.endAt).toISOString(), location: a.location || undefined, repeat: a.repeat ? repeatLabel(a.repeat, a.startAt) : undefined }]
+      })
       const all = [...deadlines, ...appointments].slice(0, 60)
       return all.length ? JSON.stringify(all) : 'Geen open deadlines of komende afspraken.'
     },

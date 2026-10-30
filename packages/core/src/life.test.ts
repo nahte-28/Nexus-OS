@@ -93,7 +93,7 @@ describe('NEXUS Life', () => {
     expect(parseAppointment({ title: '', startAt: 1 })).toMatchObject({ ok: false })
 
     const start = new Date(2026, 10, 3, 14, 0).getTime()
-    const a: Appointment = { kind: 'appointment', id: 'a1', title: 'Tandarts', startAt: start, endAt: start + H, location: 'Antwerpen', notes: '', remind: [60], target: 'phone', updatedAt: 1, deletedAt: null }
+    const a: Appointment = { kind: 'appointment', id: 'a1', title: 'Tandarts', startAt: start, endAt: start + H, location: 'Antwerpen', notes: '', remind: [60], target: 'phone', repeat: null, updatedAt: 1, deletedAt: null }
     expect(toLifeItem(a)).toEqual(a)
     const notices = deadlineNotices([a], start - 2 * H, start)
     expect(notices.map((n) => [n.ref, n.title])).toEqual([[appointmentRef(a, 60), 'Afspraak over 1 uur: Tandarts']])

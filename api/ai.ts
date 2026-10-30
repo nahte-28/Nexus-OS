@@ -134,6 +134,18 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
           description: 'Minuten ervoor een melding sturen (10080 = 1 week, 1440 = 1 dag, 0 = op het moment zelf).',
         },
         target: { type: 'string', enum: ['this_device', 'phone'], description: 'phone: ook op gsm en horloge. Standaard phone.' },
+        repeat: {
+          type: 'object',
+          description: 'Alleen voor een afspraak die terugkomt, bv. elke dinsdag.',
+          properties: {
+            freq: { type: 'string', enum: ['daily', 'weekly', 'monthly', 'yearly'] },
+            interval: { type: 'integer', minimum: 1, maximum: 52, description: 'Elke zoveel dagen, weken, maanden of jaren; standaard 1.' },
+            days: { type: 'array', items: { type: 'integer', minimum: 1, maximum: 7 }, description: 'Bij weekly: weekdagen, 1 = maandag. Standaard de dag van het begin.' },
+            until: { type: 'string', description: 'Laatste datum, YYYY-MM-DD; weglaten voor zonder einde.' },
+          },
+          required: ['freq'],
+          additionalProperties: false,
+        },
       },
       required: ['title', 'startAt'],
       additionalProperties: false,

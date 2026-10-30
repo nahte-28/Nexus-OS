@@ -86,7 +86,7 @@ export class LifeStore implements LocalStore<LifeItem> {
 
   async addAppointment(draft: AppointmentDraft, now = Date.now()): Promise<string> {
     const id = crypto.randomUUID()
-    await this.save({ ...draft, kind: 'appointment', id, updatedAt: now, deletedAt: null })
+    await this.save({ repeat: null, ...draft, kind: 'appointment', id, updatedAt: now, deletedAt: null })
     return id
   }
 
