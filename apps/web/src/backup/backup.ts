@@ -1,6 +1,12 @@
 import {
   mergeSpaces,
   parseSpacesState,
+  parseCaptures,
+  mergeCaptures,
+  parseProjectHub,
+  mergeProjectHub,
+  parseKnowledge,
+  mergeKnowledge,
   BACKUP_FORMAT,
   BACKUP_VERSION,
   fromBase64,
@@ -22,7 +28,10 @@ import {
   type NexusBackup,
 } from '@nexus/core'
 import { filesStore } from '../files/store'
+import { capturesStore } from '../capture/hub'
 import { financeStore } from '../finance/store'
+import { projectHubStore } from '../projecthub/store'
+import { knowledgeStore } from '../knowledge/store'
 import { flashcardsStore } from '../flashcards/store'
 import { flowsStore, parseFlowsState } from '../flows/store'
 import { gradesStore } from '../grades/store'
@@ -52,6 +61,9 @@ const DOCS: Record<BackupDoc, Doc<any>> = {
   exams: doc(examsStore, parseExamsState, mergeExams),
   journal: doc(journalStore, parseJournalState, mergeJournal),
   spaces: doc(spacesStore, parseSpacesState, mergeSpaces),
+  captures: doc(capturesStore, parseCaptures, mergeCaptures),
+  projecthub: doc(projectHubStore, parseProjectHub, mergeProjectHub),
+  knowledge: doc(knowledgeStore, parseKnowledge, mergeKnowledge),
 }
 
 /** Everything on this device in one back-up. Files kept only in your account are fetched first when [withFiles]. */

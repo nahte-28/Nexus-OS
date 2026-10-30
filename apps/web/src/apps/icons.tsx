@@ -245,6 +245,20 @@ export const QuickNoteIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const LibraryIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 4h4v16H4zM10 4h4v16h-4z" />
+    <path d="m16 5 3.8-1 2.2 15.5-3.8 1z" />
+  </svg>
+)
+
+export const BoardIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16M15 4v16M5.5 8h1.5M11 8h2M11 11h2M17 8h1.5" />
+  </svg>
+)
+
 export const SunIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <circle cx="12" cy="12" r="4" />
