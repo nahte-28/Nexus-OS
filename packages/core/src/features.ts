@@ -2,7 +2,7 @@
  * Feature flags (blueprint fase 0): every new module from the blueprint ships behind a switch,
  * so it can be rolled out gradually and switched off at once (kill switch). Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -24,6 +24,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'capture', title: 'Snel vastleggen', description: 'Te sorteren, sjablonen en geschiedenis bij Snelle notitie: links en ideeën nu bewaren, later een plek geven.', defaultOn: false, available: true },
   { id: 'briefing', title: 'Dagbriefing', description: 'Dagstart 2.0: je dag in één overzicht met prioriteiten, vrije blokken en een geschiedenis, en de belangrijkste punten mee in je Dagstart.', defaultOn: false, available: true },
   { id: 'projectHub', title: 'Project Hub', description: 'Je Agenda-projecten met een kanbanbord, prioriteiten, afhankelijkheden, mijlpalen, een tijdlijn en activiteit.', defaultOn: false, available: true },
+  { id: 'knowledge', title: 'Kennis', description: 'Je notities als kennisbank: collecties, tags, verwijzingen met [[Titel]], Markdown, zoeken en versiegeschiedenis.', defaultOn: false, available: true },
 ]
 
 export type FeatureSwitches = Partial<Record<FeatureId, boolean>>

@@ -167,6 +167,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
   },
+  knowledge: {
+    summary: 'Kennis: je notities als doorzoekbare kennisbank, met collecties, tags, verwijzingen en versies.',
+    tips: [
+      'Het zijn dezelfde notities als in Notities: wat je daar of in Snel vastleggen bewaart, staat hier ook.',
+      'Schrijf in Markdown (# kop, **vet**, - lijst) en klik op Voorbeeld. Met [[Titel]] verwijs je naar een andere notitie; bestaat die nog niet, dan maak je ze met één klik.',
+      'Tags geef je onder de notitie of met #tag in de tekst. Collecties groeperen notities, bv. per vak.',
+      'Geschiedenis bewaart een versie als je een notitie verlaat (de laatste 20). Terugzetten bewaart eerst wat er nu staat.',
+    ],
+  },
   projecthub: {
     summary: 'Project Hub: je projecten van idee tot oplevering, met een bord, mijlpalen en een tijdlijn.',
     tips: [

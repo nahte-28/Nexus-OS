@@ -11,7 +11,7 @@ export const BACKUP_FORMAT = 'nexus-backup'
 export const BACKUP_VERSION = 1
 
 /** The documents that sync as one row of user_settings, by their key. */
-export const BACKUP_DOCS = ['grades', 'habits', 'flashcards', 'finance', 'exams', 'journal', 'spaces', 'captures', 'projecthub'] as const
+export const BACKUP_DOCS = ['grades', 'habits', 'flashcards', 'finance', 'exams', 'journal', 'spaces', 'captures', 'projecthub', 'knowledge'] as const
 export type BackupDoc = (typeof BACKUP_DOCS)[number]
 
 export interface BackupFile {
@@ -104,7 +104,7 @@ export function backupSummary(b: NexusBackup): string[] {
   add(b.files.length, 'bestand', 'bestanden')
   add(b.flows?.flows.length ?? 0, 'flow', 'flows')
   add(b.focusLog.length, 'focusronde', 'focusrondes')
-  const names: Record<BackupDoc, string> = { grades: 'Cijfers', habits: 'Gewoontes', flashcards: 'Leerkaarten', finance: 'Financiën', exams: 'Examens', journal: 'Dagboek', spaces: 'Spaces', captures: 'Snel vastleggen', projecthub: 'Project Hub' }
+  const names: Record<BackupDoc, string> = { grades: 'Cijfers', habits: 'Gewoontes', flashcards: 'Leerkaarten', finance: 'Financiën', exams: 'Examens', journal: 'Dagboek', spaces: 'Spaces', captures: 'Snel vastleggen', projecthub: 'Project Hub', knowledge: 'Kennis' }
   const docs = BACKUP_DOCS.filter((k) => b.docs[k] !== undefined).map((k) => names[k])
   if (docs.length) lines.push(docs.join(', '))
   if (b.profiles) lines.push('Profielen en lesrooster')
