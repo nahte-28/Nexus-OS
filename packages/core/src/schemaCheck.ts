@@ -38,6 +38,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261029170000_spaces.sql', label: 'Spaces syncen', needs: [{ settingsKey: 'spaces' }] },
   { file: '20261029190000_inbox.sql', label: 'Universal Inbox syncen', needs: [{ table: 'inbox_items' }] },
   { file: '20261030090000_flows_server.sql', label: 'Flows op de server', needs: [{ fn: 'flows_server_status' }] },
+  { file: '20261030120000_modules.sql', label: 'Nieuwe modules syncen (Snel vastleggen, Kennis, Project Hub …)', needs: ['captures', 'briefing', 'knowledge', 'projecthub', 'studylab', 'gaming'].map((settingsKey) => ({ settingsKey })) },
 ]
 
 /** What nexus_schema_status() returns. */

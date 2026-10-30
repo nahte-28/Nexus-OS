@@ -159,6 +159,14 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Drie regels: School, Deadlines en Updates. Je zet ze aan of uit in Automatiseringen. Ze draaien op dit toestel, zonder AI.',
     ],
   },
+  capture: {
+    summary: 'Snel vastleggen: links, ideeën en taken meteen bewaren en later een plek geven.',
+    tips: [
+      'Kies in Snelle notitie (Alt+N of Ctrl+Shift+Spatie) "Later sorteren" en sorteer het in Te sorteren naar een notitie, deadline of herinnering.',
+      'Sjablonen zetten tekst en soort klaar voor wat je vaak bewaart.',
+      'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
+    ],
+  },
   devhub: {
     summary: 'Developer Hub: je eigen widgets bouwen, testen in een sandbox en na een review op je dashboard zetten.',
     tips: [
