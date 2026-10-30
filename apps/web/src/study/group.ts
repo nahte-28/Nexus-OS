@@ -63,6 +63,7 @@ export function groupError(error: { code?: string; message?: string } | null | u
   if (/too many group tasks/i.test(text)) return 'Deze groep heeft al 100 groepsdeadlines. Verwijder eerst oude.'
   if (/too many groups/i.test(text)) return 'Je kunt hoogstens 10 groepen maken.'
   if (/group full/i.test(text)) return 'Deze groep is vol: er kunnen 30 leden in.'
+  if (/42501|row-level security|not allowed/i.test(text)) return 'Dat mag je niet met je rol in deze groep.'
   if (/JWT|PGRST30|not signed in/i.test(text)) return 'Je sessie is verlopen. Meld je af en opnieuw aan.'
   if (/fetch|network/i.test(text)) return 'Geen verbinding. Probeer het zo opnieuw.'
   return error?.message || 'Er ging iets mis met de studiegroep.'
@@ -103,9 +104,9 @@ export class StudyGroups {
     return toGroup(data as GroupRow)
   }
 
-  /** Null when no group has this code. */
+  /** Null when no group has this code. A code of 10 characters is a Teams invitation. */
   async join(code: string, displayName: string): Promise<StudyGroup | null> {
-    const { data, error } = await this.client.rpc('join_study_group', { p_code: code, p_display_name: displayName.trim().slice(0, DISPLAY_NAME_MAX) })
+    const { data, error } = await this.client.rpc(code.length === 10 ? 'join_team' : 'join_study_group', { p_code: code, p_display_name: displayName.trim().slice(0, DISPLAY_NAME_MAX) })
     if (error) fail(error)
     const row = data as GroupRow | null
     return row?.id ? toGroup(row) : null

@@ -2,7 +2,7 @@
  * Feature flags (blueprint fase 0): every new module from the blueprint ships behind a switch,
  * so it can be rolled out gradually and switched off at once (kill switch). Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -27,6 +27,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'knowledge', title: 'Kennis', description: 'Je notities als kennisbank: collecties, tags, verwijzingen met [[Titel]], Markdown, zoeken en versiegeschiedenis.', defaultOn: false, available: true },
   { id: 'studyLab', title: 'Study Lab', description: 'Vakken met onderwerpen, je eigen oefenvragen, oefenrondes, studiesessies en voortgang per onderwerp.', defaultOn: false, available: true },
   { id: 'gaming', title: 'Gaming Companion', description: 'Je games, een sessielogboek, builds en loadouts, statistieken en een plan per week. Alles zelf ingevoerd, zonder platformkoppeling.', defaultOn: false, available: true },
+  { id: 'teams', title: 'Teams', description: 'Je studiegroepen met rollen (eigenaar, beheerder, lid, kijker), uitnodigingen die vervallen en projecten waar het team samen aan werkt.', defaultOn: false, available: true },
 ]
 
 export type FeatureSwitches = Partial<Record<FeatureId, boolean>>

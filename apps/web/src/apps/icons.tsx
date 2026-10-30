@@ -252,6 +252,15 @@ export const FlaskIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const TeamIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3 20a6 6 0 0 1 12 0" />
+    <circle cx="17" cy="9" r="2.5" />
+    <path d="M16 14.2a5 5 0 0 1 5 5.8" />
+  </svg>
+)
+
 export const LibraryIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M4 4h4v16H4zM10 4h4v16h-4z" />

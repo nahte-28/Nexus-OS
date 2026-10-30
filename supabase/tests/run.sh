@@ -16,4 +16,5 @@ for file in "$here"/../migrations/*.sql; do
 done
 psql -f "$here/rls.sql"
 psql -f "$here/flows_server.sql"
+psql -f "$here/teams.sql"
 echo "Databasetests geslaagd"
