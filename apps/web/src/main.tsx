@@ -28,6 +28,8 @@ import { startCapturesSync } from './capture/hub'
 import { startBriefingSync } from './briefing/store'
 import { startProjectHubSync } from './projecthub/store'
 import { startKnowledgeSync } from './knowledge/store'
+import { startStudyLabSync } from './studylab/store'
+import { startGamingSync } from './gaming/store'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -92,6 +94,9 @@ startBriefingSync(supabase, () => isFeatureOn('briefing'), onFeaturesChange)
 startProjectHubSync(supabase, () => isFeatureOn('projectHub'), onFeaturesChange)
 // Kennis: collections, tags and versions of Notities.
 startKnowledgeSync(supabase, () => isFeatureOn('knowledge'), onFeaturesChange)
+// Study Lab and Gaming Companion: own documents, synced once switched on.
+startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
+startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.

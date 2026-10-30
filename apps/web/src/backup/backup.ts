@@ -7,6 +7,10 @@ import {
   mergeProjectHub,
   parseKnowledge,
   mergeKnowledge,
+  parseStudyLab,
+  mergeStudyLab,
+  parseGaming,
+  mergeGaming,
   BACKUP_FORMAT,
   BACKUP_VERSION,
   fromBase64,
@@ -32,6 +36,8 @@ import { capturesStore } from '../capture/hub'
 import { financeStore } from '../finance/store'
 import { projectHubStore } from '../projecthub/store'
 import { knowledgeStore } from '../knowledge/store'
+import { studyLabStore } from '../studylab/store'
+import { gamingStore } from '../gaming/store'
 import { flashcardsStore } from '../flashcards/store'
 import { flowsStore, parseFlowsState } from '../flows/store'
 import { gradesStore } from '../grades/store'
@@ -64,6 +70,8 @@ const DOCS: Record<BackupDoc, Doc<any>> = {
   captures: doc(capturesStore, parseCaptures, mergeCaptures),
   projecthub: doc(projectHubStore, parseProjectHub, mergeProjectHub),
   knowledge: doc(knowledgeStore, parseKnowledge, mergeKnowledge),
+  studylab: doc(studyLabStore, parseStudyLab, mergeStudyLab),
+  gaming: doc(gamingStore, parseGaming, mergeGaming),
 }
 
 /** Everything on this device in one back-up. Files kept only in your account are fetched first when [withFiles]. */

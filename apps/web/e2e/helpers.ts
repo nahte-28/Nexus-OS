@@ -5,7 +5,7 @@ export async function startWithEverything(page: Page): Promise<void> {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('e2e.ready')) return
     sessionStorage.setItem('e2e.ready', '1')
-    localStorage.setItem('nexus.features', JSON.stringify({ spaces: true, inbox: true, timeMachine: true, bridge: true, intelligence: true, devHub: true, capture: true, briefing: true, projectHub: true, knowledge: true }))
+    localStorage.setItem('nexus.features', JSON.stringify({ spaces: true, inbox: true, timeMachine: true, bridge: true, intelligence: true, devHub: true, capture: true, briefing: true, projectHub: true, knowledge: true, studyLab: true, gaming: true }))
     localStorage.setItem('nexus.flows.enabled', 'on')
     localStorage.setItem('nexus.developer', 'on')
     localStorage.setItem('nexus.tour.done', '1')
