@@ -227,11 +227,13 @@ function Devices() {
           <div className="mt-1 text-xs">
             {d.isThisDevice
               ? 'Ontvangt wat je andere toestellen sturen.'
-              : targets.has(d.id)
-                ? d.push
-                  ? 'Kan tekst en links ontvangen, ook met NEXUS dicht (via een melding).'
-                  : 'Kan tekst en links ontvangen zodra NEXUS daar open is.'
-                : 'Toont alleen meldingen (gsm-app of horloge); Bridge stuurt hier niet naartoe.'}
+              : !targets.has(d.id)
+                ? ''
+                : d.platform === 'android'
+                  ? 'Toont tekst en links als melding (met de nieuwste gsm-app of horloge-app).'
+                  : d.push
+                    ? 'Kan tekst en links ontvangen, ook met NEXUS dicht (via een melding).'
+                    : 'Kan tekst en links ontvangen zodra NEXUS daar open is.'}
           </div>
         </li>
       ))}

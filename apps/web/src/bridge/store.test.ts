@@ -18,7 +18,7 @@ const device = (id: string, patch: Partial<DeviceView> = {}): DeviceView => ({
 
 /** Two devices on one fake Connect: what one sends, the other gets in its next batch. */
 function pair() {
-  const queues: Record<string, Array<{ from: string; message: BridgeMessage }>> = { pc: [], gsm: [] }
+  const queues: Record<string, Array<{ from: string; message: BridgeMessage }>> = { pc: [], gsm: [], watch: [] }
   const pushes: string[] = []
   const link = (self: string, other: string, opts: { failTo?: boolean; push?: boolean } = {}): BridgeLink => ({
     getSnapshot: () =>
@@ -43,7 +43,7 @@ describe('Bridge between two devices', () => {
     const pcLink = link('pc', 'gsm', { push: true })
     const gsmLink = link('gsm', 'pc')
 
-    const [t] = await sendTransfer(pcLink, ['gsm', 'watch'], 'https://ap.be/rooster', { store: pc, now: 1000 })
+    const [t] = await sendTransfer(pcLink, ['gsm'], 'https://ap.be/rooster', { store: pc, now: 1000 })
     expect(t.status).toBe('sent')
     expect(pc.getSnapshot().transfers).toHaveLength(1)
     expect(pushes).toEqual(['gsm:Link van Pc'])
@@ -59,6 +59,13 @@ describe('Bridge between two devices', () => {
     await markOpened(gsmLink, received, { store: gsm, now: 4000 })
     await receiveBatch(pcLink, take('pc'), { store: pc, now: 5000 })
     expect(pc.getSnapshot().transfers[0].status).toBe('opened')
+  })
+
+  it('sends to the companion app and the watch as well', async () => {
+    const { link, take } = pair()
+    const [t] = await sendTransfer(link('pc', 'gsm'), ['watch'], 'Lokaal D204', { store: new BridgeStore(false), now: 1000 })
+    expect(t).toMatchObject({ deviceId: 'watch', status: 'sent', type: 'text' })
+    expect(take('watch')).toMatchObject([{ from: 'pc', message: { kind: 'bridge', content: 'Lokaal D204' } }])
   })
 
   it('a cancel that arrives with the transfer wins, and nothing is shown', async () => {

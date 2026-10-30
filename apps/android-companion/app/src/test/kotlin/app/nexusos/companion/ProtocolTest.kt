@@ -68,4 +68,29 @@ class ProtocolTest {
         assertEquals("focus", focus.getString("action"))
         assertEquals(25, focus.getInt("minutes"))
     }
+
+    @Test
+    fun readsBridgeTransfers() {
+        val link = Protocol.parseBridge(
+            "{\"v\":1,\"kind\":\"bridge\",\"transferId\":\"t1\",\"type\":\"link\",\"content\":\"https://ap.be/rooster\",\"senderName\":\"Pc\",\"sentAt\":1000,\"expiresAt\":2000}",
+        )!!
+        assertEquals(BridgeTransfer("t1", "https://ap.be/rooster", "https://ap.be/rooster", "Pc", 1000, 2000), link)
+        // The receiver decides what a link is: a "link" that is no web address stays text.
+        assertNull(Protocol.parseBridge("{\"v\":1,\"kind\":\"bridge\",\"transferId\":\"t2\",\"type\":\"link\",\"content\":\"javascript:alert(1)\",\"sentAt\":1,\"expiresAt\":2}")!!.link)
+        assertNull(Protocol.parseBridge("{\"v\":1,\"kind\":\"bridge\",\"transferId\":\"t3\",\"content\":\"  \",\"sentAt\":1,\"expiresAt\":2}"))
+        assertNull(Protocol.parseBridge("{\"v\":1,\"kind\":\"notification\",\"title\":\"Hoi\"}"))
+        assertNull(Protocol.safeLink("https://naam:geheim@ap.be"))
+        assertNull(Protocol.safeLink("https://ap.be en meer"))
+        assertEquals("t1", Protocol.parseBridgeCancel("{\"v\":1,\"kind\":\"bridge_status\",\"transferId\":\"t1\",\"status\":\"cancel\",\"at\":5}"))
+        assertNull(Protocol.parseBridgeCancel("{\"v\":1,\"kind\":\"bridge_status\",\"transferId\":\"t1\",\"status\":\"opened\",\"at\":5}"))
+    }
+
+    @Test
+    fun answersBridgeLikeTheWebApp() {
+        val o = JSONObject(Protocol.bridgeStatus("t1", "declined", "expired", 9))
+        assertEquals("bridge_status", o.getString("kind"))
+        assertEquals("declined", o.getString("status"))
+        assertEquals("expired", o.getString("reason"))
+        assertFalse(JSONObject(Protocol.bridgeStatus("t1", "delivered", null, 9)).has("reason"))
+    }
 }

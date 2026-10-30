@@ -129,6 +129,7 @@ object Connect {
             val key = DeviceKey.privateKey()
             val ownKey = DeviceKey.publicKey()
             val names = store.devices.associate { it.id to it.name }
+            val answers = mutableListOf<Pair<String, String>>()
             for (message in messages) {
                 val plaintext = if (key == null || ownKey == null) {
                     null
@@ -142,6 +143,24 @@ object Connect {
                     Safety.replacePlan(app, message.senderDeviceId, plan)
                     continue
                 }
+                val transfer = Protocol.parseBridge(plaintext)
+                if (transfer != null) {
+                    val now = System.currentTimeMillis()
+                    val answer = if (transfer.expiresAt <= now) {
+                        Protocol.bridgeStatus(transfer.transferId, "declined", "expired", now)
+                    } else {
+                        Notifier.showTransfer(app, transfer, names[message.senderDeviceId])
+                        store.receivedAt = now
+                        Protocol.bridgeStatus(transfer.transferId, "delivered", null, now)
+                    }
+                    answers += message.senderDeviceId to answer
+                    continue
+                }
+                val cancelled = Protocol.parseBridgeCancel(plaintext)
+                if (cancelled != null) {
+                    Notifier.cancelTransfer(app, cancelled)
+                    continue
+                }
                 val incoming = Protocol.parsePayload(plaintext) ?: continue
                 // The safety net already showed it while NEXUS could not reach the phone.
                 if (incoming.ref != null && !Safety.claim(app, incoming.ref)) continue
@@ -149,6 +168,11 @@ object Connect {
                 store.receivedAt = System.currentTimeMillis()
             }
             api(store).deleteMessages(token(store), messages.map { it.id })
+            // The sender's Bridge shows "afgeleverd"; a failed answer only leaves it at "verstuurd".
+            for ((to, answer) in answers) {
+                val device = store.devices.find { it.id == to && !it.revoked } ?: continue
+                runCatching { send(store, listOf(device), answer) }
+            }
         }
     }
 

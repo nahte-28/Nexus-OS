@@ -142,6 +142,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Bridge: tekst en links naar een van je eigen toestellen sturen, end-to-end versleuteld via NEXUS Connect.',
     tips: [
       'Plak een link of typ een tekst, kies het toestel en verstuur. Een gsm met meldingen aan krijgt het ook als NEXUS daar dicht is.',
+      'De gsm-app en het horloge tonen wat je stuurt als melding; tik op een link om hem op je gsm te openen.',
       'In Overdrachten zie je of het afgeleverd of geopend is; zolang het niet afgeleverd is, kan je het nog annuleren.',
       'Wat je ontvangt, open je zelf: Link openen, Kopiëren of Als notitie bewaren. Na de gekozen tijd verdwijnt het.',
       'In Toestemmingen kies je welke toestellen naar dit toestel mogen sturen. Bridge moet aan staan op het toestel dat ontvangt.',
