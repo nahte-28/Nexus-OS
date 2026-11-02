@@ -6,6 +6,11 @@ import { reveal } from '../search/reveal'
 
 const { Finance } = await import('./Finance')
 
+// The first day of this month, so the Transacties tab (which shows the current month) lists it.
+const thisMonth = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
 const tab = (name: string) => fireEvent.click(screen.getByRole('tab', { name }))
 
 describe('Financiën', () => {
@@ -222,7 +227,7 @@ describe('Financiën', () => {
   })
 
   it('opens the right form from a search shortcut, hides amounts and deletes everything', () => {
-    financeStore.update((s): FinanceState => ({ ...s, transactions: [{ id: 'a', kind: 'income', amount: 5000, category: 'Job', note: '', date: '2026-10-01', subscriptionId: null, createdAt: 0, updatedAt: 1, deletedAt: null }] }))
+    financeStore.update((s): FinanceState => ({ ...s, transactions: [{ id: 'a', kind: 'income', amount: 5000, category: 'Job', note: '', date: thisMonth(), subscriptionId: null, createdAt: 0, updatedAt: 1, deletedAt: null }] }))
     render(<Finance />)
     act(() => reveal('finance', 'new-goal'))
     expect(screen.getByRole('tab', { name: 'Sparen' }).getAttribute('aria-selected')).toBe('true')
