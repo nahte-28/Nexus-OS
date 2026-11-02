@@ -18,12 +18,15 @@ create index if not exists devices_user on public.devices (user_id);
 
 alter table public.devices enable row level security;
 
+drop policy if exists "Users read their own devices" on public.devices;
 create policy "Users read their own devices" on public.devices
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users register their own devices" on public.devices;
 create policy "Users register their own devices" on public.devices
   for insert to authenticated with check ((select auth.uid()) = user_id and revoked_at is null);
 
+drop policy if exists "Users update their own devices" on public.devices;
 create policy "Users update their own devices" on public.devices
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
@@ -75,10 +78,12 @@ language sql stable security invoker as $$
   );
 $$;
 
+drop policy if exists "Devices read messages for themselves" on public.connect_messages;
 create policy "Devices read messages for themselves" on public.connect_messages
   for select to authenticated
   using ((select auth.uid()) = user_id and expires_at > now() and public.is_active_device(recipient_device_id));
 
+drop policy if exists "Active devices send to active devices" on public.connect_messages;
 create policy "Active devices send to active devices" on public.connect_messages
   for insert to authenticated
   with check (
@@ -87,6 +92,7 @@ create policy "Active devices send to active devices" on public.connect_messages
     and public.is_active_device(recipient_device_id)
   );
 
+drop policy if exists "Users delete their own messages" on public.connect_messages;
 create policy "Users delete their own messages" on public.connect_messages
   for delete to authenticated using ((select auth.uid()) = user_id);
 
@@ -104,4 +110,14 @@ create trigger connect_messages_cleanup
   for each row execute function public.connect_messages_cleanup();
 
 -- Open devices receive messages instantly.
-alter publication supabase_realtime add table public.connect_messages;
+-- Live updates; running this file again is fine.
+do $$
+declare t text;
+begin
+  foreach t in array array['connect_messages'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

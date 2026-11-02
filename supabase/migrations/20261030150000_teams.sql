@@ -10,7 +10,8 @@ do $$ begin
   alter table public.study_group_members add constraint study_group_members_role check (role in ('owner', 'admin', 'member', 'viewer'));
 exception when duplicate_object then null; end $$;
 update public.study_group_members m set role = 'owner'
-  from public.study_groups g where g.id = m.group_id and g.created_by = m.user_id and m.role <> 'owner';
+  from public.study_groups g where g.id = m.group_id and g.created_by = m.user_id and m.role <> 'owner'
+    and not exists (select 1 from public.study_group_members o where o.group_id = m.group_id and o.role = 'owner');
 
 -- Members change only their own name, never their own role: roles go through the functions below.
 revoke update on public.study_group_members from anon, authenticated;

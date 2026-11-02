@@ -15,6 +15,8 @@ export function normalizeSupabaseUrl(raw: string | undefined): string | undefine
 }
 
 const url = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL as string | undefined)
+/** The project address this build talks to, e.g. for a link to its SQL Editor. */
+export const supabaseUrl: string | undefined = url
 const key = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)
 
 /** Names of the settings this build was made without, for the setup hint in the Account app. */

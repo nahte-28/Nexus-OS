@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { checkSchema, migrationSql, type SchemaReport } from './schema'
+import { allMissingSql, checkSchema, migrationSql, sqlEditorUrl, type SchemaReport } from './schema'
+import { supabaseUrl } from '../sync/supabase'
+import { openWebApp } from '../platform/desktop'
 
+const ALL = '*alles*'
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-60'
 
 /** Account: which SQL steps your Supabase database still needs, with the SQL ready to copy. */
-export function DatabaseCheck({ client, check = checkSchema, sql = migrationSql }: { client: SupabaseClient; check?: typeof checkSchema; sql?: typeof migrationSql }) {
+export function DatabaseCheck({
+  client,
+  check = checkSchema,
+  sql = migrationSql,
+  projectUrl = supabaseUrl,
+}: {
+  client: SupabaseClient
+  check?: typeof checkSchema
+  sql?: typeof migrationSql
+  projectUrl?: string
+}) {
   const [report, setReport] = useState<SchemaReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -25,9 +38,10 @@ export function DatabaseCheck({ client, check = checkSchema, sql = migrationSql 
 
   useEffect(() => void run(), [run])
 
+  const editor = sqlEditorUrl(projectUrl)
   const copy = async (file: string) => {
     try {
-      await navigator.clipboard.writeText(await sql(file))
+      await navigator.clipboard.writeText(file === ALL ? await allMissingSql(report!, sql) : await sql(file))
       setCopied(file)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kopiëren lukte niet.')
@@ -51,8 +65,28 @@ export function DatabaseCheck({ client, check = checkSchema, sql = migrationSql 
       {report && report.missing.length > 0 && (
         <>
           <p>
-            {report.missing.length === 1 ? 'Er ontbreekt nog 1 SQL-stap.' : `Er ontbreken nog ${report.missing.length} SQL-stappen.`} Voer ze uit in deze volgorde: tik op <b>SQL kopiëren</b>, open in Supabase de <b>SQL Editor</b>, kies <b>New query</b>, plak en klik op <b>Run</b>. Kijk daarna hier opnieuw na.
+            {report.missing.length === 1 ? 'Er ontbreekt nog 1 SQL-stap.' : `Er ontbreken nog ${report.missing.length} SQL-stappen.`} Kopieer ze allemaal in één keer of per stap, open in Supabase de <b>SQL Editor</b>, kies <b>New query</b>, plak en klik op <b>Run</b>. Kijk daarna hier opnieuw na.
           </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={small} onClick={() => void copy(ALL)}>
+              {copied === ALL ? 'Alles gekopieerd' : 'Alles in één keer kopiëren'}
+            </button>
+            {editor && (
+              <a
+                className={small}
+                href={editor}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => {
+                  e.preventDefault()
+                  void openWebApp(editor)
+                }}
+              >
+                SQL Editor openen
+              </a>
+            )}
+            <span className="text-xs text-nx-muted">Elke stap mag opnieuw lopen, dus alles samen plakken kan altijd.</span>
+          </div>
           <ol className="space-y-1">
             {report.missing.map((step, i) => (
               <li key={step.file} className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border px-3 py-2">

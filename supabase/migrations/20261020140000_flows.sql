@@ -28,12 +28,15 @@ create table if not exists public.automation_flows (
 
 alter table public.automation_flows enable row level security;
 
+drop policy if exists "Users read their own flows" on public.automation_flows;
 create policy "Users read their own flows" on public.automation_flows
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users create their own flows" on public.automation_flows;
 create policy "Users create their own flows" on public.automation_flows
   for insert to authenticated with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users update their own flows" on public.automation_flows;
 create policy "Users update their own flows" on public.automation_flows
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
@@ -82,15 +85,19 @@ create index if not exists automation_runs_user_started on public.automation_run
 
 alter table public.automation_runs enable row level security;
 
+drop policy if exists "Users read their own runs" on public.automation_runs;
 create policy "Users read their own runs" on public.automation_runs
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users create their own runs" on public.automation_runs;
 create policy "Users create their own runs" on public.automation_runs
   for insert to authenticated with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users update their own runs" on public.automation_runs;
 create policy "Users update their own runs" on public.automation_runs
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users delete their own runs" on public.automation_runs;
 create policy "Users delete their own runs" on public.automation_runs
   for delete to authenticated using ((select auth.uid()) = user_id);
 
@@ -113,8 +120,17 @@ create trigger automation_runs_before_update
 
 -- Pause-all and quiet hours go in the existing user_settings table, under the key 'flows'.
 alter table public.user_settings drop constraint if exists user_settings_key_check;
-alter table public.user_settings add constraint user_settings_key_check check (key in ('profiles', 'flows'));
+alter table public.user_settings add constraint user_settings_key_check check (key in ('profiles', 'flows')) not valid; -- older rows were checked before; a later key list may be wider
 
 -- Lets open devices hear about a change instantly.
-alter publication supabase_realtime add table public.automation_flows;
-alter publication supabase_realtime add table public.automation_runs;
+-- Live updates; running this file again is fine.
+do $$
+declare t text;
+begin
+  foreach t in array array['automation_flows', 'automation_runs'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
