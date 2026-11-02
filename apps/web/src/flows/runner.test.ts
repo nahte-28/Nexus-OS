@@ -89,4 +89,104 @@ describe('flow runner', () => {
     await tickFlows(ctx({ now: now + 60_000, finance }), fx, store)
     expect(fx.calls).toEqual(['notify:Uitgaan: 92% gebruikt:phone'])
   })
+
+  it('waits, goes on later (also after a reload) and finishes the run once', async () => {
+    const flow = store.save({
+      ...fromTemplate('school-start'),
+      actions: [
+        { type: 'profile.activate', profile: 'school', duration: 'until-change' },
+        { type: 'wait', minutes: 10 },
+        { type: 'notification.send', title: 'Klaar voor de les?', text: '', target: 'this_device' },
+      ],
+    })
+    expect(flow.version).toBe(1)
+    const fx = effects()
+    expect(await tickFlows(ctx(), fx, store)).toEqual([])
+    expect(fx.calls).toEqual(['profile:school:until-change'])
+    expect(store.getSnapshot().waiting).toHaveLength(1)
+    expect(store.getRuns()).toHaveLength(0)
+    // Too early: nothing yet. Then, in a fresh store (a reload), the rest runs once.
+    await tickFlows(ctx({ now: now + 5 * 60_000 }), fx, store)
+    expect(fx.calls).toHaveLength(1)
+    const reloaded = new FlowsStore()
+    const runs = await tickFlows(ctx({ now: now + 10 * 60_000 }), fx, reloaded)
+    expect(fx.calls).toEqual(['profile:school:until-change', 'notify:Klaar voor de les?:this_device'])
+    expect(runs[0]).toMatchObject({ status: 'ok', steps: [{ status: 'ok' }, { type: 'wait', status: 'ok' }, { status: 'ok' }] })
+    expect(reloaded.getSnapshot().waiting).toEqual([])
+    await tickFlows(ctx({ now: now + 11 * 60_000 }), fx, reloaded)
+    expect(fx.calls).toHaveLength(2)
+  })
+
+  it('ends a waiting run when the flow is paused meanwhile', async () => {
+    const flow = store.save({ ...fromTemplate('study-session'), actions: [{ type: 'wait', minutes: 1 }, { type: 'notification.send', title: 'Hoi', text: '', target: 'this_device' }] })
+    const fx = effects()
+    expect(await runNow(flow, ctx(), fx, store)).toBeNull()
+    store.update((s) => ({ ...s, settings: { ...s.settings, paused: true } }))
+    const runs = await tickFlows(ctx({ now: now + 60_000 }), fx, store)
+    expect(fx.calls).toEqual([])
+    expect(runs[0].reason).toBe('Alles gepauzeerd tijdens het wachten')
+  })
+
+  it('tries a failing action again and gives up after the last try', async () => {
+    store.save({ ...fromTemplate('deadline-reminder'), retries: 2 })
+    const fx = effects()
+    const sleeps: number[] = []
+    fx.sleep = async (ms) => void sleeps.push(ms)
+    let calls = 0
+    fx.notify = vi.fn(async () => {
+      calls++
+      if (calls < 3) throw new Error('Even geen verbinding')
+    })
+    const runs = await tickFlows(ctx({ deadlines: [{ id: 'r', title: 'Labo', at: now + 30 * 60_000 }] }), fx, store)
+    expect(runs[0]).toMatchObject({ status: 'ok', steps: [{ status: 'ok', detail: 'gelukt bij poging 3' }] })
+    expect(sleeps).toEqual([1000, 2000])
+
+    store.save({ ...fromTemplate('deadline-reminder', { id: 'x' }), retries: 1 })
+    fx.notify = vi.fn(async () => {
+      throw new Error('Geen gsm gekoppeld.')
+    })
+    const failed = await tickFlows(ctx({ deadlines: [{ id: 'q', title: 'Toets', at: now + 30 * 60_000 }] }), fx, store)
+    expect(failed.find((r) => r.flowId === 'x')).toMatchObject({ status: 'failed', steps: [{ detail: 'Geen gsm gekoppeld. (na 2 pogingen)' }] })
+  })
+
+  it('stops waiting for an action after the time-out', async () => {
+    vi.useFakeTimers()
+    try {
+      const flow = store.save({ ...fromTemplate('study-session'), timeoutSeconds: 5, actions: [{ type: 'notification.send', title: 'Hoi', text: '', target: 'this_device' }] })
+      const fx = effects()
+      fx.notify = () => new Promise(() => {})
+      const pending = runNow(flow, ctx(), fx, store)
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(await pending).toMatchObject({ status: 'failed', steps: [{ detail: 'Duurde langer dan 5 s' }] })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('tries a failed run again with the same event text', async () => {
+    store.save(fromTemplate('deadline-reminder'))
+    const fx = effects()
+    fx.notify = vi.fn(async () => {
+      throw new Error('Geen gsm gekoppeld.')
+    })
+    const [failed] = await tickFlows(ctx({ deadlines: [{ id: 'r', title: 'Labo', at: now + 30 * 60_000 }] }), fx, store)
+    expect(failed.vars).toMatchObject({ titel: 'Labo' })
+    fx.notify = vi.fn(async () => {})
+    const again = await runNow(store.getSnapshot().flows[0], ctx({ now: now + 60_000 }), fx, store, failed)
+    expect(fx.notify).toHaveBeenCalledWith('Binnen een uur: Labo', 'Om 09:01.', 'phone', expect.any(String))
+    expect(again).toMatchObject({ status: 'ok', event: expect.stringMatching(/^Opnieuw: /) })
+  })
+
+  it('keeps earlier versions and puts one back', () => {
+    const first = store.save(fromTemplate('study-session'))
+    store.setEnabled(first.id, false)
+    expect(store.getSnapshot().versions[first.id] ?? []).toEqual([])
+    store.save({ ...first, name: 'Studeren 2' })
+    expect(store.getSnapshot().versions[first.id]).toMatchObject([{ version: 1, definition: { name: first.name } }])
+    const restored = store.restoreVersion(first.id, 1)
+    expect(restored).toMatchObject({ name: first.name, version: 3 })
+    expect(store.getSnapshot().versions[first.id].map((v) => v.version)).toEqual([2, 1])
+    store.remove(first.id)
+    expect(store.getSnapshot().versions[first.id]).toBeUndefined()
+  })
 })

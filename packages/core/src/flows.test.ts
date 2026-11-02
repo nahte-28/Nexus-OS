@@ -7,6 +7,9 @@ import {
   mergeFlows,
   MAX_RUNS_PER_HOUR,
   nextScheduledRun,
+  recordVersion,
+  describeAction,
+  waitBefore,
   planRuns,
   triggerEvents,
   validateFlow,
@@ -215,5 +218,31 @@ describe('flow sync merge', () => {
     const merged = mergeFlows([f], {}, [{ id: 'a', definition: f, revision: 10 }])
     expect(merged.push).toEqual([])
     expect(merged.flows).toEqual([f])
+  })
+
+  it('checks wait blocks, retries and time-outs', () => {
+    const wait = (minutes: number) => ({ type: 'wait' as const, minutes })
+    const notify = { type: 'notification.send' as const, title: 'Hoi', text: '', target: 'this_device' as const }
+    expect(validateFlow(flow({ actions: [wait(10), notify] }))).toBeNull()
+    expect(validateFlow(flow({ actions: [notify, wait(10)] }))).toBe('Na een wachttijd moet nog een actie komen.')
+    expect(validateFlow(flow({ actions: [wait(0), notify] }))).toBe('Wacht tussen 1 minuut en 12 uur.')
+    expect(validateFlow(flow({ actions: [wait(721), notify] }))).toBe('Wacht tussen 1 minuut en 12 uur.')
+    expect(validateFlow(flow({ retries: 4 }))).toMatch(/0 tot 3/)
+    expect(validateFlow(flow({ timeoutSeconds: 1 }))).toMatch(/time-out/)
+    expect(validateFlow(flow({ retries: 2, timeoutSeconds: 60 }))).toBeNull()
+    expect(describeAction(wait(90))).toBe('1 uur 30 min wachten')
+    expect(waitBefore(flow({ actions: [notify, wait(10), wait(5), notify] }), 3)).toBe(15)
+  })
+
+  it('keeps a version only for a real change', () => {
+    const v1 = flow({ version: 1 })
+    expect(recordVersion([], undefined, v1, 5)).toEqual([])
+    expect(recordVersion([], v1, { ...v1, enabled: false, version: 2, updatedAt: 9 }, 5)).toEqual([])
+    const history = recordVersion([], v1, { ...v1, name: 'Nieuw', version: 2 }, 5)
+    expect(history).toEqual([{ version: 1, savedAt: 5, definition: v1 }])
+    let long = history
+    for (let v = 2; v < 14; v++) long = recordVersion(long, flow({ version: v, name: `v${v}` }), flow({ version: v + 1, name: `v${v + 1}` }), v)
+    expect(long).toHaveLength(10)
+    expect(long[0].version).toBe(13)
   })
 })

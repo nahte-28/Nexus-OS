@@ -14,7 +14,10 @@ import {
   FLOW_TEMPLATES,
   MAX_ACTIONS,
   MAX_CONDITIONS,
+  MAX_RETRIES,
   MAX_RUNS_PER_HOUR,
+  MAX_WAIT_MINUTES,
+  DEFAULT_TIMEOUT_SECONDS,
   nextScheduledRun,
   PROFILE_IDS,
   PROMPT_APPS,
@@ -218,7 +221,7 @@ function MyFlows({ onEdit, onNew }: { onEdit: (flow: FlowDefinition) => void; on
                     className={button}
                     onClick={() => {
                       void runNow(flow, currentContext(engine), defaultEffects(engine)).then((run) =>
-                        setMessage(`${flow.name}: ${RUN_STATUS[run.status]}${run.reason ? ` (${run.reason})` : ''}`),
+                        setMessage(run ? `${flow.name}: ${RUN_STATUS[run.status]}${run.reason ? ` (${run.reason})` : ''}` : `${flow.name}: wacht nu, de rest volgt later (zie Runs).`),
                       )
                     }}
                   >
@@ -366,6 +369,36 @@ function Builder({ draft, onNew, onDone }: { draft: ReturnType<typeof useDraft>;
       </div>
       {draft.dirty && <p className="text-nx-muted">Niet bewaard.</p>}
       {message && <p role="status">{message}</p>}
+      <details className={card}>
+        <summary className="cursor-pointer font-medium">Betrouwbaarheid</summary>
+        <div className="mt-2 flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1">
+            Opnieuw proberen als een actie mislukt
+            <select className={field} value={flow.retries ?? 0} onChange={(e) => set({ retries: Number(e.target.value) })}>
+              {Array.from({ length: MAX_RETRIES + 1 }, (_, n) => (
+                <option key={n} value={n}>
+                  {n === 0 ? 'Niet' : `${n} keer`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            Time-out per actie
+            <select className={field} value={flow.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS} onChange={(e) => set({ timeoutSeconds: Number(e.target.value) })}>
+              {[10, 30, 60, 120].map((n) => (
+                <option key={n} value={n}>
+                  {n} seconden
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-nx-muted">Een nieuwe poging komt na 1, 2 en 4 seconden. Een actie die langer duurt dan de time-out, telt als mislukt.</p>
+      </details>
+      <Versions flow={flow} onRestore={(restored) => {
+        draft.markSaved(restored)
+        setMessage(`Versie teruggezet als versie ${restored.version}.`)
+      }} />
 
       <div role="radiogroup" aria-label="Weergave" className="inline-flex rounded-lg border border-nx-border p-0.5">
         {(['list', 'canvas'] as const).map((v) => (
@@ -660,6 +693,19 @@ function ActionEditor({ action, onChange }: { action: FlowAction; onChange: (a: 
           </label>
         </>
       )}
+      {action.type === 'wait' && (
+        <label className="flex flex-col gap-1">
+          Minuten
+          <input
+            type="number"
+            min={1}
+            max={MAX_WAIT_MINUTES}
+            className={`${field} w-28`}
+            value={action.minutes}
+            onChange={(e) => onChange({ ...action, minutes: Math.round(Number(e.target.value)) })}
+          />
+        </label>
+      )}
       {action.type === 'app.open_prompt' && (
         <label className="flex flex-col gap-1">
           App
@@ -725,13 +771,80 @@ function DryRun({ flow, error }: { flow: FlowDefinition; error: string | null })
 
 const RUN_STATUS: Record<FlowRun['status'], string> = { ok: 'gelukt', failed: 'mislukt', skipped: 'overgeslagen' }
 
+/** Earlier versions of the saved flow, on this device; one click puts one back. */
+function Versions({ flow, onRestore }: { flow: FlowDefinition; onRestore: (restored: FlowDefinition) => void }) {
+  const { versions } = useFlows()
+  const list = versions[flow.id] ?? []
+  if (list.length === 0) return null
+  return (
+    <details className={card}>
+      <summary className="cursor-pointer font-medium">Versies ({list.length})</summary>
+      <ul aria-label="Versies" className="mt-2 space-y-2">
+        {list.map((v) => (
+          <li key={v.version} className="flex flex-wrap items-start gap-2">
+            <span className="min-w-0 flex-1">
+              <span className="block">
+                Versie {v.version} · vervangen op {time(v.savedAt)}
+              </span>
+              <span className="block text-xs text-nx-muted">
+                {describeTrigger(v.definition.trigger)} · {v.definition.actions.map((a) => describeAction(a, {}, appName)).join(', ')}
+              </span>
+            </span>
+            <button
+              type="button"
+              className={button}
+              aria-label={`Versie ${v.version} terugzetten`}
+              onClick={() => {
+                const restored = flowsStore.restoreVersion(flow.id, v.version)
+                if (restored) onRestore(restored)
+              }}
+            >
+              Terugzetten
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-nx-muted">De laatste {list.length === 1 ? 'versie' : `${list.length} versies`} van deze flow, op dit apparaat. Terugzetten bewaart eerst wat er nu staat.</p>
+    </details>
+  )
+}
+
 function Runs() {
   const runs = useFlowRuns()
-  const { flows } = useFlows()
+  const { flows, waiting } = useFlows()
   const { engine } = useConnect()
-  if (runs.length === 0) return <p className="text-nx-muted">Nog geen runs. Hier zie je wat elke flow deed en waarom iets niet lukte.</p>
+  if (runs.length === 0 && waiting.length === 0) return <p className="text-nx-muted">Nog geen runs. Hier zie je wat elke flow deed en waarom iets niet lukte.</p>
   return (
     <div className="space-y-2">
+      {waiting.length > 0 && (
+        <section aria-label="Wacht" className="space-y-2">
+          <h3 className="font-semibold">Wacht</h3>
+          <ul className="space-y-2">
+            {waiting.map((w) => (
+              <li key={w.run.id} className={card}>
+                <p className="flex flex-wrap justify-between gap-2">
+                  <span className="font-medium">{w.run.flowName}</span>
+                  <span className="text-nx-muted">gaat verder om {time(w.resumeAt)}</span>
+                </p>
+                <p className="text-xs text-nx-muted">
+                  {time(w.run.at)} · {w.run.manual ? 'met de hand' : w.run.event}
+                </p>
+                <button
+                  type="button"
+                  className={`${button} mt-2`}
+                  onClick={() => {
+                    flowsStore.setWaiting((list) => list.filter((x) => x.run.id !== w.run.id))
+                    flowsStore.addRuns([{ ...w.run, status: w.run.steps.some((st) => st.status === 'failed') ? 'failed' : 'ok', reason: 'Gestopt tijdens het wachten' }])
+                  }}
+                >
+                  Stoppen
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-nx-muted">Een flow die wacht, gaat alleen verder op dit apparaat, en alleen als NEXUS dan openstaat (of later opengaat).</p>
+        </section>
+      )}
       <div className="flex justify-end">
         <button type="button" className={button} onClick={() => void clearFlowRuns()}>
           Geschiedenis wissen
@@ -764,7 +877,7 @@ function Runs() {
                 </ul>
               )}
               {run.status === 'failed' && flow && (
-                <button type="button" className={`${button} mt-2`} onClick={() => void runNow(flow, currentContext(engine), defaultEffects(engine))}>
+                <button type="button" className={`${button} mt-2`} onClick={() => void runNow(flow, currentContext(engine), defaultEffects(engine), flowsStore, run)}>
                   Opnieuw proberen
                 </button>
               )}

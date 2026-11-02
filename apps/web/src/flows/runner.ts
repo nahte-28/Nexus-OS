@@ -1,6 +1,7 @@
 import {
   financeFlowFacts,
   openDeadlines,
+  DEFAULT_TIMEOUT_SECONDS,
   describeAction,
   failingCondition,
   fillText,
@@ -34,6 +35,8 @@ const TICK_MS = 30_000
 
 /** What actions may touch. Everything goes through the existing Profiles, Connect and updater. */
 export interface FlowEffects {
+  /** Pause between tries of a failing action; a timer unless a test passes its own. */
+  sleep?(ms: number): Promise<void>
   activateProfile(profile: ProfileId, duration: ProfileDuration): void
   /** [ref] ties it to the phone's safety net, so the phone shows it once. */
   notify(title: string, text: string, target: NotifyTarget, ref?: string): Promise<void>
@@ -68,25 +71,74 @@ export function inQuietHours(settings: FlowSettings, now: number, timeZone: stri
   return s <= e ? m >= s && m < e : m >= s || m < e
 }
 
-/** Runs the actions of one flow in order; a failing action does not stop the next ones. */
+export interface ActionsResult {
+  steps: FlowStepResult[]
+  /** Set when the run reached a wait block: where and when it goes on. */
+  resume?: { nextIndex: number; resumeAt: number }
+}
+
+const clock = (at: number) => new Date(at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+
+/** Rejects after [ms]; the action itself may still finish, but the run no longer waits for it. */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Duurde langer dan ${Math.round(ms / 1000)} s`)), ms)
+    work.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e: unknown) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
+}
+
+/**
+ * Runs the actions of one flow in order, from [from]; a failing action does not stop the next
+ * ones. A failing action is tried again as often as the flow allows, and each try has a time-out.
+ * At a wait block it stops and says when to go on.
+ */
 export async function runActions(
   flow: FlowDefinition,
   event: FlowEvent,
   effects: FlowEffects,
   settings: FlowSettings,
   now: number,
-): Promise<FlowStepResult[]> {
+  from = 0,
+): Promise<ActionsResult> {
   const steps: FlowStepResult[] = []
+  const tries = (flow.retries ?? 0) + 1
+  const timeout = (flow.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000
+  const sleep = effects.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   for (const [index, action] of flow.actions.entries()) {
+    if (index < from) continue
     const label = describeAction(action, event.vars, appName)
-    try {
-      const skipped = await runAction(action, flow, event, effects, settings, now, index)
-      steps.push(skipped ? { type: action.type, action: label, status: 'skipped', detail: skipped } : { type: action.type, action: label, status: 'ok' })
-    } catch (err) {
-      steps.push({ type: action.type, action: label, status: 'failed', detail: err instanceof Error ? err.message : String(err) })
+    if (action.type === 'wait') {
+      const resumeAt = now + action.minutes * 60_000
+      steps.push({ type: action.type, action: label, status: 'ok', detail: `verder om ${clock(resumeAt)}` })
+      return { steps, resume: { nextIndex: index + 1, resumeAt } }
+    }
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const skipped = await withTimeout(Promise.resolve(runAction(action, flow, event, effects, settings, now, index)), timeout)
+        const retried = attempt > 1 ? `gelukt bij poging ${attempt}` : undefined
+        steps.push(skipped ? { type: action.type, action: label, status: 'skipped', detail: skipped } : { type: action.type, action: label, status: 'ok', ...(retried ? { detail: retried } : {}) })
+        break
+      } catch (err) {
+        if (attempt < tries) {
+          await sleep(1000 * 2 ** (attempt - 1))
+          continue
+        }
+        const why = err instanceof Error ? err.message : String(err)
+        steps.push({ type: action.type, action: label, status: 'failed', detail: tries > 1 ? `${why} (na ${tries} pogingen)` : why })
+        break
+      }
     }
   }
-  return steps
+  return { steps }
 }
 
 /** Does one action; returns why it was skipped, or nothing when it ran. */
@@ -113,6 +165,9 @@ async function runAction(
     case 'update.prompt':
       effects.prompt({ id: `${flow.id}|${event.id}|${index}`, flowName: flow.name, kind: 'update', at: now })
       return
+    case 'wait':
+      // runActions stops at a wait block before it gets here.
+      return
   }
 }
 
@@ -131,29 +186,69 @@ function newRun(planned: PlannedRun, effects: FlowEffects, now: number, manual =
     status: 'ok',
     ...(manual ? { manual } : {}),
     ...(device ? { device } : {}),
+    ...(Object.keys(planned.event.vars).length > 0 ? { vars: planned.event.vars } : {}),
     steps: [],
   }
 }
 
-async function finishRun(run: FlowRun, planned: PlannedRun, effects: FlowEffects, settings: FlowSettings, now: number): Promise<FlowRun> {
+const finished = (run: FlowRun, steps: FlowStepResult[]): FlowRun => ({ ...run, status: steps.some((s) => s.status === 'failed') ? 'failed' : 'ok', steps })
+
+/**
+ * Does the actions of a run, or the rest of them after a wait block. Returns the finished run, or
+ * null when it parked at (another) wait block.
+ */
+async function continueRun(run: FlowRun, flow: FlowDefinition, event: FlowEvent, from: number, effects: FlowEffects, settings: FlowSettings, now: number, store: FlowsStore): Promise<FlowRun | null> {
+  const { steps, resume } = await runActions(flow, event, effects, settings, now, from)
+  const all = [...run.steps, ...steps]
+  if (resume) {
+    store.setWaiting((w) => [...w.filter((x) => x.run.id !== run.id), { run: { ...run, steps: all }, event, ...resume }])
+    return null
+  }
+  return finished(run, all)
+}
+
+async function finishRun(run: FlowRun, planned: PlannedRun, effects: FlowEffects, settings: FlowSettings, now: number, store: FlowsStore): Promise<FlowRun | null> {
   if (planned.skipped) return { ...run, status: 'skipped', reason: SKIP_REASONS[planned.skipped] }
-  const steps = await runActions(planned.flow, planned.event, effects, settings, now)
-  return { ...run, status: steps.some((s) => s.status === 'failed') ? 'failed' : 'ok', steps }
+  return continueRun(run, planned.flow, planned.event, 0, effects, settings, now, store)
+}
+
+/** Goes on with the runs whose wait block is over. A deleted or paused flow ends its run. */
+async function resumeWaiting(effects: FlowEffects, store: FlowsStore, now: number): Promise<FlowRun[]> {
+  const due = store.getSnapshot().waiting.filter((w) => w.resumeAt <= now)
+  if (due.length === 0) return []
+  // Take them out first, so a reload halfway can never do the same actions twice.
+  const ids = new Set(due.map((w) => w.run.id))
+  store.setWaiting((w) => w.filter((x) => !ids.has(x.run.id)))
+  const { flows, settings } = store.getSnapshot()
+  const out: FlowRun[] = []
+  for (const w of due) {
+    const flow = flows.find((f) => f.id === w.run.flowId)
+    if (!flow || !flow.enabled || settings.paused) {
+      const why = !flow ? 'De flow is verwijderd' : settings.paused ? 'Alles gepauzeerd' : 'De flow staat uit'
+      out.push({ ...finished(w.run, w.run.steps), reason: `${why} tijdens het wachten` })
+      continue
+    }
+    const run = await continueRun(w.run, flow, w.event, w.nextIndex, effects, settings, now, store)
+    if (run) out.push(run)
+  }
+  return out
 }
 
 /** Checks every flow once: runs what is due and records it, so nothing runs twice. */
 export async function tickFlows(context: FlowContext, effects: FlowEffects, store: FlowsStore = flowsStore): Promise<FlowRun[]> {
+  const runs = await resumeWaiting(effects, store, context.now)
   const { flows, settings, runtime } = store.getSnapshot()
   const planned = planRuns(flows, context, runtime, settings.paused)
-  if (planned.length === 0) return []
-  // Mark first: a reload halfway through can then never run the same event again.
-  store.update((s) => ({ ...s, runtime: markHandled(s.runtime, planned, context.now) }))
-  const runs: FlowRun[] = []
-  for (const p of planned) {
-    const run = newRun(p, effects, context.now)
-    // Another device of the account already ran this event: nothing to do or show here.
-    if (!p.skipped && effects.claim && !(await effects.claim(run))) continue
-    runs.push(await finishRun(run, p, effects, settings, context.now))
+  if (planned.length > 0) {
+    // Mark first: a reload halfway through can then never run the same event again.
+    store.update((s) => ({ ...s, runtime: markHandled(s.runtime, planned, context.now) }))
+    for (const p of planned) {
+      const run = newRun(p, effects, context.now)
+      // Another device of the account already ran this event: nothing to do or show here.
+      if (!p.skipped && effects.claim && !(await effects.claim(run))) continue
+      const done = await finishRun(run, p, effects, settings, context.now, store)
+      if (done) runs.push(done)
+    }
   }
   store.addRuns(runs, context.now)
   runs.forEach(announce)
@@ -176,14 +271,21 @@ function announce(run: FlowRun): void {
   })
 }
 
-/** "Uitvoeren" in Flow Studio: runs the actions now, whatever the trigger, but still checks conditions. */
-export async function runNow(flow: FlowDefinition, context: FlowContext, effects: FlowEffects, store: FlowsStore = flowsStore): Promise<FlowRun> {
+/**
+ * "Uitvoeren" in Flow Studio: runs the actions now, whatever the trigger, but still checks
+ * conditions. With [again], "Opnieuw proberen" for an earlier run: the same event text. Returns
+ * the run, or null when it now waits at a wait block.
+ */
+export async function runNow(flow: FlowDefinition, context: FlowContext, effects: FlowEffects, store: FlowsStore = flowsStore, again?: FlowRun): Promise<FlowRun | null> {
   const { settings } = store.getSnapshot()
-  const event: FlowEvent = { id: `manual:${context.now}`, label: 'Met de hand', vars: {} }
+  const event: FlowEvent = again
+    ? { id: `retry:${again.id}:${context.now}`, label: `Opnieuw: ${again.manual ? 'met de hand' : again.event}`, vars: again.vars ?? {} }
+    : { id: `manual:${context.now}`, label: 'Met de hand', vars: {} }
   const condition = failingCondition(flow, context)
   const skipped = settings.paused ? 'paused' : condition ? 'condition' : undefined
   const planned: PlannedRun = { flow, event, ...(skipped ? { skipped } : {}) }
-  const run = await finishRun(newRun(planned, effects, context.now, true), planned, effects, settings, context.now)
+  const run = await finishRun(newRun(planned, effects, context.now, true), planned, effects, settings, context.now, store)
+  if (!run) return null
   store.addRuns([run], context.now)
   announce(run)
   return run
