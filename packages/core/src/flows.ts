@@ -15,7 +15,7 @@ export type TriggerType =
   | 'finance.expense_added'
   | 'manual'
 export type ConditionType = 'profile.is_active' | 'local_time.in_range' | 'network.online'
-export type ActionType = 'profile.activate' | 'notification.send' | 'app.open_prompt' | 'update.prompt'
+export type ActionType = 'profile.activate' | 'notification.send' | 'app.open_prompt' | 'update.prompt' | 'wait'
 
 export type ProfileDuration = 'until-change' | 'hour' | 'today'
 export type NotifyTarget = 'this_device' | 'phone'
@@ -43,6 +43,8 @@ export type FlowAction =
   | { type: 'notification.send'; title: string; text: string; target: NotifyTarget }
   | { type: 'app.open_prompt'; app: AppId }
   | { type: 'update.prompt' }
+  /** Waits [minutes] before the next action; the run goes on later, also after a restart. */
+  | { type: 'wait'; minutes: number }
 
 export interface FlowDefinition {
   id: string
@@ -56,6 +58,10 @@ export interface FlowDefinition {
   actions: FlowAction[]
   /** IANA zone, e.g. Europe/Brussels; the device's zone when empty. */
   timeZone: string
+  /** How often a failing action is tried again (0 to 3); none when missing. */
+  retries?: number
+  /** How long one action may take before it counts as failed, in seconds (5 to 120); 30 when missing. */
+  timeoutSeconds?: number
   createdAt: number
   updatedAt: number
 }
@@ -93,6 +99,12 @@ export const MAX_CONDITIONS = 5
 export const MAX_RUNS_PER_HOUR = 6
 /** A planned time is still caught up this long after it passed (NEXUS was asleep or just opened). */
 export const CATCH_UP_MINUTES = 30
+/** A wait block lasts at most this long. */
+export const MAX_WAIT_MINUTES = 12 * 60
+export const MAX_RETRIES = 3
+export const DEFAULT_TIMEOUT_SECONDS = 30
+/** Earlier versions kept per flow, on this device. */
+export const MAX_FLOW_VERSIONS = 10
 
 export const TRIGGER_LABELS: Record<TriggerType, string> = {
   'schedule.at_time': 'Op een vast tijdstip',
@@ -114,6 +126,7 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   'notification.send': 'Melding sturen',
   'app.open_prompt': 'Voorstellen om een app te openen',
   'update.prompt': 'Voorstellen om de update te installeren',
+  wait: 'Wachten',
 }
 export const TRIGGER_TYPES = Object.keys(TRIGGER_LABELS) as TriggerType[]
 export const CONDITION_TYPES = Object.keys(CONDITION_LABELS) as ConditionType[]
@@ -163,6 +176,8 @@ export function defaultAction(type: ActionType): FlowAction {
       return { type, app: 'klashub' }
     case 'update.prompt':
       return { type }
+    case 'wait':
+      return { type, minutes: 10 }
   }
 }
 
@@ -220,7 +235,11 @@ export function validateFlow(flow: FlowDefinition): string | null {
       if (a.target !== 'this_device' && a.target !== 'phone') return 'Kies waar de melding heen gaat.'
     }
     if (a.type === 'app.open_prompt' && !PROMPT_APPS.includes(a.app)) return 'Kies een app.'
+    if (a.type === 'wait' && !(Number.isInteger(a.minutes) && a.minutes >= 1 && a.minutes <= MAX_WAIT_MINUTES)) return 'Wacht tussen 1 minuut en 12 uur.'
   }
+  if (flow.actions[flow.actions.length - 1].type === 'wait') return 'Na een wachttijd moet nog een actie komen.'
+  if (flow.retries !== undefined && !(Number.isInteger(flow.retries) && flow.retries >= 0 && flow.retries <= MAX_RETRIES)) return `Kies 0 tot ${MAX_RETRIES} nieuwe pogingen.`
+  if (flow.timeoutSeconds !== undefined && !(Number.isInteger(flow.timeoutSeconds) && flow.timeoutSeconds >= 5 && flow.timeoutSeconds <= 120)) return 'Kies een time-out tussen 5 en 120 seconden.'
   if (flow.actions.some((a) => a.type === 'update.prompt') && t.type !== 'update.available')
     return 'De update voorstellen kan alleen als de flow start bij een update.'
   return null
@@ -402,7 +421,36 @@ export function describeAction(a: FlowAction, vars: Record<string, string> = {},
       return `Voorstellen om ${appName(a.app)} te openen`
     case 'update.prompt':
       return 'Voorstellen om de update te installeren'
+    case 'wait':
+      return `${waitLabel(a.minutes)} wachten`
   }
+}
+
+export const waitLabel = (minutes: number) =>
+  minutes < 60 ? `${minutes} min` : minutes % 60 === 0 ? `${minutes / 60} uur` : `${Math.floor(minutes / 60)} uur ${minutes % 60} min`
+
+/** Minutes of waiting before action [index]: when it runs, counted from the start of the run. */
+export function waitBefore(flow: FlowDefinition, index: number): number {
+  return flow.actions.slice(0, index).reduce((sum, a) => sum + (a.type === 'wait' ? a.minutes : 0), 0)
+}
+
+/** An earlier version of a flow, kept on this device to look at or put back. */
+export interface FlowVersion {
+  version: number
+  savedAt: number
+  definition: FlowDefinition
+}
+
+/**
+ * Keeps [previous] in a flow's history when [next] replaces it with a real change (not only the
+ * on/off switch); newest first, at most MAX_FLOW_VERSIONS.
+ */
+export function recordVersion(history: FlowVersion[], previous: FlowDefinition | undefined, next: FlowDefinition, now: number): FlowVersion[] {
+  if (!previous) return history
+  const { enabled: _a, version: _b, updatedAt: _c, ...before } = previous
+  const { enabled: _d, version: _e, updatedAt: _f, ...after } = next
+  if (JSON.stringify(before) === JSON.stringify(after)) return history
+  return [{ version: previous.version, savedAt: now, definition: previous }, ...history.filter((v) => v.version !== previous.version)].slice(0, MAX_FLOW_VERSIONS)
 }
 
 /** When a scheduled flow next starts after [at]; null for event triggers. */

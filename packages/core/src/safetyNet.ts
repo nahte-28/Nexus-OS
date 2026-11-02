@@ -5,7 +5,7 @@
  * it anyway. Every notice has a ref that the real notification carries too, so the phone never
  * shows the same one twice, whichever comes first.
  */
-import { conditionHolds, fillText, localDate, nextScheduledRun, type FlowContext, type FlowDefinition } from './flows'
+import { conditionHolds, fillText, localDate, nextScheduledRun, waitBefore, type FlowContext, type FlowDefinition } from './flows'
 import { advance, type Reminder } from './reminders'
 
 export interface PlannedNotice {
@@ -79,8 +79,11 @@ export function plannedFlowNotices({ flows, paused, quietAt, deadlines, now }: F
       if (!flow.conditions.every((c) => conditionHolds(c, ctx, flow.timeZone)) || quietAt(m.at, flow.timeZone)) continue
       for (const { a, i } of actions) {
         if (a.type !== 'notification.send') continue
+        // After a wait block the notice comes later, and quiet hours count at that moment.
+        const at = m.at + waitBefore(flow, i) * 60_000
+        if (at !== m.at && quietAt(at, flow.timeZone)) continue
         const text = fillText(a.text, m.vars)
-        out.push({ ref: flowRef(flow.id, m.eventId, i), at: m.at, title: fillText(a.title, m.vars), ...(text ? { text } : {}) })
+        out.push({ ref: flowRef(flow.id, m.eventId, i), at, title: fillText(a.title, m.vars), ...(text ? { text } : {}) })
       }
     }
   }

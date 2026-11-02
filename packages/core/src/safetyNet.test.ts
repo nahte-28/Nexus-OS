@@ -55,6 +55,9 @@ describe('safety net plan', () => {
     expect(plannedFlowNotices({ flows: [withProfile], paused: false, quietAt: noQuiet, deadlines: [], now })).toEqual([])
     expect(plannedFlowNotices({ flows: [daily], paused: true, quietAt: noQuiet, deadlines: [], now })).toEqual([])
     expect(plannedFlowNotices({ flows: [daily], paused: false, quietAt: () => true, deadlines: [], now })).toEqual([])
+    // After a wait block the phone gets it later.
+    const later = { ...daily, actions: [{ type: 'wait' as const, minutes: 15 }, ...daily.actions] }
+    expect(plannedFlowNotices({ flows: [later], paused: false, quietAt: noQuiet, deadlines: [], now })[0]).toMatchObject({ ref: 'flow:ochtend|at:2026-10-20|1', at: at('2026-10-20T08:15:00+02:00') })
     const late = { ...daily, conditions: [{ type: 'local_time.in_range' as const, start: '09:00', end: '17:00' }] }
     expect(plannedFlowNotices({ flows: [late], paused: false, quietAt: noQuiet, deadlines: [], now })).toEqual([])
   })

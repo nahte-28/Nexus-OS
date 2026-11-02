@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { emptyRuntime, isFlowDefinition, isTime, type ActionType, type FlowDefinition, type FlowRuntime, type TriggerType } from '@nexus/core'
+import { emptyRuntime, isFlowDefinition, isTime, recordVersion, type ActionType, type FlowDefinition, type FlowEvent, type FlowRuntime, type FlowVersion, type TriggerType } from '@nexus/core'
 import { readStorage, writeStorage } from '../state/storage'
 
 const STORAGE_KEY = 'nexus.flows'
@@ -41,7 +41,17 @@ export interface FlowRun {
   device?: string
   /** True once the account has the outcome. */
   synced?: boolean
+  /** The values of the event ({titel}, {tijd}), so "Opnieuw proberen" sends the same text. */
+  vars?: Record<string, string>
   steps: FlowStepResult[]
+}
+
+/** A run that reached a wait block: the rest of its actions runs at [resumeAt]. */
+export interface WaitingRun {
+  run: FlowRun
+  event: FlowEvent
+  nextIndex: number
+  resumeAt: number
 }
 
 export interface FlowsState {
@@ -50,6 +60,10 @@ export interface FlowsState {
   /** Flows deleted here: id → time, so other devices delete them too. */
   deleted: Record<string, number>
   runtime: FlowRuntime
+  /** Runs waiting to go on, on this device only. */
+  waiting: WaitingRun[]
+  /** Earlier versions per flow id, on this device only. */
+  versions: Record<string, FlowVersion[]>
 }
 
 const DEFAULT_SETTINGS: FlowSettings = { paused: false, quiet: { enabled: false, start: '22:00', end: '07:00' }, updatedAt: 0 }
@@ -80,6 +94,17 @@ export function parseFlowsState(raw: unknown): FlowsState {
         : {},
     runtime:
       r.runtime && typeof r.runtime.handled === 'object' && typeof r.runtime.recent === 'object' ? r.runtime : emptyRuntime(),
+    waiting: Array.isArray(r.waiting)
+      ? r.waiting.filter((w) => typeof w?.resumeAt === 'number' && Number.isInteger(w.nextIndex) && typeof w.run?.id === 'string' && typeof w.event?.id === 'string')
+      : [],
+    versions:
+      typeof r.versions === 'object' && r.versions !== null
+        ? Object.fromEntries(
+            Object.entries(r.versions).flatMap(([id, list]) =>
+              Array.isArray(list) ? [[id, list.filter((v) => typeof v?.version === 'number' && typeof v.savedAt === 'number' && isFlowDefinition(v.definition))]] : [],
+            ),
+          )
+        : {},
   }
 }
 
@@ -113,12 +138,32 @@ export class FlowsStore {
   save(flow: FlowDefinition, now = Date.now()): FlowDefinition {
     const existing = this.state.flows.find((f) => f.id === flow.id)
     const saved = { ...flow, version: (existing?.version ?? 0) + 1, updatedAt: now }
-    this.update((s) => ({ ...s, flows: existing ? s.flows.map((f) => (f.id === flow.id ? saved : f)) : [...s.flows, saved] }))
+    this.update((s) => ({
+      ...s,
+      flows: existing ? s.flows.map((f) => (f.id === flow.id ? saved : f)) : [...s.flows, saved],
+      versions: { ...s.versions, [flow.id]: recordVersion(s.versions[flow.id] ?? [], existing, saved, now) },
+    }))
     return saved
   }
 
+  /** Puts an earlier version back as a new version; what is there now goes into the history. */
+  restoreVersion(id: string, version: number, now = Date.now()): FlowDefinition | null {
+    const current = this.state.flows.find((f) => f.id === id)
+    const old = this.state.versions[id]?.find((v) => v.version === version)
+    if (!current || !old) return null
+    return this.save({ ...old.definition, id, enabled: current.enabled, createdAt: current.createdAt }, now)
+  }
+
   remove(id: string, now = Date.now()): void {
-    this.update((s) => ({ ...s, flows: s.flows.filter((f) => f.id !== id), deleted: { ...s.deleted, [id]: now } }))
+    this.update((s) => {
+      const { [id]: _gone, ...versions } = s.versions
+      return { ...s, flows: s.flows.filter((f) => f.id !== id), deleted: { ...s.deleted, [id]: now }, versions }
+    })
+  }
+
+  /** Parks a run at a wait block, or takes it out again (by run id) when it goes on. */
+  setWaiting(change: (waiting: WaitingRun[]) => WaitingRun[]): void {
+    this.update((s) => ({ ...s, waiting: change(s.waiting) }))
   }
 
   setEnabled(id: string, enabled: boolean, now = Date.now()): void {
