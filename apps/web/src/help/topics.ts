@@ -134,9 +134,9 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Universal Inbox: alles wat NEXUS je meldt op één plek, op al je apparaten.',
     tips: [
       'Prioriteit toont alleen wat dringend is, zoals een deadline binnen een dag of een mislukte flow.',
-      'Vink items aan om ze samen te archiveren of te snoozen; gesnoozede items staan in Gepland.',
-      'Klik op een item om de app te openen waar het over gaat.',
-      'Onderaan kies je welke bronnen in de Inbox mogen. Berichten van je gsm komen er nooit in; die staan in Meldingen.',
+      'Vink items aan om ze samen te archiveren of te laten sluimeren, ook tot een eigen moment met Ander moment…. Ze staan dan in Gepland en komen ongelezen terug.',
+      'Klik op een item om de app te openen waar het over gaat. Rechts zie je op welke apparaten het binnenkwam en waar je het las.',
+      'Onder Regels per bron kies je per bron Aan, Stil of Uit, een vaste prioriteit en of het vanzelf naar het archief gaat. Berichten van je gsm komen er nooit in; die staan in Meldingen.',
     ],
   },
   timemachine: {

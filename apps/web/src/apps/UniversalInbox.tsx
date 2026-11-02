@@ -1,6 +1,19 @@
 import { useState, useSyncExternalStore } from 'react'
-import { INBOX_SOURCES, inboxView, snoozeTimes, unreadCount, type EventPriority, type EventSource, type InboxEntry, type InboxView } from '@nexus/core'
-import { inboxStore, inboxSyncProblem, useInbox, useInboxPolicy } from '../inbox/store'
+import {
+  ARCHIVE_AFTER_DAYS,
+  backFromSnooze,
+  INBOX_SOURCES,
+  inboxView,
+  ruleFor,
+  snoozeTimes,
+  unreadCount,
+  type EventPriority,
+  type EventSource,
+  type InboxEntry,
+  type InboxRule,
+  type InboxView,
+} from '@nexus/core'
+import { inboxDeviceName, inboxRulesProblem, inboxStore, inboxSyncProblem, useInbox, useInboxPolicy } from '../inbox/store'
 import { openApp } from '../shell/openApp'
 import { readStorage, writeStorage } from '../state/storage'
 import { useNow } from '../state/useNow'
@@ -16,12 +29,20 @@ const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-
 const select = 'rounded-md border border-nx-border bg-nx-surface px-2 py-1 text-xs'
 const sourceTitle = (s: EventSource) => INBOX_SOURCES.find((x) => x.source === s)?.title ?? s
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+/** A moment as the value of a datetime-local field, in local time. */
+const localInput = (t: number) => {
+  const d = new Date(t - new Date(t).getTimezoneOffset() * 60_000)
+  return d.toISOString().slice(0, 16)
+}
 
 /** Universal Inbox: everything NEXUS reports, with read, archive and snooze, synced across devices. */
 export function UniversalInbox() {
   const items = useInbox()
   const now = useNow(30_000)
-  const problem = useSyncExternalStore(inboxSyncProblem.subscribe, inboxSyncProblem.getSnapshot)
+  const syncProblem = useSyncExternalStore(inboxSyncProblem.subscribe, inboxSyncProblem.getSnapshot)
+  const rulesProblem = useSyncExternalStore(inboxRulesProblem.subscribe, inboxRulesProblem.getSnapshot)
+  const problem = syncProblem ?? rulesProblem
+  const [custom, setCustom] = useState('')
   const [tab, setTabState] = useState<InboxView>(() => (TABS.some((t) => t.id === readStorage(TAB_KEY)) ? (readStorage(TAB_KEY) as InboxView) : 'inbox'))
   const [source, setSource] = useState<EventSource | ''>('')
   const [priority, setPriority] = useState<EventPriority | ''>('')
@@ -129,20 +150,43 @@ export function UniversalInbox() {
           ) : (
             tab !== 'archive' && (
               <select
-                aria-label="Snoozen"
+                aria-label="Sluimeren"
                 value=""
                 disabled={ids.length === 0}
-                onChange={(e) => e.target.value && act({ snoozedUntil: Number(e.target.value) }, 'gesnoozed')}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') setCustom(localInput(now + 3 * 3_600_000))
+                  else if (e.target.value) act({ snoozedUntil: Number(e.target.value) }, 'gesluimerd')
+                }}
                 className={select}
               >
-                <option value="">Snoozen…</option>
+                <option value="">Sluimeren…</option>
                 {snoozeTimes(now).map((t) => (
                   <option key={t.label} value={t.until}>
                     {t.label}
                   </option>
                 ))}
+                <option value="custom">Ander moment…</option>
               </select>
             )
+          )}
+          {custom && tab !== 'archive' && tab !== 'scheduled' && (
+            <span className="flex flex-wrap items-center gap-1">
+              <input type="datetime-local" aria-label="Sluimeren tot" value={custom} min={localInput(now)} onChange={(e) => setCustom(e.target.value)} className={select} />
+              <button
+                type="button"
+                className={small}
+                disabled={ids.length === 0 || !(new Date(custom).getTime() > now)}
+                onClick={() => {
+                  act({ snoozedUntil: new Date(custom).getTime() }, 'gesluimerd')
+                  setCustom('')
+                }}
+              >
+                Sluimeren
+              </button>
+              <button type="button" className={small} onClick={() => setCustom('')}>
+                Annuleren
+              </button>
+            </span>
           )}
         </div>
       )}
@@ -159,7 +203,7 @@ export function UniversalInbox() {
         )}
         {shown.length === 0 ? (
           <p className="py-6 text-center text-nx-muted">
-            {tab === 'inbox' ? 'Niets nieuws. Hier komen flows, updates en deadlines binnen.' : tab === 'priority' ? 'Niets dringends.' : tab === 'scheduled' ? 'Niets gesnoozed.' : 'Het archief is leeg.'}
+            {tab === 'inbox' ? 'Niets nieuws. Hier komen flows, updates en deadlines binnen.' : tab === 'priority' ? 'Niets dringends.' : tab === 'scheduled' ? 'Niets aan het sluimeren.' : 'Het archief is leeg.'}
           </p>
         ) : (
           <ul className="space-y-1">
@@ -188,8 +232,10 @@ export function UniversalInbox() {
                   <span className="block text-xs text-nx-muted">
                     {sourceTitle(item.source)} · {when(item.at)}
                     {item.snoozedUntil && item.snoozedUntil > now ? ` · terug op ${when(item.snoozedUntil)}` : ''}
+                    {backFromSnooze(item, now) && tab !== 'archive' ? ' · terug van sluimeren' : ''}
                   </span>
                 </button>
+                <Delivery item={item} />
               </li>
             ))}
           </ul>
@@ -200,28 +246,107 @@ export function UniversalInbox() {
   )
 }
 
-/** notification_preferences: which sources may reach the Inbox on this device. */
-function Sources() {
-  const policy = useInboxPolicy()
+/** Per item: on which devices it arrived and where it was read. */
+function Delivery({ item }: { item: InboxEntry }) {
+  const devices = Object.entries(item.delivery).sort((a, b) => a[1].seenAt - b[1].seenAt)
+  if (devices.length === 0) return null
+  const read = devices.filter(([, d]) => d.readAt !== undefined).length
   return (
-    <details className="mt-4">
-      <summary className="cursor-pointer text-nx-muted">Wat in de Inbox komt</summary>
-      <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-        {INBOX_SOURCES.map((s) => (
-          <li key={s.source}>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={policy[s.source] !== false}
-                onChange={(e) => inboxStore.setPolicy({ ...policy, [s.source]: e.target.checked })}
-                className="accent-[var(--nx-accent)]"
-              />
-              {s.title}
-            </label>
+    <details className="shrink-0 text-xs text-nx-muted">
+      <summary className="cursor-pointer" aria-label={`Bezorging van ${item.title}`}>
+        {devices.length} {devices.length === 1 ? 'apparaat' : 'apparaten'}
+      </summary>
+      <ul className="mt-1 space-y-0.5" aria-label="Bezorging">
+        {devices.map(([name, d]) => (
+          <li key={name}>
+            <span className="font-medium text-nx-text">{name}</span>
+            {name === inboxDeviceName() ? ' (dit apparaat)' : ''}: binnen {when(d.seenAt)}
+            {d.readAt !== undefined ? `, gelezen ${when(d.readAt)}` : ', nog niet gelezen'}
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-xs text-nx-muted">Geldt voor nieuwe meldingen op dit toestel. Berichten van andere apps op je gsm komen hier nooit in.</p>
+      <p className="mt-1">{read === 0 ? 'Nog nergens gelezen.' : `Gelezen op ${read} van ${devices.length}.`}</p>
+    </details>
+  )
+}
+
+const MODES: Array<{ id: InboxRule['mode']; label: string }> = [
+  { id: 'on', label: 'Aan' },
+  { id: 'quiet', label: 'Stil (meteen gelezen)' },
+  { id: 'off', label: 'Uit' },
+]
+
+/** Inbox 2.0: a rule per source, the same on every device with an account. */
+function Sources() {
+  const policy = useInboxPolicy()
+  const set = (source: EventSource, patch: Partial<InboxRule>) => inboxStore.setPolicy({ ...policy, [source]: { ...ruleFor(policy, source), ...patch } })
+  return (
+    <details className="mt-4">
+      <summary className="cursor-pointer text-nx-muted">Regels per bron</summary>
+      <table className="mt-2 w-full text-xs">
+        <thead>
+          <tr className="text-left text-nx-muted">
+            <th className="py-1 pr-2 font-normal">Bron</th>
+            <th className="py-1 pr-2 font-normal">In de Inbox</th>
+            <th className="py-1 pr-2 font-normal">Prioriteit</th>
+            <th className="py-1 font-normal">Vanzelf archiveren</th>
+          </tr>
+        </thead>
+        <tbody>
+          {INBOX_SOURCES.map((s) => {
+            const rule = ruleFor(policy, s.source)
+            return (
+              <tr key={s.source} className="border-t border-nx-border">
+                <th scope="row" className="py-1 pr-2 text-left font-medium">
+                  {s.title}
+                </th>
+                <td className="py-1 pr-2">
+                  <select aria-label={`${s.title}: in de Inbox`} value={rule.mode} onChange={(e) => set(s.source, { mode: e.target.value as InboxRule['mode'] })} className={select}>
+                    {MODES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-1 pr-2">
+                  <select
+                    aria-label={`${s.title}: prioriteit`}
+                    value={rule.priority}
+                    disabled={rule.mode === 'off'}
+                    onChange={(e) => set(s.source, { priority: e.target.value as InboxRule['priority'] })}
+                    className={select}
+                  >
+                    <option value="keep">Zoals gemeld</option>
+                    <option value="high">Altijd hoog</option>
+                    <option value="normal">Altijd normaal</option>
+                    <option value="low">Altijd laag</option>
+                  </select>
+                </td>
+                <td className="py-1">
+                  <select
+                    aria-label={`${s.title}: vanzelf archiveren`}
+                    value={rule.archiveAfterDays ?? ''}
+                    disabled={rule.mode === 'off'}
+                    onChange={(e) => set(s.source, { archiveAfterDays: e.target.value ? Number(e.target.value) : null })}
+                    className={select}
+                  >
+                    <option value="">Nooit</option>
+                    {ARCHIVE_AFTER_DAYS.map((d) => (
+                      <option key={d} value={d}>
+                        Na {d} {d === 1 ? 'dag' : 'dagen'}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      <p className="mt-1 text-xs text-nx-muted">
+        De regels gelden voor nieuwe meldingen en volgen je naar elk apparaat met je account. Stil betekent: het komt binnen, maar telt niet als nieuw. Berichten van andere apps op je gsm komen hier nooit in.
+      </p>
     </details>
   )
 }
