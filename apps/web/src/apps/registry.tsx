@@ -6,7 +6,7 @@ import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TimerIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, TimerIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -59,6 +59,7 @@ const ProjectHub = load('ProjectHub', () => import('./ProjectHub'))
 const Knowledge = load('Knowledge', () => import('./Knowledge'))
 const StudyLab = load('StudyLab', () => import('./StudyLab'))
 const Gaming = load('Gaming', () => import('./Gaming'))
+const Teams = load('Teams', () => import('./Teams'))
 const Study = load('Study', () => import('./Study'))
 
 export interface AppDefinition {
@@ -124,6 +125,7 @@ export const APPS: AppDefinition[] = [
   { id: 'knowledge', title: 'Kennis', icon: LibraryIcon, component: Knowledge, defaultSize: { width: 820, height: 640 }, feature: 'knowledge' },
   { id: 'studylab', title: 'Study Lab', icon: FlaskIcon, component: StudyLab, defaultSize: { width: 760, height: 640 }, feature: 'studyLab' },
   { id: 'gaming', title: 'Gaming Companion', icon: GamepadIcon, component: Gaming, defaultSize: { width: 720, height: 620 }, feature: 'gaming' },
+  { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
   { id: 'profiles', title: 'Profielen', icon: LayersIcon, component: Profiles, defaultSize: { width: 620, height: 540 } },
   { id: 'settings', title: 'Instellingen', icon: SettingsIcon, component: Settings, defaultSize: { width: 520, height: 420 } },
   { id: 'developer', title: 'Ontwikkelaar', icon: CodeIcon, component: Developer, defaultSize: { width: 640, height: 480 }, developer: true },

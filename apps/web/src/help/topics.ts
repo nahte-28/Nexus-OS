@@ -185,6 +185,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Met een plan in uren per week waarschuwt de app vanaf 80 % en als je erover gaat.',
     ],
   },
+  teams: {
+    summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
+    tips: [
+      'Een team is dezelfde groep als in Studie › Groep: wat leden delen en de groepsdeadlines staan daar.',
+      'Eigenaar, beheerder, lid of kijker: bij Leden staat wat elke rol mag. Kijkers lezen alleen mee.',
+      'Een uitnodiging heeft een rol, vervalt na een uur tot 30 dagen en kan maar een aantal keer werken.',
+      'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
+    ],
+  },
   knowledge: {
     summary: 'Kennis: je notities als doorzoekbare kennisbank, met collecties, tags, verwijzingen en versies.',
     tips: [

@@ -40,6 +40,9 @@ insert into public.inbox_items (id, source, type, title, at, updated_at) values 
 do $$ begin if exists (select 1 from public.inbox_items where id = 'oud') then raise exception 'Oude inboxitems blijven staan'; end if; end $$;
 select (public.create_study_group('Groep A', 'A')).id as group_id \gset
 insert into public.study_group_tasks (group_id, title, due_at) values (:'group_id', 'Taak', 1);
+select (public.create_team_invite(:'group_id', 'member', 24, null)).code as invite_code \gset
+insert into public.team_projects (id, group_id, name) values ('00000000-0000-0000-0000-0000000000e1', :'group_id', 'Project');
+insert into public.team_project_tasks (project_id, group_id, title) values ('00000000-0000-0000-0000-0000000000e1', :'group_id', 'Taak');
 reset role;
 
 -- 3. User B sees none of it and can change none of it.
