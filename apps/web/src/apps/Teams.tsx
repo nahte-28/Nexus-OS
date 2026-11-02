@@ -6,6 +6,7 @@ import {
   inviteState,
   inviteSummary,
   memberName,
+  normalizeKlas,
   myTeamTasks,
   normalizeTeamCode,
   roleChoices,
@@ -18,6 +19,7 @@ import {
   TEAM_ROLES,
   TEAM_TASK_STATUS_LABELS,
   TEAM_TASK_STATUSES,
+  type ClassTeam,
   type StudyGroup,
   type TeamInvite,
   type TeamMember,
@@ -29,6 +31,8 @@ import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
 import { suggestedName } from '../study/group'
 import { Teams as TeamsApi } from '../teams/teams'
+import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
+import { profilesStore, useProfiles } from '../profiles/store'
 
 const TABS = ['Projecten', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
@@ -57,7 +61,7 @@ const localInput = (t: number | null) => {
 function SetupHint({ problem }: { problem: string }) {
   return (
     <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
-      Teams heeft nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
+      {problem.includes('class_teams') ? 'Klasteams hebben' : 'Teams heeft'} nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
     </p>
   )
 }
@@ -78,10 +82,15 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
   const [data, setData] = useState<TeamData>(EMPTY)
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [mode, setMode] = useState<'create' | 'join' | null>(null)
+  const [linkCode] = useState(pendingJoin)
+  const [mode, setModeState] = useState<'create' | 'join' | 'class' | null>(linkCode ? 'join' : null)
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(linkCode ?? '')
+  const setMode = (m: 'create' | 'join' | 'class' | null) => {
+    if (m !== 'join') clearPendingJoin()
+    setModeState(m)
+  }
   const [tab, setTabState] = useState<Tab>(() => (TABS.includes(readStorage(TAB_KEY) as Tab) ? (readStorage(TAB_KEY) as Tab) : 'Projecten'))
   const setTab = (t: Tab) => {
     setTabState(t)
@@ -168,6 +177,7 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
         const g = await api.join(normalized, displayName)
         if (!g) throw new Error('Geen team gevonden met die code.')
         pick(g.id)
+        clearPendingJoin()
       }
       setMode(null)
       setName('')
@@ -198,9 +208,26 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
           <button type="button" className={small} onClick={() => setMode('join')}>
             Aansluiten met een code
           </button>
+          <button type="button" className={small} onClick={() => setMode(mode === 'class' ? null : 'class')} aria-expanded={mode === 'class'}>
+            Teams van je klas
+          </button>
         </div>
-        {mode && (
+        {mode === 'class' && (
+          <ClassTeams
+            api={api}
+            displayName={displayName}
+            setDisplayName={setDisplayName}
+            busy={busy}
+            onJoined={(id) => {
+              pick(id)
+              setMode(null)
+              void refreshList()
+            }}
+          />
+        )}
+        {mode && mode !== 'class' && (
           <form onSubmit={submit} className="space-y-2 rounded-lg border border-nx-border p-3">
+            {mode === 'join' && linkCode && <p className="text-xs">Je opende een uitnodigingslink. Kies je naam in het team en tik op Aansluiten.</p>}
             {mode === 'create' ? (
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam van het team, bv. Projectgroep IoT" aria-label="Naam van het team" className={field} />
             ) : (
@@ -488,11 +515,13 @@ function Invites({ api, team, data, role, busy, run }: PartProps & { data: TeamD
   const [uses, setUses] = useState<number | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const now = Date.now()
-  const copy = (code: string) =>
-    void navigator.clipboard?.writeText(formatTeamCode(code)).then(() => {
-      setCopied(code)
+  const copy = (code: string, asLink = false) =>
+    void navigator.clipboard?.writeText(asLink ? joinLink(code) : formatTeamCode(code)).then(() => {
+      setCopied(asLink ? `link:${code}` : code)
       setTimeout(() => setCopied(null), 2000)
     })
+  const share = (code: string) =>
+    void navigator.share?.({ title: `Uitnodiging voor ${team.name}`, text: `Kom bij ${team.name} in NEXUS:`, url: joinLink(code) }).catch(() => {})
   const roles: Array<TeamInvite['role']> = teamCan(role, 'inviteAdmin') ? ['admin', 'member', 'viewer'] : ['member', 'viewer']
   return (
     <>
@@ -539,9 +568,19 @@ function Invites({ api, team, data, role, busy, run }: PartProps & { data: TeamD
             <span className={pill}>{TEAM_ROLE_LABELS[i.role]}</span>
             <span className="min-w-0 flex-1 text-xs text-nx-muted">{inviteSummary(i, now)}</span>
             {inviteState(i, now) === 'active' && (
-              <button type="button" className={small} onClick={() => copy(i.code)}>
-                {copied === i.code ? 'Gekopieerd' : 'Kopiëren'}
-              </button>
+              <>
+                <button type="button" className={small} onClick={() => copy(i.code)}>
+                  {copied === i.code ? 'Gekopieerd' : 'Code kopiëren'}
+                </button>
+                <button type="button" className={small} onClick={() => copy(i.code, true)} aria-label={`Link van ${formatTeamCode(i.code)} kopiëren`}>
+                  {copied === `link:${i.code}` ? 'Link gekopieerd' : 'Link kopiëren'}
+                </button>
+                {typeof navigator.share === 'function' && (
+                  <button type="button" className={small} onClick={() => share(i.code)}>
+                    Delen
+                  </button>
+                )}
+              </>
             )}
             <button type="button" className={small} disabled={busy} aria-label={`Uitnodiging ${formatTeamCode(i.code)} intrekken`} onClick={() => void run(() => api.withdraw(i.id))}>
               Intrekken
@@ -550,7 +589,10 @@ function Invites({ api, team, data, role, busy, run }: PartProps & { data: TeamD
         ))}
       </ul>
       <p className="text-xs text-nx-muted">
-        De vaste code van de studiegroep, <span className="font-mono">{formatTeamCode(team.inviteCode)}</span>, blijft werken en maakt nieuwe mensen lid. Wie al in het team zit, houdt zijn rol.
+        De vaste code van de studiegroep, <span className="font-mono">{formatTeamCode(team.inviteCode)}</span>, blijft werken en maakt nieuwe mensen lid. Wie al in het team zit, houdt zijn rol. Een link opent NEXUS met de code al ingevuld; wie nog niet aangemeld is, meldt zich eerst aan.{' '}
+        <button type="button" className="underline" onClick={() => copy(team.inviteCode, true)}>
+          {copied === `link:${team.inviteCode}` ? 'Link gekopieerd' : 'Link met de vaste code kopiëren'}
+        </button>
       </p>
     </>
   )
@@ -562,6 +604,7 @@ function Settings({ api, team, role, busy, run, onGone }: PartProps & { onGone: 
   useEffect(() => setName(team.name), [team.name])
   return (
     <>
+      {teamCan(role, 'manage') && <TeamClass api={api} team={team} busy={busy} run={run} />}
       {teamCan(role, 'manage') && (
         <form
           className="flex gap-2"
@@ -625,5 +668,118 @@ function Settings({ api, team, role, busy, run, onGone }: PartProps & { onGone: 
       )}
       <p className="text-xs text-nx-muted">Wat leden delen en de groepsdeadlines vind je in Studie › Groep; dit team is daar dezelfde groep.</p>
     </>
+  )
+}
+
+/** Owner and admins: the class of the team, and whether classmates may find and join it. */
+function TeamClass({ api, team, busy, run }: Omit<PartProps, 'role'>) {
+  const { state } = useProfiles()
+  const [klas, setKlas] = useState(team.klas ?? state.klas)
+  const [open, setOpen] = useState(team.classOpen ?? false)
+  useEffect(() => {
+    setKlas(team.klas ?? state.klas)
+    setOpen(team.classOpen ?? false)
+  }, [team.klas, team.classOpen, state.klas])
+  const valid = !klas.trim() || normalizeKlas(klas) !== null
+  return (
+    <form
+      className="space-y-2 rounded-lg border border-nx-border p-3"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void run(() => api.setClass(team.id, klas, open), 'list')
+      }}
+    >
+      <p className="font-medium">Klas</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input value={klas} onChange={(e) => setKlas(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Klas van het team" className={`${field} w-28 font-mono uppercase`} />
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={open && !!klas.trim()} disabled={!klas.trim()} onChange={(e) => setOpen(e.target.checked)} />
+          Open voor klasgenoten
+        </label>
+        <button type="submit" className={button} disabled={busy || !valid}>
+          Opslaan
+        </button>
+      </div>
+      {!valid && <p className="text-xs text-red-500">Een klas is 2 tot 8 letters en cijfers, bv. 1IT3.</p>}
+      <p className="text-xs text-nx-muted">
+        Staat het team open, dan ziet iedereen die in NEXUS dezelfde klas invult de naam van het team en hoeveel leden het heeft, en kan hij met één tik aansluiten als lid. NEXUS kijkt niet na of iemand echt in die klas zit; zet het dicht als het team vol of klaar is.
+      </p>
+    </form>
+  )
+}
+
+/** Your class, and the teams open to it that you are not in yet. */
+function ClassTeams({ api, displayName, setDisplayName, busy, onJoined }: { api: TeamsApi; displayName: string; setDisplayName: (v: string) => void; busy: boolean; onJoined: (id: string) => void }) {
+  const { state } = useProfiles()
+  const [draft, setDraft] = useState(state.klas)
+  const [found, setFound] = useState<ClassTeam[] | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  const [joining, setJoining] = useState(false)
+  const klas = state.klas
+  useEffect(() => setDraft(klas), [klas])
+  useEffect(() => {
+    if (!klas) return
+    let live = true
+    api
+      .classTeams(klas)
+      .then((list) => live && (setFound(list), setProblem(null)))
+      .catch((err) => live && setProblem(message(err)))
+    return () => {
+      live = false
+    }
+  }, [api, klas])
+  const saveKlas = () => {
+    const k = normalizeKlas(draft)
+    if (!k) return setProblem('Een klas is 2 tot 8 letters en cijfers, bv. 1IT3.')
+    setProblem(null)
+    profilesStore.update((st) => ({ ...st, klas: k }))
+  }
+  const join = async (t: ClassTeam) => {
+    setJoining(true)
+    try {
+      onJoined((await api.joinClass(t.id, klas, displayName)).id)
+    } catch (err) {
+      setProblem(message(err))
+    } finally {
+      setJoining(false)
+    }
+  }
+  return (
+    <div className="space-y-2 rounded-lg border border-nx-border p-3">
+      <form
+        className="flex flex-wrap items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          saveKlas()
+        }}
+      >
+        <label className="flex items-center gap-2">
+          Jouw klas
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Jouw klas" className={`${field} w-28 font-mono uppercase`} />
+        </label>
+        <button type="submit" className={small} disabled={!draft.trim() || normalizeKlas(draft) === klas}>
+          Opslaan
+        </button>
+        <span className="text-xs text-nx-muted">Gaat mee met je profielen naar je andere apparaten.</span>
+      </form>
+      {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="text-red-500">{problem}</p>}
+      {klas && found && found.length === 0 && <p className="text-nx-muted">Nog geen teams open voor {klas}. Maak er een en zet het bij Instellingen open voor je klas.</p>}
+      {klas && found && found.length > 0 && (
+        <>
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} placeholder="Je naam in het team" aria-label="Je naam in het team" className={field} />
+          <ul className="space-y-1">
+            {found.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 rounded-lg border border-nx-border px-3 py-2">
+                <span className="min-w-0 flex-1">{t.name}</span>
+                <span className={pill}>{t.members === 1 ? '1 lid' : `${t.members} leden`}</span>
+                <button type="button" className={small} disabled={busy || joining || !displayName.trim()} onClick={() => void join(t)} aria-label={`Aansluiten bij ${t.name}`}>
+                  Aansluiten
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   )
 }

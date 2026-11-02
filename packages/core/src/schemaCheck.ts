@@ -42,6 +42,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261030150000_teams.sql', label: 'Teams: rollen, uitnodigingen en gedeelde projecten', needs: [{ table: 'team_invites' }, { table: 'team_projects' }, { table: 'team_project_tasks' }, { fn: 'join_team' }] },
   { file: '20261102090000_inbox_v2.sql', label: 'Inbox 2.0: regels en bezorgstatus syncen', needs: [{ fn: 'inbox_merge_delivery' }, { settingsKey: 'inbox' }] },
   { file: '20261102120000_flows_server_agenda.sql', label: 'Flows op de server volgen je lesrooster', needs: [{ fn: 'profiles_server_view' }] },
+  { file: '20261102150000_class_teams.sql', label: 'Teams voor je klas', needs: [{ fn: 'find_class_teams' }] },
 ]
 
 /** What nexus_schema_status() returns. */

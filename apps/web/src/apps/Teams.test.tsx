@@ -20,7 +20,7 @@ function fake(myRole: TeamRole = 'owner', signedIn = true) {
     me: vi.fn(async () => (signedIn ? { id: ME, email: 'ethan@student.ap.be' } : null)),
     teams: vi.fn(async () => [...teams]),
     create: vi.fn(),
-    join: vi.fn(async () => null),
+    join: vi.fn(async (): Promise<StudyGroup | null> => null),
     load: vi.fn(async (_g: string, manage: boolean) => ({ members: members.map((m) => ({ ...m })), invites: manage ? [...invites] : [], projects: [...projects], tasks: tasks.map((t) => ({ ...t })) })),
     watch: vi.fn(() => () => {}),
     invite: vi.fn(async (groupId: string, role: TeamInvite['role'], hours: number, maxUses: number | null) => {
@@ -40,6 +40,12 @@ function fake(myRole: TeamRole = 'owner', signedIn = true) {
     rename: vi.fn(),
     remove: vi.fn(),
     leave: vi.fn(),
+    setClass: vi.fn(async () => {}),
+    classTeams: vi.fn(async () => [{ id: 'g2', name: 'Klas 1IT3', klas: '1IT3', members: 4 }]),
+    joinClass: vi.fn(async (id: string) => {
+      teams.push({ id, name: 'Klas 1IT3', inviteCode: 'ABCDEF24', createdBy: 'x' })
+      return teams.at(-1)!
+    }),
     takeOver: vi.fn((t: TeamProjectTask) => lifeStore.addDeadline({ title: t.title, dueAt: t.dueAt!, projectId: null, notes: '', remind: [], target: 'this_device' })),
   }
   return api as typeof api & TeamsApi
@@ -97,5 +103,48 @@ describe('Teams', () => {
     expect(screen.queryByRole('tab', { name: 'Uitnodigingen' })).toBeNull()
     fireEvent.click(screen.getByRole('tab', { name: 'Leden' }))
     expect(screen.queryByLabelText('Rol van Zoë')).toBeNull()
+  })
+  it('opens an invitation link with the code filled in and joins with it', async () => {
+    const api = fake()
+    api.join.mockImplementation(async () => ({ id: 'g1', name: 'Projectgroep', inviteCode: 'ABCDEF23', createdBy: ME }))
+    localStorage.setItem('nexus.teams.join', 'ABCDE-FGH23')
+    render(<Teams api={api} />)
+    expect(await screen.findByText(/Je opende een uitnodigingslink/)).toBeTruthy()
+    expect((screen.getByLabelText('Code') as HTMLInputElement).value).toBe('ABCDE-FGH23')
+    fireEvent.click(screen.getByRole('button', { name: 'Aansluiten' }))
+    await waitFor(() => expect(api.join).toHaveBeenCalledWith({ code: 'ABCDEFGH23', kind: 'invite' }, expect.any(String)))
+    await waitFor(() => expect(localStorage.getItem('nexus.teams.join')).toBe(''))
+  })
+
+  it('copies an invitation as a link', async () => {
+    const writeText = vi.fn(async () => {})
+    Object.assign(navigator, { clipboard: { writeText } })
+    const api = fake()
+    render(<Teams api={api} />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Uitnodigingen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Uitnodiging maken' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Link van ABCDE-FGH23 kopiëren' }))
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${location.origin}/join/ABCDE-FGH23`))
+  })
+
+  it('finds the teams of your class and joins one', async () => {
+    const api = fake()
+    render(<Teams api={api} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Teams van je klas' }))
+    fireEvent.change(screen.getByLabelText('Jouw klas'), { target: { value: '1it3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Opslaan' }))
+    await waitFor(() => expect(api.classTeams).toHaveBeenCalledWith('1IT3'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Aansluiten bij Klas 1IT3' }))
+    await waitFor(() => expect(api.joinClass).toHaveBeenCalledWith('g2', '1IT3', expect.any(String)))
+  })
+
+  it('lets the owner open the team to a class', async () => {
+    const api = fake()
+    render(<Teams api={api} />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Instellingen' }))
+    fireEvent.change(await screen.findByLabelText('Klas van het team'), { target: { value: '1IT3' } })
+    fireEvent.click(screen.getByLabelText('Open voor klasgenoten'))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Opslaan' })[0])
+    await waitFor(() => expect(api.setClass).toHaveBeenCalledWith('g1', '1IT3', true))
   })
 })

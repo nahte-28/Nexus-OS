@@ -106,6 +106,18 @@ export function normalizeTeamCode(raw: string): { code: string; kind: 'invite' |
   return null
 }
 
+/** An invitation as a link: opening it starts NEXUS with the code filled in under Teams. */
+export function teamJoinLink(base: string, code: string): string {
+  return `${base.replace(/\/+$/, '')}/join/${formatTeamCode(code)}`
+}
+
+/** The code in a /join/<code> address, formatted; null for any other address. */
+export function joinCodeFromPath(pathname: string): string | null {
+  const m = pathname.match(/^\/join\/([A-Za-z0-9-]{8,14})\/?$/)
+  const code = m ? normalizeTeamCode(m[1]) : null
+  return code ? formatTeamCode(code.code) : null
+}
+
 export const formatTeamCode = (code: string) => (code.length === 10 ? `${code.slice(0, 5)}-${code.slice(5)}` : `${code.slice(0, 4)}-${code.slice(4)}`)
 
 export interface TeamProject {

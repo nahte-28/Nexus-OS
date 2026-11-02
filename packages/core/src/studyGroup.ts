@@ -27,6 +27,18 @@ export interface StudyGroup {
   name: string
   inviteCode: string
   createdBy: string
+  /** The class the team belongs to, e.g. 1IT3 (needs 20261102150000_class_teams.sql). */
+  klas?: string | null
+  /** Whether classmates of [klas] see the team and may join it as a member. */
+  classOpen?: boolean
+}
+
+/** An open team of your class, as classmates see it before joining: only its name and size. */
+export interface ClassTeam {
+  id: string
+  name: string
+  klas: string
+  members: number
 }
 
 export interface GroupMember {
