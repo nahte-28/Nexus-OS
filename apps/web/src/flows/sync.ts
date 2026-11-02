@@ -1,5 +1,5 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { ACTION_LABELS, isTime, mergeFlows, TRIGGER_LABELS, type ActionType, type FlowDefinition, type StoredFlow, type TriggerType } from '@nexus/core'
+import { ACTION_LABELS, isTime, mergeFlows, PROFILE_IDS, TRIGGER_LABELS, type ActionType, type FlowDefinition, type ProfileId, type StoredFlow, type TriggerType } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from '../state/storage'
 import { flowsStore, type FlowRun, type FlowSettings, type FlowsStore } from './store'
@@ -341,6 +341,31 @@ export async function fetchFlowsServerStatus(): Promise<FlowsServerStatus | null
   if (error || !data || typeof data !== 'object') return null
   const v = data as { scheduled?: unknown; lastRun?: unknown }
   return { scheduled: v.scheduled === true, lastRun: typeof v.lastRun === 'number' ? v.lastRun : null }
+}
+
+/** What the server sees in the synced profiles right now (20261102120000_flows_server_agenda.sql). */
+export interface ProfilesServerView {
+  /** Whether the profiles are in the account at all. */
+  synced: boolean
+  agenda: boolean
+  lessonNow: boolean
+  active: ProfileId | null
+}
+
+/** Asks the account what flows on the server see; 'missing' when that SQL step is not run yet. */
+export async function fetchProfilesServerView(): Promise<ProfilesServerView | 'missing' | 'signed-out'> {
+  if (!serverClient) return 'signed-out'
+  const { data: auth } = await serverClient.auth.getSession()
+  if (!auth.session) return 'signed-out'
+  const { data, error } = await serverClient.rpc('profiles_server_view')
+  if (error || !data || typeof data !== 'object') return 'missing'
+  const v = data as { profiles?: unknown; agenda?: unknown; lessonNow?: unknown; active?: unknown }
+  return {
+    synced: v.profiles === true,
+    agenda: v.agenda === true,
+    lessonNow: v.lessonNow === true,
+    active: PROFILE_IDS.includes(v.active as ProfileId) ? (v.active as ProfileId) : null,
+  }
 }
 
 /** Starts syncing flows whenever someone is signed in; stays local-only otherwise. */

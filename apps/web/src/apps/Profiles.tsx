@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
   AGENDA_BRIDGE_CHOICES,
@@ -22,6 +22,7 @@ import {
   WIDGET_TITLES,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
+import { fetchProfilesServerView, type ProfilesServerView } from '../flows/sync'
 import { syncCalendar, syncGoogle } from '../profiles/calendar'
 import { chooseFor, profilesStore, useProfileHistory, useProfiles, type ChoiceDuration } from '../profiles/store'
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
@@ -840,10 +841,32 @@ function AgendaSettings() {
               : 'Geen les vandaag of morgen.'}{' '}
         {sources.length > 0 && `Uit ${sources.join(' en ')}.`}
       </p>
-      <p className="text-xs text-nx-muted">
-        Het uurschema hierboven gaat voor. Een keuze met de hand ook, tot het schema of de les wisselt. Flows op de server kijken alleen naar het uurschema.
-      </p>
+      <p className="text-xs text-nx-muted">Het uurschema hierboven gaat voor. Een keuze met de hand of door een flow ook, tot het schema of de les wisselt.</p>
+      <ServerAgenda />
     </fieldset>
+  )
+}
+
+/** Whether flows on the server follow the timetable too, and what the server sees right now. */
+function ServerAgenda() {
+  const { state } = useProfiles()
+  const [view, setView] = useState<ProfilesServerView | 'missing' | 'signed-out' | undefined>(undefined)
+  useEffect(() => {
+    let live = true
+    void fetchProfilesServerView().then((v) => live && setView(v))
+    return () => {
+      live = false
+    }
+  }, [state.revision])
+  if (view === undefined || view === 'signed-out') return null
+  return (
+    <p className="text-xs text-nx-muted" data-testid="profiles-server">
+      {view === 'missing'
+        ? 'Flows op de server volgen je lesrooster pas na de SQL-stap "Flows op de server volgen je lesrooster" (Account › Database-check).'
+        : !view.synced
+          ? 'Je profielen staan nog niet in je account, dus flows op de server zien je lesrooster niet.'
+          : `Flows op de server volgen dit ook als NEXUS dicht is. De server ziet nu ${view.agenda ? (view.lessonNow ? 'lestijd' : 'geen lestijd') : 'het lesrooster uit'}${view.active ? `, profiel ${state.profiles[view.active].name}` : ''}.`}
+    </p>
   )
 }
 
