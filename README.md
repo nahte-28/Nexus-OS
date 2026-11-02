@@ -308,6 +308,8 @@ Zet **Spaces** aan in **Instellingen > Nieuwe modules**. Een Space is een werkru
 
 Opslag: `user_settings` met key `spaces` (migratie `20261029170000_spaces.sql`). Per Space wint de nieuwste wijziging. Welke Space open is, wordt per toestel bewaard. Syncen start pas als de module aan staat. Op een gsm beheer je je Spaces, maar openen gebeurt op een groter scherm. Logica: `packages/core/src/spaces.ts`.
 
+**Workspace Studio 2.0:** op het dashboard staat **Indeling aanpassen** (ook zonder Spaces). Daar sleep je een widget naar een andere plek, en sleep je de hoek rechtsonder om hem 1 tot 3 kolommen breed en 1 of 2 rijen hoog te maken. Er zijn ook knoppen voor wie niet sleept. Je kunt widgets verbergen en toevoegen, en met **Gsm** zie je hoe het op een telefoon staat: daar is alles één kolom breed, de hoogte blijft. De indeling hoort bij het actieve profiel (veld `layout` in Profielen) en synct zo naar je andere apparaten; geen SQL nodig. Logica: `packages/core/src/dashboardLayout.ts`, raster in `apps/web/src/profiles/Dashboard.tsx`.
+
 ## Universal Inbox (blueprint fase 2)
 
 Zet **Universal Inbox** aan in **Instellingen > Nieuwe modules**. De app **Inbox** verzamelt wat NEXUS meldt, op al je apparaten:
