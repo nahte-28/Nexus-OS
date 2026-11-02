@@ -5,6 +5,7 @@ import { apiBase } from '../platform/desktop'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
 import { supabase } from '../sync/supabase'
+import { aiContextStore, approvalLog } from './context'
 import { AssistantSession, httpTransport } from './session'
 
 let applyTheme: (theme: ThemeId) => void = () => {}
@@ -25,4 +26,7 @@ export const assistant = new AssistantSession(
     setTheme: (theme) => applyTheme(theme),
     now: Date.now,
   }),
+  { context: aiContextStore.getSnapshot, log: (entry) => approvalLog.add(entry) },
 )
+
+aiContextStore.subscribe(() => assistant.contextChanged())

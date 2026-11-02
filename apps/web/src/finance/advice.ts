@@ -1,4 +1,5 @@
 import { financeFacts, monthLabel, monthOf } from '@nexus/core'
+import { aiContextStore } from '../ai/context'
 import { logEvent } from '../devtools/log'
 import { readAiStream } from '../files/study'
 import { apiBase } from '../platform/desktop'
@@ -14,6 +15,7 @@ const sessionToken: Token = async () => (await supabase?.auth.getSession())?.dat
  * financeFacts), through the same route and access rules as the Weekoverzicht.
  */
 export async function streamFinanceAdvice(month: string, wish: string, onText: (soFar: string) => void, now = Date.now(), token: Token = sessionToken, base = apiBase): Promise<string> {
+  if (!aiContextStore.getSnapshot().finance) throw new Error('Financiën staat uit voor NEXUS AI. Zet het aan in NEXUS AI › Wat NEXUS AI mag zien.')
   const access = await token()
   if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
   const response = await fetch(`${base}/api/review`, {

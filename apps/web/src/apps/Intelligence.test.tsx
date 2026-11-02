@@ -1,10 +1,11 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { IntelFacts } from '@nexus/core'
 import { Intelligence } from './Intelligence'
 import { preloadApps } from './registry'
 import { flowsStore, flowStudioEnabled, setFlowStudioEnabled } from '../flows/store'
 import { intelStore, refreshNow } from '../intelligence/store'
+import { approvalLog } from '../ai/context'
 
 const now = Date.now()
 const facts = (patch: Partial<IntelFacts> = {}): IntelFacts => ({
@@ -55,7 +56,14 @@ describe('Intelligence app', () => {
     expect(screen.getByRole('status').textContent).toMatch(/14 dagen/)
     expect(intelStore.getSnapshot().rules.deadlines.cooldownUntil).toBeGreaterThan(now)
     fireEvent.click(screen.getByRole('tab', { name: 'Geschiedenis' }))
-    expect(screen.getByText(/Geweigerd: Een seintje voor je deadlines/)).toBeTruthy()
-    expect(screen.getByText(/Goedgekeurd: School Mode aanzetten/)).toBeTruthy()
+    const list = screen.getByRole('list', { name: 'Geschiedenis van goedkeuringen' })
+    const declined = within(list).getByText('Een seintje voor je deadlines').closest('li')!
+    expect(within(declined).getByText('Geweigerd')).toBeTruthy()
+    const approved = within(list).getByText('School Mode aanzetten voor je lessen').closest('li')!
+    expect(within(approved).getByText('Goedgekeurd')).toBeTruthy()
+    // Approving and declining also went into the shared history, once each.
+    expect(approvalLog.getSnapshot().filter((e) => e.source === 'intelligence').map((e) => e.outcome)).toEqual(['dismissed', 'accepted'])
+    fireEvent.click(screen.getByRole('button', { name: 'NEXUS AI' }))
+    expect(screen.getByText('Nog geen beslissingen.')).toBeTruthy()
   })
 })

@@ -1,5 +1,6 @@
 import { reviewedWeek, reviewKey, reviewMoment, reviewNoteTitle, weekFacts, type WeekInput } from '@nexus/core'
 import type { ConnectEngine } from '../connect/engine'
+import { aiContextStore } from '../ai/context'
 import { logEvent } from '../devtools/log'
 import { readAiStream } from '../files/study'
 import { gradesStore } from '../grades/store'
@@ -24,18 +25,21 @@ const RETRY_MS = 30 * 60_000
 type Token = () => Promise<string | null>
 const sessionToken: Token = async () => (await supabase?.auth.getSession())?.data.session?.access_token ?? null
 
-/** Everything NEXUS knows about the week, from the stores on this device. */
-export function weekInput(now = Date.now()): WeekInput {
+/**
+ * Everything NEXUS knows about the week, from the stores on this device. A module that is
+ * switched off for NEXUS AI (Wat NEXUS AI mag zien) stays out of it.
+ */
+export function weekInput(now = Date.now(), context = aiContextStore.getSnapshot()): WeekInput {
   const { state } = profilesStore.getSnapshot()
   return {
     now,
-    items: lifeStore.getSnapshot(),
-    calendarEvents: state.calendarEvents,
-    timetable: state.lessons,
-    reminders: remindersStore.getSnapshot(),
-    habits: habitsStore.getSnapshot(),
-    grades: gradesStore.getSnapshot(),
-    focus: focusStore.getSnapshot().log,
+    items: context.agenda ? lifeStore.getSnapshot() : [],
+    calendarEvents: context.agenda ? state.calendarEvents : [],
+    timetable: context.agenda ? state.lessons : [],
+    reminders: context.reminders ? remindersStore.getSnapshot() : [],
+    habits: context.habits ? habitsStore.getSnapshot() : { habits: [], revision: 0 },
+    grades: context.grades ? gradesStore.getSnapshot() : { courses: [], revision: 0 },
+    focus: context.focus ? focusStore.getSnapshot().log : [],
   }
 }
 

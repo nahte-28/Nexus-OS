@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { checkReviewRequest, POST } from '../../../../api/review'
 import { notesStore } from '../state/notesStore'
-import { autoReviewTick, reviewTeaser, saveReview, setAutoReview, streamReview } from './week'
+import { fullAiContext } from '@nexus/core'
+import { autoReviewTick, reviewTeaser, saveReview, setAutoReview, streamReview, weekInput } from './week'
 
 // Sunday 1 November 2026, 20:00: the moment for the review of the week of Monday 26 October.
 const sunday = new Date(2026, 10, 1, 20, 0).getTime()
@@ -81,5 +82,10 @@ describe('Weekoverzicht', () => {
   it('takes the first real line for the notification', () => {
     expect(reviewTeaser('## Je week\n\n- Je haalde 4 van 5 deadlines.\n- Meer')).toBe('Je haalde 4 van 5 deadlines.')
     expect(reviewTeaser('')).toMatch(/Notities/)
+  })
+
+  it('leaves modules that are switched off for NEXUS AI out of the week', () => {
+    const off = weekInput(Date.now(), { ...fullAiContext(), agenda: false, reminders: false, habits: false, grades: false, focus: false })
+    expect(off).toMatchObject({ items: [], calendarEvents: [], timetable: [], reminders: [], habits: { habits: [] }, grades: { courses: [] }, focus: [] })
   })
 })

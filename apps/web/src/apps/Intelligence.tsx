@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { describeFlow, RULE_IDS, RULE_INFO, type FlowDraft, type Suggestion } from '@nexus/core'
+import { useEffect, useMemo, useState } from 'react'
+import { describeFlow, RULE_IDS, RULE_INFO, type ApprovalEntry, type FlowDraft, type Suggestion } from '@nexus/core'
+import { AiContextSettings, ApprovalHistory } from '../ai/AiPrivacy'
 import { useFlows } from '../flows/store'
 import { adjust, approve, dismiss, forgetFeedback, refreshNow, snooze, switchRule, useIntel } from '../intelligence/store'
 import { onReveal, takeReveal } from '../search/reveal'
@@ -239,26 +240,22 @@ function Automations() {
   )
 }
 
-const DECISIONS: Record<string, string> = { accepted: 'Goedgekeurd', dismissed: 'Geweigerd', expired: 'Verlopen (een week niets mee gedaan)' }
+const OUTCOME = { accepted: 'accepted', dismissed: 'dismissed', expired: 'expired' } as const
 
+/** Decisions on proposals plus the actions of NEXUS AI, in one history (Intelligence 2.0). */
 function History() {
   const { suggestions } = useIntel()
-  const done = suggestions.filter((s) => s.status === 'accepted' || s.status === 'dismissed' || s.status === 'expired')
-  if (done.length === 0) return <p className="text-nx-muted">Nog geen beslissingen.</p>
-  return (
-    <ul className="space-y-2" aria-label="Geschiedenis">
-      {done.map((s) => (
-        <li key={s.id} className="rounded-lg border border-nx-border p-3">
-          <div className="font-medium">
-            {DECISIONS[s.status]}: {s.title}
-          </div>
-          <div className="text-xs text-nx-muted">
-            {when(s.decidedAt ?? s.createdAt)} · regel {RULE_INFO[s.rule].title}
-          </div>
-        </li>
-      ))}
-    </ul>
+  // Decisions from before the history existed; same id as the history uses, so nothing doubles.
+  const earlier = useMemo(
+    () =>
+      suggestions.flatMap((s): ApprovalEntry[] => {
+        if (s.status !== 'accepted' && s.status !== 'dismissed' && s.status !== 'expired') return []
+        const at = s.decidedAt ?? s.createdAt
+        return [{ id: `intel:${s.id}:${OUTCOME[s.status]}:${at}`, at, source: 'intelligence', outcome: OUTCOME[s.status], label: s.title, detail: s.reason }]
+      }),
+    [suggestions],
   )
+  return <ApprovalHistory extra={earlier} />
 }
 
 function Privacy() {
@@ -272,6 +269,10 @@ function Privacy() {
         Antwoorden en wachttijden vergeten
       </button>
       {done && <p role="status" className="text-nx-muted">Vergeten. De regels mogen weer voorstellen doen.</p>}
+      <section className="space-y-2 border-t border-nx-border pt-3">
+        <h3 className="font-medium">NEXUS AI</h3>
+        <AiContextSettings />
+      </section>
     </div>
   )
 }

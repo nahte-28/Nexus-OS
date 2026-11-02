@@ -1,4 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
+import { allowedTools, fullAiContext, hiddenModules, toolModule, type AiContext, type ApprovalEntry } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from '../state/storage'
 import { TOOL_SPECS, type ToolContext } from './tools'
@@ -54,7 +55,15 @@ interface DoneEvent {
 type StreamEvent = { type: 'text'; text: string } | DoneEvent | { type: 'error'; message: string }
 
 /** Sends the conversation to the server and streams the reply. Replaced in tests. */
-export type Transport = (messages: MessageParam[], onEvent: (event: StreamEvent) => void) => Promise<void>
+export type Transport = (messages: MessageParam[], onEvent: (event: StreamEvent) => void, tools?: string[]) => Promise<void>
+
+/** Per module what NEXUS AI may see, and where approvals are written down. */
+export interface SessionAccess {
+  context(): AiContext
+  log(entry: Omit<ApprovalEntry, 'id' | 'at'>): void
+}
+
+const openAccess: SessionAccess = { context: fullAiContext, log: () => {} }
 
 const ALWAYS_KEY = 'nexus.ai.always'
 /** Tool rounds per question, so a confused model cannot loop forever on the user's bill. */
@@ -70,6 +79,21 @@ function alwaysAllowed(): Set<string> {
 
 export function forgetAlwaysAllowed(): void {
   writeStorage(ALWAYS_KEY, '[]')
+}
+
+/** The actions that run without asking, by tool name. */
+export const alwaysAllowedList = (): string[] => [...alwaysAllowed()].sort()
+
+/** Asks again for one action that was "altijd toegestaan". */
+export function forgetAlways(name: string): void {
+  const set = alwaysAllowed()
+  set.delete(name)
+  writeStorage(ALWAYS_KEY, JSON.stringify([...set]))
+}
+
+function contextNote(context: AiContext): string | null {
+  const hidden = hiddenModules(context)
+  return hidden.length ? `[Uitgezet voor NEXUS AI: ${hidden.join(', ')}. Daar kun je niets zien of doen; zeg dat de gebruiker het kan aanzetten in NEXUS AI › Wat NEXUS AI mag zien.]` : null
 }
 
 function nowNote(now: number): string {
@@ -90,12 +114,13 @@ export class AssistantSession {
   private history: MessageParam[] = []
   private state: AssistantState = { items: [], streaming: '', busy: false, usage: [] }
   private listeners = new Set<() => void>()
-  private pending = new Map<string, { input: Record<string, unknown>; resolve: (allowed: boolean) => void }>()
+  private pending = new Map<string, { input: Record<string, unknown>; resolve: (allowed: boolean, always?: boolean) => void }>()
   private nextId = 1
 
   constructor(
     private transport: Transport,
     private context: () => ToolContext,
+    private access: SessionAccess = openAccess,
   ) {}
 
   subscribe = (listener: () => void): (() => void) => {
@@ -133,6 +158,16 @@ export class AssistantSession {
     this.set({ items: [], streaming: '' })
   }
 
+  /**
+   * What NEXUS AI may see changed: the old conversation can hold actions that are now switched
+   * off, so a new one begins.
+   */
+  contextChanged(): void {
+    if (this.state.items.length === 0) return
+    this.reset()
+    this.push({ kind: 'notice', id: this.id(), text: 'Wat NEXUS AI mag zien is gewijzigd, dus er begint een nieuw gesprek.' })
+  }
+
   /** The user's answer on a permission card. */
   decide(toolId: string, allowed: boolean, always = false): void {
     const pending = this.pending.get(toolId)
@@ -146,7 +181,7 @@ export class AssistantSession {
         writeStorage(ALWAYS_KEY, JSON.stringify([...set]))
       }
     }
-    pending.resolve(allowed)
+    pending.resolve(allowed, allowed && always)
   }
 
   async send(text: string): Promise<void> {
@@ -157,7 +192,7 @@ export class AssistantSession {
       role: 'user',
       content: [
         { type: 'text', text: trimmed },
-        { type: 'text', text: nowNote(this.context().now()) },
+        { type: 'text', text: [nowNote(this.context().now()), contextNote(this.access.context())].filter(Boolean).join('\n') },
       ],
     })
     this.set({ busy: true })
@@ -208,11 +243,15 @@ export class AssistantSession {
     let error: string | null = null
     this.set({ streaming: '' })
     try {
-      await this.transport(this.history, (event) => {
-        if (event.type === 'text') this.set({ streaming: this.state.streaming + event.text })
-        else if (event.type === 'done') done = event.message
-        else error = event.message
-      })
+      await this.transport(
+        this.history,
+        (event) => {
+          if (event.type === 'text') this.set({ streaming: this.state.streaming + event.text })
+          else if (event.type === 'done') done = event.message
+          else error = event.message
+        },
+        allowedTools(this.access.context()),
+      )
     } catch (err) {
       error = err instanceof Error ? err.message : 'NEXUS AI is niet bereikbaar.'
     }
@@ -262,12 +301,32 @@ export class AssistantSession {
       readOnly: spec.readOnly,
       status: 'pending',
     }
+    const module = toolModule(use.name)
+    if (module && !this.access.context()[module]) {
+      const why = 'Deze module staat uit voor NEXUS AI.'
+      this.push({ kind: 'tool', id: this.id(), request: { ...request, status: 'denied', result: why } })
+      this.access.log({ source: 'ai', outcome: 'blocked', label: spec.label, detail: request.description })
+      return { type: 'tool_result', tool_use_id: use.id, is_error: true, content: `${why} De gebruiker kan ze aanzetten in NEXUS AI › Wat NEXUS AI mag zien.` }
+    }
     if (problem) {
       this.push({ kind: 'tool', id: this.id(), request: { ...request, status: 'failed', result: problem } })
       return { type: 'tool_result', tool_use_id: use.id, is_error: true, content: problem }
     }
     this.push({ kind: 'tool', id: this.id(), request })
-    const allowed = alwaysAllowed().has(use.name) || (await new Promise<boolean>((resolve) => this.pending.set(use.id, { input, resolve })))
+    const auto = alwaysAllowed().has(use.name)
+    let always = false
+    const allowed =
+      auto ||
+      (await new Promise<boolean>((resolve) =>
+        this.pending.set(use.id, {
+          input,
+          resolve: (yes, alwaysToo = false) => {
+            always = alwaysToo
+            resolve(yes)
+          },
+        }),
+      ))
+    this.access.log({ source: 'ai', outcome: auto ? 'auto' : !allowed ? 'denied' : always ? 'always' : 'allowed', label: spec.label, detail: request.description })
     if (!allowed) {
       this.updateTool(use.id, { status: 'denied' })
       logEvent('ai', `Actie geweigerd: ${spec.label}`)
@@ -290,13 +349,13 @@ export class AssistantSession {
 
 /** Calls /api/ai with the user's login and reads the streamed reply line by line. */
 export function httpTransport(base: string, token: () => Promise<string | null>): Transport {
-  return async (messages, onEvent) => {
+  return async (messages, onEvent, tools) => {
     const access = await token()
     if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
     const response = await fetch(`${base}/api/ai`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, tools }),
     })
     if (!response.ok || !response.body) {
       const body = (await response.json().catch(() => null)) as { error?: string } | null

@@ -350,6 +350,8 @@ Zet **Intelligence** aan in **Instellingen > Nieuwe modules**. NEXUS kijkt dan n
 
 De regels draaien op het toestel, zonder AI en zonder server; alles staat in localStorage `nexus.intelligence`, dus er is geen SQL voor nodig. Logica: `packages/core/src/intelligence.ts`, web: `apps/web/src/intelligence/store.ts`, app: `apps/web/src/apps/Intelligence.tsx`.
 
+**Intelligence 2.0:** in **NEXUS AI** opent de knop **Wat NEXUS AI mag zien** een lijst per module (Notities, Agenda en lesrooster, Herinneringen, Gewoontes, Cijfers, Focustijd, Financiën, Apparaten, Thema). Een module die uitstaat gaat niet mee: de app stuurt de acties ervan niet naar `/api/ai` (de server neemt alleen de namen in `tools` over; zonder lijst, zoals bij oudere apps, blijft alles beschikbaar), een poging ervan wordt tegengehouden zonder iets te lezen, en het Weekoverzicht en het geldadvies laten die gegevens weg. Na een wijziging begint een nieuw gesprek. Daar zie je ook welke acties "altijd toegestaan" zijn, met **Weer vragen** per actie. De **Geschiedenis van goedkeuringen** (ook op het tabblad Geschiedenis van Intelligence) toont elk antwoord op een toestemmingskaart van NEXUS AI en elk goedgekeurd, geweigerd, uitgesteld of verlopen voorstel van Intelligence, met filters. Beide blijven op het apparaat (localStorage `nexus.ai.context` en `nexus.ai.approvals`, de laatste 300); geen SQL nodig. Logica: `packages/core/src/aiContext.ts`, web: `apps/web/src/ai/context.ts` en `apps/web/src/ai/AiPrivacy.tsx`.
+
 ## Developer Hub (blueprint fase 6)
 
 Zet **Developer Hub** aan in **Instellingen > Nieuwe modules**. Daarmee bouw je je eigen widgets voor het dashboard:

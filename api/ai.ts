@@ -176,6 +176,16 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
   },
 ]
 
+/**
+ * The actions the client allows (Intelligence 2.0: modules can be switched off for NEXUS AI).
+ * Without a list, as from older apps, every action stays available; unknown names are ignored.
+ */
+export function pickTools(names: unknown): Anthropic.Beta.BetaTool[] {
+  if (!Array.isArray(names)) return TOOLS
+  const wanted = new Set(names.filter((n): n is string => typeof n === 'string'))
+  return TOOLS.filter((t) => wanted.has(t.name))
+}
+
 /** Checks the shape of the conversation the client sends; returns an error text or null. */
 export function checkMessages(messages: unknown): string | null {
   if (!Array.isArray(messages) || messages.length === 0) return 'Het gesprek is leeg.'
@@ -201,8 +211,11 @@ export async function POST(request: Request): Promise<Response> {
   const raw = await request.text()
   if (raw.length > MAX_BODY_BYTES) return json(request, 413, 'Dit gesprek is te groot. Begin een nieuw gesprek.')
   let messages: Anthropic.Beta.BetaMessageParam[]
+  let tools: Anthropic.Beta.BetaTool[]
   try {
-    messages = (JSON.parse(raw) as { messages: Anthropic.Beta.BetaMessageParam[] }).messages
+    const parsed = JSON.parse(raw) as { messages: Anthropic.Beta.BetaMessageParam[]; tools?: unknown }
+    messages = parsed.messages
+    tools = pickTools(parsed.tools)
   } catch {
     return json(request, 400, 'Ongeldige aanvraag.')
   }
@@ -224,7 +237,7 @@ export async function POST(request: Request): Promise<Response> {
           fallbacks: 'default',
           cache_control: { type: 'ephemeral' },
           system: SYSTEM_PROMPT,
-          tools: TOOLS,
+          ...(tools.length > 0 ? { tools } : {}),
           messages,
         })
         stream.on('text', (text) => send({ type: 'text', text }))
