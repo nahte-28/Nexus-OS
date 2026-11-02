@@ -64,6 +64,34 @@ export interface ProfileOverride {
   /** Whether the schedule window was open when the choice was made. */
   windowOpenAtStart: boolean
   setAt: number
+  /** Profiles 2.0: who chose it when not you in Profielen, e.g. "Flow Ochtend" or "Space Studeren". */
+  by?: string
+}
+
+/**
+ * Profiles 2.0: a profile while a lesson from the timetable or the school calendar runs, from
+ * [leadMinutes] before it starts, and through breaks between lessons up to [bridgeMinutes].
+ */
+export interface AgendaRule {
+  enabled: boolean
+  profile: ProfileId
+  leadMinutes: number
+  bridgeMinutes: number
+}
+
+export const DEFAULT_AGENDA: AgendaRule = { enabled: false, profile: 'school', leadMinutes: 10, bridgeMinutes: 60 }
+export const AGENDA_LEAD_CHOICES = [0, 5, 10, 15, 30]
+export const AGENDA_BRIDGE_CHOICES = [0, 15, 30, 60, 120]
+
+export function parseAgendaRule(raw: unknown): AgendaRule {
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_AGENDA }
+  const r = raw as Partial<AgendaRule>
+  return {
+    enabled: r.enabled === true,
+    profile: PROFILE_IDS.includes(r.profile as ProfileId) ? (r.profile as ProfileId) : DEFAULT_AGENDA.profile,
+    leadMinutes: AGENDA_LEAD_CHOICES.includes(r.leadMinutes as number) ? (r.leadMinutes as number) : DEFAULT_AGENDA.leadMinutes,
+    bridgeMinutes: AGENDA_BRIDGE_CHOICES.includes(r.bridgeMinutes as number) ? (r.bridgeMinutes as number) : DEFAULT_AGENDA.bridgeMinutes,
+  }
 }
 
 /** Dagstart: a morning overview of the day on the phone, watch or this pc. Days: 1 = Monday ... 7 = Sunday. */
@@ -117,6 +145,8 @@ export interface ProfilesState {
   googleEvents: CalendarEvent[]
   googleSyncedAt: number | null
   dagstart: DagstartSettings
+  /** Profiles 2.0: the profile while lessons run. */
+  agenda: AgendaRule
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -216,6 +246,7 @@ export function defaultProfilesState(): ProfilesState {
     googleEvents: [],
     googleSyncedAt: null,
     dagstart: parseDagstart(null),
+    agenda: { ...DEFAULT_AGENDA },
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -261,16 +292,153 @@ export function isWindowOpen(schedule: ProfileSchedule, at: number): boolean {
   return (schedule.days.includes(day) && now >= start) || (schedule.days.includes(yesterday) && now < end)
 }
 
-export type ActiveReason = 'override' | 'schedule' | 'return' | 'default'
+export type ActiveReason = 'override' | 'schedule' | 'agenda' | 'return' | 'default'
+
+/** One lesson as a span of time, from the school calendar or the weekly timetable. */
+export interface LessonBlock {
+  start: number
+  end: number
+  subject: string
+  room?: string
+}
+
+/**
+ * The lessons around [at] (yesterday to tomorrow), sorted: the school calendar's lessons, and
+ * the weekly timetable placed on those days.
+ */
+export function lessonBlocks(state: Pick<ProfilesState, 'calendarEvents' | 'lessons' | 'schedule'>, at: number): LessonBlock[] {
+  const from = at - 86_400_000
+  const to = at + 86_400_000
+  const out: LessonBlock[] = state.calendarEvents.filter((e) => e.end > from && e.start < to).map((e) => ({ start: e.start, end: e.end, subject: e.subject, ...(e.room ? { room: e.room } : {}) }))
+  const { day, minutes: now } = localClock(at, state.schedule.timeZone)
+  for (const offset of [-1, 0, 1]) {
+    const d = ((day - 1 + offset + 7) % 7) + 1
+    for (const l of state.lessons) {
+      if (l.day !== d) continue
+      // Minutes from now, so the device's zone or the schedule's zone gives the same moment.
+      const start = at + (offset * 1440 + minutes(l.start) - now) * 60_000
+      const end = at + (offset * 1440 + minutes(l.end) - now) * 60_000
+      if (end <= start) continue
+      // A lesson the school calendar already has is not counted twice.
+      if (out.some((e) => Math.abs(e.start - start) < 60_000 && e.subject.toLowerCase() === l.subject.toLowerCase())) continue
+      out.push({ start, end, subject: l.subject, ...(l.room ? { room: l.room } : {}) })
+    }
+  }
+  return out.sort((a, b) => a.start - b.start)
+}
+
+export type AgendaPhase = { kind: 'before' | 'during'; lesson: LessonBlock } | { kind: 'between'; previous: LessonBlock; next: LessonBlock }
+
+/** Whether the agenda rule holds at [at], and why: before a lesson, during one, or in a break. */
+export function agendaPhase(state: Pick<ProfilesState, 'calendarEvents' | 'lessons' | 'schedule' | 'agenda'>, at: number): AgendaPhase | null {
+  const rule = state.agenda
+  if (!rule?.enabled) return null
+  const blocks = lessonBlocks(state, at)
+  const during = blocks.find((b) => b.start <= at && at < b.end)
+  if (during) return { kind: 'during', lesson: during }
+  const soon = blocks.find((b) => b.start > at && b.start - rule.leadMinutes * 60_000 <= at)
+  if (soon) return { kind: 'before', lesson: soon }
+  if (rule.bridgeMinutes > 0) {
+    const previous = [...blocks].reverse().find((b) => b.end <= at)
+    const next = blocks.find((b) => b.start > at)
+    if (previous && next && next.start - previous.end <= rule.bridgeMinutes * 60_000) return { kind: 'between', previous, next }
+  }
+  return null
+}
+
+/** Either automatic window: the hours of School Mode or the agenda rule. */
+function autoOpen(state: ProfilesState, at: number): boolean {
+  return isWindowOpen(state.schedule, at) || agendaPhase(state, at) !== null
+}
 
 /** The profile that applies at [at]; evaluated fresh every time, so reopening NEXUS is always right. */
 export function activeProfile(state: ProfilesState, at: number): { id: ProfileId; reason: ActiveReason } {
-  const open = isWindowOpen(state.schedule, at)
+  const hours = isWindowOpen(state.schedule, at)
+  const agenda = !hours && agendaPhase(state, at) !== null
   const o = state.override
-  if (o && overrideHolds(o, open, at)) return { id: o.profile, reason: 'override' }
-  if (open) return { id: state.schedule.profile, reason: 'schedule' }
+  if (o && overrideHolds(o, hours || agenda, at)) return { id: o.profile, reason: 'override' }
+  if (hours) return { id: state.schedule.profile, reason: 'schedule' }
+  if (agenda) return { id: state.agenda.profile, reason: 'agenda' }
   if (state.returnProfile) return { id: state.returnProfile, reason: 'return' }
   return { id: state.defaultProfile, reason: 'default' }
+}
+
+const DAY_SHORT = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo']
+
+/** "ma–vr" for consecutive days, else "ma, wo, vr". */
+export function daysLabel(days: number[]): string {
+  const sorted = [...new Set(days)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b)
+  if (sorted.length === 0) return 'geen dagen'
+  if (sorted.length === 7) return 'elke dag'
+  const consecutive = sorted.every((d, i) => i === 0 || d === sorted[i - 1] + 1)
+  if (consecutive && sorted.length > 2) return `${DAY_SHORT[sorted[0] - 1]}–${DAY_SHORT[sorted[sorted.length - 1] - 1]}`
+  return sorted.map((d) => DAY_SHORT[d - 1]).join(', ')
+}
+
+/** HH:MM of a moment in the schedule's zone. */
+function clockText(at: number, timeZone?: string): string {
+  const m = localClock(at, timeZone).minutes
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+}
+
+/** Profiles 2.0: why the active profile is active, in one sentence. */
+export function explainActive(state: ProfilesState, at: number, reason: ActiveReason = activeProfile(state, at).reason): string {
+  const s = state.schedule
+  if (reason === 'schedule') return `Automatisch actief, ${daysLabel(s.days)} ${s.start}–${s.end}`
+  if (reason === 'agenda') {
+    const phase = agendaPhase(state, at)
+    const t = (x: number) => clockText(x, s.timeZone)
+    if (phase?.kind === 'during') return `Les ${phase.lesson.subject}, ${t(phase.lesson.start)}–${t(phase.lesson.end)}${phase.lesson.room ? ` in ${phase.lesson.room}` : ''}`
+    if (phase?.kind === 'before') return `Les ${phase.lesson.subject} begint om ${t(phase.lesson.start)}`
+    if (phase?.kind === 'between') return `Pauze tussen ${phase.previous.subject} en ${phase.next.subject} (${t(phase.next.start)})`
+    return 'Volgens je lesrooster'
+  }
+  if (reason === 'override') {
+    const o = state.override
+    const who = o?.by ? `Gekozen door ${o.by}` : 'Met de hand gekozen'
+    if (o?.mode === 'until-manual') return `${who}, tot je terugschakelt`
+    if (o?.mode === 'until-time' && o.until) return `${who}, tot ${clockText(o.until, s.timeZone)}`
+    return `${who}, tot het schema wisselt`
+  }
+  if (reason === 'return') return 'Je laatst gekozen profiel buiten het schema'
+  return 'Je standaardprofiel'
+}
+
+/** Profiles 2.0: one switch of the active profile, and why. Kept on the device. */
+export interface ProfileChange {
+  at: number
+  profile: ProfileId
+  /** The profile before, null for the first entry. */
+  from: ProfileId | null
+  reason: ActiveReason
+  why: string
+}
+
+export const MAX_PROFILE_HISTORY = 100
+
+/** Adds a change when the profile or its reason differs from the newest entry. */
+export function addProfileChange(list: ProfileChange[], change: ProfileChange): ProfileChange[] {
+  const last = list[0]
+  if (last && last.profile === change.profile && last.reason === change.reason && last.why === change.why) return list
+  return [change, ...list].slice(0, MAX_PROFILE_HISTORY)
+}
+
+export function parseProfileHistory(raw: unknown): ProfileChange[] {
+  if (!Array.isArray(raw)) return []
+  const reasons: ActiveReason[] = ['override', 'schedule', 'agenda', 'return', 'default']
+  return raw
+    .filter(
+      (c): c is ProfileChange =>
+        typeof c === 'object' &&
+        c !== null &&
+        typeof c.at === 'number' &&
+        PROFILE_IDS.includes(c.profile) &&
+        (c.from === null || PROFILE_IDS.includes(c.from)) &&
+        reasons.includes(c.reason) &&
+        typeof c.why === 'string',
+    )
+    .sort((a, b) => b.at - a.at)
+    .slice(0, MAX_PROFILE_HISTORY)
 }
 
 function overrideHolds(o: ProfileOverride, open: boolean, at: number): boolean {
@@ -291,16 +459,17 @@ export function chooseProfile(
   at: number,
   mode: ProfileOverride['mode'] = 'until-change',
   until?: number,
+  by?: string,
 ): ProfilesState {
-  const open = isWindowOpen(state.schedule, at)
+  const open = autoOpen(state, at)
   // Outside the window the choice is remembered, so NEXUS comes back to it after school.
   const returnProfile = open || mode !== 'until-change' ? state.returnProfile : profile === state.defaultProfile ? null : profile
-  const scheduled = open ? state.schedule.profile : (returnProfile ?? state.defaultProfile)
+  const scheduled = open ? activeProfile({ ...state, override: null }, at).id : (returnProfile ?? state.defaultProfile)
   // Choosing what the schedule would pick anyway clears the override instead of pinning it.
   const override: ProfileOverride | null =
     mode === 'until-change' && profile === scheduled
       ? null
-      : { profile, mode, windowOpenAtStart: open, setAt: at, ...(mode === 'until-time' && until !== undefined ? { until } : {}) }
+      : { profile, mode, windowOpenAtStart: open, setAt: at, ...(mode === 'until-time' && until !== undefined ? { until } : {}), ...(by ? { by: by.slice(0, 60) } : {}) }
   return { ...state, override, returnProfile, revision: state.revision + 1 }
 }
 
@@ -479,6 +648,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     googleEvents: Array.isArray(r.googleEvents) ? r.googleEvents.filter(isCalendarEvent) : [],
     googleSyncedAt: typeof r.googleSyncedAt === 'number' ? r.googleSyncedAt : null,
     dagstart: parseDagstart(r.dagstart),
+    agenda: parseAgendaRule(r.agenda),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }

@@ -216,7 +216,7 @@ describe('App shell', () => {
     fireEvent.click(within(screen.getByRole('list', { name: 'Profielen kiezen' })).getByRole('button', { name: /Gaming/ }))
     const { override } = profilesStore.getSnapshot().state
     expect(override).toMatchObject({ profile: 'gaming', mode: 'until-time' })
-    expect(screen.getByText(/Met de hand gekozen.*, tot \d\d:\d\d/)).toBeTruthy()
+    expect(screen.getAllByText(/Met de hand gekozen, tot \d\d:\d\d/).length).toBeGreaterThan(0)
   })
 
   it('reorders apps and sets an accent colour per profile', () => {

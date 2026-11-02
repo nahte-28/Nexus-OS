@@ -15,7 +15,7 @@ export function openLayout(state: WindowsState): SpaceWindow[] {
 
 /** Opens [space]: its windows replace the open ones (notes and other apps save as you type). */
 export function switchToSpace(space: Space, dispatch: Dispatch<WindowAction>, now = Date.now()): void {
-  if (profilesStore.getSnapshot().active.id !== space.profileId) chooseFor(space.profileId, 'until-change', now)
+  if (profilesStore.getSnapshot().active.id !== space.profileId) chooseFor(space.profileId, 'until-change', now, undefined, `Space ${space.name}`)
   dispatch({
     type: 'restore',
     windows: space.windows.flatMap((w) => {
