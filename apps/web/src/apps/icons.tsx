@@ -261,6 +261,15 @@ export const TeamIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const ControlIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="3" width="8" height="8" rx="2" />
+    <rect x="13" y="3" width="8" height="8" rx="2" />
+    <rect x="3" y="13" width="8" height="8" rx="2" />
+    <circle cx="17" cy="17" r="3.5" />
+  </svg>
+)
+
 export const LibraryIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M4 4h4v16H4zM10 4h4v16h-4z" />
