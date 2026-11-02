@@ -294,6 +294,7 @@ const PROFILE_SETTING_LABELS: Record<string, string> = {
   googleUrl: 'Google Agenda',
   klashubUrl: 'KlasHub-adres',
   dagstart: 'Dagstart',
+  agenda: 'Profiel volgens lesrooster',
 }
 
 const itemName = (x: Record<string, unknown>) => (typeof x.name === 'string' && x.name ? x.name : String(x.id))
@@ -460,6 +461,12 @@ function diffProfiles(now: Record<string, unknown>, then: Record<string, unknown
   const da = obj(now.dagstart)
   const db = obj(then.dagstart)
   if (stableJson(da) !== stableJson(db)) push('Dagstart', `${da.enabled ? `aan om ${da.time}` : 'uit'} → ${db.enabled ? `aan om ${db.time}` : 'uit'}`)
+  const aa = obj(now.agenda)
+  const ab = obj(then.agenda)
+  if (stableJson(aa) !== stableJson(ab)) {
+    const describe = (a: Record<string, unknown>) => (a.enabled ? `aan (${PROFILE_NAMES[String(a.profile)] ?? ''})` : 'uit')
+    push('Profiel volgens lesrooster', `${describe(aa)} → ${describe(ab)}`)
+  }
 }
 
 /** Per item of a list with ids and names: which come back, which go, which change. */

@@ -37,7 +37,7 @@ const TICK_MS = 30_000
 export interface FlowEffects {
   /** Pause between tries of a failing action; a timer unless a test passes its own. */
   sleep?(ms: number): Promise<void>
-  activateProfile(profile: ProfileId, duration: ProfileDuration): void
+  activateProfile(profile: ProfileId, duration: ProfileDuration, by?: string): void
   /** [ref] ties it to the phone's safety net, so the phone shows it once. */
   notify(title: string, text: string, target: NotifyTarget, ref?: string): Promise<void>
   prompt(prompt: FlowPrompt): void
@@ -153,7 +153,7 @@ async function runAction(
 ): Promise<string | void> {
   switch (action.type) {
     case 'profile.activate':
-      effects.activateProfile(action.profile, action.duration)
+      effects.activateProfile(action.profile, action.duration, `flow ${flow.name}`)
       return
     case 'notification.send':
       if (inQuietHours(settings, now, flow.timeZone)) return 'Stille uren'
@@ -317,7 +317,7 @@ export function currentContext(connect: ConnectEngine, now = Date.now()): FlowCo
 /** The real effects: Profiles, local notifications, NEXUS Connect to the phone, and prompts. */
 export function defaultEffects(connect: ConnectEngine): FlowEffects {
   return {
-    activateProfile: (profile, duration) => chooseFor(profile, duration),
+    activateProfile: (profile, duration, by) => chooseFor(profile, duration, Date.now(), undefined, by),
     async notify(title, text, target, ref) {
       await showLocalNotification(title, text || 'Van Flow Studio', `flow-${title}`)
       if (target !== 'phone') return

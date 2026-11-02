@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addProfileChange,
+  agendaPhase,
+  explainActive,
+  lessonBlocks,
+  parseAgendaRule,
+  parseProfileHistory,
   klashubLink,
   activeProfile,
   chooseProfile,
@@ -218,5 +224,54 @@ describe('next lesson', () => {
   it('moves an app up or down', () => {
     expect(moveItem(['a', 'b', 'c'], 'c', -1)).toEqual(['a', 'c', 'b'])
     expect(moveItem(['a', 'b', 'c'], 'a', -1)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('profiles 2.0: profile by the agenda and why it is active', () => {
+  const agendaState = (): ProfilesState => {
+    const s = state()
+    s.schedule = { ...s.schedule, enabled: false }
+    s.agenda = { enabled: true, profile: 'school', leadMinutes: 10, bridgeMinutes: 60 }
+    // Tuesday 2026-10-20: Wiskunde 08:30-10:00 from the school calendar, Fysica 10:30-12:00 in the timetable.
+    s.calendarEvents = [{ start: at('2026-10-20T08:30:00+02:00'), end: at('2026-10-20T10:00:00+02:00'), subject: 'Wiskunde', room: 'A1' }]
+    s.lessons = [
+      { id: 'f', day: 2, start: '10:30', end: '12:00', subject: 'Fysica' },
+      { id: 'dup', day: 2, start: '08:30', end: '10:00', subject: 'wiskunde' },
+      { id: 'late', day: 2, start: '15:00', end: '16:00', subject: 'Labo' },
+    ]
+    return s
+  }
+
+  it('switches a little before a lesson, keeps it through short breaks and lets go after', () => {
+    const s = agendaState()
+    expect(activeProfile(s, at('2026-10-20T08:15:00+02:00'))).toEqual({ id: 'personal', reason: 'default' })
+    expect(activeProfile(s, at('2026-10-20T08:21:00+02:00'))).toEqual({ id: 'school', reason: 'agenda' })
+    expect(explainActive(s, at('2026-10-20T08:21:00+02:00'))).toBe('Les Wiskunde begint om 08:30')
+    expect(explainActive(s, at('2026-10-20T09:00:00+02:00'))).toBe('Les Wiskunde, 08:30–10:00 in A1')
+    expect(explainActive(s, at('2026-10-20T10:10:00+02:00'))).toBe('Pauze tussen Wiskunde en Fysica (10:30)')
+    // Three hours until Labo is longer than the bridge.
+    expect(activeProfile(s, at('2026-10-20T13:00:00+02:00')).reason).toBe('default')
+    expect(lessonBlocks(s, at('2026-10-20T09:00:00+02:00')).filter((b) => b.subject.toLowerCase() === 'wiskunde')).toHaveLength(1)
+    expect(agendaPhase({ ...s, agenda: { ...s.agenda, enabled: false } }, at('2026-10-20T09:00:00+02:00'))).toBeNull()
+  })
+
+  it('lets a choice by hand or by a flow win until the lesson ends, and names who chose', () => {
+    const s = chooseProfile(agendaState(), 'gaming', at('2026-10-20T09:00:00+02:00'), 'until-change', undefined, 'flow Pauze')
+    expect(activeProfile(s, at('2026-10-20T09:30:00+02:00'))).toEqual({ id: 'gaming', reason: 'override' })
+    expect(explainActive(s, at('2026-10-20T09:30:00+02:00'))).toBe('Gekozen door flow Pauze, tot het schema wisselt')
+    expect(activeProfile(s, at('2026-10-20T13:00:00+02:00')).id).toBe('personal')
+    // Picking what the agenda already gives clears the choice.
+    expect(chooseProfile(agendaState(), 'school', at('2026-10-20T09:00:00+02:00')).override).toBeNull()
+  })
+
+  it('keeps the rule and its history through storage', () => {
+    const s = parseProfilesState(JSON.parse(JSON.stringify(agendaState())))
+    expect(s.agenda).toEqual({ enabled: true, profile: 'school', leadMinutes: 10, bridgeMinutes: 60 })
+    expect(parseProfilesState({}).agenda.enabled).toBe(false)
+    expect(parseAgendaRule({ enabled: true, profile: 'x', leadMinutes: 7, bridgeMinutes: 30 })).toEqual({ enabled: true, profile: 'school', leadMinutes: 10, bridgeMinutes: 30 })
+    let history = addProfileChange([], { at: 1, profile: 'school', from: null, reason: 'agenda', why: 'Les A' })
+    expect(addProfileChange(history, { at: 2, profile: 'school', from: 'school', reason: 'agenda', why: 'Les A' })).toBe(history)
+    history = addProfileChange(history, { at: 3, profile: 'personal', from: 'school', reason: 'default', why: 'Je standaardprofiel' })
+    expect(parseProfileHistory(JSON.parse(JSON.stringify([...history, { at: 'x' }]))).map((c) => c.at)).toEqual([3, 1])
   })
 })

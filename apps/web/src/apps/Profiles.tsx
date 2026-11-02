@@ -1,13 +1,18 @@
 import { useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
+  AGENDA_BRIDGE_CHOICES,
+  AGENDA_LEAD_CHOICES,
+  agendaPhase,
   DEFAULT_KLASHUB_URL,
+  lessonBlocks,
   isTime,
   klashubLink,
   moveItem,
   PROFILE_IDS,
   profileOutsideSchedule,
   THEMES,
+  type ActiveReason,
   type AppId,
   type Lesson,
   type Profile,
@@ -18,7 +23,7 @@ import {
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { syncCalendar, syncGoogle } from '../profiles/calendar'
-import { chooseFor, profilesStore, useProfiles, type ChoiceDuration } from '../profiles/store'
+import { chooseFor, profilesStore, useProfileHistory, useProfiles, type ChoiceDuration } from '../profiles/store'
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
 import { ACCENTS } from '../theme/accents'
 import { daysLabel, PROFILE_ICONS, reasonText } from '../profiles/ui'
@@ -45,12 +50,13 @@ const APP_CHOICES: Array<{ id: AppId; title: string }> = [
 
 const WIDGET_CHOICES: Array<{ id: WidgetId; title: string }> = WIDGET_IDS.map((id) => ({ id, title: WIDGET_TITLES[id] }))
 
-type Tab = 'overview' | 'timetable' | 'apps' | 'schedule' | 'notifications' | 'devices' | 'appearance'
+type Tab = 'overview' | 'timetable' | 'apps' | 'schedule' | 'history' | 'notifications' | 'devices' | 'appearance'
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'overview', label: 'Overzicht' },
   { id: 'timetable', label: 'Lesrooster' },
   { id: 'apps', label: 'Apps & widgets' },
   { id: 'schedule', label: 'Automatisch' },
+  { id: 'history', label: 'Geschiedenis' },
   { id: 'notifications', label: 'Meldingen' },
   { id: 'devices', label: 'Apparaten' },
   { id: 'appearance', label: 'Uiterlijk' },
@@ -83,6 +89,7 @@ export function Profiles() {
         {tab === 'timetable' && <Timetable />}
         {tab === 'apps' && <AppsAndWidgets id={editing} onPick={setEditing} />}
         {tab === 'schedule' && <Schedule />}
+        {tab === 'history' && <History />}
         {tab === 'notifications' && <NotificationSettings id={editing} onPick={setEditing} />}
         {tab === 'devices' && <DeviceSync />}
         {tab === 'appearance' && <Appearance id={editing} onPick={setEditing} />}
@@ -101,14 +108,12 @@ const DURATIONS: Array<{ id: ChoiceDuration; label: string }> = [
 function Overview() {
   const { state, active, reason } = useProfiles()
   const [duration, setDuration] = useState<ChoiceDuration>('until-change')
-  const until = state.override?.mode === 'until-time' ? state.override.until : undefined
   return (
     <div className="space-y-4">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">Actief: {active.name}</h2>
         <p className="text-nx-muted">
           {reasonText(reason, state)}
-          {until ? `, tot ${new Date(until).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}` : ''}
         </p>
       </div>
       <label className="flex flex-col gap-1 sm:max-w-xs">
@@ -770,6 +775,119 @@ function Schedule() {
         {state.returnProfile ? ', het profiel dat je er vóór koos' : ''}. Kies je met de hand een profiel, dan bepaal je in Overzicht hoe
         lang dat geldt. Open vensters blijven altijd open.
       </p>
+      <AgendaSettings />
+    </div>
+  )
+}
+
+/** Profiles 2.0: a profile while lessons run, from the school calendar or the timetable. */
+function AgendaSettings() {
+  const { state } = useProfiles()
+  const a = state.agenda
+  const set = (patch: Partial<typeof a>) => profilesStore.update((st) => ({ ...st, agenda: { ...st.agenda, ...patch } }))
+  const now = Date.now()
+  const blocks = lessonBlocks(state, now)
+  const phase = agendaPhase({ ...state, agenda: { ...a, enabled: true } }, now)
+  const next = blocks.find((b) => b.start > now)
+  const time = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+  const sources = [state.calendarUrl ? 'je schoolkalender' : null, state.lessons.length ? `${state.lessons.length} lessen in Lesrooster` : null].filter(Boolean)
+  return (
+    <fieldset className="space-y-3 rounded-lg border border-nx-border p-3">
+      <legend className="px-1 font-semibold">Volgens je lesrooster</legend>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={a.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+        Profiel wisselen wanneer een les begint
+      </label>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="flex flex-col gap-1">
+          Profiel tijdens de les
+          <select className={field} value={a.profile} disabled={!a.enabled} onChange={(e) => set({ profile: e.target.value as ProfileId })}>
+            {PROFILE_IDS.map((pid) => (
+              <option key={pid} value={pid}>
+                {state.profiles[pid].name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          Al wisselen
+          <select className={field} value={a.leadMinutes} disabled={!a.enabled} onChange={(e) => set({ leadMinutes: Number(e.target.value) })}>
+            {AGENDA_LEAD_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n === 0 ? 'Bij het begin' : `${n} min vooraf`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          Pauzes overbruggen
+          <select className={field} value={a.bridgeMinutes} disabled={!a.enabled} onChange={(e) => set({ bridgeMinutes: Number(e.target.value) })}>
+            {AGENDA_BRIDGE_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n === 0 ? 'Nee' : n < 60 ? `Tot ${n} min` : `Tot ${n / 60} uur`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="text-nx-muted" role="status">
+        {sources.length === 0
+          ? 'Nog geen lessen: koppel je schoolkalender of vul Lesrooster in.'
+          : phase
+            ? `Nu: ${phase.kind === 'between' ? `pauze tussen ${phase.previous.subject} en ${phase.next.subject}` : `${phase.lesson.subject} (${time(phase.lesson.start)}–${time(phase.lesson.end)})`}.`
+            : next
+              ? `Volgende les: ${next.subject} om ${time(next.start)}.`
+              : 'Geen les vandaag of morgen.'}{' '}
+        {sources.length > 0 && `Uit ${sources.join(' en ')}.`}
+      </p>
+      <p className="text-xs text-nx-muted">
+        Het uurschema hierboven gaat voor. Een keuze met de hand ook, tot het schema of de les wisselt. Flows op de server kijken alleen naar het uurschema.
+      </p>
+    </fieldset>
+  )
+}
+
+const REASON_LABELS: Record<ActiveReason, string> = {
+  override: 'Gekozen',
+  schedule: 'Uurschema',
+  agenda: 'Lesrooster',
+  return: 'Terug',
+  default: 'Standaard',
+}
+
+/** Profiles 2.0: when the active profile changed on this device, and why. */
+function History() {
+  const { state } = useProfiles()
+  const history = useProfileHistory()
+  const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return (
+    <div className="space-y-3">
+      <p className="text-nx-muted">Waarom welk profiel actief was, op dit toestel. De laatste 100 wissels blijven bewaard.</p>
+      {history.length === 0 ? (
+        <p className="text-nx-muted">Nog niets.</p>
+      ) : (
+        <ol className="space-y-2" aria-label="Geschiedenis van profielen">
+          {history.map((c, i) => (
+            <li key={`${c.at}-${i}`} className="rounded-lg border border-nx-border p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium">
+                  {c.from && c.from !== c.profile ? `${state.profiles[c.from].name} → ` : ''}
+                  {state.profiles[c.profile].name}
+                </span>
+                <span className="text-xs text-nx-muted">
+                  {REASON_LABELS[c.reason]} · {when(c.at)}
+                </span>
+              </div>
+              <p className="text-xs">{c.why}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+      {history.length > 1 && (
+        <button type="button" className={button} onClick={() => profilesStore.clearHistory()}>
+          Geschiedenis wissen
+        </button>
+      )}
     </div>
   )
 }
