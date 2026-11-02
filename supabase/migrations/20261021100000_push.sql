@@ -94,6 +94,9 @@ create table if not exists nexus_private.push_config (
   url text not null check (url like 'https://%'),
   secret text not null check (length(secret) >= 32)
 );
+-- Nobody reaches this schema through the API; row level security on top, so the SQL Editor of
+-- Supabase does not ask about it. The functions below run as the owner, who is not limited by it.
+alter table nexus_private.push_config enable row level security;
 
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
