@@ -145,13 +145,15 @@ export const HELP: Record<AppId, HelpTopic> = {
     ],
   },
   bridge: {
-    summary: 'Bridge: tekst en links naar een van je eigen toestellen sturen, end-to-end versleuteld via NEXUS Connect.',
+    summary: 'Bridge: tekst, links, bestanden en je klembord naar een van je eigen toestellen sturen, of daar verdergaan, end-to-end versleuteld.',
     tips: [
       'Plak een link of typ een tekst, kies het toestel en verstuur. Een gsm met meldingen aan krijgt het ook als NEXUS daar dicht is.',
       'De gsm-app en het horloge tonen wat je stuurt als melding; tik op een link om hem op je gsm te openen.',
       'In Overdrachten zie je of het afgeleverd of geopend is; zolang het niet afgeleverd is, kan je het nog annuleren.',
       'Wat je ontvangt, open je zelf: Link openen, Kopiëren of Als notitie bewaren. Na de gekozen tijd verdwijnt het.',
       'In Toestemmingen kies je welke toestellen naar dit toestel mogen sturen. Bridge moet aan staan op het toestel dat ontvangt.',
+      'Bestanden tot 10 MB gaan versleuteld via je eigen opslag; de ontvanger kiest Opslaan of In Bestanden zetten.',
+      'Met Verdergaan open je op je andere toestel dezelfde app of notitie; met Klembord ophalen deel je je klembord.',
     ],
   },
   intelligence: {

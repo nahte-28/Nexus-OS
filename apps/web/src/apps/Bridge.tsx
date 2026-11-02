@@ -6,21 +6,29 @@ import {
   canCancel,
   canRetry,
   checkContent,
+  checkFile,
+  fileSize,
   PLATFORM_LABELS,
   REASON_LABELS,
   safeLink,
   STATUS_LABELS,
+  type AppId,
+  type BridgeResume,
   type Transfer,
 } from '@nexus/core'
-import { bridgeStore, bridgeTargets, cancelTransfer, markOpened, retryTransfer, sendTransfer, useBridge, type BridgeLink } from '../bridge/store'
+import { bridgeStore, bridgeTargets, cancelTransfer, markOpened, receiveFile, retryTransfer, richTargets, sendFile, sendResume, sendTransfer, useBridge, type BridgeLink } from '../bridge/store'
 import { useConnect } from '../connect/ConnectContext'
+import { filesStore } from '../files/store'
 import { capabilities } from '../platform/capabilities'
 import { openWebApp } from '../platform/desktop'
 import { onReveal, takeReveal } from '../search/reveal'
 import { openApp } from '../shell/openApp'
 import { notesStore } from '../state/notesStore'
+import { useNotes } from '../state/useNotes'
 import { readStorage, writeStorage } from '../state/storage'
 import { useNow } from '../state/useNow'
+import { useOptionalWindows } from '../state/WindowsContext'
+import { APPS, useVisibleApps } from './registry'
 
 const TABS = ['Versturen', 'Apparaten', 'Overdrachten', 'Toestemmingen'] as const
 type Tab = (typeof TABS)[number]
@@ -93,10 +101,37 @@ export function Bridge() {
   )
 }
 
+const KINDS = [
+  { id: 'text', label: 'Tekst of link' },
+  { id: 'file', label: 'Bestand' },
+  { id: 'resume', label: 'Verdergaan' },
+] as const
+type Kind = (typeof KINDS)[number]['id']
+
+/** What you can continue on another device: the open windows here, and your recent notes. */
+function useResumeChoices(): BridgeResume[] {
+  const windows = useOptionalWindows()
+  const { notes } = useNotes()
+  const apps = useVisibleApps()
+  const title = (id: AppId) => apps.find((a) => a.id === id)?.title ?? APPS.find((a) => a.id === id)?.title ?? id
+  const open = (windows?.state.windows ?? []).filter((w) => w.appId !== 'bridge').map((w): BridgeResume => ({ app: w.appId, title: title(w.appId) }))
+  const recent = notes
+    .filter((n) => n.deletedAt === null)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 5)
+    .map((n): BridgeResume => ({ app: 'notes', id: n.id, title: `Notitie ${n.title.trim() || '(zonder titel)'}`.slice(0, 120) }))
+  return [...open, ...recent]
+}
+
 function Send({ link, onSent }: { link: BridgeLink; onSent: () => void }) {
   const { state } = useConnect()
-  const targets = bridgeTargets(state)
+  const [kind, setKind] = useState<Kind>('text')
+  const targets = kind === 'text' ? bridgeTargets(state) : richTargets(state)
   const [content, setContent] = useState('')
+  const [fromClip, setFromClip] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [resume, setResume] = useState(0)
+  const choices = useResumeChoices()
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -105,30 +140,35 @@ function Send({ link, onSent }: { link: BridgeLink; onSent: () => void }) {
   const paste = async () => {
     try {
       setContent((await navigator.clipboard.readText()).slice(0, BRIDGE_MAX_CONTENT))
+      setFromClip(true)
     } catch {
       setError('Plakken lukte niet; plak met Ctrl+V of lang drukken.')
     }
+  }
+  const send = async (): Promise<Transfer[]> => {
+    const ids = chosen.map((d) => d.id)
+    if (kind === 'file') return sendFile(link, ids, file!)
+    if (kind === 'resume') return sendResume(link, ids, choices[resume])
+    return sendTransfer(link, ids, content, { extra: fromClip ? { clip: true } : {} })
   }
   return (
     <form
       className="space-y-3"
       onSubmit={async (e) => {
         e.preventDefault()
-        const problem = checkContent(content)
+        const problem = kind === 'text' ? checkContent(content) : kind === 'file' ? (file ? checkFile(file) : 'Kies eerst een bestand.') : choices[resume] ? null : 'Er is hier niets open om verder te zetten.'
         if (problem) return setError(problem)
         if (chosen.length === 0) return setError('Kies een toestel om naar te sturen.')
         setBusy(true)
         setError(null)
         try {
-          const sent = await sendTransfer(
-            link,
-            chosen.map((d) => d.id),
-            content,
-          )
+          const sent = await send()
           const failed = sent.filter((t) => t.status === 'failed')
           if (failed.length) setError(`Versturen mislukt naar ${failed.map((t) => t.deviceName).join(', ')}: ${failed[0].error ?? ''}`)
           else {
             setContent('')
+            setFromClip(false)
+            setFile(null)
             onSent()
           }
         } catch (err) {
@@ -138,29 +178,79 @@ function Send({ link, onSent }: { link: BridgeLink; onSent: () => void }) {
         }
       }}
     >
-      <label className="flex flex-col gap-1">
-        <span className="text-nx-muted">Tekst of link</span>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          maxLength={BRIDGE_MAX_CONTENT}
-          rows={4}
-          placeholder="Plak een link of typ een tekst"
-          className={field}
-        />
-      </label>
-      <div className="flex flex-wrap items-center gap-2 text-xs text-nx-muted">
-        <span>{content.trim() ? (bridgeType(content) === 'link' ? 'Wordt verstuurd als link.' : 'Wordt verstuurd als tekst.') : `Hoogstens ${BRIDGE_MAX_CONTENT} tekens.`}</span>
-        {capabilities.clipboardRead && (
-          <button type="button" className={small} onClick={() => void paste()}>
-            Plakken uit klembord
+      <div role="radiogroup" aria-label="Wat stuur je" className="flex flex-wrap gap-1">
+        {KINDS.map((k) => (
+          <button
+            key={k.id}
+            type="button"
+            role="radio"
+            aria-checked={kind === k.id}
+            onClick={() => (setKind(k.id), setError(null))}
+            className={`rounded-md border border-nx-border px-3 py-1 ${kind === k.id ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
+          >
+            {k.label}
           </button>
-        )}
+        ))}
       </div>
+      {kind === 'text' && (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="text-nx-muted">Tekst of link</span>
+            <textarea
+              value={content}
+              onChange={(e) => (setContent(e.target.value), setFromClip(false))}
+              maxLength={BRIDGE_MAX_CONTENT}
+              rows={4}
+              placeholder="Plak een link of typ een tekst"
+              className={field}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-nx-muted">
+            <span>
+              {content.trim() ? (bridgeType(content) === 'link' ? 'Wordt verstuurd als link' : 'Wordt verstuurd als tekst') : `Hoogstens ${BRIDGE_MAX_CONTENT} tekens`}
+              {content.trim() && fromClip ? ', van je klembord.' : content.trim() ? '.' : '.'}
+            </span>
+            {capabilities.clipboardRead && (
+              <button type="button" className={small} onClick={() => void paste()}>
+                Klembord ophalen
+              </button>
+            )}
+          </div>
+        </>
+      )}
+      {kind === 'file' && (
+        <label className="flex flex-col gap-1">
+          <span className="text-nx-muted">Bestand (tot 10 MB)</span>
+          <input type="file" aria-label="Bestand" onChange={(e) => (setFile(e.target.files?.[0] ?? null), setError(null))} className={field} />
+          {file && (
+            <span className="text-xs text-nx-muted">
+              {file.name} · {fileSize(file.size)}
+            </span>
+          )}
+        </label>
+      )}
+      {kind === 'resume' &&
+        (choices.length === 0 ? (
+          <p className="text-nx-muted">Er staat hier niets open om verder te zetten. Open een app of een notitie en kom terug.</p>
+        ) : (
+          <fieldset className="space-y-1">
+            <legend className="mb-1 text-nx-muted">Waar ga je verder?</legend>
+            {choices.map((c, i) => (
+              <label key={`${c.app}:${c.id ?? ''}`} className="flex items-center gap-2">
+                <input type="radio" name="resume" checked={resume === i} onChange={() => setResume(i)} className="accent-[var(--nx-accent)]" />
+                {c.title}
+              </label>
+            ))}
+          </fieldset>
+        ))}
       <fieldset className="space-y-1">
         <legend className="mb-1 text-nx-muted">Naar</legend>
         {targets.length === 0 ? (
-          <p className="text-nx-muted">Er is nog geen ander toestel met NEXUS gekoppeld. Open NEXUS op je gsm of pc, meld je aan en koppel het in Apparaten.</p>
+          <p className="text-nx-muted">
+            {kind === 'text'
+              ? 'Er is nog geen ander toestel met NEXUS gekoppeld. Open NEXUS op je gsm of pc, meld je aan en koppel het in Apparaten.'
+              : 'Bestanden en verdergaan gaan naar NEXUS in de browser of de Windows-app. Er is nog geen ander zo een toestel gekoppeld.'}
+          </p>
         ) : (
           targets.map((d) => (
             <label key={d.id} className="flex items-center gap-2">
@@ -203,7 +293,11 @@ function Send({ link, onSent }: { link: BridgeLink; onSent: () => void }) {
           {error}
         </p>
       )}
-      <p className="text-xs text-nx-muted">De tekst wordt op dit toestel versleuteld; de server ziet alleen dat er iets onderweg is, nooit wat.</p>
+      <p className="text-xs text-nx-muted">
+        {kind === 'file'
+          ? 'Het bestand wordt op dit toestel versleuteld en wacht versleuteld in je eigen opslag; de sleutel gaat alleen mee in het versleutelde bericht. Na het opslaan of als de tijd voorbij is, verdwijnt het.'
+          : 'Alles wordt op dit toestel versleuteld; de server ziet alleen dat er iets onderweg is, nooit wat.'}
+      </p>
     </form>
   )
 }
@@ -230,10 +324,10 @@ function Devices() {
               : !targets.has(d.id)
                 ? ''
                 : d.platform === 'android'
-                  ? 'Toont tekst en links als melding (met de nieuwste gsm-app of horloge-app).'
+                  ? 'Toont tekst en links als melding (met de nieuwste gsm-app of horloge-app). Bestanden en verdergaan niet.'
                   : d.push
-                    ? 'Kan tekst en links ontvangen, ook met NEXUS dicht (via een melding).'
-                    : 'Kan tekst en links ontvangen zodra NEXUS daar open is.'}
+                    ? 'Kan tekst, links, bestanden en verdergaan ontvangen, ook met NEXUS dicht (via een melding).'
+                    : 'Kan tekst, links, bestanden en verdergaan ontvangen zodra NEXUS daar open is.'}
           </div>
         </li>
       ))}
@@ -286,21 +380,71 @@ function Transfers({ link, focus }: { link: BridgeLink; focus: string | null }) 
   )
 }
 
+/** Hands a received file to the browser as a download. */
+function download(blob: Blob, name: string) {
+  const href = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = href
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(href), 10_000)
+}
+
 function TransferRow({ t, now, focused, link, act }: { t: Transfer; now: number; focused: boolean; link: BridgeLink; act: (fn: () => Promise<unknown>, done: string) => Promise<void> }) {
+  const apps = useVisibleApps()
   const url = t.type === 'link' ? safeLink(t.content) : null
+  const fileReady = t.direction === 'in' && t.type === 'file' && !!t.file?.key && t.expiresAt > now
+  const resumeApp = t.direction === 'in' && t.type === 'resume' && t.resume && t.content ? APPS.find((a) => a.id === t.resume!.app) : undefined
   const status = `${STATUS_LABELS[t.status]}${t.reason ? `: ${REASON_LABELS[t.reason]}` : ''}${t.error ? `: ${t.error}` : ''}`
   return (
     <li id={`transfer-${t.id}`} className={`rounded-lg border p-3 ${focused ? 'border-nx-accent' : 'border-nx-border'}`}>
       <div className="text-xs text-nx-muted">
         {t.direction === 'out' ? `Naar ${t.deviceName}` : `Van ${t.deviceName}`} · {when(t.sentAt)} · {status}
       </div>
-      {t.content ? (
-        <p className="mt-1 whitespace-pre-wrap break-words">{t.content}</p>
+      {t.type === 'file' && t.file ? (
+        <p className="mt-1 break-words">
+          <span className="font-medium">Bestand:</span> {t.file.name} · {fileSize(t.file.size)}
+          {t.direction === 'in' && !t.file.key && t.status === 'opened' ? ' · opgeslagen' : ''}
+        </p>
+      ) : t.type === 'resume' && t.resume && t.content ? (
+        <p className="mt-1 break-words">
+          <span className="font-medium">Verdergaan:</span> {t.resume.title}
+        </p>
+      ) : t.content ? (
+        <p className="mt-1 whitespace-pre-wrap break-words">
+          {t.clip && <span className="mr-1 text-xs text-nx-muted">[klembord]</span>}
+          {t.content}
+        </p>
       ) : (
         <p className="mt-1 text-nx-muted">{t.status === 'cancelled' ? 'De afzender heeft dit ingetrokken.' : 'Verlopen: de inhoud is van dit toestel verwijderd.'}</p>
       )}
-      {t.direction === 'in' && t.content && t.expiresAt > now && <div className="text-xs text-nx-muted">Beschikbaar tot {when(t.expiresAt)}</div>}
+      {t.direction === 'in' && t.content && t.expiresAt > now && (t.type !== 'file' || fileReady) && <div className="text-xs text-nx-muted">Beschikbaar tot {when(t.expiresAt)}</div>}
       <div className="mt-2 flex flex-wrap gap-2">
+        {fileReady && (
+          <>
+            <button type="button" className={small} onClick={() => void act(async () => download(await receiveFile(link, t), t.file!.name), 'Opgeslagen in je downloads.')}>
+              Opslaan
+            </button>
+            <button type="button" className={small} onClick={() => void act(async () => filesStore.add(await receiveFile(link, t), t.file!.name), 'In Bestanden gezet.')}>
+              In Bestanden zetten
+            </button>
+          </>
+        )}
+        {resumeApp && (
+          <button
+            type="button"
+            className={small}
+            onClick={() =>
+              void act(async () => {
+                if (!apps.some((a) => a.id === resumeApp.id)) throw new Error(`${resumeApp.title} staat niet aan in je profiel op dit toestel.`)
+                openApp(resumeApp.id, t.resume!.id)
+                await markOpened(link, t)
+              }, `${resumeApp.title} geopend.`)
+            }
+          >
+            Verdergaan
+          </button>
+        )}
         {t.direction === 'in' && url && (
           <button
             type="button"
@@ -315,7 +459,7 @@ function TransferRow({ t, now, focused, link, act }: { t: Transfer; now: number;
             Link openen
           </button>
         )}
-        {t.direction === 'in' && t.content && capabilities.clipboardWrite && (
+        {t.direction === 'in' && t.content && (t.type === 'text' || t.type === 'link') && capabilities.clipboardWrite && (
           <button
             type="button"
             className={small}
@@ -329,7 +473,7 @@ function TransferRow({ t, now, focused, link, act }: { t: Transfer; now: number;
             Kopiëren
           </button>
         )}
-        {t.direction === 'in' && t.content && (
+        {t.direction === 'in' && t.content && (t.type === 'text' || t.type === 'link') && (
           <button
             type="button"
             className={small}
@@ -387,8 +531,15 @@ function Permissions() {
       <div className="space-y-1 text-nx-muted">
         <p>Links openen nooit vanzelf: jij kiest Link openen, Kopiëren of Als notitie bewaren.</p>
         <p>Ontvangen tekst blijft alleen op dit toestel, en verdwijnt als de tijd die de afzender koos voorbij is.</p>
-        <p>Bestanden sturen en een gedeeld klembord komen later; de blueprint wil daarvoor eerst limieten en een controle.</p>
+        <p>Bestanden (tot 10 MB) openen nooit vanzelf: jij kiest Opslaan of In Bestanden zetten, en daarna verdwijnt het versleutelde bestand uit je opslag. Verdergaan opent pas iets als jij erop drukt.</p>
       </div>
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked={settings.autoClipboard} onChange={(e) => bridgeStore.setSettings({ autoClipboard: e.target.checked })} className="mt-1 accent-[var(--nx-accent)]" />
+        <span>
+          <span className="font-medium">Klembord meteen overnemen</span>
+          <span className="block text-xs text-nx-muted">Tekst die een ander toestel van zijn klembord stuurt, komt meteen op het klembord van dit toestel, als NEXUS hier open en actief is. Anders kies je zelf Kopiëren.</span>
+        </span>
+      </label>
     </div>
   )
 }

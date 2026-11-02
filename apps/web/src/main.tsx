@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { transferTitle } from '@nexus/core'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
@@ -105,7 +106,7 @@ startIntelligence(() => isFeatureOn('intelligence'), onFeaturesChange)
 // showed the push, so only devices without it get a notification here.
 startBridge(defaultEngine, () => isFeatureOn('bridge'), (t) => {
   if (defaultEngine.getSnapshot().devices.some((d) => d.isThisDevice && d.push)) return
-  showSystemNotification({ v: 1, kind: 'notification', app: 'nexus', appName: 'NEXUS Bridge', title: `${t.type === 'link' ? 'Link' : 'Tekst'} van ${t.deviceName}`, text: t.content.slice(0, 200), postedAt: t.sentAt, id: `bridge:${t.id}`, fromDeviceId: t.deviceId, receivedAt: Date.now(), read: false })
+  showSystemNotification({ v: 1, kind: 'notification', app: 'nexus', appName: 'NEXUS Bridge', title: `${transferTitle(t)} van ${t.deviceName}`, text: t.type === 'file' ? 'Open Bridge om het op te slaan.' : t.content.slice(0, 200), postedAt: t.sentAt, id: `bridge:${t.id}`, fromDeviceId: t.deviceId, receivedAt: Date.now(), read: false })
 })
 startFinanceSync(supabase)
 // Financiën: budget notices at their threshold and 100%, and subscription reminders, here and on the phone.
