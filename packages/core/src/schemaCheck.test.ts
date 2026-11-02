@@ -5,7 +5,7 @@ import { readdirSync } from 'node:fs'
 const ALL_KEYS = "CHECK ((key = ANY (ARRAY['profiles'::text, 'flows'::text, 'grades'::text, 'habits'::text, 'flashcards'::text, 'budget'::text, 'finance'::text, 'exams'::text, 'journal'::text, 'spaces'::text, 'captures'::text, 'briefing'::text, 'knowledge'::text, 'projecthub'::text, 'studylab'::text, 'gaming'::text, 'inbox'::text])))"
 const full = parseSchemaStatus({
   tables: [...SCHEMA_TABLES, 'push_schedule'],
-  functions: ['join_study_group', 'create_study_group', 'flows_server_status', 'join_team', 'inbox_merge_delivery'],
+  functions: ['join_study_group', 'create_study_group', 'flows_server_status', 'join_team', 'inbox_merge_delivery', 'profiles_server_view'],
   constraints: { user_settings_key_check: ALL_KEYS, life_items_kind_check: "CHECK ((kind = ANY (ARRAY['deadline'::text, 'project'::text, 'appointment'::text])))" },
   buckets: ['nexus-files'],
 })!
