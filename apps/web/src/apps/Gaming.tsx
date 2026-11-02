@@ -14,12 +14,18 @@ import {
   saveBuild,
   saveGame,
   setWeeklyLimit,
+  setSleepGuard,
+  PREP_CHOICES,
+  SLEEP_CHOICES,
+  WARN_CHOICES,
+  type SleepGuard,
   weeklyMinutes,
   type Game,
   type GameStatus,
   type GamingState,
 } from '@nexus/core'
 import { gamingStore, gamingSyncProblem, useGaming } from '../gaming/store'
+import { currentSleepPlan } from '../gaming/timer'
 import { readStorage, writeStorage } from '../state/storage'
 
 const TABS = ['Bibliotheek', 'Sessies', 'Builds', 'Statistieken', 'Instellingen'] as const
@@ -371,7 +377,67 @@ function SettingsTab({ state }: { state: GamingState }) {
         </button>
         {status && <span role="status" className="text-nx-muted">{status}</span>}
       </form>
-      <p className="text-nx-muted">Met een plan waarschuwt Gaming Companion vanaf 80 % en als je erover gaat. Statistieken komen alleen uit sessies die je zelf noteert: NEXUS koppelt geen gameplatform en leest niets uit zonder officiële toegang. Vrienden komen pas met Teams.</p>
+      <p className="text-nx-muted">Met een plan waarschuwt Gaming Companion vanaf 80 % en als je erover gaat. Statistieken komen alleen uit sessies die je zelf noteert of met de timer meet: NEXUS koppelt geen gameplatform en leest niets uit zonder officiële toegang. Vrienden vind je in Teams.</p>
+      <SleepGuardSettings state={state} />
     </div>
+  )
+}
+
+const minutesLabel = (m: number) => (m % 60 ? `${Math.floor(m / 60)} u ${m % 60}` : `${m / 60} uur`)
+
+/** Slaapbewaker: on an evening before a lesson day, a notice to stop in time. */
+function SleepGuardSettings({ state }: { state: GamingState }) {
+  const g = state.settings.sleepGuard
+  const set = (change: Partial<SleepGuard>) => gamingStore.update((s) => setSleepGuard(s, change, Date.now()))
+  const plan = currentSleepPlan()
+  const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <fieldset className="space-y-2 rounded-lg border border-nx-border p-3">
+      <legend className="px-1 font-semibold">Slaapbewaker</legend>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={g.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
+        Op een avond voor een lesdag een melding om op tijd te stoppen
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <label className="flex items-center gap-2">
+          Slaap
+          <select aria-label="Slaap" value={g.sleepMinutes} disabled={!g.enabled} onChange={(e) => set({ sleepMinutes: Number(e.target.value) })} className={`${field} w-auto`}>
+            {SLEEP_CHOICES.map((m) => (
+              <option key={m} value={m}>
+                {minutesLabel(m)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          Klaarmaken en onderweg
+          <select aria-label="Klaarmaken en onderweg" value={g.prepMinutes} disabled={!g.enabled} onChange={(e) => set({ prepMinutes: Number(e.target.value) })} className={`${field} w-auto`}>
+            {PREP_CHOICES.map((m) => (
+              <option key={m} value={m}>
+                {m < 60 ? `${m} min` : minutesLabel(m)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          Eerste melding
+          <select aria-label="Eerste melding" value={g.warnMinutes} disabled={!g.enabled} onChange={(e) => set({ warnMinutes: Number(e.target.value) })} className={`${field} w-auto`}>
+            {WARN_CHOICES.map((m) => (
+              <option key={m} value={m}>
+                {m === 0 ? 'alleen op het stopuur' : `${m} min vooraf`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="text-nx-muted" role="status">
+        {!g.enabled
+          ? 'Staat uit.'
+          : plan
+            ? `Vanavond: stop om ${clock(plan.stopAt)}, want ${plan.firstLesson.subject} begint om ${clock(plan.firstLesson.start)}.`
+            : 'Geen les binnenkort, dus vanavond geen stopuur.'}{' '}
+        De melding komt alleen als Gaming actief is of de timer loopt, op dit apparaat en je gsm. Je lessen komen uit Profielen (schoolkalender of Lesrooster).
+      </p>
+    </fieldset>
   )
 }

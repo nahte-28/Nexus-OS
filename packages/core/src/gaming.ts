@@ -47,6 +47,43 @@ export interface GameBuild {
 export interface GamingSettings {
   /** Planned play time per week (Monday to Sunday), or null for no limit. */
   weeklyLimitMinutes: number | null
+  /** Slaapbewaker: on an evening before a lesson day, a notice to stop in time. */
+  sleepGuard: SleepGuard
+  updatedAt: number
+}
+
+export interface SleepGuard {
+  enabled: boolean
+  /** How long you want to sleep. */
+  sleepMinutes: number
+  /** From waking up to the first lesson (getting ready, travel). */
+  prepMinutes: number
+  /** The first notice comes this long before the stop time. */
+  warnMinutes: number
+}
+
+export const DEFAULT_SLEEP_GUARD: SleepGuard = { enabled: true, sleepMinutes: 8 * 60, prepMinutes: 60, warnMinutes: 15 }
+export const SLEEP_CHOICES = [7 * 60, 7.5 * 60, 8 * 60, 8.5 * 60, 9 * 60]
+export const PREP_CHOICES = [30, 45, 60, 90, 120]
+export const WARN_CHOICES = [0, 10, 15, 30]
+
+export function parseSleepGuard(raw: unknown): SleepGuard {
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_SLEEP_GUARD }
+  const r = raw as Partial<SleepGuard>
+  const pick = (v: unknown, choices: number[], fallback: number) => (choices.includes(v as number) ? (v as number) : fallback)
+  return {
+    enabled: typeof r.enabled === 'boolean' ? r.enabled : DEFAULT_SLEEP_GUARD.enabled,
+    sleepMinutes: pick(r.sleepMinutes, SLEEP_CHOICES, DEFAULT_SLEEP_GUARD.sleepMinutes),
+    prepMinutes: pick(r.prepMinutes, PREP_CHOICES, DEFAULT_SLEEP_GUARD.prepMinutes),
+    warnMinutes: pick(r.warnMinutes, WARN_CHOICES, DEFAULT_SLEEP_GUARD.warnMinutes),
+  }
+}
+
+/** A running session of the timer: on every device, so you can stop it on another one. */
+export interface ActiveSession {
+  gameId: string
+  startedAt: number
+  /** When this was last changed, for merging two devices. */
   updatedAt: number
 }
 
@@ -55,6 +92,9 @@ export interface GamingState {
   sessions: GameSession[]
   builds: GameBuild[]
   settings: GamingSettings
+  /** The timer that runs now, or null; [activeAt] is when it was last started or stopped. */
+  active: ActiveSession | null
+  activeAt: number
   revision: number
 }
 
@@ -63,7 +103,7 @@ export const MAX_GAME_SESSIONS = 2000
 export const MAX_BUILDS = 500
 const MAX_TEXT = 4000
 
-export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, updatedAt: 0 }, revision: 0 })
+export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, sleepGuard: { ...DEFAULT_SLEEP_GUARD }, updatedAt: 0 }, active: null, activeAt: 0, revision: 0 })
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -104,9 +144,18 @@ export function parseGaming(raw: unknown): GamingState {
     games,
     sessions: sessions.sort((a, b) => b.at - a.at).slice(0, MAX_GAME_SESSIONS),
     builds,
-    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, sleepGuard: parseSleepGuard(s.sleepGuard), updatedAt: num(s.updatedAt) ?? 0 },
+    active: parseActive(v.active),
+    activeAt: num(v.activeAt) ?? 0,
     revision: num(v.revision) ?? 0,
   }
+}
+
+function parseActive(raw: unknown): ActiveSession | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const a = raw as Record<string, unknown>
+  const startedAt = num(a.startedAt)
+  return typeof a.gameId === 'string' && startedAt !== null ? { gameId: a.gameId, startedAt, updatedAt: num(a.updatedAt) ?? startedAt } : null
 }
 
 function mergeById<T extends { id: string; updatedAt: number }>(a: T[], b: T[]): T[] {
@@ -124,6 +173,7 @@ export function mergeGaming(a: GamingState, b: GamingState): GamingState {
     sessions: mergeById(a.sessions, b.sessions).sort((x, y) => y.at - x.at).slice(0, MAX_GAME_SESSIONS),
     builds: mergeById(a.builds, b.builds),
     settings: b.settings.updatedAt > a.settings.updatedAt ? b.settings : a.settings,
+    ...(b.activeAt > a.activeAt ? { active: b.active, activeAt: b.activeAt } : { active: a.active, activeAt: a.activeAt }),
     revision: Math.max(a.revision, b.revision),
   }
 }
@@ -179,7 +229,75 @@ export function removeBuild(s: GamingState, id: string, now: number): GamingStat
 }
 
 export function setWeeklyLimit(s: GamingState, minutes: number | null, now: number): GamingState {
-  return { ...s, settings: { weeklyLimitMinutes: minutes !== null && minutes > 0 ? Math.round(minutes) : null, updatedAt: now } }
+  return { ...s, settings: { ...s.settings, weeklyLimitMinutes: minutes !== null && minutes > 0 ? Math.round(minutes) : null, updatedAt: now } }
+}
+
+export function setSleepGuard(s: GamingState, change: Partial<SleepGuard>, now: number): GamingState {
+  return { ...s, settings: { ...s.settings, sleepGuard: parseSleepGuard({ ...s.settings.sleepGuard, ...change }), updatedAt: now } }
+}
+
+// Timer ---------------------------------------------------------------------------------------------
+
+/** Starts the timer for a game; a timer that already runs is stopped and logged first. */
+export function startGameTimer(s: GamingState, gameId: string, now: number, newId: () => string): GamingState | { error: string } {
+  if (!s.games.some((g) => g.id === gameId && g.deletedAt === null)) return { error: 'Kies een game.' }
+  const base = s.active ? stopGameTimer(s, now, newId).state : s
+  return { ...base, active: { gameId, startedAt: now, updatedAt: now }, activeAt: now }
+}
+
+/**
+ * Stops the timer and logs the session (at least a minute; a timer left running counts for at
+ * most 12 hours). [minutes] is 0 when nothing was running or the game is gone.
+ */
+export function stopGameTimer(s: GamingState, now: number, newId: () => string): { state: GamingState; minutes: number } {
+  const a = s.active
+  if (!a) return { state: s, minutes: 0 }
+  const cleared: GamingState = { ...s, active: null, activeAt: now }
+  const minutes = Math.min(12 * 60, Math.max(1, Math.round((now - a.startedAt) / 60_000)))
+  const logged = logGameSession(cleared, { id: newId(), gameId: a.gameId, at: a.startedAt, minutes, note: 'Met de timer' }, now)
+  return 'error' in logged ? { state: cleared, minutes: 0 } : { state: logged, minutes }
+}
+
+/** Minutes the timer has run so far. */
+export const gameTimerMinutes = (s: GamingState, now: number) => (s.active ? Math.max(0, Math.floor((now - s.active.startedAt) / 60_000)) : 0)
+
+// Slaapbewaker --------------------------------------------------------------------------------------
+
+export interface SleepPlan {
+  /** The first lesson of the next lesson day after [now]'s evening. */
+  firstLesson: { start: number; subject: string }
+  /** When to stop playing: first lesson - prep - sleep. */
+  stopAt: number
+  warnAt: number
+}
+
+/**
+ * Tonight's stop time, when tomorrow (or tonight after midnight) has a lesday: the first lesson that
+ * starts between 3 and 18 hours from [now] counts. Null without lessons or when switched off.
+ */
+export function sleepPlan(guard: SleepGuard, lessons: Array<{ start: number; subject: string }>, now: number): SleepPlan | null {
+  if (!guard.enabled) return null
+  const first = lessons
+    .filter((l) => l.start > now && l.start - now <= 18 * 3_600_000)
+    .sort((a, b) => a.start - b.start)[0]
+  if (!first) return null
+  const stopAt = first.start - (guard.prepMinutes + guard.sleepMinutes) * 60_000
+  if (stopAt - now > 12 * 3_600_000 || first.start - now < 3 * 3_600_000) return null
+  return { firstLesson: first, stopAt, warnAt: stopAt - guard.warnMinutes * 60_000 }
+}
+
+/** The notice due in (from, now], with a ref so it comes once. */
+export function sleepNotice(plan: SleepPlan | null, from: number, now: number): { kind: 'warn' | 'stop'; ref: string; title: string; text: string } | null {
+  if (!plan) return null
+  const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+  const day = new Date(plan.firstLesson.start).toISOString().slice(0, 10)
+  if (plan.stopAt > from && plan.stopAt <= now) {
+    return { kind: 'stop', ref: `sleep:${day}:stop`, title: 'Tijd om te stoppen', text: `Morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}. Slaapwel!` }
+  }
+  if (plan.warnAt < plan.stopAt && plan.warnAt > from && plan.warnAt <= now) {
+    return { kind: 'warn', ref: `sleep:${day}:warn`, title: `Nog ${Math.round((plan.stopAt - plan.warnAt) / 60_000)} minuten gamen`, text: `Stop om ${clock(plan.stopAt)}: morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}.` }
+  }
+  return null
 }
 
 // Stats ---------------------------------------------------------------------------------------------
