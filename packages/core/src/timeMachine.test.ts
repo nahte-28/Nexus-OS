@@ -3,6 +3,7 @@ import { defaultProfilesState } from './profiles'
 import {
   addSnapshot,
   canonical,
+  changedParts,
   diffScope,
   emptyTimeMachine,
   keepSnapshot,
@@ -12,6 +13,7 @@ import {
   sameScope,
   setTmSettings,
   stableJson,
+  withPart,
   type NewSnapshot,
 } from './timeMachine'
 
@@ -59,7 +61,7 @@ describe('Time Machine', () => {
     const { state } = addSnapshot(emptyTimeMachine(), snap('a', 5, { spaces: { spaces: [] } }))
     const parsed = parseTimeMachine(JSON.parse(JSON.stringify({ ...state, settings: { auto: false, maxCount: 7, retentionDays: 90 } })))
     expect(parsed.snapshots[0].id).toBe('a')
-    expect(parsed.settings).toEqual({ auto: false, maxCount: 30, retentionDays: 90 })
+    expect(parsed.settings).toEqual({ auto: false, maxCount: 30, retentionDays: 90, thin: false, autoScopes: ['profiles', 'flows', 'spaces'], manualDays: null })
     expect(parseTimeMachine({ snapshots: [{ id: 'x', at: 1, scopes: {} }] }).snapshots).toEqual([])
   })
 
@@ -87,5 +89,59 @@ describe('Time Machine', () => {
     expect(lines.map((l) => `${l.where}: ${l.what}`)).toEqual(['Flow Ochtend: gaat uit', 'Flow Oud: komt terug', 'Flow Nieuw: verdwijnt'])
     const spaces = diffScope('spaces', { spaces: [], suggestOnProfile: true }, { spaces: [{ id: 's', name: 'Studeren', windows: [] }], suggestOnProfile: true })
     expect(spaces).toEqual([{ scope: 'spaces', where: 'Space Studeren', what: 'komt terug' }])
+  })
+
+  it('thins out older automatic points to one per day and per week', () => {
+    let state = setTmSettings(emptyTimeMachine(), { maxCount: 100, retentionDays: 90, thin: true }, 0)
+    const now = 30 * day
+    // Every 6 hours for 20 days, each one different.
+    for (let i = 0; i < 80; i++) state = addSnapshot(state, snap(`s${i}`, now - i * 6 * 3_600_000, { flows: { flows: [{ id: `f${i}` }], settings: {} } })).state
+    state = pruneSnapshots(state, now)
+    const ages = state.snapshots.map((s) => (now - s.at) / day)
+    // The last day all four, then one per day up to a week, then one per week.
+    expect(ages.filter((a) => a <= 1)).toHaveLength(5)
+    expect(new Set(ages.filter((a) => a > 1 && a <= 7).map((a) => Math.floor((now - a * day) / day))).size).toBe(ages.filter((a) => a > 1 && a <= 7).length)
+    expect(ages.filter((a) => a > 7).length).toBeLessThanOrEqual(3)
+    expect(state.snapshots.length).toBeLessThan(20)
+  })
+
+  it('clears your own points after the chosen days, and keeps a point before a restore for a day', () => {
+    let state = emptyTimeMachine()
+    state = addSnapshot(state, snap('mine', 0, { spaces: { spaces: [] } }, 'manual')).state
+    state = addSnapshot(state, snap('before', 100 * day, { spaces: { spaces: [{ id: 'x' }] } }, 'before_restore')).state
+    state = setTmSettings(state, { maxCount: 10, retentionDays: 7, manualDays: 90 }, 100 * day + 1000)
+    expect(state.snapshots.map((s) => s.id)).toEqual(['before'])
+    expect(setTmSettings(emptyTimeMachine(), { autoScopes: ['flows'] }, 0).settings.autoScopes).toEqual(['flows'])
+    expect(parseTimeMachine({ settings: { autoScopes: ['flows', 'nope'], manualDays: 365, thin: true } }).settings).toMatchObject({ autoScopes: ['flows'], manualDays: 365, thin: true })
+  })
+
+  it('puts back one flow or Space, leaving the rest as it is now', () => {
+    const then = { flows: [{ id: 'a', name: 'Ochtend', enabled: true }, { id: 'b', name: 'Avond', enabled: true }], settings: { paused: false } }
+    const now = { flows: [{ id: 'a', name: 'Ochtend', enabled: false }, { id: 'c', name: 'Nieuw', enabled: true }], settings: { paused: true } }
+    const parts = changedParts('flows', now, then)
+    expect(parts.map((p) => [p.key, p.label])).toEqual([
+      ['flow:a', 'Flow Ochtend'],
+      ['flow:b', 'Flow Avond'],
+      ['flow:c', 'Flow Nieuw'],
+      ['flow-settings', 'Pauze en stille uren'],
+    ])
+    expect(withPart('flows', now, then, 'flow:a')).toEqual({ flows: [{ id: 'a', name: 'Ochtend', enabled: true }, { id: 'c', name: 'Nieuw', enabled: true }], settings: { paused: true } })
+    expect(parts.find((p) => p.key === 'flow:b')?.changes[0]).toMatchObject({ what: 'komt terug' })
+    expect(parts.find((p) => p.key === 'flow:c')?.changes[0]).toMatchObject({ what: 'verdwijnt' })
+    expect(withPart('spaces', { spaces: [{ id: 's', name: 'Nu' }], suggestOnProfile: true }, { spaces: [], suggestOnProfile: false }, 'space:s')).toEqual({ spaces: [], suggestOnProfile: true })
+  })
+
+  it('puts back one profile or one profiles setting', () => {
+    const then = profilesPayload(defaultProfilesState())
+    const current = structuredClone(then) as Record<string, any>
+    current.profiles.gaming.name = 'Spelen'
+    current.profiles.school.theme = 'light'
+    current.lessons = [{ id: 'l', day: 1, start: '08:30', end: '10:00', title: 'Wiskunde' }]
+    const parts = changedParts('profiles', current, then)
+    expect(parts.map((p) => p.key)).toEqual(['profile:school', 'profile:gaming', 'lessons'])
+    const back = withPart('profiles', current, then, 'profile:gaming') as Record<string, any>
+    expect(back.profiles.gaming.name).toBe(then.profiles && (then.profiles as any).gaming.name)
+    expect(back.profiles.school.theme).toBe('light')
+    expect(back.lessons).toHaveLength(1)
   })
 })

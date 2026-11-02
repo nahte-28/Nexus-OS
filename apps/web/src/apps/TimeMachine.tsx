@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
+  changedParts,
   diffScope,
+  MAX_TOTAL_SIZE,
   keepSnapshot,
   removeSnapshot,
   renameSnapshot,
@@ -10,12 +12,13 @@ import {
   THEMES,
   TM_COUNT_CHOICES,
   TM_DAYS_CHOICES,
+  TM_MANUAL_DAYS_CHOICES,
   type ConfigSnapshot,
   type SnapshotReason,
   type SnapshotScope,
 } from '@nexus/core'
 import { readStorage, writeStorage } from '../state/storage'
-import { captureScope, restoreSnapshot, takeSnapshot, timeMachineStore, useTimeMachine, type RestoreResult } from '../timemachine/store'
+import { captureScope, restorePart, restoreSnapshot, takeSnapshot, timeMachineStore, useTimeMachine, type RestoreResult } from '../timemachine/store'
 import { APPS } from './registry'
 
 const TABS = ['Herstelpunten', 'Geschiedenis', 'Herstellen', 'Instellingen'] as const
@@ -172,7 +175,7 @@ function History() {
             {j.status === 'done' ? 'Hersteld' : 'Teruggedraaid'}: {j.snapshotLabel}
           </div>
           <div className="text-xs text-nx-muted">
-            {when(j.at)} · {j.scopes.map((s) => SCOPE_NAMES[s]).join(', ')}
+            {when(j.at)} · {j.part ? `alleen ${j.part}` : j.scopes.map((s) => SCOPE_NAMES[s]).join(', ')}
           </div>
           {j.detail && <p className="mt-1 text-xs">{j.detail}</p>}
         </li>
@@ -189,9 +192,23 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
   const [error, setError] = useState<string | null>(null)
   // Recomputed after a restore too, so the preview then says everything is the same.
   const diffs = useMemo(
-    () => (snapshot ? SNAPSHOT_SCOPES.filter((s) => snapshot.scopes[s] !== undefined).map((s) => ({ scope: s, changes: diffScope(s, captureScope(s), snapshot.scopes[s], names) })) : []),
+    () =>
+      snapshot
+        ? SNAPSHOT_SCOPES.filter((s) => snapshot.scopes[s] !== undefined).map((s) => {
+            const current = captureScope(s)
+            return { scope: s, changes: diffScope(s, current, snapshot.scopes[s], names), parts: changedParts(s, current, snapshot.scopes[s], names) }
+          })
+        : [],
     [snapshot, result],
   )
+  const run = (restore: () => RestoreResult) => {
+    try {
+      setError(null)
+      setResult(restore())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
   if (!snapshot) return <p className="text-nx-muted">Nog geen herstelpunten. Maak er een in Herstelpunten.</p>
   const chosen = diffs.filter((d) => scopes.has(d.scope) && d.changes.length > 0)
   return (
@@ -214,7 +231,7 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
         </select>
       </label>
       <div className="space-y-3">
-        {diffs.map(({ scope, changes }) => (
+        {diffs.map(({ scope, changes, parts }) => (
           <fieldset key={scope} className="rounded-lg border border-nx-border p-3">
             <legend className="px-1">
               <label className="flex items-center gap-2 font-medium">
@@ -244,6 +261,29 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
                 ))}
               </ul>
             )}
+            {parts.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-nx-muted">Eén onderdeel terugzetten ({parts.length})</summary>
+                <ul className="mt-2 space-y-2" aria-label={`Onderdelen van ${SCOPE_NAMES[scope]}`}>
+                  {parts.map((part) => (
+                    <li key={part.key} className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-nx-border p-2">
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{part.label}</span>
+                        {part.changes.map((c, i) => (
+                          <span key={i} className="block text-xs text-nx-muted">
+                            {c.where}: {c.what}
+                          </span>
+                        ))}
+                      </span>
+                      <button type="button" className={small} aria-label={`${part.label} terugzetten`} onClick={() => run(() => restorePart(snapshot.id, scope, part.key, part.label))}>
+                        Terugzetten
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-xs text-nx-muted">Alleen dit onderdeel wordt zoals toen; de rest blijft zoals nu.</p>
+              </details>
+            )}
           </fieldset>
         ))}
       </div>
@@ -255,20 +295,13 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
         type="button"
         className={primary}
         disabled={chosen.length === 0}
-        onClick={() => {
-          try {
-            setError(null)
-            setResult(restoreSnapshot(snapshot.id, chosen.map((d) => d.scope)))
-          } catch (err) {
-            setError(err instanceof Error ? err.message : String(err))
-          }
-        }}
+        onClick={() => run(() => restoreSnapshot(snapshot.id, chosen.map((d) => d.scope)))}
       >
         Herstellen
       </button>
       {result && (
         <p role="status" className={result.ok ? '' : 'text-red-500'}>
-          {result.ok ? `Hersteld: ${result.job.scopes.map((s) => SCOPE_NAMES[s]).join(', ')}.` : result.job.detail}
+          {result.ok ? `Hersteld: ${result.job.part ?? result.job.scopes.map((s) => SCOPE_NAMES[s]).join(', ')}.` : result.job.detail}
         </p>
       )}
       {error && (
@@ -282,39 +315,102 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
 
 function Settings() {
   const { settings, snapshots } = useTimeMachine()
-  const change = (patch: Parameters<typeof setTmSettings>[1]) => timeMachineStore.update((s) => setTmSettings(s, patch, Date.now()))
+  const [status, setStatus] = useState('')
+  const change = (patch: Parameters<typeof setTmSettings>[1]) => {
+    const before = timeMachineStore.getSnapshot().snapshots.length
+    timeMachineStore.update((s) => setTmSettings(s, patch, Date.now()))
+    const gone = before - timeMachineStore.getSnapshot().snapshots.length
+    setStatus(gone > 0 ? `${gone} ${gone === 1 ? 'herstelpunt' : 'herstelpunten'} opgeruimd volgens het nieuwe beleid.` : 'Bewaard.')
+  }
   const size = snapshots.reduce((n, s) => n + s.size, 0)
+  const used = Math.min(100, Math.round((size / MAX_TOTAL_SIZE) * 100))
+  const own = snapshots.filter((s) => s.reason === 'manual').length
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-2">
         <input type="checkbox" checked={settings.auto} onChange={(e) => change({ auto: e.target.checked })} className="accent-[var(--nx-accent)]" />
         Automatisch een herstelpunt maken bij het openen van NEXUS, na een update en na een wijziging
       </label>
-      <label className="flex flex-wrap items-center gap-2">
-        Automatische herstelpunten bewaren: hoogstens
-        <select aria-label="Aantal" value={settings.maxCount} onChange={(e) => change({ maxCount: Number(e.target.value) })} className={field}>
-          {TM_COUNT_CHOICES.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-        , en niet ouder dan
-        <select aria-label="Dagen" value={settings.retentionDays} onChange={(e) => change({ retentionDays: Number(e.target.value) })} className={field}>
-          {TM_DAYS_CHOICES.map((n) => (
-            <option key={n} value={n}>
-              {n} dagen
-            </option>
-          ))}
-        </select>
-      </label>
-      <p className="text-nx-muted">
-        Herstelpunten die je zelf maakt of bewaart, blijven tot je ze verwijdert. Ze staan alleen op dit toestel ({snapshots.length} herstelpunten, {Math.ceil(size / 1024)} kB).
-        Configuratieherstel is geen volledige back-up van je pc of je bestanden.
-      </p>
+      <fieldset className="space-y-1" disabled={!settings.auto}>
+        <legend className="mb-1 font-medium">Wat automatisch meegaat</legend>
+        {SNAPSHOT_SCOPES.map((scope) => (
+          <label key={scope} className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={settings.autoScopes.includes(scope)}
+              onChange={(e) => change({ autoScopes: SNAPSHOT_SCOPES.filter((x) => (x === scope ? e.target.checked : settings.autoScopes.includes(x))) })}
+              className="accent-[var(--nx-accent)]"
+            />
+            {SCOPE_NAMES[scope]}
+          </label>
+        ))}
+        <p className="text-xs text-nx-muted">Een herstelpunt dat je zelf maakt, en dat van net voor een herstel, neemt altijd alles mee.</p>
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="mb-1 font-medium">Bewaarbeleid</legend>
+        <label className="flex flex-wrap items-center gap-2">
+          Automatische herstelpunten: hoogstens
+          <select aria-label="Aantal" value={settings.maxCount} onChange={(e) => change({ maxCount: Number(e.target.value) })} className={field}>
+            {TM_COUNT_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          , en niet ouder dan
+          <select aria-label="Dagen" value={settings.retentionDays} onChange={(e) => change({ retentionDays: Number(e.target.value) })} className={field}>
+            {TM_DAYS_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n === 365 ? '1 jaar' : `${n} dagen`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" checked={settings.thin} onChange={(e) => change({ thin: e.target.checked })} className="mt-1 accent-[var(--nx-accent)]" />
+          <span>
+            Slim uitdunnen
+            <span className="block text-xs text-nx-muted">Alles van de laatste dag, daarna één per dag, en na een week één per week. Zo reik je verder terug met minder herstelpunten.</span>
+          </span>
+        </label>
+        <label className="flex flex-wrap items-center gap-2">
+          Eigen herstelpunten:
+          <select
+            aria-label="Eigen herstelpunten"
+            value={settings.manualDays ?? ''}
+            onChange={(e) => change({ manualDays: e.target.value ? Number(e.target.value) : null })}
+            className={field}
+          >
+            <option value="">Bewaren tot ik ze verwijder</option>
+            {TM_MANUAL_DAYS_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                Na {n === 365 ? '1 jaar' : `${n} dagen`} opruimen
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs text-nx-muted">Een herstelpunt van net voor een herstel blijft altijd minstens een dag, zodat je het herstel kan terugdraaien.</p>
+      </fieldset>
+      <div className="space-y-1">
+        <div className="flex justify-between text-xs text-nx-muted">
+          <span>
+            {snapshots.length} herstelpunten, waarvan {own} eigen
+          </span>
+          <span>
+            {Math.ceil(size / 1024)} kB van {Math.round(MAX_TOTAL_SIZE / 1024)} kB
+          </span>
+        </div>
+        <div role="meter" aria-label="Opslag van Time Machine" aria-valuemin={0} aria-valuemax={100} aria-valuenow={used} className="h-2 overflow-hidden rounded-full bg-nx-surface-2">
+          <div className="h-full bg-nx-accent" style={{ width: `${used}%` }} />
+        </div>
+        <p className="text-xs text-nx-muted">Herstelpunten staan alleen op dit toestel. Is de ruimte vol, dan gaan de oudste eerst. Configuratieherstel is geen volledige back-up van je pc of je bestanden.</p>
+      </div>
       <button type="button" className={button} onClick={() => timeMachineStore.update((s) => ({ ...s, snapshots: s.snapshots.filter((x) => x.reason === 'manual') }))}>
         Automatische herstelpunten wissen
       </button>
+      <p role="status" className="text-xs text-nx-muted">
+        {status}
+      </p>
     </div>
   )
 }

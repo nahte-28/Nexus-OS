@@ -1,7 +1,9 @@
 /**
  * NEXUS Time Machine (blueprint fase 3): restore points of your configuration (profiles, flows and
  * Spaces), a readable diff before restoring, and a history of restores. Configuration only: notes,
- * files and other records are not part of it. Pure logic; the web app captures and applies.
+ * files and other records are not part of it. Time Machine 2.0 adds a retention policy (thinning
+ * older points, what automatic points take along, how long your own points stay) and restoring one
+ * part: a single profile, flow, Space or setting. Pure logic; the web app captures and applies.
  */
 import { PROFILE_IDS, type ProfilesState } from './profiles'
 
@@ -32,6 +34,8 @@ export interface RestoreJob {
   /** rolled_back: something did not match afterwards and the configuration went back as it was. */
   status: 'done' | 'rolled_back'
   detail?: string
+  /** Time Machine 2.0: only this part was put back, e.g. "Flow Ochtend". */
+  part?: string
 }
 
 export interface TimeMachineSettings {
@@ -41,6 +45,12 @@ export interface TimeMachineSettings {
   maxCount: number
   /** Automatic restore points older than this go. */
   retentionDays: number
+  /** Thin out: all of the last day, then one per day, and after a week one per week. */
+  thin: boolean
+  /** What an automatic restore point takes along; manual ones always take everything. */
+  autoScopes: SnapshotScope[]
+  /** Your own restore points go after this many days; null keeps them until you delete them. */
+  manualDays: number | null
 }
 
 export interface TimeMachineState {
@@ -52,16 +62,17 @@ export interface TimeMachineState {
   lastVersion: string
 }
 
-export const DEFAULT_TM_SETTINGS: TimeMachineSettings = { auto: true, maxCount: 30, retentionDays: 30 }
-export const TM_COUNT_CHOICES = [10, 30, 50]
-export const TM_DAYS_CHOICES = [7, 30, 90]
+export const DEFAULT_TM_SETTINGS: TimeMachineSettings = { auto: true, maxCount: 30, retentionDays: 30, thin: false, autoScopes: [...SNAPSHOT_SCOPES], manualDays: null }
+export const TM_COUNT_CHOICES = [10, 30, 50, 100]
+export const TM_DAYS_CHOICES = [7, 30, 90, 365]
+export const TM_MANUAL_DAYS_CHOICES = [90, 365]
 export const MAX_HISTORY = 50
 /** All restore points together, in characters; localStorage holds about 5 million. */
 export const MAX_TOTAL_SIZE = 1_500_000
 export const MAX_SNAPSHOT_SIZE = 300_000
 export const MAX_LABEL = 80
 
-export const emptyTimeMachine = (): TimeMachineState => ({ revision: 0, snapshots: [], history: [], settings: { ...DEFAULT_TM_SETTINGS }, lastVersion: '' })
+export const emptyTimeMachine = (): TimeMachineState => ({ revision: 0, snapshots: [], history: [], settings: { ...DEFAULT_TM_SETTINGS, autoScopes: [...SNAPSHOT_SCOPES] }, lastVersion: '' })
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
@@ -93,6 +104,7 @@ function parseJob(v: unknown): RestoreJob | null {
     scopes: Array.isArray(v.scopes) ? v.scopes.filter((s): s is SnapshotScope => SNAPSHOT_SCOPES.includes(s as SnapshotScope)) : [],
     status: v.status === 'rolled_back' ? 'rolled_back' : 'done',
     ...(typeof v.detail === 'string' ? { detail: v.detail.slice(0, 300) } : {}),
+    ...(typeof v.part === 'string' ? { part: v.part.slice(0, MAX_LABEL) } : {}),
   }
 }
 
@@ -107,6 +119,9 @@ export function parseTimeMachine(raw: unknown): TimeMachineState {
       auto: s.auto !== false,
       maxCount: TM_COUNT_CHOICES.includes(s.maxCount as number) ? (s.maxCount as number) : DEFAULT_TM_SETTINGS.maxCount,
       retentionDays: TM_DAYS_CHOICES.includes(s.retentionDays as number) ? (s.retentionDays as number) : DEFAULT_TM_SETTINGS.retentionDays,
+      thin: s.thin === true,
+      autoScopes: Array.isArray(s.autoScopes) ? SNAPSHOT_SCOPES.filter((x) => (s.autoScopes as unknown[]).includes(x)) : [...SNAPSHOT_SCOPES],
+      manualDays: TM_MANUAL_DAYS_CHOICES.includes(s.manualDays as number) ? (s.manualDays as number) : null,
     },
     lastVersion: typeof raw.lastVersion === 'string' ? raw.lastVersion : '',
   }
@@ -147,14 +162,39 @@ export const sameScope = (scope: SnapshotScope, a: unknown, b: unknown) => stabl
 
 const prunable = (s: ConfigSnapshot) => s.reason !== 'manual'
 
-/** Drops automatic restore points past the count or age, then the oldest of any kind past the size limit. */
+const DAY = 86_400_000
+
+/**
+ * With thinning: which period an automatic point stands for. The last day: itself; up to a
+ * week: its day; older: its week. Per period only the newest stays. Days count in UTC.
+ */
+function thinBucket(s: ConfigSnapshot, now: number): string {
+  const age = now - s.at
+  if (age <= DAY) return `p:${s.id}`
+  if (age <= 7 * DAY) return `d:${Math.floor(s.at / DAY)}`
+  return `w:${Math.floor(s.at / (7 * DAY))}`
+}
+
+/**
+ * Drops automatic restore points past the count or age (and, when thinning, all but the newest per
+ * day or week), your own past their days when set, then the oldest of any kind past the size limit.
+ * A point made just before a restore is always kept for a day, so a restore can be undone.
+ */
 export function pruneSnapshots(state: TimeMachineState, now: number): TimeMachineState {
-  const maxAge = state.settings.retentionDays * 86_400_000
+  const { maxCount, retentionDays, thin, manualDays } = state.settings
+  const maxAge = retentionDays * DAY
+  const buckets = new Set<string>()
   let auto = 0
   let kept = state.snapshots.filter((s) => {
-    if (!prunable(s)) return true
+    if (!prunable(s)) return manualDays === null || now - s.at <= manualDays * DAY
+    if (s.reason === 'before_restore' && now - s.at <= DAY) return true
+    if (thin) {
+      const bucket = thinBucket(s, now)
+      if (buckets.has(bucket)) return false
+      buckets.add(bucket)
+    }
     auto++
-    return auto <= state.settings.maxCount && now - s.at <= maxAge
+    return auto <= maxCount && now - s.at <= maxAge
   })
   let total = kept.reduce((n, s) => n + s.size, 0)
   while (total > MAX_TOTAL_SIZE && kept.length > 1) {
@@ -229,6 +269,100 @@ export function addRestoreJob(state: TimeMachineState, job: RestoreJob): TimeMac
 
 export function setTmSettings(state: TimeMachineState, patch: Partial<TimeMachineSettings>, now: number): TimeMachineState {
   return pruneSnapshots({ ...state, settings: { ...state.settings, ...patch } }, now)
+}
+
+/** What the policy would remove right now, to show before you save a stricter one. */
+export function prunedBy(state: TimeMachineState, patch: Partial<TimeMachineSettings>, now: number): number {
+  return state.snapshots.length - setTmSettings(state, patch, now).snapshots.length
+}
+
+// ---- One part ------------------------------------------------------------------------------
+
+/** One part of a scope that can be put back on its own. */
+export interface RestorePart {
+  scope: SnapshotScope
+  /** profile:<id>, a profiles setting (schedule, lessons, …), flow:<id>, flow-settings, space:<id> or suggestOnProfile. */
+  key: string
+  label: string
+}
+
+const PROFILE_SETTING_LABELS: Record<string, string> = {
+  defaultProfile: 'Standaardprofiel',
+  schedule: 'Schema (School Mode)',
+  lessons: 'Lesrooster',
+  calendarUrl: 'Schoolkalender',
+  googleUrl: 'Google Agenda',
+  klashubUrl: 'KlasHub-adres',
+  dagstart: 'Dagstart',
+}
+
+const itemName = (x: Record<string, unknown>) => (typeof x.name === 'string' && x.name ? x.name : String(x.id))
+
+/** The parts of a scope in either version, in a fixed order. */
+function partsOf(scope: SnapshotScope, now: Record<string, unknown>, then: Record<string, unknown>): RestorePart[] {
+  if (scope === 'profiles') {
+    const a = obj(now.profiles)
+    const b = obj(then.profiles)
+    const profiles = PROFILE_IDS.filter((id) => a[id] !== undefined || b[id] !== undefined).map((id) => {
+      const p = obj(b[id] ?? a[id])
+      return { scope, key: `profile:${id}`, label: `Profiel ${typeof p.name === 'string' && p.name ? p.name : PROFILE_NAMES[id]}` }
+    })
+    const keys = [...new Set([...Object.keys(now), ...Object.keys(then)])].filter((k) => k !== 'profiles')
+    const ordered = [...Object.keys(PROFILE_SETTING_LABELS).filter((k) => keys.includes(k)), ...keys.filter((k) => !(k in PROFILE_SETTING_LABELS)).sort()]
+    return [...profiles, ...ordered.map((k) => ({ scope, key: k, label: PROFILE_SETTING_LABELS[k] ?? k }))]
+  }
+  const list = scope === 'flows' ? 'flows' : 'spaces'
+  const prefix = scope === 'flows' ? 'flow' : 'space'
+  const kind = scope === 'flows' ? 'Flow' : 'Space'
+  const seen = new Map<string, Record<string, unknown>>()
+  for (const x of [...arr(then[list]), ...arr(now[list])]) if (isObject(x) && !seen.has(String(x.id))) seen.set(String(x.id), x)
+  const items = [...seen.values()].map((x) => ({ scope, key: `${prefix}:${String(x.id)}`, label: `${kind} ${itemName(x)}` }))
+  return [...items, scope === 'flows' ? { scope, key: 'flow-settings', label: 'Pauze en stille uren' } : { scope, key: 'suggestOnProfile', label: 'Space voorstellen bij een profiel' }]
+}
+
+/** Replaces, adds or removes one item of a list by id, keeping the order of [list]. */
+function putItem(list: unknown[], id: string, item: unknown): unknown[] {
+  const at = list.findIndex((x) => isObject(x) && String(x.id) === id)
+  if (item === undefined) return at < 0 ? list : list.filter((_, i) => i !== at)
+  if (at < 0) return [...list, item]
+  return list.map((x, i) => (i === at ? item : x))
+}
+
+/**
+ * The configuration as it is now, with only [key] as it was in the restore point. A part that did
+ * not exist then is removed; everything else stays as it is now.
+ */
+export function withPart(scope: SnapshotScope, current: unknown, snapshot: unknown, key: string): unknown {
+  const now = obj(current)
+  const then = obj(snapshot)
+  if (scope === 'profiles') {
+    if (key.startsWith('profile:')) {
+      const id = key.slice('profile:'.length)
+      const profiles = { ...obj(now.profiles) }
+      if (obj(then.profiles)[id] === undefined) delete profiles[id]
+      else profiles[id] = obj(then.profiles)[id]
+      return { ...now, profiles }
+    }
+    const next = { ...now }
+    if (then[key] === undefined) delete next[key]
+    else next[key] = then[key]
+    return next
+  }
+  if (scope === 'flows') {
+    if (key === 'flow-settings') return { ...now, settings: then.settings }
+    const id = key.slice('flow:'.length)
+    return { ...now, flows: putItem(arr(now.flows), id, arr(then.flows).find((x) => isObject(x) && String(x.id) === id)) }
+  }
+  if (key === 'suggestOnProfile') return { ...now, suggestOnProfile: then.suggestOnProfile }
+  const id = key.slice('space:'.length)
+  return { ...now, spaces: putItem(arr(now.spaces), id, arr(then.spaces).find((x) => isObject(x) && String(x.id) === id)) }
+}
+
+/** The parts that differ between now and the restore point, each with what putting it back changes. */
+export function changedParts(scope: SnapshotScope, current: unknown, snapshot: unknown, names: DiffNames = {}): Array<RestorePart & { changes: ConfigChange[] }> {
+  return partsOf(scope, obj(current), obj(snapshot))
+    .map((part) => ({ ...part, changes: diffScope(scope, current, withPart(scope, current, snapshot, part.key), names) }))
+    .filter((p) => p.changes.length > 0)
 }
 
 // ---- Diff ---------------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import {
   type SnapshotScope,
   type Space,
   type TimeMachineState,
+  withPart,
 } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { eventBus } from '../events/bus'
@@ -44,7 +45,7 @@ export function captureScope(scope: SnapshotScope): unknown {
   return { spaces: liveSpaces(s), suggestOnProfile: s.suggestOnProfile }
 }
 
-export const captureAll = (): ConfigSnapshot['scopes'] => Object.fromEntries(SNAPSHOT_SCOPES.map((s) => [s, captureScope(s)]))
+export const captureAll = (scopes: SnapshotScope[] = SNAPSHOT_SCOPES): ConfigSnapshot['scopes'] => Object.fromEntries(scopes.map((s) => [s, captureScope(s)]))
 
 /**
  * Puts one scope back. Change times are set to now, so the restored version wins on your other
@@ -86,10 +87,14 @@ function applyScope(scope: SnapshotScope, payload: unknown, now: number, otherVe
 
 let restoring = false
 
+/** Automatic points take what the policy says; your own and the one before a restore take everything. */
 export function takeSnapshot(reason: SnapshotReason, label?: string, now = Date.now()): { snapshot: ConfigSnapshot | null; error?: string } {
   let result: { snapshot: ConfigSnapshot | null; error?: string } = { snapshot: null }
+  const automatic = reason === 'auto' || reason === 'start' || reason === 'update'
+  const scopes = automatic ? timeMachineStore.getSnapshot().settings.autoScopes : SNAPSHOT_SCOPES
+  if (scopes.length === 0) return result
   timeMachineStore.update((s) => {
-    const r = addSnapshot(s, { id: newId(), at: now, reason, label, appVersion: __APP_VERSION__, scopes: captureAll() })
+    const r = addSnapshot(s, { id: newId(), at: now, reason, label, appVersion: __APP_VERSION__, scopes: captureAll(scopes) })
     result = { snapshot: r.added, ...(r.error ? { error: r.error } : {}) }
     return r.state
   })
@@ -107,18 +112,44 @@ export interface RestoreResult {
  * them go back to how they were (rollback).
  */
 export function restoreSnapshot(snapshotId: string, scopes: SnapshotScope[], now = Date.now()): RestoreResult {
-  const snapshot = timeMachineStore.getSnapshot().snapshots.find((s) => s.id === snapshotId)
+  const snapshot = findSnapshot(snapshotId)
+  return runRestore(
+    snapshot,
+    scopes.filter((s) => snapshot.scopes[s] !== undefined),
+    (scope) => snapshot.scopes[scope],
+    now,
+  )
+}
+
+/**
+ * Time Machine 2.0: puts back one part (a profile, flow, Space or setting) as it was in the
+ * restore point and leaves the rest as it is now. Same safety as a full restore.
+ */
+export function restorePart(snapshotId: string, scope: SnapshotScope, key: string, label: string, now = Date.now()): RestoreResult {
+  const snapshot = findSnapshot(snapshotId)
+  if (snapshot.scopes[scope] === undefined) throw new Error('Dit herstelpunt bevat dat onderdeel niet.')
+  return runRestore(snapshot, [scope], () => withPart(scope, captureScope(scope), snapshot.scopes[scope], key), now, label)
+}
+
+function findSnapshot(id: string): ConfigSnapshot {
+  const snapshot = timeMachineStore.getSnapshot().snapshots.find((s) => s.id === id)
   if (!snapshot) throw new Error('Dit herstelpunt bestaat niet meer.')
-  const chosen = scopes.filter((s) => snapshot.scopes[s] !== undefined)
+  return snapshot
+}
+
+function runRestore(snapshot: ConfigSnapshot, chosen: SnapshotScope[], payloadFor: (scope: SnapshotScope) => unknown, now: number, part?: string): RestoreResult {
+  const snapshotId = snapshot.id
   const before = captureAll()
+  // Worked out before anything changes: a part goes into the configuration as it is now.
+  const payloads = new Map(chosen.map((scope) => [scope, payloadFor(scope)]))
   restoring = true
   let job!: RestoreJob
   try {
-    takeSnapshot('before_restore', `Voor herstel van "${snapshot.label}"`, now)
+    takeSnapshot('before_restore', part ? `Voor herstel van ${part}` : `Voor herstel van "${snapshot.label}"`, now)
     let problem: string | null = null
     try {
       const otherVersion = snapshot.appVersion !== __APP_VERSION__
-      const expected = new Map(chosen.map((scope) => [scope, applyScope(scope, snapshot.scopes[scope], now, otherVersion)]))
+      const expected = new Map(chosen.map((scope) => [scope, applyScope(scope, payloads.get(scope), now, otherVersion)]))
       const wrong = chosen.filter((scope) => !sameScope(scope, captureScope(scope), expected.get(scope)))
       if (wrong.length) problem = `${wrong.map((s) => SCOPE_NAMES[s]).join(', ')} kwam${wrong.length > 1 ? 'en' : ''} niet exact terug.`
     } catch (err) {
@@ -136,6 +167,7 @@ export function restoreSnapshot(snapshotId: string, scopes: SnapshotScope[], now
       scopes: chosen,
       status: problem ? 'rolled_back' : 'done',
       ...(problem ? { detail: `${problem} Alles staat weer zoals voor het herstel.` } : {}),
+      ...(part ? { part } : {}),
     }
     timeMachineStore.update((s) => addRestoreJob(s, job))
   } finally {
@@ -146,7 +178,7 @@ export function restoreSnapshot(snapshotId: string, scopes: SnapshotScope[], now
     source: 'system',
     type: job.status === 'done' ? 'timemachine.restored' : 'timemachine.rolled_back',
     at: now,
-    title: job.status === 'done' ? `Hersteld: ${snapshot.label}` : `Herstel van ${snapshot.label} teruggedraaid`,
+    title: job.status === 'done' ? `Hersteld: ${part ?? snapshot.label}` : `Herstel van ${part ?? snapshot.label} teruggedraaid`,
     priority: job.status === 'done' ? 'low' : 'high',
     link: { app: 'timemachine' },
   })

@@ -6,7 +6,7 @@ import { preloadApps } from './registry'
 import { flowsStore } from '../flows/store'
 import { profilesStore } from '../profiles/store'
 import { spacesStore } from '../spaces/store'
-import { restoreSnapshot, takeSnapshot, timeMachineStore } from '../timemachine/store'
+import { restorePart, restoreSnapshot, takeSnapshot, timeMachineStore } from '../timemachine/store'
 
 const flow = (id: string): FlowDefinition => {
   const t = FLOW_TEMPLATES[0]
@@ -73,5 +73,53 @@ describe('Time Machine', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Geschiedenis' }))
     expect(screen.getAllByText(/Hersteld: Voor de proef/).length).toBeGreaterThan(0)
+  })
+
+  it('puts back one flow and leaves the others as they are now', () => {
+    flowsStore.save(flow('tm-one'))
+    flowsStore.save(flow('tm-two'))
+    const { snapshot } = takeSnapshot('manual', 'Twee flows')
+    flowsStore.setEnabled('tm-one', false)
+    flowsStore.setEnabled('tm-two', false)
+    const { ok, job } = restorePart(snapshot!.id, 'flows', 'flow:tm-one', 'Flow een')
+    expect(ok).toBe(true)
+    expect(job.part).toBe('Flow een')
+    const flows = flowsStore.getSnapshot().flows
+    expect(flows.find((f) => f.id === 'tm-one')!.enabled).toBe(true)
+    expect(flows.find((f) => f.id === 'tm-two')!.enabled).toBe(false)
+  })
+
+  it('offers one part to put back in the preview', () => {
+    render(<TimeMachine />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Herstelpunten' }))
+    fireEvent.change(screen.getByLabelText('Naam van het herstelpunt'), { target: { value: 'Twee profielen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Herstelpunt maken' }))
+    const gaming = profilesStore.getSnapshot().state.profiles.gaming.name
+    const developer = profilesStore.getSnapshot().state.profiles.developer.name
+    profilesStore.updateProfile('gaming', { name: 'Spelen' })
+    profilesStore.updateProfile('developer', { name: 'Coderen' })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Bekijken en herstellen' })[0])
+    fireEvent.click(screen.getByText(/Eén onderdeel terugzetten/))
+    fireEvent.click(screen.getByRole('button', { name: `Profiel ${gaming} terugzetten` }))
+    expect(screen.getByRole('status').textContent).toBe(`Hersteld: Profiel ${gaming}.`)
+    expect(profilesStore.getSnapshot().state.profiles.gaming.name).toBe(gaming)
+    expect(profilesStore.getSnapshot().state.profiles.developer.name).toBe('Coderen')
+    fireEvent.click(screen.getByRole('tab', { name: 'Geschiedenis' }))
+    expect(screen.getAllByText(new RegExp(`alleen Profiel ${gaming}`)).length).toBeGreaterThan(0)
+    profilesStore.updateProfile('developer', { name: developer })
+  })
+
+  it('sets the retention policy and says what it cleared', () => {
+    render(<TimeMachine />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Instellingen' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /Slim uitdunnen/ }))
+    expect(timeMachineStore.getSnapshot().settings.thin).toBe(true)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Spaces' }))
+    expect(timeMachineStore.getSnapshot().settings.autoScopes).toEqual(['profiles', 'flows'])
+    fireEvent.change(screen.getByRole('combobox', { name: 'Eigen herstelpunten' }), { target: { value: '90' } })
+    expect(timeMachineStore.getSnapshot().settings.manualDays).toBe(90)
+    expect(screen.getByRole('status').textContent).toMatch(/Bewaard|opgeruimd/)
+    expect(screen.getByRole('meter', { name: 'Opslag van Time Machine' })).toBeTruthy()
+    expect(takeSnapshot('manual', 'Alles').snapshot?.scopes.spaces).toBeDefined()
   })
 })

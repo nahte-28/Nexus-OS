@@ -143,7 +143,8 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Time Machine: herstelpunten van je profielen en lesrooster, flows en Spaces, zodat je een wijziging kan terugdraaien.',
     tips: [
       'NEXUS maakt vanzelf een herstelpunt bij het openen, na een update en na een wijziging; een eigen herstelpunt maak je met een naam.',
-      'Herstellen toont eerst wat er verandert, en je kiest welke delen je terugzet.',
+      'Herstellen toont eerst wat er verandert, en je kiest welke delen je terugzet. Met Eén onderdeel terugzetten zet je bijvoorbeeld alleen één flow of één profiel terug.',
+      'In Instellingen kies je het bewaarbeleid: wat automatisch meegaat, hoe lang herstelpunten blijven en of ze slim uitgedund worden.',
       'Voor elk herstel komt er een herstelpunt van hoe het nu is, dus je kan het herstel zelf ook terugdraaien.',
       'Herstelpunten staan alleen op dit toestel. Notities, deadlines en bestanden horen er niet bij; daarvoor is de back-up in Instellingen.',
     ],
