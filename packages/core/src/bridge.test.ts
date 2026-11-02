@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyBridgeStatus,
+  BRIDGE_MAX_FILE,
+  checkFile,
+  fileSize,
+  transferTitle,
   bridgeType,
   canCancel,
   canRetry,
@@ -57,7 +61,7 @@ describe('Bridge', () => {
     expect(first.state.transfers[0]).toMatchObject({ direction: 'in', deviceId: 'pc', content: 'Lokaal B2.14', status: 'delivered' })
     expect(receiveTransfer(first.state, p, pc, 11, true).answer).toBeNull()
     expect(receiveTransfer(emptyBridge(), p, pc, 10, false).answer).toMatchObject({ status: 'declined', reason: 'off' })
-    const blocked = { ...emptyBridge(), settings: { blocked: ['pc'], expiryHours: 24 } }
+    const blocked = { ...emptyBridge(), settings: { blocked: ['pc'], expiryHours: 24, autoClipboard: false } }
     expect(receiveTransfer(blocked, p, pc, 10, true).answer).toMatchObject({ status: 'declined', reason: 'blocked' })
     expect(receiveTransfer(emptyBridge(), p, pc, 2 * hour, true).answer).toMatchObject({ status: 'declined', reason: 'expired' })
   })
@@ -80,6 +84,31 @@ describe('Bridge', () => {
     const s = upsertTransfer(emptyBridge(), newTransfer({ id: 'a', deviceId: 'd', deviceName: 'D', content: 'x', now: 1, expiryHours: 24 }), 1)
     const back = parseBridgeState(JSON.parse(JSON.stringify({ ...s, settings: { blocked: ['d', 3], expiryHours: 5 } })))
     expect(back.transfers[0].id).toBe('a')
-    expect(back.settings).toEqual({ blocked: ['d'], expiryHours: 24 })
+    expect(back.settings).toEqual({ blocked: ['d'], expiryHours: 24, autoClipboard: false })
+  })
+
+  it('Bridge 2.0: accepts a file only with a bridge path and a key, and a resume only with an app', () => {
+    const base = { v: 1, kind: 'bridge', transferId: 't', content: 'x', senderName: 'Pc', sentAt: 1, expiresAt: 2 }
+    const file = { name: 'a/b.pdf', size: 10, mediaType: 'application/pdf', path: '0b6f8e2a-1c3d-4e5f-8a9b-0c1d2e3f4a5b/bridge/t.bin', key: 'AAAA', iv: 'BBBB' }
+    expect(parseBridge({ ...base, type: 'file', file })).toMatchObject({ type: 'file', content: 'a_b.pdf', file: { name: 'a_b.pdf', key: 'AAAA' } })
+    expect(parseBridge({ ...base, type: 'file', file: { ...file, path: '../../etc/passwd' } })).toBeNull()
+    expect(parseBridge({ ...base, type: 'file', file: { ...file, path: 'someone/files/x.bin' } })).toBeNull()
+    expect(parseBridge({ ...base, type: 'file', file: { ...file, key: '' } })).toBeNull()
+    expect(parseBridge({ ...base, type: 'file', file: { ...file, size: BRIDGE_MAX_FILE + 1 } })).toBeNull()
+    expect(parseBridge({ ...base, type: 'resume', resume: { app: 'notes', id: 'n1', title: 'Notitie' } })).toMatchObject({ type: 'resume', content: 'Notitie', resume: { app: 'notes', id: 'n1' } })
+    expect(parseBridge({ ...base, type: 'resume', resume: { app: 'javascript:alert(1)', title: 'x' } })).toBeNull()
+    expect(parseBridge({ ...base, clip: true })).toMatchObject({ type: 'text', clip: true })
+    expect(checkFile({ name: 'x', size: 0 })).toMatch(/leeg/)
+    expect(fileSize(3_400_000)).toBe('3,4 MB')
+    expect(transferTitle({ type: 'text', clip: true, content: 'x' })).toBe('Klembord')
+  })
+
+  it('Bridge 2.0: forgets the key of a received file when it expires or is cancelled', () => {
+    const file = { name: 'a.pdf', size: 1, mediaType: 'application/pdf', path: '0b6f8e2a-1c3d-4e5f-8a9b-0c1d2e3f4a5b/bridge/f.bin', key: 'AAAA', iv: 'BBBB' }
+    const state = { ...emptyBridge(), transfers: [{ id: 'f', direction: 'in' as const, deviceId: 'pc', deviceName: 'Pc', type: 'file' as const, content: 'a.pdf', sentAt: 0, expiresAt: 10, status: 'delivered' as const, updatedAt: 0, file }] }
+    expect(expireTransfers(state, 11).transfers[0]).toMatchObject({ content: '', status: 'expired', file: { key: '', iv: '', name: 'a.pdf' } })
+    expect(applyBridgeStatus(state, { v: 1, kind: 'bridge_status', transferId: 'f', status: 'cancel', at: 5 }, 'pc', 5).transfers[0].file?.key).toBe('')
+    const stored = parseBridgeState(JSON.parse(JSON.stringify(expireTransfers(state, 11))))
+    expect(stored.transfers[0].file).toMatchObject({ name: 'a.pdf', key: '' })
   })
 })
