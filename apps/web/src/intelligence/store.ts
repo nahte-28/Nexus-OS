@@ -18,6 +18,7 @@ import {
   type RuleId,
   type Suggestion,
 } from '@nexus/core'
+import { approvalLog, type ApprovalLog } from '../ai/context'
 import { logEvent } from '../devtools/log'
 import { eventBus } from '../events/bus'
 import { flowsStore, flowStudioEnabled, setFlowStudioEnabled } from '../flows/store'
@@ -94,13 +95,17 @@ export function gatherFacts(now = Date.now()): IntelFacts {
 }
 
 /** Runs the rules and updates the proposals; a new one also lands in the Inbox. */
-export function refreshNow(now = Date.now(), facts: IntelFacts = gatherFacts(now), store = intelStore): Suggestion | null {
+export function refreshNow(now = Date.now(), facts: IntelFacts = gatherFacts(now), store = intelStore, log: Pick<ApprovalLog, 'add'> = approvalLog): Suggestion | null {
   let added: Suggestion | null = null
+  const before = new Map(store.getSnapshot().suggestions.map((x) => [x.id, x.status]))
   store.update((s) => {
     const r = refreshSuggestions(s, evaluateRules(facts), now, newId)
     added = r.added
     return r.state
   })
+  for (const x of store.getSnapshot().suggestions) {
+    if (x.status === 'expired' && before.has(x.id) && before.get(x.id) !== 'expired') logDecision(log, x, 'expired', now)
+  }
   const a = added as Suggestion | null
   if (a) {
     eventBus.publish({ id: `suggestion:${a.id}`, source: 'suggestion', type: 'suggestion.new', at: now, title: `Voorstel: ${a.title}`, body: a.reason, priority: 'low', link: { app: 'intelligence', id: a.id } })
@@ -112,7 +117,7 @@ export function refreshNow(now = Date.now(), facts: IntelFacts = gatherFacts(now
  * Approving: the proposal becomes an ordinary flow in Flow Studio (checked like one from the
  * builder). Flow Studio is switched on when it was off, because otherwise no flow runs.
  */
-export function approve(id: string, now = Date.now(), store = intelStore): string {
+export function approve(id: string, now = Date.now(), store = intelStore, log: Pick<ApprovalLog, 'add'> = approvalLog): string {
   const s = store.getSnapshot().suggestions.find((x) => x.id === id)
   if (!s || (s.status !== 'open' && s.status !== 'snoozed')) throw new Error('Dit voorstel is er niet meer.')
   const flow = draftToFlow(s.flow, newId(), now)
@@ -121,12 +126,25 @@ export function approve(id: string, now = Date.now(), store = intelStore): strin
   const saved = flowsStore.save(flow, now)
   if (!flowStudioEnabled()) setFlowStudioEnabled(true)
   store.update((st) => decide(st, id, 'accept', now, saved.id))
+  logDecision(log, s, 'accepted', now)
   logEvent('system', `Intelligence: voorstel "${s.title}" goedgekeurd als flow "${saved.name}"`)
   return saved.id
 }
 
-export const dismiss = (id: string, now = Date.now(), store = intelStore) => store.update((s) => decide(s, id, 'dismiss', now))
-export const snooze = (id: string, now = Date.now(), store = intelStore) => store.update((s) => decide(s, id, 'snooze', now))
+/** Writes a decision about a proposal in the approval history (Intelligence 2.0). */
+function logDecision(log: Pick<ApprovalLog, 'add'>, s: Suggestion, outcome: 'accepted' | 'dismissed' | 'snoozed' | 'expired', at: number) {
+  log.add({ id: `intel:${s.id}:${outcome}:${at}`, at, source: 'intelligence', outcome, label: s.title, detail: s.reason })
+}
+
+function decideAndLog(id: string, action: 'dismiss' | 'snooze', now: number, store: IntelStore, log: Pick<ApprovalLog, 'add'>) {
+  const s = store.getSnapshot().suggestions.find((x) => x.id === id)
+  const open = s && (s.status === 'open' || s.status === 'snoozed')
+  store.update((st) => decide(st, id, action, now))
+  if (s && open) logDecision(log, s, action === 'dismiss' ? 'dismissed' : 'snoozed', now)
+}
+
+export const dismiss = (id: string, now = Date.now(), store = intelStore, log: Pick<ApprovalLog, 'add'> = approvalLog) => decideAndLog(id, 'dismiss', now, store, log)
+export const snooze = (id: string, now = Date.now(), store = intelStore, log: Pick<ApprovalLog, 'add'> = approvalLog) => decideAndLog(id, 'snooze', now, store, log)
 export const adjust = (id: string, flow: FlowDraft, store = intelStore) => store.update((s) => adjustDraft(s, id, flow))
 export const switchRule = (rule: RuleId, on: boolean, store = intelStore) => store.update((s) => setRule(s, rule, on))
 export const forgetFeedback = (store = intelStore) => store.update(resetFeedback)

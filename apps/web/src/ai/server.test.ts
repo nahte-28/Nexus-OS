@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { allowedEmails, checkMessages, POST } from '../../../../api/ai'
+import { allowedEmails, checkMessages, pickTools, POST, TOOLS } from '../../../../api/ai'
 
 const request = (headers: Record<string, string> = {}, body = { messages: [{ role: 'user', content: 'Hoi' }] }) =>
   new Request('https://nexus.test/api/ai', { method: 'POST', headers, body: JSON.stringify(body) })
@@ -43,5 +43,11 @@ describe('NEXUS AI endpoint', () => {
     expect(checkMessages([{ role: 'system', content: 'x' }])).not.toBeNull()
     expect(checkMessages('nee')).not.toBeNull()
     expect(allowedEmails('a@b.be, ,C@D.be')).toEqual(new Set(['a@b.be', 'c@d.be']))
+  })
+
+  it('offers only the actions the app allows, and all of them for older apps', () => {
+    expect(pickTools(undefined)).toBe(TOOLS)
+    expect(pickTools(['search_notes', 'nope', 3]).map((t) => t.name)).toEqual(['search_notes'])
+    expect(pickTools([])).toEqual([])
   })
 })

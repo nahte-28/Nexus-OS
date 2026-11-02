@@ -69,7 +69,11 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   assistant: {
     summary: 'NEXUS AI: vraag iets, laat een samenvatting maken of laat een deadline of herinnering plannen.',
-    tips: ['Elke actie vraagt eerst je toestemming voor ze gebeurt.', 'NEXUS AI werkt alleen als je aangemeld bent met een toegelaten account.'],
+    tips: [
+      'Elke actie vraagt eerst je toestemming voor ze gebeurt.',
+      'NEXUS AI werkt alleen als je aangemeld bent met een toegelaten account.',
+      'Met Wat NEXUS AI mag zien zet je per module uit wat de AI mag lezen of veranderen, en zie je elke goedkeuring terug.',
+    ],
   },
   reminders: {
     summary: 'Herinneringen op een vast tijdstip, ook naar je gsm en horloge.',
@@ -157,6 +161,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Goedkeuren maakt een gewone flow in Flow Studio; met Aanpassen verander je eerst de dag, het uur of hoelang vooraf.',
       'Later brengt een voorstel morgen terug; Weigeren houdt die regel 14 dagen stil.',
       'Drie regels: School, Deadlines en Updates. Je zet ze aan of uit in Automatiseringen. Ze draaien op dit toestel, zonder AI.',
+      'Geschiedenis toont al je goedkeuringen, van voorstellen en van NEXUS AI, met filters.',
     ],
   },
   capture: {

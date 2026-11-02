@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { AiContextSettings, ApprovalHistory } from '../ai/AiPrivacy'
 import { assistant, bindTheme } from '../ai/runtime'
 import type { ChatItem, ToolRequest } from '../ai/session'
 import { useSync } from '../sync/SyncContext'
@@ -19,6 +20,7 @@ export function Assistant() {
   const { setTheme } = useTheme()
   const { state: sync } = useSync()
   const [draft, setDraft] = useState('')
+  const [privacy, setPrivacy] = useState(false)
   const end = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -41,12 +43,28 @@ export function Assistant() {
     <div className="flex h-full min-h-0 flex-col text-sm">
       <div className="flex items-center justify-between gap-2 border-b border-nx-border px-3 py-2">
         <h2 className="font-semibold">NEXUS AI</h2>
-        {state.items.length > 0 && (
-          <button type="button" className={button} disabled={state.busy} onClick={() => assistant.reset()}>
-            Nieuw gesprek
+        <div className="flex flex-wrap gap-2">
+          {!privacy && state.items.length > 0 && (
+            <button type="button" className={button} disabled={state.busy} onClick={() => assistant.reset()}>
+              Nieuw gesprek
+            </button>
+          )}
+          <button type="button" className={button} aria-expanded={privacy} onClick={() => setPrivacy(!privacy)}>
+            {privacy ? 'Terug naar het gesprek' : 'Wat NEXUS AI mag zien'}
           </button>
-        )}
+        </div>
       </div>
+
+      {privacy ? (
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-3">
+          <AiContextSettings />
+          <section className="space-y-2">
+            <h3 className="font-medium">Geschiedenis van goedkeuringen</h3>
+            <ApprovalHistory initial="ai" />
+          </section>
+        </div>
+      ) : (
+        <>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3" aria-live="polite">
         {state.items.length === 0 && (
@@ -104,6 +122,8 @@ export function Assistant() {
           Versturen
         </button>
       </form>
+        </>
+      )}
     </div>
   )
 }

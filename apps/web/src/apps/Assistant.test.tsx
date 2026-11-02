@@ -37,4 +37,20 @@ describe('Assistant', () => {
     await waitFor(() => expect(screen.getByText('Hallo')).toBeTruthy())
     expect(screen.getByRole('textbox', { name: 'Bericht aan NEXUS AI' })).toBeTruthy()
   })
+
+  it('shows what NEXUS AI may see and lets you switch a module off', () => {
+    render(
+      <ThemeProvider>
+        <Assistant />
+      </ThemeProvider>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Wat NEXUS AI mag zien' }))
+    const notes = screen.getByRole('checkbox', { name: /Notities/ }) as HTMLInputElement
+    expect(notes.checked).toBe(true)
+    fireEvent.click(notes)
+    expect(notes.checked).toBe(false)
+    expect(screen.getByText('Geschiedenis van goedkeuringen')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Terug naar het gesprek' }))
+    expect(screen.getByRole('textbox', { name: 'Bericht aan NEXUS AI' })).toBeTruthy()
+  })
 })
