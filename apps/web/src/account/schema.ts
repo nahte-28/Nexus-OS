@@ -39,3 +39,27 @@ export async function migrationSql(file: string): Promise<string> {
   if (!load) throw new Error(`${file} zit niet in deze versie van NEXUS.`)
   return load()
 }
+
+/** Every migration file in this version of NEXUS, oldest first. */
+export const MIGRATION_FILES: string[] = Object.keys(sources)
+  .map((path) => path.slice(path.lastIndexOf('/') + 1))
+  .sort()
+
+/**
+ * One script with every migration from the oldest missing step on, in order. Every migration can
+ * run again safely, and running the later ones again keeps their newer versions of functions.
+ */
+export async function allMissingSql(report: SchemaReport, sql: typeof migrationSql = migrationSql, files: string[] = MIGRATION_FILES): Promise<string> {
+  const steps = [...report.missing, ...report.unknown]
+  const labels = new Map(steps.map((s) => [s.file, s.label]))
+  const first = steps.map((s) => s.file).sort()[0]
+  const chosen = first ? files.filter((f) => f >= first) : []
+  const parts = await Promise.all(chosen.map(async (file) => `-- ===== ${file}${labels.has(file) ? ` (ontbrak: ${labels.get(file)})` : ''} =====\n${(await sql(file)).trim()}\n`))
+  return `-- NEXUS: alle SQL vanaf de oudste ontbrekende stap (${chosen.length} bestanden). Elke stap mag opnieuw lopen.\n-- Plak in Supabase › SQL Editor › New query en klik Run.\n\n${parts.join('\n')}`
+}
+
+/** The SQL Editor of this Supabase project, or null when the address is not a supabase.co project. */
+export function sqlEditorUrl(projectUrl: string | undefined): string | null {
+  const ref = projectUrl?.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/i)?.[1]
+  return ref ? `https://supabase.com/dashboard/project/${ref.toLowerCase()}/sql/new` : null
+}

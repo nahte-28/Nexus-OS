@@ -4,6 +4,7 @@ import {
   GROUP_NAME_MAX,
   TEAM_PROJECT_NAME_MAX,
   TEAM_TASK_TITLE_MAX,
+  type ClassTeam,
   type StudyGroup,
   type TeamInvite,
   type TeamMember,
@@ -17,12 +18,15 @@ import { lifeStore, type LifeStore } from '../life/store'
 import { groupError } from '../study/group'
 
 export const TEAMS_MIGRATION = 'supabase/migrations/20261030150000_teams.sql'
+export const CLASS_TEAMS_MIGRATION = 'supabase/migrations/20261102150000_class_teams.sql'
 
 interface GroupRow {
   id: string
   name: string
   invite_code: string
   created_by: string
+  klas?: string | null
+  class_open?: boolean
 }
 interface MemberRow {
   group_id: string
@@ -59,7 +63,13 @@ interface TaskRow {
   updated_at: string
 }
 
-const toGroup = (r: GroupRow): StudyGroup => ({ id: r.id, name: r.name, inviteCode: r.invite_code, createdBy: r.created_by })
+const toGroup = (r: GroupRow): StudyGroup => ({
+  id: r.id,
+  name: r.name,
+  inviteCode: r.invite_code,
+  createdBy: r.created_by,
+  ...(r.klas !== undefined ? { klas: r.klas, classOpen: r.class_open === true } : {}),
+})
 const toMember = (r: MemberRow): TeamMember => ({ groupId: r.group_id, userId: r.user_id, displayName: r.display_name, role: r.role })
 const toInvite = (r: InviteRow): TeamInvite => ({ id: r.id, groupId: r.group_id, code: r.code, role: r.role, expiresAt: Date.parse(r.expires_at), maxUses: r.max_uses, uses: r.uses, createdBy: r.created_by })
 const toProject = (r: ProjectRow): TeamProject => ({ id: r.id, groupId: r.group_id, name: r.name, createdBy: r.created_by })
@@ -92,9 +102,21 @@ export function teamError(error: { code?: string; message?: string } | null | un
   return groupError(error)
 }
 
+/** Like teamError, but a missing function or column asks for the class teams step. */
+export function classTeamError(error: { code?: string; message?: string } | null | undefined): string {
+  const text = `${error?.code ?? ''} ${error?.message ?? ''}`
+  if (/42703|42883|PGRST202|PGRST204|could not find the function|does not exist/i.test(text)) return `setup:${CLASS_TEAMS_MIGRATION}`
+  if (/class team closed/i.test(text)) return 'Dit team is niet (meer) open voor jouw klas.'
+  if (/invalid class/i.test(text)) return 'Een klas is 2 tot 8 letters en cijfers, bv. 1IT3.'
+  return teamError(error)
+}
+
 class TeamError extends Error {}
 const fail = (error: { code?: string; message?: string }): never => {
   throw new TeamError(teamError(error))
+}
+const failClass = (error: { code?: string; message?: string }): never => {
+  throw new TeamError(classTeamError(error))
 }
 
 /** Teams on Supabase: the study groups with roles, invitations and shared projects. */
@@ -111,9 +133,32 @@ export class Teams {
   }
 
   async teams(): Promise<StudyGroup[]> {
-    const { data, error } = await this.client.from('study_groups').select('id,name,invite_code,created_by').order('created_at')
+    const full = await this.client.from('study_groups').select('id,name,invite_code,created_by,klas,class_open').order('created_at')
+    // Before the class teams step there is no klas column; the teams still show.
+    const { data, error } = full.error && /42703|PGRST204|klas/i.test(`${full.error.code ?? ''} ${full.error.message}`)
+      ? await this.client.from('study_groups').select('id,name,invite_code,created_by').order('created_at')
+      : full
     if (error) fail(error)
     return (data as GroupRow[]).map(toGroup)
+  }
+
+  /** Owner and admins: the class of the team and whether classmates may join it. */
+  async setClass(groupId: string, klas: string, open: boolean): Promise<void> {
+    const { error } = await this.client.rpc('set_team_class', { p_group: groupId, p_klas: klas, p_open: open })
+    if (error) failClass(error)
+  }
+
+  /** The open teams of [klas] you are not in yet. */
+  async classTeams(klas: string): Promise<ClassTeam[]> {
+    const { data, error } = await this.client.rpc('find_class_teams', { p_klas: klas })
+    if (error) failClass(error)
+    return ((data ?? []) as ClassTeam[]).map((t) => ({ id: t.id, name: t.name, klas: t.klas, members: Number(t.members) }))
+  }
+
+  async joinClass(groupId: string, klas: string, displayName: string): Promise<StudyGroup> {
+    const { data, error } = await this.client.rpc('join_class_team', { p_group: groupId, p_klas: klas, p_display_name: displayName.trim().slice(0, DISPLAY_NAME_MAX) })
+    if (error) failClass(error)
+    return toGroup(data as GroupRow)
   }
 
   async create(name: string, displayName: string): Promise<StudyGroup> {

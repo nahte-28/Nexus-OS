@@ -17,12 +17,15 @@ create index if not exists notes_user_synced_at on public.notes (user_id, synced
 
 alter table public.notes enable row level security;
 
+drop policy if exists "Users read their own notes" on public.notes;
 create policy "Users read their own notes" on public.notes
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users create their own notes" on public.notes;
 create policy "Users create their own notes" on public.notes
   for insert to authenticated with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users update their own notes" on public.notes;
 create policy "Users update their own notes" on public.notes
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
@@ -49,4 +52,14 @@ create trigger notes_before_write
   for each row execute function public.notes_before_write();
 
 -- Lets open devices hear about changes instantly instead of waiting for the next poll.
-alter publication supabase_realtime add table public.notes;
+-- Live updates; running this file again is fine.
+do $$
+declare t text;
+begin
+  foreach t in array array['notes'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

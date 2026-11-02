@@ -13,12 +13,15 @@ create table if not exists public.user_settings (
 
 alter table public.user_settings enable row level security;
 
+drop policy if exists "Users read their own settings" on public.user_settings;
 create policy "Users read their own settings" on public.user_settings
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users create their own settings" on public.user_settings;
 create policy "Users create their own settings" on public.user_settings
   for insert to authenticated with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users update their own settings" on public.user_settings;
 create policy "Users update their own settings" on public.user_settings
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
@@ -43,4 +46,14 @@ create trigger user_settings_before_write
   for each row execute function public.user_settings_before_write();
 
 -- Lets open devices hear about a change instantly.
-alter publication supabase_realtime add table public.user_settings;
+-- Live updates; running this file again is fine.
+do $$
+declare t text;
+begin
+  foreach t in array array['user_settings'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

@@ -203,6 +203,8 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Een team is dezelfde groep als in Studie › Groep: wat leden delen en de groepsdeadlines staan daar.',
       'Eigenaar, beheerder, lid of kijker: bij Leden staat wat elke rol mag. Kijkers lezen alleen mee.',
+      'Bij Uitnodigingen kopieer of deel je een uitnodiging als link; wie ze opent, heeft de code al ingevuld.',
+      'Onder Teams van je klas vul je je klas in (bv. 1IT3) en sluit je aan bij teams die open staan voor je klas.',
       'Een uitnodiging heeft een rol, vervalt na een uur tot 30 dagen en kan maar een aantal keer werken.',
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],

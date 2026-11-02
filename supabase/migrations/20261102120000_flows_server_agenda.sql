@@ -257,22 +257,19 @@ revoke all on function nexus_private.run_flows(timestamptz, int) from public, an
 
 -- For Profielen and the Database-check: what the server sees in your synced profiles right now,
 -- so you can check that it follows your timetable. Only your own profiles.
+-- Plain SQL on purpose: the Supabase SQL Editor takes "select ... into" for a new table and
+-- rewrites the query, which broke pasting everything at once.
 create or replace function public.profiles_server_view() returns jsonb
-language plpgsql stable security definer set search_path = public, pg_catalog as $$
-declare
-  s jsonb;
-begin
-  select value into s from public.user_settings where user_id = auth.uid() and key = 'profiles';
-  if s is null then
-    return jsonb_build_object('profiles', false);
-  end if;
-  return jsonb_build_object(
-    'profiles', true,
-    'agenda', coalesce(s -> 'agenda' -> 'enabled' = 'true'::jsonb, false),
-    'lessonNow', nexus_private.agenda_open(s, now()),
-    'active', nexus_private.active_profile(s, now())
-  );
-end;
+language sql stable security definer set search_path = public, pg_catalog as $$
+  select coalesce(
+    (select jsonb_build_object(
+              'profiles', true,
+              'agenda', coalesce(us.value -> 'agenda' -> 'enabled' = 'true'::jsonb, false),
+              'lessonNow', nexus_private.agenda_open(us.value, now()),
+              'active', nexus_private.active_profile(us.value, now()))
+       from public.user_settings us
+      where us.user_id = auth.uid() and us.key = 'profiles'),
+    jsonb_build_object('profiles', false))
 $$;
 revoke all on function public.profiles_server_view() from public;
 grant execute on function public.profiles_server_view() to authenticated;

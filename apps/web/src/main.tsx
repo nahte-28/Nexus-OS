@@ -18,6 +18,7 @@ import { startGradesSync } from './grades/store'
 import { startHabitAlerts } from './habits/alerts'
 import { startWeekReview } from './review/week'
 import { openCaptureFromUrl } from './capture/open'
+import { openJoinFromUrl } from './teams/joinLink'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
 import { startExamsSync } from './study/exams'
@@ -130,6 +131,8 @@ startEventSources()
 
 // Snelle notitie from the phone's app shortcut or share sheet.
 openCaptureFromUrl()
+// An invitation link (/join/<code>) opens Teams with the code filled in.
+openJoinFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

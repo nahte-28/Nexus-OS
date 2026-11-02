@@ -79,6 +79,12 @@ export interface AgendaRule {
   bridgeMinutes: number
 }
 
+/** A class as NEXUS stores it, e.g. " 1it-3 " becomes 1IT3: 2 to 8 capitals and digits; null otherwise. */
+export function normalizeKlas(raw: string): string | null {
+  const k = raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase()
+  return /^[0-9A-Z]{2,8}$/.test(k) ? k : null
+}
+
 export const DEFAULT_AGENDA: AgendaRule = { enabled: false, profile: 'school', leadMinutes: 10, bridgeMinutes: 60 }
 export const AGENDA_LEAD_CHOICES = [0, 5, 10, 15, 30]
 export const AGENDA_BRIDGE_CHOICES = [0, 15, 30, 60, 120]
@@ -147,6 +153,8 @@ export interface ProfilesState {
   dagstart: DagstartSettings
   /** Profiles 2.0: the profile while lessons run. */
   agenda: AgendaRule
+  /** Your class, e.g. 1IT3; Teams shows the teams open to it. Empty when not set. */
+  klas: string
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -247,6 +255,7 @@ export function defaultProfilesState(): ProfilesState {
     googleSyncedAt: null,
     dagstart: parseDagstart(null),
     agenda: { ...DEFAULT_AGENDA },
+    klas: '',
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -649,6 +658,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     googleSyncedAt: typeof r.googleSyncedAt === 'number' ? r.googleSyncedAt : null,
     dagstart: parseDagstart(r.dagstart),
     agenda: parseAgendaRule(r.agenda),
+    klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }

@@ -14,19 +14,23 @@ create table if not exists public.push_subscriptions (
 
 alter table public.push_subscriptions enable row level security;
 
+drop policy if exists "Users read their own push subscriptions" on public.push_subscriptions;
 create policy "Users read their own push subscriptions" on public.push_subscriptions
   for select to authenticated using ((select auth.uid()) = user_id);
 
 -- Only for a device of the same user.
+drop policy if exists "Users add push for their own devices" on public.push_subscriptions;
 create policy "Users add push for their own devices" on public.push_subscriptions
   for insert to authenticated with check (
     (select auth.uid()) = user_id
     and exists (select 1 from public.devices d where d.id = device_id and d.user_id = (select auth.uid()) and d.revoked_at is null)
   );
 
+drop policy if exists "Users update push for their own devices" on public.push_subscriptions;
 create policy "Users update push for their own devices" on public.push_subscriptions
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Users remove their own push subscriptions" on public.push_subscriptions;
 create policy "Users remove their own push subscriptions" on public.push_subscriptions
   for delete to authenticated using ((select auth.uid()) = user_id);
 
@@ -50,9 +54,11 @@ create index if not exists push_schedule_due on public.push_schedule (at) where 
 
 alter table public.push_schedule enable row level security;
 
+drop policy if exists "Users read their own push schedule" on public.push_schedule;
 create policy "Users read their own push schedule" on public.push_schedule
   for select to authenticated using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users plan pushes between their own devices" on public.push_schedule;
 create policy "Users plan pushes between their own devices" on public.push_schedule
   for insert to authenticated with check (
     (select auth.uid()) = user_id
@@ -60,6 +66,7 @@ create policy "Users plan pushes between their own devices" on public.push_sched
     and exists (select 1 from public.devices d where d.id = recipient_device_id and d.user_id = (select auth.uid()))
   );
 
+drop policy if exists "Users remove their own planned pushes" on public.push_schedule;
 create policy "Users remove their own planned pushes" on public.push_schedule
   for delete to authenticated using ((select auth.uid()) = user_id);
 
@@ -87,6 +94,9 @@ create table if not exists nexus_private.push_config (
   url text not null check (url like 'https://%'),
   secret text not null check (length(secret) >= 32)
 );
+-- Nobody reaches this schema through the API; row level security on top, so the SQL Editor of
+-- Supabase does not ask about it. The functions below run as the owner, who is not limited by it.
+alter table nexus_private.push_config enable row level security;
 
 create extension if not exists pg_net;
 create extension if not exists pg_cron;

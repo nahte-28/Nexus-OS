@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { normalizeKlas, parseProfilesState } from './profiles'
 import {
   formatTeamCode,
+  joinCodeFromPath,
+  teamJoinLink,
   inviteState,
   inviteSummary,
   memberName,
@@ -80,5 +83,20 @@ describe('teams', () => {
     expect(memberName(members, 'me', 'me')).toBe('jij')
     expect(memberName(members, 'gone', 'me')).toBe('Oud lid')
     expect(memberName(members, null, 'me')).toBe('Niemand')
+  })
+  it('turns invitations into links and back', () => {
+    expect(teamJoinLink('https://nexus.app/', 'ABCDEFGH23')).toBe('https://nexus.app/join/ABCDE-FGH23')
+    expect(joinCodeFromPath('/join/abcde-fgh23')).toBe('ABCDE-FGH23')
+    expect(joinCodeFromPath('/join/ABCDEF23/')).toBe('ABCD-EF23')
+    expect(joinCodeFromPath('/join/nope')).toBeNull()
+    expect(joinCodeFromPath('/snel')).toBeNull()
+  })
+
+  it('stores a class in capitals', () => {
+    expect(normalizeKlas(' 1it-3 ')).toBe('1IT3')
+    expect(normalizeKlas('x')).toBeNull()
+    expect(normalizeKlas('veel te lange klas')).toBeNull()
+    expect(parseProfilesState({ klas: '1it3' }).klas).toBe('1IT3')
+    expect(parseProfilesState({ klas: '!' }).klas).toBe('')
   })
 })
