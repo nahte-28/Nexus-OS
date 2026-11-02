@@ -194,6 +194,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],
   },
+  controlcenter: {
+    summary: 'Control Center: de status van NEXUS, snelknoppen en je favoriete apps op één plek.',
+    tips: [
+      'Bovenaan staat wat het eerst je aandacht vraagt; alles in orde is groen.',
+      'Een statuskaart opent de app die erbij hoort, bv. Apparaten of de Agenda.',
+      'Snelknoppen pauzeren je flows, zetten stille uren aan, openen Snelle notitie of syncen meteen.',
+      'Favorieten kies je met de ster en zet je in volgorde met de pijltjes; ze gelden voor dit apparaat.',
+    ],
+  },
   knowledge: {
     summary: 'Kennis: je notities als doorzoekbare kennisbank, met collecties, tags, verwijzingen en versies.',
     tips: [
