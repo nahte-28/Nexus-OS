@@ -24,7 +24,7 @@ import { startExamsSync } from './study/exams'
 import { startGroupSync } from './study/group'
 import { startJournalSync } from './journal/store'
 import { startSpacesSync } from './spaces/store'
-import { startInboxSync } from './inbox/store'
+import { setInboxDeviceName, startInboxRulesSync, startInboxSync } from './inbox/store'
 import { startCapturesSync } from './capture/hub'
 import { startBriefingSync } from './briefing/store'
 import { startProjectHubSync } from './projecthub/store'
@@ -87,6 +87,12 @@ startGroupSync(supabase)
 startJournalSync(supabase)
 startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
+// Inbox 2.0: the rules per source on every device, and this device's name in the delivery status.
+startInboxRulesSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
+setInboxDeviceName(() => {
+  const state = defaultEngine.getSnapshot()
+  return state.status === 'ready' ? state.devices.find((d) => d.isThisDevice)?.name : undefined
+})
 // Snel vastleggen 2.0: Te sorteren, sjablonen and history of Snelle notitie.
 startCapturesSync(supabase, () => isFeatureOn('capture'), onFeaturesChange)
 // Dagbriefing: the history of sent Dagstarts.

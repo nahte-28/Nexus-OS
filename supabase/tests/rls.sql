@@ -35,6 +35,15 @@ insert into public.inbox_items (id, source, type, title, at, updated_at) values 
 -- An older change from another device does not overwrite a newer one.
 update public.inbox_items set read_at = 5, updated_at = 5 where id = 'flow:f1|e1';
 do $$ begin if (select read_at from public.inbox_items) is not null then raise exception 'Een oudere wijziging overschreef een nieuwere in inbox_items'; end if; end $$;
+-- Inbox 2.0: delivery adds up per device, also from an older copy, and keeps the first moments.
+update public.inbox_items set delivery = '{"Pc": {"seenAt": 20, "readAt": 30}}', updated_at = 10 where id = 'flow:f1|e1';
+update public.inbox_items set delivery = '{"Pc": {"seenAt": 25}, "Gsm": {"seenAt": 40}}', read_at = 5, updated_at = 5 where id = 'flow:f1|e1';
+do $$ begin
+  if (select delivery from public.inbox_items where id = 'flow:f1|e1') <> '{"Pc": {"seenAt": 20, "readAt": 30}, "Gsm": {"seenAt": 40}}'::jsonb
+    then raise exception 'Afleverstatus telt niet op: %', (select delivery from public.inbox_items where id = 'flow:f1|e1'); end if;
+  if (select read_at from public.inbox_items where id = 'flow:f1|e1') is not null then raise exception 'Afleverstatus bracht een oudere wijziging mee'; end if;
+end $$;
+insert into public.user_settings (key, value, revision) values ('inbox', '{}', 1);
 -- Items older than 60 days are cleaned up.
 insert into public.inbox_items (id, source, type, title, at, updated_at) values ('oud', 'system', 'x', 'Oud', 1, 1);
 do $$ begin if exists (select 1 from public.inbox_items where id = 'oud') then raise exception 'Oude inboxitems blijven staan'; end if; end $$;

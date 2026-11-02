@@ -315,11 +315,15 @@ Opslag: `user_settings` met key `spaces` (migratie `20261029170000_spaces.sql`).
 Zet **Universal Inbox** aan in **Instellingen > Nieuwe modules**. De app **Inbox** verzamelt wat NEXUS meldt, op al je apparaten:
 
 - **Bronnen:** flows, updates en deadlines (een dag vooraf en als ze verstreken zijn).
-- **Tabs:** Inbox, Prioriteit (alleen hoog), Gepland (gesnoozed) en Archief.
-- **Werken met items:** filter op bron, prioriteit, apparaat of ongelezen. Vink items aan om ze samen te markeren als gelezen, te archiveren of te snoozen. Een klik opent de app waar het over gaat.
-- **Wat erin komt:** onderaan kies je per bron of ze in de Inbox mag (geldt per toestel). Berichten van andere apps op je gsm komen er nooit in; die blijven end-to-end versleuteld in Meldingen.
+- **Tabs:** Inbox, Prioriteit (alleen hoog), Gepland (aan het sluimeren) en Archief.
+- **Werken met items:** filter op bron, prioriteit, apparaat of ongelezen. Vink items aan om ze samen te markeren als gelezen, te archiveren of te laten sluimeren. Een klik opent de app waar het over gaat.
+- **Sluimeren (Inbox 2.0):** over 1 uur, vanavond 19:00, morgen of maandag 08:00, of **Ander moment…** met een eigen datum en uur. Een item komt ongelezen en bovenaan terug, met "terug van sluimeren".
+- **Regels per bron (Inbox 2.0):** onderaan kies je per bron Aan, Stil (komt binnen als gelezen, telt niet als nieuw) of Uit, een vaste prioriteit, en of items na 1, 7 of 30 dagen vanzelf naar het archief gaan. De regels syncen mee (`user_settings` sleutel `inbox`). Berichten van andere apps op je gsm komen er nooit in; die blijven end-to-end versleuteld in Meldingen.
+- **Bezorgstatus (Inbox 2.0):** per item zie je op welke apparaten het binnenkwam en waar je het las. Een apparaat heet zoals in NEXUS Connect, anders Windows-app, Browser of Gsm (browser). Bezorging telt per apparaat op en verandert niets aan gelezen of gearchiveerd: de database voegt ze samen, ook van een oudere kopie.
 
 Opslag: tabel `inbox_items` (migratie `20261029190000_inbox.sql`), één rij per event-id, dus er komen geen dubbels. Per item wint de nieuwste wijziging: de database negeert een oudere update. Items ouder dan 60 dagen worden opgeruimd, en er blijven er hoogstens 1000. Logica: `packages/core/src/inbox.ts`, web: `apps/web/src/inbox/store.ts`. Apps openen elkaar via `shell/openApp.ts`.
+
+Inbox 2.0 heeft migratie `20261102090000_inbox_v2.sql` nodig (kolom `delivery`, functie `inbox_merge_delivery` en sleutel `inbox`). Zonder die stap synct de Inbox gewoon verder, alleen zonder bezorgstatus en zonder gedeelde regels; de app vraagt dan om de SQL.
 
 ## Time Machine (blueprint fase 3)
 

@@ -37,4 +37,6 @@ export function startEventSources(): void {
   toInbox()
   eventBus.subscribe(toInbox)
   onFeaturesChange(toInbox)
+  // Inbox 2.0: rules that archive a source after a while also work while nothing new comes in.
+  setInterval(() => isFeatureOn('inbox') && inboxStore.tidy(), 10 * 60_000)
 }
