@@ -2,6 +2,7 @@
  * NEXUS Profiles: a profile changes the theme, the visible apps, the dashboard widgets and how
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
+import { parseLayout, type WidgetLayout } from './dashboardLayout'
 import { CALENDAR_HOSTS, isCalendarEvent, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
@@ -21,6 +22,8 @@ export interface Profile {
   /** Apps shown in the sidebar, menus and app grid, in this order. Settings and Profiles always show. */
   apps: AppId[]
   widgets: WidgetId[]
+  /** Workspace Studio 2.0: width and height of each dashboard widget; missing means 1 by 1. */
+  layout?: WidgetLayout
   /** Only important NEXUS notifications pop up; the rest still lands in Meldingen. */
   quietNonEssential: boolean
   /** Phone apps whose notifications still pop up while quiet, e.g. "Smartschool". */
@@ -338,6 +341,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         ...merged,
         allowApps: Array.isArray(merged.allowApps) ? merged.allowApps.filter((a) => typeof a === 'string').slice(0, 50) : [],
         accent: ACCENT_IDS.includes(merged.accent as AccentId) ? merged.accent : null,
+        layout: parseLayout(merged.layout),
       }
     }
   }

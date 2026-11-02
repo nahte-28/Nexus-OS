@@ -13,6 +13,8 @@ import {
   type Profile,
   type ProfileId,
   type WidgetId,
+  WIDGET_IDS,
+  WIDGET_TITLES,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { syncCalendar, syncGoogle } from '../profiles/calendar'
@@ -41,15 +43,7 @@ const APP_CHOICES: Array<{ id: AppId; title: string }> = [
   { id: 'about', title: 'Over NEXUS' },
 ]
 
-const WIDGET_CHOICES: Array<{ id: WidgetId; title: string }> = [
-  { id: 'next_class', title: 'Volgende les' },
-  { id: 'deadlines', title: 'Deadlines en afspraken' },
-  { id: 'klashub', title: 'KlasHub' },
-  { id: 'ai_study', title: 'AI Study' },
-  { id: 'notes', title: 'Notities' },
-  { id: 'notifications', title: 'Meldingen' },
-  { id: 'devices', title: 'Apparaten' },
-]
+const WIDGET_CHOICES: Array<{ id: WidgetId; title: string }> = WIDGET_IDS.map((id) => ({ id, title: WIDGET_TITLES[id] }))
 
 type Tab = 'overview' | 'timetable' | 'apps' | 'schedule' | 'notifications' | 'devices' | 'appearance'
 const TABS: Array<{ id: Tab; label: string }> = [

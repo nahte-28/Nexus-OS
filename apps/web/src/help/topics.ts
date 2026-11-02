@@ -103,7 +103,11 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   profiles: {
     summary: 'Profielen (School, Persoonlijk, Gaming, Developer) bepalen welke apps en welk thema je ziet.',
-    tips: ['School Mode zet het profiel School vanzelf aan tijdens je lesuren.', 'Je profielen zijn op al je apparaten dezelfde.'],
+    tips: [
+      'School Mode zet het profiel School vanzelf aan tijdens je lesuren.',
+      'Je profielen zijn op al je apparaten dezelfde.',
+      'Met Indeling aanpassen op het dashboard sleep en vergroot je de widgets van je profiel, met een voorbeeld op de gsm.',
+    ],
   },
   settings: {
     summary: 'Thema, meldingen, back-up en de rondleiding.',
