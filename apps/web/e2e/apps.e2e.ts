@@ -31,6 +31,17 @@ for (const theme of ['focus', 'pulse'] as const) {
       if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
       else await view.getByRole('button', { name: 'Sluiten' }).click()
     }
+    // The Launcher (Ctrl+K): its tabs, results and a command form.
+    await page.keyboard.press('Control+k')
+    const launcher = page.getByRole('dialog', { name: 'Launcher' })
+    await expect(launcher).toBeVisible()
+    await check('Launcher')
+    await launcher.getByRole('combobox', { name: 'Zoek overal' }).fill('herinnering')
+    await check('Launcher zoeken')
+    await launcher.getByRole('option', { name: /Herinnering zetten/ }).click()
+    await expect(launcher.getByRole('form', { name: 'Herinnering zetten' })).toBeVisible()
+    await check('Launcher opdracht')
+    await launcher.getByRole('button', { name: 'Sluiten' }).click()
     expect(errors).toEqual([])
     expect(report).toEqual([])
   })
