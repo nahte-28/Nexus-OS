@@ -8,7 +8,7 @@ import type { FileMeta } from './files'
 import type { LifeItem } from './life'
 import type { Reminder } from './reminders'
 
-export type SearchKind = 'action' | 'app' | 'note' | 'file' | 'deadline' | 'appointment' | 'project' | 'reminder'
+export type SearchKind = 'action' | 'app' | 'note' | 'file' | 'deadline' | 'appointment' | 'project' | 'reminder' | 'setting' | 'command'
 
 export const SEARCH_KIND_LABELS: Record<SearchKind, string> = {
   action: 'Acties',
@@ -19,6 +19,8 @@ export const SEARCH_KIND_LABELS: Record<SearchKind, string> = {
   appointment: 'Afspraken',
   project: 'Projecten',
   reminder: 'Herinneringen',
+  setting: 'Instellingen',
+  command: 'Opdrachten',
 }
 
 export interface SearchResult {

@@ -4,6 +4,7 @@ import { defaultProfilesState } from '@nexus/core'
 import { App } from './App'
 import { preloadApps } from './apps/registry'
 import { flowsStore } from './flows/store'
+import { setFeature } from './features/store'
 import { profilesStore } from './profiles/store'
 import { getAll } from './state/db'
 import { ThemeProvider } from './theme/ThemeContext'
@@ -94,6 +95,35 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zoeken (Ctrl+K)' }))
     fireEvent.keyDown(screen.getByRole('combobox', { name: 'Zoek overal' }), { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Zoeken' })).toBeNull()
+  })
+
+  it('turns Ctrl+K into the Launcher: commands with a preview, recent and pinned', async () => {
+    mockViewport(false)
+    setFeature('launcher', true)
+    renderApp()
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
+    expect(screen.getByRole('dialog', { name: 'Launcher' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Recent' }).getAttribute('aria-selected')).toBe('true')
+    const box = screen.getByRole('combobox', { name: 'Zoek overal' })
+    fireEvent.change(box, { target: { value: 'back-up' } })
+    expect(within(screen.getByRole('group', { name: 'Instellingen' })).getAllByRole('option')[0].textContent).toContain('Back-up')
+    fireEvent.change(box, { target: { value: 'nieuwe notitie' } })
+    fireEvent.click(within(screen.getByRole('group', { name: 'Opdrachten' })).getByRole('option', { name: /Nieuwe notitie/ }))
+    const form = screen.getByRole('form', { name: 'Nieuwe notitie' })
+    fireEvent.change(within(form).getByLabelText(/Titel/), { target: { value: 'Labo 3' } })
+    expect(within(form).getByText('Maakt de notitie "Labo 3" en opent ze.')).toBeTruthy()
+    fireEvent.click(within(form).getByRole('button', { name: 'Uitvoeren' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Launcher' })).toBeNull())
+
+    fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
+    const recent = screen.getByRole('listbox', { name: 'Resultaten' })
+    expect(within(recent).getByRole('option', { name: /Nieuwe notitie/ })).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Zoek overal' }), { key: 'p', altKey: true })
+    fireEvent.click(screen.getByRole('tab', { name: 'Vastgezet' }))
+    expect(within(screen.getByRole('listbox', { name: 'Resultaten' })).getByRole('option', { name: /Nieuwe notitie/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Opdrachten' }))
+    expect(within(screen.getByRole('listbox', { name: 'Resultaten' })).getByRole('option', { name: /Herinnering zetten/ })).toBeTruthy()
+    setFeature('launcher', false)
   })
 
   it('explains that sync is local-only until an account is connected', () => {

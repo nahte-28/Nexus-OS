@@ -260,6 +260,10 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   help: {
     summary: 'Deze uitleg, per app.',
-    tips: ['Zoek bovenaan op een app of een woord.', 'Loopt er iets mis, gebruik dan "Probleem melden".'],
+    tips: [
+      'Zoek bovenaan op een app of een woord.',
+      'Loopt er iets mis, gebruik dan "Probleem melden".',
+      'Met de module Launcher (Instellingen › Nieuwe modules) toont Ctrl+K ook Recent, Vastgezet (Alt+P) en opdrachten zoals "Herinnering zetten", die vooraf zeggen wat ze doen.',
+    ],
   },
 }
