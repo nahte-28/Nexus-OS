@@ -26,9 +26,10 @@ import {
 } from '@nexus/core'
 import { gamingStore, gamingSyncProblem, useGaming } from '../gaming/store'
 import { currentSleepPlan } from '../gaming/timer'
+import { Friends } from '../gaming/Friends'
 import { readStorage, writeStorage } from '../state/storage'
 
-const TABS = ['Bibliotheek', 'Sessies', 'Builds', 'Statistieken', 'Instellingen'] as const
+const TABS = ['Bibliotheek', 'Sessies', 'Builds', 'Statistieken', 'Vrienden', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const TAB_KEY = 'nexus.gaming.tab'
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -89,7 +90,8 @@ export function Gaming() {
           </p>
         )}
         {tab === 'Bibliotheek' && <Library state={state} />}
-        {tab !== 'Bibliotheek' && tab !== 'Instellingen' && games.length === 0 ? (
+        {tab === 'Vrienden' && <Friends state={state} />}
+        {tab !== 'Bibliotheek' && tab !== 'Instellingen' && tab !== 'Vrienden' && games.length === 0 ? (
           <p className="text-nx-muted">Voeg eerst een game toe in de Bibliotheek.</p>
         ) : (
           <>
@@ -377,7 +379,7 @@ function SettingsTab({ state }: { state: GamingState }) {
         </button>
         {status && <span role="status" className="text-nx-muted">{status}</span>}
       </form>
-      <p className="text-nx-muted">Met een plan waarschuwt Gaming Companion vanaf 80 % en als je erover gaat. Statistieken komen alleen uit sessies die je zelf noteert of met de timer meet: NEXUS koppelt geen gameplatform en leest niets uit zonder officiële toegang. Vrienden vind je in Teams.</p>
+      <p className="text-nx-muted">Met een plan waarschuwt Gaming Companion vanaf 80 % en als je erover gaat. Statistieken komen alleen uit sessies die je zelf noteert of met de timer meet: NEXUS koppelt geen gameplatform en leest niets uit zonder officiële toegang. Gamevrienden staan in de tab Vrienden: de mensen uit je teams.</p>
       <SleepGuardSettings state={state} />
     </div>
   )

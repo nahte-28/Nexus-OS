@@ -33,6 +33,7 @@ import { startKnowledgeSync } from './knowledge/store'
 import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
 import { startSleepGuard } from './gaming/timer'
+import { startFriendsSharing } from './gaming/friends'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -108,6 +109,8 @@ startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
 startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
 // Slaapbewaker: on an evening before a lesson day, a notice to stop gaming in time.
 startSleepGuard(defaultEngine)
+// Gamevrienden: your "speelt nu" in the teams you chose, from the Gaming timer.
+startFriendsSharing(supabase, () => isFeatureOn('gaming'))
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.

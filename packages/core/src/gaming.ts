@@ -50,6 +50,8 @@ export interface GamingSettings {
   weeklyLimitMinutes: number | null
   /** Slaapbewaker: on an evening before a lesson day, a notice to stop in time. */
   sleepGuard: SleepGuard
+  /** Gamevrienden: the teams that see when you are gaming (their ids). */
+  shareTeams: string[]
   updatedAt: number
 }
 
@@ -104,7 +106,7 @@ export const MAX_GAME_SESSIONS = 2000
 export const MAX_BUILDS = 500
 const MAX_TEXT = 4000
 
-export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, sleepGuard: { ...DEFAULT_SLEEP_GUARD }, updatedAt: 0 }, active: null, activeAt: 0, revision: 0 })
+export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, sleepGuard: { ...DEFAULT_SLEEP_GUARD }, shareTeams: [], updatedAt: 0 }, active: null, activeAt: 0, revision: 0 })
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -145,12 +147,15 @@ export function parseGaming(raw: unknown): GamingState {
     games,
     sessions: sessions.sort((a, b) => b.at - a.at).slice(0, MAX_GAME_SESSIONS),
     builds,
-    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, sleepGuard: parseSleepGuard(s.sleepGuard), updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, sleepGuard: parseSleepGuard(s.sleepGuard), shareTeams: parseShareTeams(s.shareTeams), updatedAt: num(s.updatedAt) ?? 0 },
     active: parseActive(v.active),
     activeAt: num(v.activeAt) ?? 0,
     revision: num(v.revision) ?? 0,
   }
 }
+
+export const MAX_SHARE_TEAMS = 20
+const parseShareTeams = (raw: unknown) => (Array.isArray(raw) ? [...new Set(raw.filter((t): t is string => typeof t === 'string' && t.length <= 64))].slice(0, MAX_SHARE_TEAMS) : [])
 
 function parseActive(raw: unknown): ActiveSession | null {
   if (typeof raw !== 'object' || raw === null) return null
@@ -235,6 +240,12 @@ export function setWeeklyLimit(s: GamingState, minutes: number | null, now: numb
 
 export function setSleepGuard(s: GamingState, change: Partial<SleepGuard>, now: number): GamingState {
   return { ...s, settings: { ...s.settings, sleepGuard: parseSleepGuard({ ...s.settings.sleepGuard, ...change }), updatedAt: now } }
+}
+
+/** Gamevrienden: whether [groupId] sees when you are gaming. */
+export function setShareTeam(s: GamingState, groupId: string, on: boolean, now: number): GamingState {
+  const rest = s.settings.shareTeams.filter((t) => t !== groupId)
+  return { ...s, settings: { ...s.settings, shareTeams: (on ? [...rest, groupId] : rest).slice(0, MAX_SHARE_TEAMS), updatedAt: now } }
 }
 
 // Timer ---------------------------------------------------------------------------------------------
