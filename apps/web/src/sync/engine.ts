@@ -1,4 +1,5 @@
 import { logEvent } from '../devtools/log'
+import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { syncOnce, type Note, type RemoteStore } from '@nexus/core'
 import type { NotesStore } from '../state/notesStore'
@@ -52,11 +53,13 @@ export class SyncEngine {
 
   start(): () => void {
     const { client } = this
+    this.cleanups.push(registerChannel({ id: 'notes', label: 'Notities', pending: () => (this.session ? this.store.dirtyIds().length : 0), syncNow: () => this.syncNow() }))
     // Track how many local changes still wait for upload, also when sync is off.
     this.cleanups.push(
       this.store.subscribe(() => {
         const pending = this.store.dirtyIds().length
         this.set({ pending })
+        refreshChannels()
         if (pending > 0) this.schedule()
       }),
     )
@@ -136,14 +139,16 @@ export class SyncEngine {
     this.set({ status: 'syncing', error: null })
     try {
       await this.store.ready
-      await syncOnce(this.store, this.remote!)
+      const report = await syncOnce(this.store, this.remote!)
       this.set({ status: 'synced', lastSyncedAt: Date.now(), pending: this.store.dirtyIds().length })
+      reportSync('notes', 'Notities', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
     } catch (err) {
       const offline = !navigator.onLine
       this.set({
         status: offline ? 'offline' : 'error',
         error: offline ? null : errorText(err),
       })
+      reportSync('notes', 'Notities', 'failed', offline ? 'Geen internet; de wijzigingen wachten.' : errorText(err))
     }
   }
 

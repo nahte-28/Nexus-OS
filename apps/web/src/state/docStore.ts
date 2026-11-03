@@ -1,4 +1,5 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from './storage'
 
@@ -69,8 +70,15 @@ export function createDocRemote<T extends { revision: number }>(client: Supabase
   }
 }
 
+/** JSON that ignores the revision and the order of lists, to tell whether two copies hold the same. */
+function canonical(value: unknown): string {
+  const walk = (x: unknown): unknown =>
+    Array.isArray(x) ? x.map(walk).map((v) => JSON.stringify(v)).sort() : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([k]) => k !== 'revision').sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, walk(v)])) : x
+  return JSON.stringify(walk(value))
+}
+
 /** One round: merge with the account's copy and bring both sides up to date. Returns the revision both now hold. */
-export async function syncDoc<T extends { revision: number }>(store: DocStore<T>, remote: DocRemote<T>, merge: (a: T, b: T) => T): Promise<number> {
+export async function syncDoc<T extends { revision: number }>(store: DocStore<T>, remote: DocRemote<T>, merge: (a: T, b: T) => T, onMerge?: () => void): Promise<number> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const local = store.getSnapshot()
     const theirs = await remote.pull()
@@ -85,6 +93,8 @@ export async function syncDoc<T extends { revision: number }>(store: DocStore<T>
       return theirs.revision
     }
     const next = { ...merged, revision: Math.max(local.revision, theirs.revision) + 1 }
+    // Both sides brought something the other did not have: the Offline-centrum shows it as merged.
+    if (onMerge && canonical(merged) !== canonical(theirs) && canonical(merged) !== canonical(local)) onMerge()
     // Another device may have written in between; then merge again with its copy.
     if (await remote.push(next)) {
       if (store.getSnapshot() === local) store.adopt(next)
@@ -139,12 +149,16 @@ export function startDocSync<T extends { revision: number }>(
       return
     }
     running = true
+    const hadLocal = pushed !== -1 && store.getSnapshot().revision > pushed
+    let merged = false
     try {
-      pushed = await syncDoc(store, remote, options.merge)
+      pushed = await syncDoc(store, remote, options.merge, () => (merged = true))
       options.problem.set(null)
+      reportSync(options.key, options.label, merged ? 'merged' : 'ok', merged ? 'Wijzigingen van twee apparaten samengevoegd; per onderdeel wint de nieuwste.' : hadLocal ? 'Wijzigingen verstuurd' : '', Date.now(), !merged && !hadLocal)
     } catch (err) {
       const message = docSyncError(err, options.migration)
       options.problem.set(message)
+      reportSync(options.key, options.label, 'failed', message.startsWith('setup:') ? `De SQL-stap ${message.slice(6).split('/').pop()} ontbreekt.` : message)
       logEvent('sync', `${options.label} synchroniseren mislukt: ${message}`)
     } finally {
       running = false
@@ -160,7 +174,9 @@ export function startDocSync<T extends { revision: number }>(
   }
   void client.auth.getSession().then(({ data }) => setSession(data.session))
   const { data } = client.auth.onAuthStateChange((_event, session) => setSession(session))
+  const unregister = registerChannel({ id: options.key, label: options.label, pending: () => (signedIn && store.getSnapshot().revision > pushed ? 1 : 0), syncNow: run })
   const unsubscribe = store.subscribe(() => {
+    refreshChannels()
     if (store.getSnapshot().revision <= pushed) return
     clearTimeout(debounce)
     debounce = setTimeout(() => void run(), 1500)
@@ -174,6 +190,7 @@ export function startDocSync<T extends { revision: number }>(
     clearTimeout(debounce)
     clearInterval(poll)
     unsubscribe()
+    unregister()
     data.subscription.unsubscribe()
     document.removeEventListener('visibilitychange', onVisible)
     window.removeEventListener('online', now)

@@ -34,9 +34,13 @@ describe('Cijfers on this device and the account', () => {
     localStorage.clear()
     const phone = new DocStore('nexus.grades', parseGradesState)
     phone.update((s) => ({ ...s, courses: [course('b', 'Wiskunde', 2)] }))
-    await syncDoc(phone, remote, mergeGrades)
+    let merges = 0
+    await syncDoc(phone, remote, mergeGrades, () => merges++)
+    expect(merges).toBe(1)
     expect(phone.getSnapshot().courses.map((c) => c.name).sort()).toEqual(['Elektronica', 'Wiskunde'])
-    await syncDoc(pc, remote, mergeGrades)
+    // The pc only takes over the account's copy: nothing to merge.
+    await syncDoc(pc, remote, mergeGrades, () => merges++)
+    expect(merges).toBe(1)
     expect(pc.getSnapshot().courses.map((c) => c.name).sort()).toEqual(['Elektronica', 'Wiskunde'])
     expect(pc.getSnapshot().revision).toBe(row()?.revision)
 

@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { parseStorageName, storageName, type FileMeta } from '@nexus/core'
 import { logEvent } from '../devtools/log'
+import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import { filesStore, type FilesStore } from './store'
 
 export const FILES_BUCKET = 'nexus-files'
@@ -123,11 +124,13 @@ export function startFilesSync(client: SupabaseClient | null, store: FilesStore 
       try {
         const report = await syncFiles(store, current)
         filesSyncProblem.set(null)
+        reportSync('files', 'Bestanden', 'ok', `${report.uploaded} geüpload, ${report.removed} verwijderd, ${report.received} binnengehaald`, Date.now(), !report.uploaded && !report.removed && !report.received)
         if (report.uploaded || report.removed || report.received) {
           logEvent('sync', `Bestanden: ${report.uploaded} geüpload, ${report.removed} verwijderd, ${report.received} binnengehaald`)
         }
       } catch (err) {
         filesSyncProblem.set(problemText(err))
+        reportSync('files', 'Bestanden', 'failed', problemText(err) === 'setup' ? 'De opslag in je account is nog niet ingesteld (SQL-stap 20261027130000_files.sql).' : problemText(err))
         logEvent('sync', `Bestanden synchroniseren mislukt: ${problemText(err)}`, true)
       }
     })().finally(() => {
@@ -158,7 +161,9 @@ export function startFilesSync(client: SupabaseClient | null, store: FilesStore 
   void client.auth.getSession().then(({ data }) => setSession(data.session))
   const { data } = client.auth.onAuthStateChange((_event, s) => setSession(s))
 
+  const unregister = registerChannel({ id: 'files', label: 'Bestanden', pending: () => (remote ? store.all().filter((f) => (!f.remote && f.data) || f.deletedAt !== null).length : 0), syncNow: sync })
   const unsubscribe = store.subscribe(() => {
+    refreshChannels()
     clearTimeout(debounce)
     debounce = setTimeout(() => void sync(), DEBOUNCE_MS)
   })
@@ -172,6 +177,7 @@ export function startFilesSync(client: SupabaseClient | null, store: FilesStore 
     clearTimeout(debounce)
     clearInterval(poll)
     unsubscribe()
+    unregister()
     data.subscription.unsubscribe()
     document.removeEventListener('visibilitychange', onVisible)
     window.removeEventListener('online', now)

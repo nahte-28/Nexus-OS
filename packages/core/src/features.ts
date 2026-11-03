@@ -2,7 +2,7 @@
  * Feature flags (blueprint fase 0): every new module from the blueprint ships behind a switch,
  * so it can be rolled out gradually and switched off at once (kill switch). Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -31,6 +31,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'launcher', title: 'Launcher', description: 'Zoeken overal (Ctrl+K) wordt de Launcher: recent geopend, vastgezette items, instellingen en opdrachten die vooraf tonen wat ze doen.', defaultOn: false, available: true },
   { id: 'sentinel', title: 'Sentinel', description: 'Eén beveiligingscentrum: je apparaten, sessies en wat je toestond, met een activiteitenlog en een melding bij een nieuw gekoppeld apparaat.', defaultOn: false, available: true },
   { id: 'vault', title: 'Vault', description: 'Bestanden wordt een kluis: tags, verzamelingen, koppelingen naar projecten en notities, versies, een prullenbak van 30 dagen en deellinks die vanzelf vervallen.', defaultOn: false, available: true },
+  { id: 'offline', title: 'Offline-centrum', description: 'Wat per app offline werkt, wat nog wacht om verstuurd te worden, wat NEXUS samenvoegde en een geschiedenis van je synchronisaties, met een knop om meteen te syncen.', defaultOn: false, available: true },
   { id: 'controlCenter', title: 'Control Center', description: 'Eén paneel met de status van NEXUS (sync, apparaten, profiel, deadlines, flows, focus, updates), snelknoppen en je favoriete apps.', defaultOn: false, available: true },
 ]
 

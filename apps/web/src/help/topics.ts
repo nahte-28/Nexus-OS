@@ -213,6 +213,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],
   },
+  offline: {
+    summary: 'Offline-centrum: wat er zonder internet werkt, wat nog wacht om verstuurd te worden en hoe je synchronisaties liepen.',
+    tips: [
+      'Overzicht toont of je online bent, hoeveel wijzigingen wachten en welk onderdeel een probleem heeft. Nu syncen stuurt alles meteen.',
+      'Wachtrij: wat dit apparaat nog moet versturen. Het gaat vanzelf mee zodra je weer online bent.',
+      'Samengevoegd: wanneer twee apparaten hetzelfde wijzigden; per onderdeel wint de laatste wijziging.',
+      'Per app staat wat volledig, deels of alleen online werkt.',
+    ],
+  },
   sentinel: {
     summary: 'Sentinel: je account, apparaten, sessies en toestemmingen op één plek, met wat je eraan kunt doen.',
     tips: [
