@@ -2,7 +2,7 @@
  * Feature flags (blueprint fase 0): every new module from the blueprint ships behind a switch,
  * so it can be rolled out gradually and switched off at once (kill switch). Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -29,6 +29,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'gaming', title: 'Gaming Companion', description: 'Je games, een sessielogboek, builds en loadouts, statistieken en een plan per week. Alles zelf ingevoerd, zonder platformkoppeling.', defaultOn: false, available: true },
   { id: 'teams', title: 'Teams', description: 'Je studiegroepen met rollen (eigenaar, beheerder, lid, kijker), uitnodigingen die vervallen en projecten waar het team samen aan werkt.', defaultOn: false, available: true },
   { id: 'launcher', title: 'Launcher', description: 'Zoeken overal (Ctrl+K) wordt de Launcher: recent geopend, vastgezette items, instellingen en opdrachten die vooraf tonen wat ze doen.', defaultOn: false, available: true },
+  { id: 'sentinel', title: 'Sentinel', description: 'Eén beveiligingscentrum: je apparaten, sessies en wat je toestond, met een activiteitenlog en een melding bij een nieuw gekoppeld apparaat.', defaultOn: false, available: true },
   { id: 'controlCenter', title: 'Control Center', description: 'Eén paneel met de status van NEXUS (sync, apparaten, profiel, deadlines, flows, focus, updates), snelknoppen en je favoriete apps.', defaultOn: false, available: true },
 ]
 

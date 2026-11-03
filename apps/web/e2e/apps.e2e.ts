@@ -42,6 +42,13 @@ for (const theme of ['focus', 'pulse'] as const) {
     await expect(launcher.getByRole('form', { name: 'Herinnering zetten' })).toBeVisible()
     await check('Launcher opdracht')
     await launcher.getByRole('button', { name: 'Sluiten' }).click()
+    // Sentinel: every tab, not only the first.
+    await appButtons(page).getByText('Sentinel', { exact: true }).click()
+    const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
+    for (const tab of ['Apparaten', 'Sessies', 'Toestemmingen', 'Activiteit']) {
+      await sentinel.getByRole('tab', { name: tab }).click()
+      await check(`Sentinel ${tab}`)
+    }
     expect(errors).toEqual([])
     expect(report).toEqual([])
   })

@@ -188,17 +188,40 @@ export class SyncEngine {
     if (error) throw new Error(authErrorText(error.message))
   }
 
+  /** This device's session, without its tokens: when you last signed in and when it refreshes. */
+  sessionInfo(): { signedInAt: number | null; expiresAt: number | null; provider: string | null } | null {
+    const s = this.session
+    if (!s) return null
+    return {
+      signedInAt: s.user.last_sign_in_at ? Date.parse(s.user.last_sign_in_at) : null,
+      expiresAt: s.expires_at ? s.expires_at * 1000 : null,
+      provider: typeof s.user.app_metadata?.provider === 'string' ? s.user.app_metadata.provider : null,
+    }
+  }
+
+  /** Ends the sessions on every other device; this one stays signed in. */
+  async signOutOthers(): Promise<void> {
+    const { error } = await this.requireClient().auth.signOut({ scope: 'others' })
+    if (error) throw new Error(authErrorText(error.message))
+  }
+
   /** Runs `hook` during sign-out, while the session is still valid. */
   beforeSignOut(hook: () => Promise<void>): void {
     this.signOutHooks.push(hook)
   }
 
-  /** Signs out and removes this device's copy; the data stays safe in the account. */
-  async signOut(): Promise<void> {
+  /**
+   * Signs out and removes this device's copy; the data stays safe in the account. 'global' also
+   * ends the sessions on every other device (Sentinel › Sessies).
+   */
+  async signOut(scope: 'local' | 'global' = 'local'): Promise<void> {
     if (!this.client) return
     await this.syncNow()
     for (const hook of this.signOutHooks) await hook()
-    await this.client.auth.signOut()
+    if (scope === 'global') {
+      const { error } = await this.client.auth.signOut({ scope: 'global' })
+      if (error) throw new Error(authErrorText(error.message))
+    } else await this.client.auth.signOut()
     await this.store.reset()
     this.set({ lastSyncedAt: null })
   }

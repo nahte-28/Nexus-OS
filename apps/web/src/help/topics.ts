@@ -213,6 +213,16 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],
   },
+  sentinel: {
+    summary: 'Sentinel: je account, apparaten, sessies en toestemmingen op één plek, met wat je eraan kunt doen.',
+    tips: [
+      'Overzicht zet bovenaan wat je aandacht vraagt, zoals een apparaat dat al 30 dagen niet gezien is.',
+      'Bij Apparaten trek je een toestel in dat je kwijt bent; bij Sessies meld je alle andere apparaten af.',
+      'Toestemmingen toont wat NEXUS AI mag zien en zonder vragen mag doen, je widgets en welke teams je zien gamen.',
+      'Activiteit is een log op dit apparaat: aanmelden, nieuwe of ingetrokken apparaten en wat je hier aanpaste.',
+      'Wordt er een nieuw apparaat gekoppeld, dan krijg je dat in je Inbox. Sentinel is geen virusscanner.',
+    ],
+  },
   controlcenter: {
     summary: 'Control Center: de status van NEXUS, snelknoppen en je favoriete apps op één plek.',
     tips: [
