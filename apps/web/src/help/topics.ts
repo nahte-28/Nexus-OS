@@ -86,6 +86,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Koppelen gaat met een code die je op het andere toestel invult.',
       'Zonder gsm-app kan je in Chrome op je gsm webmeldingen aanzetten.',
+      'Een webmelding van een deadline heeft de knoppen Klaar en Later: Klaar vinkt de deadline af, Later toont de melding over een uur opnieuw.',
     ],
   },
   account: {

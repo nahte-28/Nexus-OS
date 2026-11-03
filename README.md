@@ -294,6 +294,12 @@ Met **Ctrl+K** (Cmd+K op een Mac), het vergrootglas in de taakbalk of rechtsbove
 
 **Marketplace** (module, aan te zetten in Instellingen › Nieuwe modules; Next Frontier C) is een catalogus van extra's die NEXUS zelf meebrengt: widgets, thema's, Flow-recepten en sjablonen voor Snel vastleggen (`MARKET_ITEMS` in `packages/core/src/marketplace.ts`). Er wordt niets van derden gedownload en er draait geen code van anderen. Een widget gaat door dezelfde review als je eigen widgets (een test controleert elke widget met `reviewProject`) en toont eerst zijn permissies; na **Toestaan en installeren** staat hij als project `market-<id>` in de Developer Hub en draait hij in dezelfde sandbox op je dashboard (ook met de Developer Hub uit). Een thema geldt voor het profiel dat nu aan staat. Een Flow-recept komt uit in Flow Studio, zet Flow Studio aan, maar de flow zelf staat nog uit. Wat je toevoegde staat op het apparaat (`nexus.marketplace`). Geen SQL.
 
+## Meldingsknoppen
+
+Een webmelding op je gsm (Chrome, en via Chrome ook op je horloge) heeft knoppen. Bij een deadline zijn dat **Klaar** en **Later**. Herinneringen, afspraken, gewoontes en abonnementen hebben alleen **Later**. Klaar vinkt de deadline af alsof je het op de pc deed; de andere meldingen voor die deadline vallen weg. Later toont dezelfde melding een uur later opnieuw, hoogstens vijf keer.
+
+Zo werkt het: de pc steekt een willekeurig token in de versleutelde melding (`pushActionsFor` en `newActionToken` in `packages/core/src/pushActions.ts`) en bewaart alleen de SHA-256 ervan in `push_schedule.token_hash`. De service worker (`public/push-sw.js`) toont de knoppen en stuurt bij een tik het token naar `/api/push-action`, die de databasefunctie `public.push_action` aanroept. Alleen de gsm die de melding kon openen, kent het token. Lukt het niet (bv. de SQL ontbreekt), dan opent NEXUS bij die deadline. SQL: `supabase/migrations/20261103150000_push_actions.sql` (test: `supabase/tests/push_actions.sql`). Zonder die stap komen de meldingen gewoon zonder knoppen.
+
 ## Integratie
 
 **Integratie** (module, aan te zetten in Instellingen › Nieuwe modules; Next Frontier, Integratieronde) laat de modules naar elkaar verwijzen. Er wordt niets nieuws opgeslagen: alles komt uit wat de modules al bewaren (`packages/core/src/integration.ts`).

@@ -28,6 +28,9 @@ export interface ConnectPayload {
   postedAt: number
   /** Ties a notification to a notice in the phone's safety net (see safetyNet.ts), so it shows once. */
   ref?: string
+  /** Web push only: the buttons to show (pushActions.ts) and the token they send back. */
+  actions?: Array<'done' | 'later'>
+  actionToken?: string
 }
 
 /** The phone's safety net: the notifications NEXUS will send it soon. Replaces the previous plan of the sender. */

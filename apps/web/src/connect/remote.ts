@@ -22,6 +22,8 @@ export interface PushSubscriptionKeys {
 export interface PlannedPush extends OutgoingMessage {
   ref: string
   at: number
+  /** SHA-256 of the token behind the notice's buttons (meldingsknoppen), when it has some. */
+  tokenHash?: string
 }
 
 /** The server side of NEXUS Connect. It only ever sees public keys and ciphertext. */
@@ -42,6 +44,11 @@ export interface ConnectRemote {
   /** Adds pushes; one that is already planned for that phone (same ref) is left as it is. */
   addPushes?(pushes: PlannedPush[]): Promise<void>
 }
+
+/** Whether the database keeps button tokens (null: not known yet). */
+let pushActionsReady: boolean | null = null
+/** False once the database turned out not to have the meldingsknoppen migration. */
+export const pushActionsAvailable = () => pushActionsReady !== false
 
 /** Planned pushes due within this margin are not replaced, so a notification that is about to go out still does. */
 const KEEP_DUE_MS = 2 * 60_000
@@ -163,13 +170,15 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
         .eq('recipient_device_id', recipientDeviceId)
         .is('sent_at', null)
         .gt('at', new Date(Date.now() + KEEP_DUE_MS).toISOString())
+        // A notice that comes again after Later (made by the database) stays.
+        .not('ref', 'like', '%~later%')
       check(error)
       await this.addPushes!(pushes)
     },
 
     async addPushes(pushes) {
       if (pushes.length === 0) return
-      const { error } = await client.from('push_schedule').upsert(
+      const rows = (withToken: boolean) =>
         pushes.map((p) => ({
           sender_device_id: p.senderDeviceId,
           recipient_device_id: p.recipientDeviceId,
@@ -178,9 +187,15 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
           ephemeral_key: p.ephemeralKey,
           iv: p.iv,
           ciphertext: p.ciphertext,
-        })),
-        { onConflict: 'recipient_device_id,ref', ignoreDuplicates: true },
-      )
+          ...(withToken && p.tokenHash ? { token_hash: p.tokenHash } : {}),
+        }))
+      const save = (withToken: boolean) => client.from('push_schedule').upsert(rows(withToken), { onConflict: 'recipient_device_id,ref', ignoreDuplicates: true })
+      let { error } = await save(pushActionsReady !== false)
+      // Before 20261103150000_push_actions.sql the column is missing: send the notices without buttons.
+      if (error && /token_hash/.test(error.message ?? '')) {
+        pushActionsReady = false
+        ;({ error } = await save(false))
+      } else if (!error && pushes.some((p) => p.tokenHash)) pushActionsReady = true
       check(error)
     },
 

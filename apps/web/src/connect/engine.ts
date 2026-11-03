@@ -1,7 +1,10 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import {
+  actionTokenHash,
   decryptWith,
   defaultDeviceName,
+  newActionToken,
+  pushActionsFor,
   encryptFor,
   exportPublicKey,
   fingerprint,
@@ -21,7 +24,7 @@ import {
 import { getAll, getValue, update } from '../state/db'
 import { isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
-import { ConnectSetupError, type ConnectRemote, type PlannedPush, type PushSubscriptionKeys } from './remote'
+import { ConnectSetupError, pushActionsAvailable, type ConnectRemote, type PlannedPush, type PushSubscriptionKeys } from './remote'
 import { logEvent } from '../devtools/log'
 import { profilesStore } from '../profiles/store'
 
@@ -410,6 +413,9 @@ export class ConnectEngine {
     const target = this.state.devices.find((d) => d.id === deviceId && !d.revokedAt)
     if (!target) throw new Error('Dit apparaat is niet meer actief.')
     const text = item.text?.trim().slice(0, MAX_PUSH_TEXT) || undefined
+    // Meldingsknoppen: Klaar and Later, with a token only this phone can read.
+    const actions = pushActionsAvailable() ? pushActionsFor(item.ref) : []
+    const token = actions.length ? newActionToken() : null
     const payload: ConnectPayload = {
       v: 1,
       app: 'nexus',
@@ -419,9 +425,10 @@ export class ConnectEngine {
       ...(text ? { text } : {}),
       postedAt: item.at,
       ref: item.ref,
+      ...(token ? { actions, actionToken: token } : {}),
     }
     const envelope = await encryptFor(target.publicKey, target.id, JSON.stringify(payload))
-    return { ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id, ref: item.ref, at: item.at }
+    return { ...envelope, senderDeviceId: identity.deviceId, recipientDeviceId: target.id, ref: item.ref, at: item.at, ...(token ? { tokenHash: await actionTokenHash(token) } : {}) }
   }
 
   /** What arrives for NEXUS Bridge goes to [handler] (bridge/store.ts), in one batch per fetch. */
