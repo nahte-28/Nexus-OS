@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type DragEvent } from 'react'
+import { useEffect, useState, useSyncExternalStore, type DragEvent } from 'react'
 import {
   addTask,
   blockedBy,
@@ -29,6 +29,8 @@ import {
   type ProjectStatus,
   type TaskPriority,
 } from '@nexus/core'
+import { Related } from '../integration/Related'
+import { onReveal, takeReveal } from '../search/reveal'
 import { lifeStore } from '../life/store'
 import { projectHubStore, projectHubSyncProblem, useProjectHub } from '../projecthub/store'
 import { readStorage, writeStorage } from '../state/storage'
@@ -67,7 +69,7 @@ export function ProjectHub() {
   const items = useLife()
   const problem = useSyncExternalStore(projectHubSyncProblem.subscribe, projectHubSyncProblem.getSnapshot)
   const projects = items.flatMap((i) => (i.kind === 'project' && !i.archived ? [i] : [])).sort((a, b) => a.name.localeCompare(b.name, 'nl'))
-  const [picked, setPicked] = useState<string | null>(() => readStorage(PROJECT_KEY))
+  const [picked, setPicked] = useState<string | null>(() => takeReveal('projecthub') ?? readStorage(PROJECT_KEY))
   const [tab, setTabState] = useState<Tab>(() => (TABS.includes(readStorage(TAB_KEY) as Tab) ? (readStorage(TAB_KEY) as Tab) : 'Overzicht'))
   const [name, setName] = useState('')
   const setTab = (t: Tab) => {
@@ -78,6 +80,15 @@ export function ProjectHub() {
     setPicked(id)
     writeStorage(PROJECT_KEY, id)
   }
+  // A deep link (Agenda, search) opens its project.
+  useEffect(
+    () =>
+      onReveal(() => {
+        const id = takeReveal('projecthub')
+        if (id) pick(id)
+      }),
+    [],
+  )
   const project = projects.find((p) => p.id === picked) ?? projects[0]
   const create = async () => {
     if (!name.trim()) return
@@ -177,6 +188,7 @@ function Overview({ projectId, name, items }: { projectId: string; name: string;
           ))}
         </select>
       </div>
+      <Related itemId={projectId} hide="projecthub" />
       <label className="block space-y-1">
         <span className="text-xs text-nx-muted">Beschrijving</span>
         <textarea

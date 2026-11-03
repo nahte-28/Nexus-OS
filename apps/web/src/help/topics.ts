@@ -12,6 +12,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   agenda: {
     summary: 'Je deadlines, projecten en afspraken op één plek, met een overzicht van wat eraan komt.',
     tips: [
+      'Met Integratie (Nieuwe modules) zie je onder een deadline of project wat erbij hoort, en opent een aangetikte melding meteen de juiste deadline.',
       'Overzicht toont wat vandaag en deze week op je wacht.',
       'Een deadline kan een melding sturen naar je gsm en horloge, ook als je pc uit staat.',
       'Een afspraak kan elke dag, week, maand of jaar terugkomen; één keer overslaan kan in Overzicht.',
@@ -50,6 +51,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   finance: {
     summary: 'Je inkomsten, uitgaven, budgetten, spaardoelen en abonnementen.',
     tips: [
+      'Met Integratie (Nieuwe modules) toont het tabblad Kalender je abonnementen en vaste bedragen per dag van de maand.',
       'Importeer een CSV van je bank om uitgaven niet met de hand te moeten typen.',
       'Vaste bedragen worden elke maand vanzelf geboekt.',
       'Delen houdt bij wat je met vrienden deelt en wie nog moet betalen.',
@@ -280,6 +282,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   devhub: {
     summary: 'Developer Hub: je eigen widgets bouwen, testen in een sandbox en na een review op je dashboard zetten.',
     tips: [
+      'Met Integratie (Nieuwe modules) toont Platform Health hoe NEXUS er op dit apparaat voor staat: sync, modules, opslag en gebeurtenissen.',
       'Begin met het voorbeeldproject in Projecten: een manifest (naam, versie, permissies) en de code van de widget.',
       'In Sandbox draait je code afgeschermd: zonder netwerk, opslag of toegang tot je account. Gegevens vraag je met nexus.call, en alleen met een toegestane permissie.',
       'Reviews kijkt je code na. Pas als alles klopt, publiceer je een versie; installeren vraagt eerst je toestemming voor de permissies.',

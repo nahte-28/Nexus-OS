@@ -108,7 +108,7 @@ export function refreshNow(now = Date.now(), facts: IntelFacts = gatherFacts(now
   }
   const a = added as Suggestion | null
   if (a) {
-    eventBus.publish({ id: `suggestion:${a.id}`, source: 'suggestion', type: 'suggestion.new', at: now, title: `Voorstel: ${a.title}`, body: a.reason, priority: 'low', link: { app: 'intelligence', id: a.id } })
+    eventBus.publish({ id: `suggestion:${a.id}`, source: 'suggestion', type: 'suggestion.new', at: now, title: `Voorstel: ${a.title}`, body: a.reason, priority: 'low', link: { app: 'intelligence', id: a.id }, correlationId: `suggestion:${a.rule}` })
   }
   return a
 }

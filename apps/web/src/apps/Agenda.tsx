@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
   agendaDay,
@@ -40,6 +40,8 @@ import { sendDagstartTest } from '../life/dagstart'
 import { dagstartExtra } from '../briefing/store'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
+import { Related } from '../integration/Related'
+import { onReveal, takeReveal } from '../search/reveal'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
 import { autoReview, makeReview, setAutoReview, weekInput } from '../review/week'
@@ -89,8 +91,36 @@ function ProjectDot({ project }: { project: Project | undefined }) {
 }
 
 /** NEXUS Life: lessons, deadlines and projects together, offline and on every device. */
+type Tab = (typeof TABS)[number]
+
+/** The item a deep link (a notification, the Inbox, search) asked to show; its row is highlighted. */
+const FocusContext = createContext<string | null>(null)
+const focusRing = (on: boolean) => (on ? ' ring-2 ring-nx-accent' : '')
+
+/** The tab that shows [id], or null when it is not an Agenda item. */
+function tabOf(id: string | null): Tab | null {
+  const item = id ? lifeStore.getSnapshot().find((i) => i.id === id && i.deletedAt === null) : undefined
+  if (!item) return null
+  return item.kind === 'deadline' ? 'Deadlines' : item.kind === 'appointment' ? 'Afspraken' : 'Projecten'
+}
+
 export function Agenda() {
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Overzicht')
+  const [focus, setFocus] = useState<string | null>(() => takeReveal('agenda'))
+  const [tab, setTab] = useState<Tab>(() => tabOf(focus) ?? 'Overzicht')
+  useEffect(
+    () =>
+      onReveal(() => {
+        const id = takeReveal('agenda')
+        const next = tabOf(id)
+        if (!id || !next) return
+        setFocus(id)
+        setTab(next)
+      }),
+    [],
+  )
+  useEffect(() => {
+    if (focus) document.getElementById(`agenda-${focus}`)?.scrollIntoView?.({ block: 'center' })
+  }, [focus, tab])
   const problem = useSyncExternalStore(lifeSyncProblem.subscribe, lifeSyncProblem.getSnapshot)
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
@@ -116,12 +146,14 @@ export function Agenda() {
             <code className="font-mono text-xs">20261027120000_life_appointments.sql</code> uit in de SQL Editor van Supabase.
           </p>
         )}
-        {tab === 'Overzicht' && <Overview onAdd={setTab} />}
-        {tab === 'Deadlines' && <Deadlines />}
-        {tab === 'Afspraken' && <Appointments />}
-        {tab === 'Projecten' && <Projects />}
-        {tab === 'Dagstart' && <Dagstart />}
-        {tab === 'Week' && <WeekReview />}
+        <FocusContext.Provider value={focus}>
+          {tab === 'Overzicht' && <Overview onAdd={setTab} />}
+          {tab === 'Deadlines' && <Deadlines />}
+          {tab === 'Afspraken' && <Appointments />}
+          {tab === 'Projecten' && <Projects />}
+          {tab === 'Dagstart' && <Dagstart />}
+          {tab === 'Week' && <WeekReview />}
+        </FocusContext.Provider>
       </div>
     </div>
   )
@@ -294,8 +326,9 @@ function Deadlines() {
 function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; project?: Project; onEdit: () => void }) {
   const done = d.doneAt !== null
   const late = !done && d.dueAt < Date.now()
+  const focused = useContext(FocusContext) === d.id
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+    <li id={`agenda-${d.id}`} className={`flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3${focusRing(focused)}`}>
       <input
         type="checkbox"
         checked={done}
@@ -311,6 +344,7 @@ function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; pro
           {d.remind.length > 0 && !done ? ` · ${TARGET_LABELS[d.target]}` : ''}
         </p>
         {d.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{d.notes}</p>}
+        <Related itemId={d.id} />
       </div>
       <button type="button" className={button} onClick={onEdit}>
         Bewerken
@@ -430,8 +464,9 @@ function AppointmentRow({ appointment: a, next, onEdit }: { appointment: Appoint
   const start = next?.startAt ?? a.startAt
   const end = next?.endAt ?? a.endAt
   const sameDay = new Date(start).toDateString() === new Date(end).toDateString()
+  const focused = useContext(FocusContext) === a.id
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+    <li id={`agenda-${a.id}`} className={`flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3${focusRing(focused)}`}>
       <div className="min-w-0 flex-1">
         <p className="font-medium">{a.title}</p>
         <p className="text-xs text-nx-muted">
@@ -454,6 +489,7 @@ function AppointmentRow({ appointment: a, next, onEdit }: { appointment: Appoint
           </p>
         )}
         {a.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{a.notes}</p>}
+        <Related itemId={a.id} />
       </div>
       {a.repeat && next && (
         <button type="button" className={button} onClick={() => void skipOnce(a, next.date)}>
@@ -736,8 +772,9 @@ function Projects() {
 function ProjectRow({ project: p, items }: { project: Project; items: LifeItem[] }) {
   const { done, total, next } = projectProgress(p, items)
   const pct = total === 0 ? 0 : Math.round((done / total) * 100)
+  const focused = useContext(FocusContext) === p.id
   return (
-    <li className="space-y-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3">
+    <li id={`agenda-${p.id}`} className={`space-y-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3${focusRing(focused)}`}>
       <div className="flex flex-wrap items-center gap-2">
         <ProjectDot project={p} />
         <span className="min-w-0 flex-1 font-medium">{p.name}</span>
@@ -749,6 +786,7 @@ function ProjectRow({ project: p, items }: { project: Project; items: LifeItem[]
         <div className="h-full bg-nx-accent" style={{ width: `${pct}%` }} />
       </div>
       <p className="text-xs text-nx-muted">{next ? `Volgende: ${next.title} · ${when(next.dueAt)}` : total > 0 ? 'Alles klaar.' : 'Nog geen deadlines.'}</p>
+      <Related itemId={p.id} />
       <div className="flex flex-wrap gap-2">
         <button type="button" className={button} onClick={() => void lifeStore.updateProject(p.id, { archived: !p.archived })}>
           {p.archived ? 'Terugzetten' : 'Archiveren'}

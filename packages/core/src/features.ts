@@ -2,7 +2,7 @@
  * Feature flags (blueprint fase 0): every new module from the blueprint ships behind a switch,
  * so it can be rolled out gradually and switched off at once (kill switch). Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace' | 'integration'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -33,6 +33,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'vault', title: 'Vault', description: 'Bestanden wordt een kluis: tags, verzamelingen, koppelingen naar projecten en notities, versies, een prullenbak van 30 dagen en deellinks die vanzelf vervallen.', defaultOn: false, available: true },
   { id: 'offline', title: 'Offline-centrum', description: 'Wat per app offline werkt, wat nog wacht om verstuurd te worden, wat NEXUS samenvoegde en een geschiedenis van je synchronisaties, met een knop om meteen te syncen.', defaultOn: false, available: true },
   { id: 'marketplace', title: 'Marketplace', description: 'Extra widgets, thema\'s, Flow-recepten en sjablonen, allemaal gemaakt door NEXUS zelf. Niets van derden; een widget toont eerst wat hij mag.', defaultOn: false, available: true },
+  { id: 'integration', title: 'Integratie', description: 'Alles hangt aan elkaar: vanuit een melding naar de deadline of het project, bij een deadline zie je wat erbij hoort, een betaalkalender in Financiën en een Platform Health-scherm voor ontwikkelaars.', defaultOn: false, available: true },
   { id: 'controlCenter', title: 'Control Center', description: 'Eén paneel met de status van NEXUS (sync, apparaten, profiel, deadlines, flows, focus, updates), snelknoppen en je favoriete apps.', defaultOn: false, available: true },
 ]
 

@@ -11,6 +11,8 @@ import {
   budgetStatus,
   CYCLE_LABELS,
   dateKey,
+  monthGrid,
+  paymentCalendar,
   dayLabel,
   DEFAULT_THRESHOLD,
   EXPENSE_CATEGORIES,
@@ -77,6 +79,7 @@ import {
   type TransactionDraft,
 } from '../finance/store'
 import { adviceNoteTitle, saveAdvice, streamFinanceAdvice } from '../finance/advice'
+import { useFeature } from '../features/store'
 import { onReveal, takeReveal } from '../search/reveal'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -87,7 +90,7 @@ const smallButton = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
 const card = 'rounded-lg border border-nx-border p-3'
 
-const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Delen', 'Inzichten', 'Instellingen'] as const
+const TABS = ['Overzicht', 'Transacties', 'Budgetten', 'Sparen', 'Abonnementen', 'Kalender', 'Delen', 'Inzichten', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const HIDDEN_KEY = 'nexus.finance.hidden'
 
@@ -125,12 +128,15 @@ export function Finance() {
   }
   const money = (value: number, sign = false) => (hidden ? '€ •••' : formatMoney(value, sign))
   const opens = (action: FinanceActionId) => (intent?.action === action ? intent.at : 0)
+  // The payment calendar comes with Integratie in Nieuwe modules.
+  const calendar = useFeature('integration')
+  const tabs = TABS.filter((t) => t !== 'Kalender' || calendar)
 
   return (
     <MoneyContext.Provider value={money}>
       <div className="flex h-full min-h-0 flex-col text-sm">
         <div role="tablist" aria-label="Financiën" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t}
               type="button"
@@ -154,6 +160,7 @@ export function Finance() {
           {tab === 'Budgetten' && <Budgets />}
           {tab === 'Sparen' && <Goals openAt={opens('new-goal')} />}
           {tab === 'Abonnementen' && <Subscriptions openAt={opens('new-subscription')} openRecurringAt={opens('new-recurring')} />}
+          {tab === 'Kalender' && calendar && <PaymentCalendarTab onTab={setTab} />}
           {tab === 'Delen' && <Shared openAt={opens('new-shared')} />}
           {tab === 'Inzichten' && <Insights />}
           {tab === 'Instellingen' && <Settings hidden={hidden} onHidden={toggleHidden} />}
@@ -1615,5 +1622,90 @@ function Shared({ openAt }: { openAt: number }) {
         </ul>
       </Section>
     </>
+  )
+}
+
+/** Integratie: subscriptions and fixed amounts of a month on a calendar, with what goes in and out. */
+function PaymentCalendarTab({ onTab }: { onTab: (t: Tab) => void }) {
+  const state = useFinance()
+  const money = useMoney()
+  const current = monthOf(Date.now())
+  const [month, setMonth] = useState(current)
+  const cal = paymentCalendar(state, month)
+  const today = dateKey(Date.now())
+  const byDay = new Map(cal.days.map((d) => [d.date, d]))
+  const dayTotal = (date: string) => byDay.get(date)?.items.reduce((n, i) => n + i.amount, 0) ?? 0
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <button type="button" className={smallButton} aria-label="Vorige maand" disabled={month <= current} onClick={() => setMonth(shiftMonth(month, -1))}>
+          ‹
+        </button>
+        <h2 className="min-w-0 flex-1 text-center text-lg font-semibold first-letter:uppercase">{monthLabel(month)}</h2>
+        <button type="button" className={smallButton} aria-label="Volgende maand" disabled={month >= shiftMonth(current, 12)} onClick={() => setMonth(shiftMonth(month, 1))}>
+          ›
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Tile label="Gaat eruit" value={money(cal.out)} note="abonnementen en vaste uitgaven" />
+        <Tile label="Komt binnen" value={money(cal.in)} note="vaste inkomsten" />
+      </div>
+      <table className="w-full table-fixed border-collapse text-center text-xs" aria-label={`Betaalkalender ${monthLabel(month)}`}>
+        <thead>
+          <tr>
+            {['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].map((d) => (
+              <th key={d} scope="col" className="py-1 font-normal text-nx-muted">
+                {d}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {monthGrid(month).map((week, i) => (
+            <tr key={i}>
+              {week.map((date, j) => {
+                const total = date ? dayTotal(date) : 0
+                return (
+                  <td key={date ?? `leeg-${j}`} className={`h-12 border border-nx-border align-top ${date === today ? 'bg-nx-surface-2 font-semibold' : ''}`}>
+                    {date && (
+                      <>
+                        <span className="block">{Number(date.slice(8))}</span>
+                        {byDay.has(date) && <span className={`block truncate tabular-nums ${total < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{money(total, true)}</span>}
+                      </>
+                    )}
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {cal.days.length === 0 ? (
+        <p className="text-nx-muted">
+          Niets gepland deze maand.{' '}
+          <button type="button" className="underline" onClick={() => onTab('Abonnementen')}>
+            Abonnement of vast bedrag toevoegen
+          </button>
+        </p>
+      ) : (
+        <ul className="space-y-1" aria-label="Betalingen deze maand">
+          {cal.days.map((d) => (
+            <li key={d.date} className={card}>
+              <p className="text-xs text-nx-muted first-letter:uppercase">{new Date(`${d.date}T12:00:00`).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+              <ul>
+                {d.items.map((i) => (
+                  <li key={`${i.kind}:${i.id}`} className="flex justify-between gap-2">
+                    <span className="min-w-0 truncate">
+                      {i.name} <span className="text-xs text-nx-muted">· {i.kind === 'subscription' ? 'abonnement' : 'vast bedrag'}</span>
+                    </span>
+                    <span className="shrink-0 tabular-nums">{money(i.amount, true)}</span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

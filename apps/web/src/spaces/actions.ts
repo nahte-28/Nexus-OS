@@ -26,7 +26,7 @@ export function switchToSpace(space: Space, dispatch: Dispatch<WindowAction>, no
   })
   setCurrentSpace(space.id)
   spacesStore.update((s) => markUsed(s, space, now))
-  eventBus.publish({ id: `space:${space.id}@${now}`, source: 'system', type: 'space.opened', at: now, title: `Space ${space.name} geopend`, priority: 'low', link: { app: 'spaces', id: space.id } })
+  eventBus.publish({ id: `space:${space.id}@${now}`, source: 'system', type: 'space.opened', at: now, title: `Space ${space.name} geopend`, priority: 'low', link: { app: 'spaces', id: space.id }, correlationId: `space:${space.id}` })
 }
 
 export function saveLayout(id: string, windows: SpaceWindow[], now = Date.now()): void {

@@ -113,12 +113,19 @@
     )
   })
 
+  // The tag is the notification's ref (deadline:<id>@…); NEXUS opens the record it is about.
   sw.addEventListener('notificationclick', function (event) {
     event.notification.close()
+    var ref = typeof event.notification.tag === 'string' ? event.notification.tag : ''
     event.waitUntil(
       sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {
-        for (var i = 0; i < windows.length; i++) if ('focus' in windows[i]) return windows[i].focus()
-        return sw.clients.openWindow('/')
+        for (var i = 0; i < windows.length; i++) {
+          if ('focus' in windows[i]) {
+            if (ref) windows[i].postMessage({ type: 'nexus-open', ref: ref })
+            return windows[i].focus()
+          }
+        }
+        return sw.clients.openWindow(ref ? '/?melding=' + encodeURIComponent(ref) : '/')
       }),
     )
   })

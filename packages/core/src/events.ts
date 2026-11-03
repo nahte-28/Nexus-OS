@@ -24,6 +24,11 @@ export interface NexusEvent {
   link?: { app: AppId; id?: string }
   /** Which device it happened on, when it matters. */
   deviceId?: string
+  /**
+   * Ties events about the same thing together (a deadline that is soon and later overdue, every
+   * run of one flow), e.g. 'deadline:<id>'. Shown as a chain in Platform Health.
+   */
+  correlationId?: string
 }
 
 export type NewEvent = Omit<NexusEvent, 'version' | 'priority'> & { priority?: EventPriority }
@@ -31,7 +36,7 @@ export type NewEvent = Omit<NexusEvent, 'version' | 'priority'> & { priority?: E
 const SOURCES: EventSource[] = ['flow', 'update', 'device', 'deadline', 'reminder', 'bridge', 'suggestion', 'system', 'study_group']
 const PRIORITIES: EventPriority[] = ['low', 'normal', 'high']
 
-export const EVENT_LIMITS = { id: 200, type: 80, title: 160, body: 1000 }
+export const EVENT_LIMITS = { id: 200, type: 80, title: 160, body: 1000, correlationId: 120 }
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
@@ -44,6 +49,7 @@ export function makeEvent(input: NewEvent): NexusEvent {
     type: clip(input.type, L.type),
     title: clip(input.title.trim() || input.type, L.title),
     ...(input.body ? { body: clip(input.body, L.body) } : {}),
+    ...(input.correlationId ? { correlationId: clip(input.correlationId, L.correlationId) } : {}),
     priority: input.priority ?? 'normal',
   }
 }
@@ -67,6 +73,7 @@ export function toEvent(value: unknown): NexusEvent | null {
     priority: PRIORITIES.includes(e.priority as EventPriority) ? (e.priority as EventPriority) : 'normal',
     link,
     deviceId: typeof e.deviceId === 'string' ? e.deviceId : undefined,
+    correlationId: typeof e.correlationId === 'string' ? e.correlationId : undefined,
   })
 }
 
