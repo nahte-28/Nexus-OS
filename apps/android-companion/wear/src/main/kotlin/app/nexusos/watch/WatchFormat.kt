@@ -31,4 +31,10 @@ object WatchFormat {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         return if (time.toLocalDate() == today) clock.format(time) else weekday.format(time).removeSuffix(".")
     }
+
+    /** "45 min" or "1 u 20 min" for how long something runs. */
+    fun duration(ms: Long): String {
+        val minutes = maxOf(0L, ms / 60_000)
+        return if (minutes < 60) "$minutes min" else "${minutes / 60} u ${minutes % 60} min"
+    }
 }

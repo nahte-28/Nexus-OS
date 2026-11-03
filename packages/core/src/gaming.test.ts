@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SLEEP_GUARD, gameTimerMinutes, setSleepGuard, sleepNotice, sleepPlan, startGameTimer, stopGameTimer, emptyGaming, gameTotals, gamingWeek, liveBuilds, liveSessions, logGameSession, mergeGaming, parseGaming, removeGame, saveBuild, saveGame, setWeeklyLimit, weeklyMinutes, weekStart, type GamingState } from './gaming'
+import { DEFAULT_SLEEP_GUARD, gameForWatch, gameTimerMinutes, plannedSleepNotices, setSleepGuard, sleepNotice, sleepPlan, startGameTimer, stopGameTimer, emptyGaming, gameTotals, gamingWeek, liveBuilds, liveSessions, logGameSession, mergeGaming, parseGaming, removeGame, saveBuild, saveGame, setWeeklyLimit, weeklyMinutes, weekStart, type GamingState } from './gaming'
 
 const ok = (r: GamingState | { error: string }) => {
   if ('error' in r) throw new Error(r.error)
@@ -96,5 +96,25 @@ describe('gaming timer and slaapbewaker', () => {
     const s = setSleepGuard(emptyGaming(), { sleepMinutes: 9 * 60, prepMinutes: 7 }, wed)
     expect(s.settings.sleepGuard).toMatchObject({ sleepMinutes: 540, prepMinutes: 60 })
     expect(parseGaming({ settings: { weeklyLimitMinutes: 600 } }).settings.sleepGuard).toEqual(DEFAULT_SLEEP_GUARD)
+  })
+
+  it('puts the notices of tonight in the safety net only while you are gaming', () => {
+    const plan = sleepPlan(DEFAULT_SLEEP_GUARD, [{ start: day(5, 8.5), subject: 'Wiskunde' }], day(4, 20))!
+    expect(plannedSleepNotices(plan, false, day(4, 20))).toEqual([])
+    const planned = plannedSleepNotices(plan, true, day(4, 20))
+    expect(planned.map((p) => [p.ref, p.at])).toEqual([[sleepNotice(plan, day(4, 23.2), day(4, 23.3))!.ref, day(4, 23.25)], ['sleep:' + new Date(day(5, 8.5)).toISOString().slice(0, 10) + ':stop', day(4, 23.5)]])
+    // After the warning only the stop is left; without a warning time only the stop.
+    expect(plannedSleepNotices(plan, true, day(4, 23.3)).length).toBe(1)
+    expect(plannedSleepNotices({ ...plan, warnAt: plan.stopAt }, true, day(4, 20)).length).toBe(1)
+    expect(plannedSleepNotices(null, true, day(4, 20))).toEqual([])
+  })
+
+  it('starts the watch timer for the last game played', () => {
+    expect(gameForWatch(emptyGaming())).toBeNull()
+    let s = ok(saveGame(emptyGaming(), { id: 'a', name: 'A', platform: 'pc', status: 'backlog', rating: null, notes: '' }, wed))
+    s = ok(saveGame(s, { id: 'b', name: 'B', platform: 'pc', status: 'playing', rating: null, notes: '' }, wed))
+    expect(gameForWatch(s)?.id).toBe('b')
+    s = ok(logGameSession(s, { id: 's1', gameId: 'a', at: wed, minutes: 30, note: '' }, wed))
+    expect(gameForWatch(s)?.id).toBe('a')
   })
 })

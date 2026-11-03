@@ -93,4 +93,17 @@ class ProtocolTest {
         assertEquals("expired", o.getString("reason"))
         assertFalse(JSONObject(Protocol.bridgeStatus("t1", "delivered", null, 9)).has("reason"))
     }
+
+    @Test
+    fun readsTheGamingTimerFromAPlan() {
+        val on = Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"gaming\":{\"game\":\"Zelda\",\"startedAt\":40}}")!!
+        assertEquals(PlanGamingField(true, PlanGaming("Zelda", 40), 50), on)
+        assertEquals(PlanGamingField(true, null, 60), Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":60,\"gaming\":null}"))
+        assertEquals(false, Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":60}")!!.known)
+        assertNull(Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"notification\",\"title\":\"Hoi\"}"))
+        val start = org.json.JSONObject(Protocol.gamingPayload(true, 7))
+        assertEquals("gaming", start.getString("action"))
+        assertEquals("start", start.getString("op"))
+        assertEquals("stop", org.json.JSONObject(Protocol.gamingPayload(false, 7)).getString("op"))
+    }
 }

@@ -4,6 +4,7 @@
  * An optional weekly limit warns when you play more than you planned. One document per account
  * (user_settings key 'gaming'). Pure logic.
  */
+import type { PlannedNotice } from './safetyNet'
 
 export type GameStatus = 'playing' | 'backlog' | 'finished' | 'dropped'
 export const GAME_STATUSES: GameStatus[] = ['playing', 'backlog', 'finished', 'dropped']
@@ -49,6 +50,8 @@ export interface GamingSettings {
   weeklyLimitMinutes: number | null
   /** Slaapbewaker: on an evening before a lesson day, a notice to stop in time. */
   sleepGuard: SleepGuard
+  /** Gamevrienden: the teams that see when you are gaming (their ids). */
+  shareTeams: string[]
   updatedAt: number
 }
 
@@ -103,7 +106,7 @@ export const MAX_GAME_SESSIONS = 2000
 export const MAX_BUILDS = 500
 const MAX_TEXT = 4000
 
-export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, sleepGuard: { ...DEFAULT_SLEEP_GUARD }, updatedAt: 0 }, active: null, activeAt: 0, revision: 0 })
+export const emptyGaming = (): GamingState => ({ games: [], sessions: [], builds: [], settings: { weeklyLimitMinutes: null, sleepGuard: { ...DEFAULT_SLEEP_GUARD }, shareTeams: [], updatedAt: 0 }, active: null, activeAt: 0, revision: 0 })
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
@@ -144,12 +147,15 @@ export function parseGaming(raw: unknown): GamingState {
     games,
     sessions: sessions.sort((a, b) => b.at - a.at).slice(0, MAX_GAME_SESSIONS),
     builds,
-    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, sleepGuard: parseSleepGuard(s.sleepGuard), updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { weeklyLimitMinutes: limit !== null && limit > 0 ? Math.round(limit) : null, sleepGuard: parseSleepGuard(s.sleepGuard), shareTeams: parseShareTeams(s.shareTeams), updatedAt: num(s.updatedAt) ?? 0 },
     active: parseActive(v.active),
     activeAt: num(v.activeAt) ?? 0,
     revision: num(v.revision) ?? 0,
   }
 }
+
+export const MAX_SHARE_TEAMS = 20
+const parseShareTeams = (raw: unknown) => (Array.isArray(raw) ? [...new Set(raw.filter((t): t is string => typeof t === 'string' && t.length <= 64))].slice(0, MAX_SHARE_TEAMS) : [])
 
 function parseActive(raw: unknown): ActiveSession | null {
   if (typeof raw !== 'object' || raw === null) return null
@@ -236,6 +242,12 @@ export function setSleepGuard(s: GamingState, change: Partial<SleepGuard>, now: 
   return { ...s, settings: { ...s.settings, sleepGuard: parseSleepGuard({ ...s.settings.sleepGuard, ...change }), updatedAt: now } }
 }
 
+/** Gamevrienden: whether [groupId] sees when you are gaming. */
+export function setShareTeam(s: GamingState, groupId: string, on: boolean, now: number): GamingState {
+  const rest = s.settings.shareTeams.filter((t) => t !== groupId)
+  return { ...s, settings: { ...s.settings, shareTeams: (on ? [...rest, groupId] : rest).slice(0, MAX_SHARE_TEAMS), updatedAt: now } }
+}
+
 // Timer ---------------------------------------------------------------------------------------------
 
 /** Starts the timer for a game; a timer that already runs is stopped and logged first. */
@@ -286,18 +298,46 @@ export function sleepPlan(guard: SleepGuard, lessons: Array<{ start: number; sub
   return { firstLesson: first, stopAt, warnAt: stopAt - guard.warnMinutes * 60_000 }
 }
 
-/** The notice due in (from, now], with a ref so it comes once. */
-export function sleepNotice(plan: SleepPlan | null, from: number, now: number): { kind: 'warn' | 'stop'; ref: string; title: string; text: string } | null {
-  if (!plan) return null
+type SleepKind = 'warn' | 'stop'
+
+/** The text of the warning or the stop notice, with the ref that keeps it to one per night. */
+function sleepText(plan: SleepPlan, kind: SleepKind): { kind: SleepKind; ref: string; title: string; text: string } {
   const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
   const day = new Date(plan.firstLesson.start).toISOString().slice(0, 10)
-  if (plan.stopAt > from && plan.stopAt <= now) {
-    return { kind: 'stop', ref: `sleep:${day}:stop`, title: 'Tijd om te stoppen', text: `Morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}. Slaapwel!` }
+  if (kind === 'stop') {
+    return { kind, ref: `sleep:${day}:stop`, title: 'Tijd om te stoppen', text: `Morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}. Slaapwel!` }
   }
-  if (plan.warnAt < plan.stopAt && plan.warnAt > from && plan.warnAt <= now) {
-    return { kind: 'warn', ref: `sleep:${day}:warn`, title: `Nog ${Math.round((plan.stopAt - plan.warnAt) / 60_000)} minuten gamen`, text: `Stop om ${clock(plan.stopAt)}: morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}.` }
-  }
+  return { kind, ref: `sleep:${day}:warn`, title: `Nog ${Math.round((plan.stopAt - plan.warnAt) / 60_000)} minuten gamen`, text: `Stop om ${clock(plan.stopAt)}: morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}.` }
+}
+
+/** The notice due in (from, now], with a ref so it comes once. */
+export function sleepNotice(plan: SleepPlan | null, from: number, now: number): { kind: SleepKind; ref: string; title: string; text: string } | null {
+  if (!plan) return null
+  if (plan.stopAt > from && plan.stopAt <= now) return sleepText(plan, 'stop')
+  if (plan.warnAt < plan.stopAt && plan.warnAt > from && plan.warnAt <= now) return sleepText(plan, 'warn')
   return null
+}
+
+/**
+ * Tonight's warning and stop notice for the phone and watch safety net, so they come when NEXUS is
+ * closed too (same refs as sleepNotice, so never twice). Only while you are gaming.
+ */
+export function plannedSleepNotices(plan: SleepPlan | null, gaming: boolean, now: number): PlannedNotice[] {
+  if (!plan || !gaming) return []
+  const kinds: Array<[SleepKind, number]> = [['warn', plan.warnAt], ['stop', plan.stopAt]]
+  return kinds
+    .filter(([kind, at]) => at > now && (kind === 'stop' || plan.warnAt < plan.stopAt))
+    .map(([kind, at]) => {
+      const { ref, title, text } = sleepText(plan, kind)
+      return { ref, at, title, text }
+    })
+}
+
+/** The game a timer started on the watch is for: the last one played, else the first one you are playing. */
+export function gameForWatch(s: GamingState): Game | null {
+  const live = s.games.filter((g) => g.deletedAt === null)
+  const last = liveSessions(s)[0]
+  return live.find((g) => g.id === last?.gameId) ?? live.find((g) => g.status === 'playing') ?? live[0] ?? null
 }
 
 // Stats ---------------------------------------------------------------------------------------------

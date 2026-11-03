@@ -43,6 +43,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261102090000_inbox_v2.sql', label: 'Inbox 2.0: regels en bezorgstatus syncen', needs: [{ fn: 'inbox_merge_delivery' }, { settingsKey: 'inbox' }] },
   { file: '20261102120000_flows_server_agenda.sql', label: 'Flows op de server volgen je lesrooster', needs: [{ fn: 'profiles_server_view' }] },
   { file: '20261102150000_class_teams.sql', label: 'Teams voor je klas', needs: [{ fn: 'find_class_teams' }] },
+  { file: '20261103090000_team_gaming.sql', label: 'Gamevrienden: wie speelt en samen spelen', needs: [{ table: 'team_playing' }, { table: 'team_game_plans' }, { table: 'team_game_rsvp' }] },
 ]
 
 /** What nexus_schema_status() returns. */

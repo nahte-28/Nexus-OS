@@ -22,6 +22,8 @@ import android.widget.TextView
 import app.nexusos.companion.Connect
 import app.nexusos.companion.ConnectCrypto
 import app.nexusos.companion.DeviceKey
+import app.nexusos.companion.GamingTimer
+import app.nexusos.companion.PlanGaming
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
 import app.nexusos.companion.Protocol
@@ -162,6 +164,9 @@ class WatchActivity : Activity() {
         focus(now)
 
         space(12)
+        gaming(now)
+
+        space(12)
         text(if (Inbox.connected) "Live verbonden met NEXUS." else "Haalt elk halfuur op wat NEXUS stuurde.", muted = true, size = 12f)
         if (!Notifier.enabled(this)) {
             text("Meldingen staan uit, dus het horloge kan je niet waarschuwen.")
@@ -208,6 +213,42 @@ class WatchActivity : Activity() {
                 render()
             }
         }
+    }
+
+    /**
+     * The Gaming timer: start or stop it here, NEXUS keeps the time and switches to Gaming. The
+     * Slaapbewaker's notices then come with the safety net, also when NEXUS is closed later.
+     */
+    private fun gaming(now: Long) {
+        heading("Gaming", 15f)
+        val state = GamingTimer.state(this)
+        if (state == null) {
+            text("Start de timer voor je laatste game. NEXUS zet Gaming aan en het horloge waarschuwt als je moet stoppen om genoeg te slapen.", muted = true, size = 12f)
+            button(if (gamingBusy) "Bezig…" else "Gaming starten", primary = true) { sendGaming(start = true) }
+        } else {
+            text("${state.game} sinds ${WatchFormat.at(state.startedAt, now)}", bold = true)
+            text(WatchFormat.duration(now - state.startedAt), muted = true, size = 12f)
+            button(if (gamingBusy) "Bezig…" else "Stoppen") { sendGaming(start = false) }
+        }
+    }
+
+    private var gamingBusy = false
+
+    private fun sendGaming(start: Boolean) {
+        if (gamingBusy) return
+        gamingBusy = true
+        val at = System.currentTimeMillis()
+        Connect.sendToNexus(this, Protocol.gamingPayload(start, at)) { error ->
+            gamingBusy = false
+            if (error == null) {
+                GamingTimer.setHere(this, if (start) PlanGaming("Gaming", at) else null, at)
+                status = if (start) "Gestart. NEXUS zet Gaming aan zodra het op je pc of gsm openstaat." else "Gestopt. NEXUS zet de sessie in je logboek."
+            } else {
+                status = error
+            }
+            render()
+        }
+        render()
     }
 
     // Small view helpers for the programmatic layout.

@@ -26,4 +26,11 @@ class WatchFormatTest {
         assertTrue(WatchFormat.short(at(5, 10), now, zone).startsWith("do"))
         assertTrue(WatchFormat.short(at(5, 10), now, zone).length <= 7)
     }
+
+    @Test
+    fun showsHowLongItRuns() {
+        assertEquals("45 min", WatchFormat.duration(45 * 60_000L))
+        assertEquals("1 u 20 min", WatchFormat.duration(80 * 60_000L))
+        assertEquals("0 min", WatchFormat.duration(-5))
+    }
 }

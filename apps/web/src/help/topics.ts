@@ -198,6 +198,8 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Met een plan in uren per week waarschuwt de app vanaf 80 % en als je erover gaat.',
       'Op het dashboard van Gaming start je de timer: het profiel Gaming staat aan tot je stopt, en de sessie komt vanzelf in je logboek.',
       'De Slaapbewaker (Instellingen) zegt op een avond voor een lesdag wanneer je moet stoppen, volgens je eerste les.',
+      'Op je horloge start en stop je de timer ook (Gaming, onder Focus); de stopmelding komt dan ook als NEXUS dicht is.',
+      'In Vrienden zie je wie uit je teams aan het gamen is en plan je samen een sessie; kies per team of het jou ziet gamen.',
     ],
   },
   teams: {
