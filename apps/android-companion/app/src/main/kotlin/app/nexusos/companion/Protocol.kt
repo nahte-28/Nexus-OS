@@ -17,6 +17,12 @@ data class IncomingNotification(
 /** A notification NEXUS plans to send; the phone shows it itself if NEXUS cannot. */
 data class PlannedNotice(val ref: String, val at: Long, val title: String, val text: String?)
 
+/** The Gaming timer as NEXUS sent it with the safety net (PlanPayload.gaming): null when it does not run. */
+data class PlanGaming(val game: String, val startedAt: Long)
+
+/** The "gaming" field of a plan: [known] is false when an older NEXUS sent no such field. */
+data class PlanGamingField(val known: Boolean, val gaming: PlanGaming?, val sentAt: Long)
+
 /** Text or a link sent with NEXUS Bridge; mirrors BridgePayload in packages/core/src/bridge.ts. */
 data class BridgeTransfer(
     val transferId: String,
@@ -114,6 +120,22 @@ object Protocol {
     /** A focus round finished on this device, for the focus log in NEXUS (ActionPayload "focus"). */
     fun focusPayload(minutes: Int, at: Long): String =
         JSONObject().put("v", 1).put("kind", "action").put("action", "focus").put("minutes", minutes).put("task", "").put("at", at).toString()
+
+    /** The Gaming timer started or stopped on this device (ActionPayload "gaming"). */
+    fun gamingPayload(start: Boolean, at: Long): String =
+        JSONObject().put("v", 1).put("kind", "action").put("action", "gaming").put("op", if (start) "start" else "stop").put("at", at).toString()
+
+    /** The Gaming timer in a "plan" payload, or null when [json] is no plan. */
+    fun parsePlanGaming(json: String): PlanGamingField? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val sentAt = o.optLong("sentAt", 0L)
+        if (!o.has("gaming")) return PlanGamingField(false, null, sentAt)
+        val g = o.optJSONObject("gaming") ?: return PlanGamingField(true, null, sentAt)
+        val startedAt = g.optLong("startedAt", 0L)
+        val game = g.optString("game").trim().take(80).ifEmpty { "Gaming" }
+        return PlanGamingField(true, if (startedAt > 0) PlanGaming(game, startedAt) else null, sentAt)
+    }
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.
 

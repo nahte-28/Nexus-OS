@@ -4,6 +4,7 @@
  * An optional weekly limit warns when you play more than you planned. One document per account
  * (user_settings key 'gaming'). Pure logic.
  */
+import type { PlannedNotice } from './safetyNet'
 
 export type GameStatus = 'playing' | 'backlog' | 'finished' | 'dropped'
 export const GAME_STATUSES: GameStatus[] = ['playing', 'backlog', 'finished', 'dropped']
@@ -286,18 +287,46 @@ export function sleepPlan(guard: SleepGuard, lessons: Array<{ start: number; sub
   return { firstLesson: first, stopAt, warnAt: stopAt - guard.warnMinutes * 60_000 }
 }
 
-/** The notice due in (from, now], with a ref so it comes once. */
-export function sleepNotice(plan: SleepPlan | null, from: number, now: number): { kind: 'warn' | 'stop'; ref: string; title: string; text: string } | null {
-  if (!plan) return null
+type SleepKind = 'warn' | 'stop'
+
+/** The text of the warning or the stop notice, with the ref that keeps it to one per night. */
+function sleepText(plan: SleepPlan, kind: SleepKind): { kind: SleepKind; ref: string; title: string; text: string } {
   const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
   const day = new Date(plan.firstLesson.start).toISOString().slice(0, 10)
-  if (plan.stopAt > from && plan.stopAt <= now) {
-    return { kind: 'stop', ref: `sleep:${day}:stop`, title: 'Tijd om te stoppen', text: `Morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}. Slaapwel!` }
+  if (kind === 'stop') {
+    return { kind, ref: `sleep:${day}:stop`, title: 'Tijd om te stoppen', text: `Morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}. Slaapwel!` }
   }
-  if (plan.warnAt < plan.stopAt && plan.warnAt > from && plan.warnAt <= now) {
-    return { kind: 'warn', ref: `sleep:${day}:warn`, title: `Nog ${Math.round((plan.stopAt - plan.warnAt) / 60_000)} minuten gamen`, text: `Stop om ${clock(plan.stopAt)}: morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}.` }
-  }
+  return { kind, ref: `sleep:${day}:warn`, title: `Nog ${Math.round((plan.stopAt - plan.warnAt) / 60_000)} minuten gamen`, text: `Stop om ${clock(plan.stopAt)}: morgen ${plan.firstLesson.subject} om ${clock(plan.firstLesson.start)}.` }
+}
+
+/** The notice due in (from, now], with a ref so it comes once. */
+export function sleepNotice(plan: SleepPlan | null, from: number, now: number): { kind: SleepKind; ref: string; title: string; text: string } | null {
+  if (!plan) return null
+  if (plan.stopAt > from && plan.stopAt <= now) return sleepText(plan, 'stop')
+  if (plan.warnAt < plan.stopAt && plan.warnAt > from && plan.warnAt <= now) return sleepText(plan, 'warn')
   return null
+}
+
+/**
+ * Tonight's warning and stop notice for the phone and watch safety net, so they come when NEXUS is
+ * closed too (same refs as sleepNotice, so never twice). Only while you are gaming.
+ */
+export function plannedSleepNotices(plan: SleepPlan | null, gaming: boolean, now: number): PlannedNotice[] {
+  if (!plan || !gaming) return []
+  const kinds: Array<[SleepKind, number]> = [['warn', plan.warnAt], ['stop', plan.stopAt]]
+  return kinds
+    .filter(([kind, at]) => at > now && (kind === 'stop' || plan.warnAt < plan.stopAt))
+    .map(([kind, at]) => {
+      const { ref, title, text } = sleepText(plan, kind)
+      return { ref, at, title, text }
+    })
+}
+
+/** The game a timer started on the watch is for: the last one played, else the first one you are playing. */
+export function gameForWatch(s: GamingState): Game | null {
+  const live = s.games.filter((g) => g.deletedAt === null)
+  const last = liveSessions(s)[0]
+  return live.find((g) => g.id === last?.gameId) ?? live.find((g) => g.status === 'playing') ?? live[0] ?? null
 }
 
 // Stats ---------------------------------------------------------------------------------------------

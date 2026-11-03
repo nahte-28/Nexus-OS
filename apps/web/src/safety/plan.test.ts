@@ -25,7 +25,16 @@ describe('safety net sending', () => {
     expect(await sendPlanIfChanged(c, plan, 60_000)).toBe(0)
     expect(await sendPlanIfChanged(c, [], 120_000)).toBe(1) // the reminder was deleted
     expect(await sendPlanIfChanged(c, [], 13 * 60 * 60_000)).toBe(1)
-    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [])
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null)
+  })
+
+  it('sends the plan again when the Gaming timer starts, so the watch shows it', async () => {
+    const c = connect()
+    expect(await sendPlanIfChanged(c, plan, 0)).toBe(1)
+    const gaming = { game: 'Minecraft', startedAt: 10 }
+    expect(await sendPlanIfChanged(c, plan, 1000, gaming)).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', plan, gaming)
+    expect(await sendPlanIfChanged(c, plan, 2000, gaming)).toBe(0)
   })
 
   it('sends nothing while there is nothing to plan or no phone', async () => {

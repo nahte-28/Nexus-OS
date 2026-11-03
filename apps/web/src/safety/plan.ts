@@ -1,4 +1,4 @@
-import { openDeadlines, plannedDagstart, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -7,6 +7,8 @@ import { flowsStore, flowStudioEnabled } from '../flows/store'
 import { dagstartInput, dagstartSettings } from '../life/dagstart'
 import { dagstartExtra } from '../briefing/store'
 import { habitsStore } from '../habits/store'
+import { gamingStore } from '../gaming/store'
+import { currentSleepPlan, gamingNow, planGaming } from '../gaming/timer'
 import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
@@ -31,7 +33,7 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...flowNotices])
 }
 
 interface Sent {
@@ -57,18 +59,19 @@ export async function sendPlanIfChanged(
   connect: Pick<ConnectEngine, 'getSnapshot' | 'sendPlan' | 'sendPushPlan'>,
   plan: PlannedNotice[],
   now = Date.now(),
+  gaming: PlanGaming | null = null,
 ): Promise<number> {
   const state = connect.getSnapshot()
   if (state.status !== 'ready') return 0
-  const key = JSON.stringify(plan)
+  const key = JSON.stringify(gaming ? { plan, gaming } : plan)
   let sent = 0
   for (const phone of phonesOf(state)) {
     const last = readSent(phone.id)
     // Nothing planned and nothing sent before: the phone has nothing to forget either.
-    if (!last && plan.length === 0) continue
+    if (!last && plan.length === 0 && !gaming) continue
     if (last && last.key === key && now - last.at < REFRESH_MS) continue
     try {
-      if (phone.platform === 'android') await connect.sendPlan(phone.id, plan)
+      if (phone.platform === 'android') await connect.sendPlan(phone.id, plan, gaming)
       else await connect.sendPushPlan(phone.id, plan)
       writeStorage(sentKey(phone.id), JSON.stringify({ key, at: now }))
       sent++
@@ -93,7 +96,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const check = () => {
     if (busy || stopped) return
     busy = true
-    void sendPlanIfChanged(connect, currentPlan()).finally(() => (busy = false))
+    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming()).finally(() => (busy = false))
   }
   const soon = () => {
     clearTimeout(debounce)
@@ -102,7 +105,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), financeStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

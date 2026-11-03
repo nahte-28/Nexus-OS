@@ -59,6 +59,8 @@ describe('connect payloads', () => {
 
   it('reads an action from the watch and what it ticks off', () => {
     expect(parseAction({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })).toEqual({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })
+    expect(parseAction({ v: 1, kind: 'action', action: 'gaming', op: 'start', at: 7 })).toEqual({ v: 1, kind: 'action', action: 'gaming', op: 'start', at: 7 })
+    expect(parseAction({ v: 1, kind: 'action', action: 'gaming', op: 'pause', at: 7 })).toBeNull()
     expect(parseAction({ v: 1, kind: 'action', action: 'delete', ref: 'x', at: 7 })).toBeNull()
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 25, at: 9 })).toEqual({ v: 1, kind: 'action', action: 'focus', minutes: 25, task: '', at: 9 })
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 900, at: 9 })).toBeNull()

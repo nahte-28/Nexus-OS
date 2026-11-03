@@ -141,6 +141,7 @@ object Connect {
                 val plan = Protocol.parsePlan(plaintext)
                 if (plan != null) {
                     Safety.replacePlan(app, message.senderDeviceId, plan)
+                    Protocol.parsePlanGaming(plaintext)?.let { GamingTimer.fromPlan(app, it) }
                     continue
                 }
                 val transfer = Protocol.parseBridge(plaintext)

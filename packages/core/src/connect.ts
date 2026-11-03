@@ -36,16 +36,25 @@ export interface PlanPayload {
   kind: 'plan'
   items: Array<{ ref: string; at: number; title: string; text?: string }>
   sentAt: number
+  /** The Gaming timer, so the watch shows whether it runs; absent from older NEXUS versions. */
+  gaming?: PlanGaming | null
+}
+
+export interface PlanGaming {
+  game: string
+  startedAt: number
 }
 
 /**
  * Something done on another device. "done": a deadline or habit ticked off on the watch; the [ref] is
  * the one of the notice it came from (deadline:<id>@... or habit:<id>@<date>). "focus": a focus round
- * finished on the watch, for the focus log of Studie and Inzichten.
+ * finished on the watch, for the focus log of Studie and Inzichten. "gaming": the Gaming timer started or
+ * stopped on the watch.
  */
 export type ActionPayload =
   | { v: 1; kind: 'action'; action: 'done'; ref: string; at: number }
   | { v: 1; kind: 'action'; action: 'focus'; minutes: number; task: string; at: number }
+  | { v: 1; kind: 'action'; action: 'gaming'; op: 'start' | 'stop'; at: number }
 
 export type ActionTarget = { kind: 'deadline'; id: string } | { kind: 'habit'; id: string; date: string }
 
@@ -59,6 +68,9 @@ export function parseAction(value: unknown): ActionPayload | null {
   }
   if (p.action === 'focus' && typeof p.minutes === 'number' && Number.isInteger(p.minutes) && p.minutes >= 1 && p.minutes <= 180) {
     return { v: 1, kind: 'action', action: 'focus', minutes: p.minutes, task: str(p.task, 160) ?? '', at: p.at }
+  }
+  if (p.action === 'gaming' && (p.op === 'start' || p.op === 'stop')) {
+    return { v: 1, kind: 'action', action: 'gaming', op: p.op, at: p.at }
   }
   return null
 }
