@@ -277,6 +277,14 @@ export const OfflineIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const StoreIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M4 9h16l-1-5H5z" />
+    <path d="M5 9v11h14V9" />
+    <path d="M10 20v-6h4v6" />
+  </svg>
+)
+
 export const ShieldIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />
