@@ -8,6 +8,7 @@ import {
   previewCommand,
   SEARCH_KIND_LABELS,
   searchAll,
+  vaultView,
   type AppId,
   type CommandValues,
   type LauncherCommand,
@@ -20,6 +21,7 @@ import { runCommand } from '../launcher/commands'
 import { launcherStore, useLauncher } from '../launcher/store'
 import { SearchIcon } from '../apps/icons'
 import { filesStore } from '../files/store'
+import { useVault } from '../vault/store'
 import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
@@ -79,7 +81,11 @@ export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onO
   const listRef = useRef<HTMLUListElement>(null)
   const apps = useVisibleApps()
   const { notes } = useNotes()
-  const files = useSyncExternalStore(filesStore.subscribe, filesStore.getSnapshot)
+  const allFiles = useSyncExternalStore(filesStore.subscribe, filesStore.getSnapshot)
+  // With Vault: one result per file (its newest version), nothing from the trash.
+  const vaultOn = useFeature('vault')
+  const vault = useVault()
+  const files = useMemo(() => (vaultOn ? vaultView(vault, allFiles).map((e) => e.file) : allFiles), [vaultOn, vault, allFiles])
   const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
   const saved = useLauncher()

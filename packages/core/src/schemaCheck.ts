@@ -44,6 +44,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261102120000_flows_server_agenda.sql', label: 'Flows op de server volgen je lesrooster', needs: [{ fn: 'profiles_server_view' }] },
   { file: '20261102150000_class_teams.sql', label: 'Teams voor je klas', needs: [{ fn: 'find_class_teams' }] },
   { file: '20261103090000_team_gaming.sql', label: 'Gamevrienden: wie speelt en samen spelen', needs: [{ table: 'team_playing' }, { table: 'team_game_plans' }, { table: 'team_game_rsvp' }] },
+  { file: '20261103120000_vault.sql', label: 'Vault: tags, verzamelingen en prullenbak syncen', needs: [{ settingsKey: 'vault' }] },
 ]
 
 /** What nexus_schema_status() returns. */

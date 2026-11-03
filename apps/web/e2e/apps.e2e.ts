@@ -42,6 +42,15 @@ for (const theme of ['focus', 'pulse'] as const) {
     await expect(launcher.getByRole('form', { name: 'Herinnering zetten' })).toBeVisible()
     await check('Launcher opdracht')
     await launcher.getByRole('button', { name: 'Sluiten' }).click()
+    // Vault: the tabs Bestanden gets with the module on.
+    await appButtons(page).getByText('Bestanden', { exact: true }).click()
+    const files = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Bestanden' })
+    for (const tab of ['Verzamelingen', 'Prullenbak', 'Deellinks']) {
+      await files.getByRole('tab', { name: tab }).click()
+      await check(`Bestanden ${tab}`)
+    }
+    if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
+    else await files.getByRole('button', { name: 'Sluiten' }).click()
     // Sentinel: every tab, not only the first.
     await appButtons(page).getByText('Sentinel', { exact: true }).click()
     const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
