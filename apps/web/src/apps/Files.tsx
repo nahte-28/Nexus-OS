@@ -5,6 +5,8 @@ import { addFolder, allowRead, canOpenFolders, forgetFolder, listFolder, savedFo
 import { filesStore } from '../files/store'
 import { saveStudyNote, studyFile, studyPayload } from '../files/study'
 import { filesSyncProblem } from '../files/sync'
+import { VAULT_TABS, VaultCollections, VaultFiles, VaultShares, VaultTrash } from '../files/Vault'
+import { useFeature } from '../features/store'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -33,7 +35,10 @@ function download(name: string, blob: Blob) {
 
 /** Bestanden: your own files in NEXUS, folders on this pc, and NEXUS AI to study from them. */
 export function Files() {
-  const [tab, setTab] = useState<(typeof TABS)[number]>('Mijn bestanden')
+  const vault = useFeature('vault')
+  const tabs: readonly string[] = vault ? VAULT_TABS : TABS
+  const [chosen, setTab] = useState<string>('Mijn bestanden')
+  const tab = tabs.includes(chosen) ? chosen : 'Mijn bestanden'
   const [viewing, setViewing] = useState<Opened | null>(null)
   const [studying, setStudying] = useState<Opened | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -43,20 +48,27 @@ export function Files() {
     task().catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
   }
   const actions = { view: (o: Opened) => setViewing(o), study: (o: Opened) => setStudying(o), run }
+  const openFile = (file: { id: string; name: string }, how: 'view' | 'study' | 'download') =>
+    run(async () => {
+      const o = { name: file.name, blob: await filesStore.blob(file.id) }
+      if (how === 'view') setViewing(o)
+      else if (how === 'study') setStudying(o)
+      else download(o.name, o.blob)
+    })
 
   if (viewing) return <Viewer opened={viewing} onClose={() => setViewing(null)} onStudy={() => (setStudying(viewing), setViewing(null))} />
   if (studying) return <Study opened={studying} onClose={() => setStudying(null)} />
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" className="flex gap-1 border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => (
+      <div role="tablist" aria-label="Bestanden" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
+        {tabs.map((t) => (
           <button
             key={t}
             type="button"
             role="tab"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
+            className={`shrink-0 rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
           >
             {t}
           </button>
@@ -74,7 +86,19 @@ export function Files() {
             {error}
           </p>
         )}
-        {tab === 'Mijn bestanden' ? <MyFiles {...actions} /> : <ThisPc {...actions} />}
+        {tab === 'Op deze pc' ? (
+          <ThisPc {...actions} />
+        ) : !vault ? (
+          <MyFiles {...actions} />
+        ) : tab === 'Verzamelingen' ? (
+          <VaultCollections run={run} />
+        ) : tab === 'Prullenbak' ? (
+          <VaultTrash run={run} />
+        ) : tab === 'Deellinks' ? (
+          <VaultShares />
+        ) : (
+          <VaultFiles open={openFile} run={run} />
+        )}
       </div>
     </div>
   )

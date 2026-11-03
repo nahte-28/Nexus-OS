@@ -57,7 +57,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   files: {
     summary: 'Je eigen bestanden in NEXUS, en mappen van je pc.',
-    tips: ['Bestanden die je uploadt staan in je account en zijn op elk apparaat te openen.', 'Een map van je pc koppelen kan in Chrome en Edge.'],
+    tips: ['Bestanden die je uploadt staan in je account en zijn op elk apparaat te openen.', 'Een map van je pc koppelen kan in Chrome en Edge.', 'Met de module Vault: tags, verzamelingen, koppelingen naar projecten en notities, versies, een prullenbak van 30 dagen en deellinks die vervallen (bij Details).'],
   },
   notes: {
     summary: 'Notities die offline werken en synchroniseren zodra je online bent.',

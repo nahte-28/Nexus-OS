@@ -44,6 +44,7 @@ do $$ begin
   if (select read_at from public.inbox_items where id = 'flow:f1|e1') is not null then raise exception 'Afleverstatus bracht een oudere wijziging mee'; end if;
 end $$;
 insert into public.user_settings (key, value, revision) values ('inbox', '{}', 1);
+insert into public.user_settings (key, value, revision) values ('vault', '{}', 1);
 -- Items older than 60 days are cleaned up.
 insert into public.inbox_items (id, source, type, title, at, updated_at) values ('oud', 'system', 'x', 'Oud', 1, 1);
 do $$ begin if exists (select 1 from public.inbox_items where id = 'oud') then raise exception 'Oude inboxitems blijven staan'; end if; end $$;
