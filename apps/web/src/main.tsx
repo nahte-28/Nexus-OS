@@ -34,6 +34,7 @@ import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
+import { startSentinel } from './sentinel/store'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -111,6 +112,8 @@ startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
 startSleepGuard(defaultEngine)
 // Gamevrienden: your "speelt nu" in the teams you chose, from the Gaming timer.
 startFriendsSharing(supabase, () => isFeatureOn('gaming'))
+// Sentinel: new devices and sign-ins go in the activity log on this device.
+startSentinel(supabase, defaultEngine)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.
