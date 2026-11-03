@@ -30,6 +30,7 @@ import {
 import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
 import { suggestedName } from '../study/group'
+import { classAgendaFor, classAgendaStore, useClassAgenda } from '../study/classAgenda'
 import { Teams as TeamsApi } from '../teams/teams'
 import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
 import { profilesStore, useProfiles } from '../profiles/store'
@@ -604,6 +605,7 @@ function Settings({ api, team, role, busy, run, onGone }: PartProps & { onGone: 
   useEffect(() => setName(team.name), [team.name])
   return (
     <>
+      <ClassAgendaToggle team={team} />
       {teamCan(role, 'manage') && <TeamClass api={api} team={team} busy={busy} run={run} />}
       {teamCan(role, 'manage') && (
         <form
@@ -668,6 +670,25 @@ function Settings({ api, team, role, busy, run, onGone }: PartProps & { onGone: 
       )}
       <p className="text-xs text-nx-muted">Wat leden delen en de groepsdeadlines vind je in Studie › Groep; dit team is daar dezelfde groep.</p>
     </>
+  )
+}
+
+/** Everyone: whether the group deadlines of this team go to your own Agenda (klasagenda). */
+function ClassAgendaToggle({ team }: { team: StudyGroup }) {
+  const state = useClassAgenda()
+  const on = classAgendaFor(state, team)
+  const chosen = team.id in state.groups
+  return (
+    <div className="space-y-1 rounded-lg border border-nx-border px-3 py-2">
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={on} onChange={(e) => classAgendaStore.setGroup(team.id, e.target.checked === !!team.klas ? null : e.target.checked)} />
+        Groepsdeadlines in mijn Agenda zetten
+      </label>
+      <p className="text-xs text-nx-muted">
+        {team.klas ? `Dit is een klasteam (${team.klas}), dus dit staat standaard aan.` : 'Voor teams zonder klas staat dit standaard uit.'} Ze komen in je Agenda met de gewone herinneringen; vink je er een af, dan staat hij ook hier als klaar. Een deadline die je uit je Agenda verwijdert, komt niet terug.
+        {chosen && ' Dit is jouw keuze op dit apparaat.'}
+      </p>
+    </div>
   )
 }
 

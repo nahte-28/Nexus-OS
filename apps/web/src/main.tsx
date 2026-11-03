@@ -22,6 +22,7 @@ import { openJoinFromUrl } from './teams/joinLink'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
 import { startExamsSync } from './study/exams'
+import { startClassAgenda } from './study/classAgenda'
 import { startGroupSync } from './study/group'
 import { startJournalSync } from './journal/store'
 import { startSpacesSync } from './spaces/store'
@@ -90,6 +91,8 @@ startHabitsSync(supabase)
 startFlashcardsSync(supabase)
 startExamsSync(supabase)
 startGroupSync(supabase)
+// Klasagenda: group deadlines of your class teams go to your own Agenda by themselves.
+startClassAgenda(supabase, () => isFeatureOn('teams'), onFeaturesChange)
 startJournalSync(supabase)
 startSpacesSync(supabase, () => isFeatureOn('spaces'), onFeaturesChange)
 startInboxSync(supabase, () => isFeatureOn('inbox'), onFeaturesChange)
