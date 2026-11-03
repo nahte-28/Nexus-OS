@@ -15,10 +15,12 @@ import {
 import type { CallLog } from '../devhub/broker'
 import { SandboxFrame, SANDBOX_POLICY } from '../devhub/SandboxFrame'
 import { createProject, deleteProject, install, publish, removeWidget, saveProject, useDevHub } from '../devhub/store'
+import { useFeature } from '../features/store'
+import { PlatformHealth } from '../integration/PlatformHealth'
 import { onReveal, takeReveal } from '../search/reveal'
 import { readStorage, writeStorage } from '../state/storage'
 
-const TABS = ['Projecten', 'SDK', 'Sandbox', 'Reviews'] as const
+const TABS = ['Projecten', 'SDK', 'Sandbox', 'Reviews', 'Platform Health'] as const
 type Tab = (typeof TABS)[number]
 const TAB_KEY = 'nexus.devhub.tab'
 const PROJECT_KEY = 'nexus.devhub.project'
@@ -42,6 +44,10 @@ export function DeveloperHub() {
     writeStorage(TAB_KEY, t)
   }
   const { projects } = useDevHub()
+  // Platform Health comes with Integratie in Nieuwe modules.
+  const health = useFeature('integration')
+  const tabs = TABS.filter((t) => t !== 'Platform Health' || health)
+  const shown: Tab = tab === 'Platform Health' && !health ? 'Projecten' : tab
   const [selectedId, setSelectedState] = useState<string | null>(() => readStorage(PROJECT_KEY))
   const select = (id: string | null) => {
     setSelectedState(id)
@@ -62,21 +68,24 @@ export function DeveloperHub() {
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
       <div role="tablist" aria-label="Developer Hub" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t}
             type="button"
             role="tab"
-            aria-selected={tab === t}
+            aria-selected={shown === t}
             onClick={() => setTab(t)}
-            className={`shrink-0 rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
+            className={`shrink-0 rounded-md px-3 py-1 ${shown === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
           >
             {t}
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {tab === 'SDK' ? (
+      {/* Focusable so the keyboard can scroll a tab without buttons, like Platform Health. */}
+      <div tabIndex={0} role="tabpanel" aria-label={shown} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 outline-none focus-visible:ring-2 focus-visible:ring-nx-accent">
+        {shown === 'Platform Health' ? (
+          <PlatformHealth />
+        ) : shown === 'SDK' ? (
           <Sdk />
         ) : (
           <>
@@ -92,11 +101,11 @@ export function DeveloperHub() {
                 </select>
               </label>
             )}
-            {tab === 'Projecten' ? (
+            {shown === 'Projecten' ? (
               <Projects project={selected} onSelect={select} />
             ) : !selected ? (
               <p className="text-nx-muted">Maak eerst een project in het tabblad Projecten.</p>
-            ) : tab === 'Sandbox' ? (
+            ) : shown === 'Sandbox' ? (
               <Sandbox key={selected.id} project={selected} />
             ) : (
               <Reviews project={selected} />

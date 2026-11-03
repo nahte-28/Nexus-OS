@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { emptyGaming, saveGame, type GameAnswer, type GamingState, type StudyGroup, type TeamGamePlan, type TeamMember, type TeamRole } from '@nexus/core'
-import { Friends } from './Friends'
+import { Friends } from './GameFriends'
 import { friendsError, sharedPlaying, type FriendsData, type GamingFriends } from './friends'
 import { gamingStore } from './store'
 

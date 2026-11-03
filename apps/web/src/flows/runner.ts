@@ -268,6 +268,7 @@ function announce(run: FlowRun): void {
     body: run.event,
     priority: run.status === 'ok' ? 'low' : 'high',
     link: { app: 'flows', id: run.flowId },
+    correlationId: `flow:${run.flowId}`,
   })
 }
 

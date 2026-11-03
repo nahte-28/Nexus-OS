@@ -1,4 +1,6 @@
 import { isDesktopApp, notifyDesktop } from './desktop'
+import { isFeatureOn } from '../features/store'
+import { openFromRef } from '../integration/notificationLinks'
 
 /** Shows a notification on this device right away, e.g. for a reminder. */
 export async function showLocalNotification(title: string, body: string, tag: string): Promise<boolean> {
@@ -8,6 +10,12 @@ export async function showLocalNotification(title: string, body: string, tag: st
   // Android Chrome only allows notifications through the service worker.
   const registration = await navigator.serviceWorker?.getRegistration()
   if (registration) await registration.showNotification(title, options)
-  else new Notification(title, options)
+  else {
+    const shown = new Notification(title, options)
+    shown.onclick = () => {
+      window.focus()
+      openFromRef(tag, () => isFeatureOn('integration'))
+    }
+  }
   return true
 }

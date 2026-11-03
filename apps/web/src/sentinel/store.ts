@@ -78,7 +78,7 @@ export function checkDevices(state: ConnectState, store = auditStore, now = Date
   writeStorage(DEVICES_KEY, JSON.stringify(next))
   for (const d of added) {
     store.add('device_added', d.name, 'ok', now, `device_added:${d.id}`)
-    eventBus.publish({ id: `sentinel:device:${d.id}`, source: 'device', type: 'device.added', at: now, title: `Nieuw apparaat gekoppeld: ${d.name}`, body: 'Was jij dit niet? Trek het in via Sentinel › Apparaten en wijzig je wachtwoord.', priority: 'high', link: { app: 'sentinel' } })
+    eventBus.publish({ id: `sentinel:device:${d.id}`, source: 'device', type: 'device.added', at: now, title: `Nieuw apparaat gekoppeld: ${d.name}`, body: 'Was jij dit niet? Trek het in via Sentinel › Apparaten en wijzig je wachtwoord.', priority: 'high', link: { app: 'sentinel' }, correlationId: `device:${d.id}` })
   }
   for (const d of revoked) store.add('device_revoked', d.name, 'ok', now, `device_revoked:${d.id}`)
 }

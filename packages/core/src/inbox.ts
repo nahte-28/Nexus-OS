@@ -299,6 +299,7 @@ export function deadlineEvents(deadlines: Array<{ id: string; title: string; due
         title: overdue ? `Deadline verstreken: ${d.title}` : `Deadline binnen een dag: ${d.title}`,
         priority: 'high' as const,
         link: { app: 'agenda' as const, id: d.id },
+        correlationId: `deadline:${d.id}`,
       }
     })
 }

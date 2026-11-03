@@ -26,7 +26,7 @@ import {
 } from '@nexus/core'
 import { gamingStore, gamingSyncProblem, useGaming } from '../gaming/store'
 import { currentSleepPlan } from '../gaming/timer'
-import { Friends } from '../gaming/Friends'
+import { Friends } from '../gaming/GameFriends'
 import { readStorage, writeStorage } from '../state/storage'
 
 const TABS = ['Bibliotheek', 'Sessies', 'Builds', 'Statistieken', 'Vrienden', 'Instellingen'] as const

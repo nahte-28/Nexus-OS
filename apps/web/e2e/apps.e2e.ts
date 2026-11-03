@@ -70,6 +70,15 @@ for (const theme of ['focus', 'pulse'] as const) {
     }
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await offline.getByRole('button', { name: 'Sluiten' }).click()
+    // Integratie: Platform Health in the Developer Hub (Financiën is not in this profile; its Kalender has a unit test).
+    for (const [app, tab] of [['Developer Hub', 'Platform Health']] as const) {
+      await appButtons(page).getByText(app, { exact: true }).click()
+      const view = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: app })
+      await view.getByRole('tab', { name: tab }).click()
+      await check(`${app} ${tab}`)
+      if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
+      else await view.getByRole('button', { name: 'Sluiten' }).click()
+    }
     // Sentinel: every tab, not only the first.
     await appButtons(page).getByText('Sentinel', { exact: true }).click()
     const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
