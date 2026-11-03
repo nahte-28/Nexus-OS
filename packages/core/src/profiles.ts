@@ -12,7 +12,7 @@ export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
 export type AccentId = 'blue' | 'cyan' | 'violet' | 'green' | 'orange' | 'pink'
 export const ACCENT_IDS: AccentId[] = ['blue', 'cyan', 'violet', 'green', 'orange', 'pink']
 
-export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications' | 'finance'
+export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications' | 'finance' | 'gaming'
 
 export interface Profile {
   id: ProfileId
@@ -175,7 +175,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 12
+export const PROFILES_SCHEMA = 13
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -211,7 +211,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Donker en rustig: alleen belangrijke meldingen komen erdoor.',
     theme: 'pulse',
     apps: ['notifications', 'assistant', 'devices', 'notes', 'account', 'about'],
-    widgets: ['notifications', 'devices'],
+    widgets: ['gaming', 'notifications', 'devices'],
     quietNonEssential: true,
     allowApps: [],
     accent: null,
@@ -629,6 +629,11 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         profiles[id] = { ...profiles[id], apps: [...apps.slice(0, after + 1), 'journal', ...apps.slice(after + 1)] }
       }
     }
+  }
+  // Copies from before the Gaming widget get it first on the Gaming dashboard.
+  if (typeof r.schema !== 'number' || r.schema < 13) {
+    const widgets = profiles.gaming.widgets
+    if (Array.isArray(widgets) && !widgets.includes('gaming')) profiles.gaming = { ...profiles.gaming, widgets: ['gaming', ...widgets] }
   }
   const merged = { ...base.schedule, ...(typeof r.schedule === 'object' ? r.schedule : {}) }
   const schedule =

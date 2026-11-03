@@ -21,6 +21,7 @@ export const WIDGET_TITLES: Record<WidgetId, string> = {
   notifications: 'Meldingen',
   devices: 'Apparaten',
   finance: 'Financiën',
+  gaming: 'Gaming',
 }
 
 export const WIDGET_IDS = Object.keys(WIDGET_TITLES) as WidgetId[]

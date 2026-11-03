@@ -12,13 +12,15 @@ import {
   type WidgetLayout,
   type WidgetSize,
 } from '@nexus/core'
-import { alive, budgetStatus, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
+import { alive, budgetStatus, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
 import { ExtensionWidgets } from '../devhub/ExtensionWidgets'
-import { useFeature } from '../features/store'
+import { setFeature, useFeature } from '../features/store'
 import { financeStore } from '../finance/store'
+import { useGaming } from '../gaming/store'
+import { currentSleepPlan, startGaming, stopGaming } from '../gaming/timer'
 import { dismissPrompt, usePrompts } from '../flows/prompts'
 import { appName } from '../flows/runner'
 import { lifeStore } from '../life/store'
@@ -381,6 +383,8 @@ function Widget({ id, onOpenApp }: { id: WidgetId; onOpenApp: OpenApp }) {
       return <DevicesWidget onOpenApp={onOpenApp} />
     case 'finance':
       return <FinanceWidget onOpenApp={onOpenApp} />
+    case 'gaming':
+      return <GamingWidget onOpenApp={onOpenApp} />
     case 'next_class':
       return null
   }
@@ -508,6 +512,73 @@ function RecentNotes({ onOpenApp }: { onOpenApp: OpenApp }) {
 }
 
 /** Financiën at a glance, in percentages and counts only: no amounts on a screen others may see. */
+const playTime = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} u${m % 60 ? ` ${m % 60}` : ''}`)
+
+/** Gaming: the session timer, this week's play time against the plan and tonight's stop time. */
+function GamingWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
+  const on = useFeature('gaming')
+  const state = useGaming()
+  const [now, setNow] = useState(Date.now)
+  const [picked, setPicked] = useState('')
+  const [problem, setProblem] = useState<string | null>(null)
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(t)
+  }, [])
+  if (!on) {
+    return (
+      <Card title="Gaming">
+        <p className="text-sm text-nx-muted">Zet Gaming Companion aan voor de sessie-timer en je speeltijd.</p>
+        <button type="button" className={`${linkButton} mt-2`} onClick={() => setFeature('gaming', true)}>
+          Gaming Companion aanzetten
+        </button>
+      </Card>
+    )
+  }
+  const games = liveGames(state).filter((g) => g.status === 'playing' || g.status === 'backlog')
+  const game = state.active ? state.games.find((g) => g.id === state.active?.gameId) : null
+  const week = gamingWeek(state, now)
+  const plan = currentSleepPlan(now)
+  const choice = picked || games[0]?.id || ''
+  return (
+    <Card title="Gaming">
+      {state.active ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="min-w-0 flex-1 truncate">
+            🎮 {game?.name ?? 'Game'} · <span className="tabular-nums">{playTime(gameTimerMinutes(state, now))}</span>
+          </span>
+          <button type="button" className="rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2" onClick={() => stopGaming()}>
+            Stoppen
+          </button>
+        </div>
+      ) : games.length === 0 ? (
+        <button type="button" className={linkButton} onClick={() => onOpenApp('gaming')}>
+          Voeg eerst een game toe
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <select aria-label="Game voor de timer" value={choice} onChange={(e) => setPicked(e.target.value)} className="min-w-0 flex-1 rounded-md border border-nx-border bg-nx-surface px-2 py-1">
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="rounded-md bg-nx-accent px-2 py-1 text-xs font-medium text-nx-accent-text" onClick={() => setProblem(startGaming(choice))}>
+            Gaming starten
+          </button>
+        </div>
+      )}
+      {problem && <p role="alert" className="text-xs text-red-500">{problem}</p>}
+      <p className={`mt-2 text-sm ${week.over ? 'text-red-500' : week.near ? 'text-amber-600 dark:text-amber-400' : 'text-nx-muted'}`}>
+        Deze week {playTime(week.minutes)}
+        {week.limit !== null ? ` van ${playTime(week.limit)}` : ''}
+      </p>
+      {plan && <p className="text-sm text-nx-muted">Vanavond stoppen om {clock(plan.stopAt)} (les om {clock(plan.firstLesson.start)})</p>}
+    </Card>
+  )
+}
+
 function FinanceWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
   const state = useSyncExternalStore(financeStore.subscribe, financeStore.getSnapshot)
   const now = Date.now()

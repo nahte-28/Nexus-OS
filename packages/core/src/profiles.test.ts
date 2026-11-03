@@ -179,7 +179,7 @@ describe('next lesson', () => {
     expect(parseProfilesState({ schema: 10, profiles: { personal: { apps: ['notes', 'budget', 'insights'] } } }).profiles.personal.apps).toEqual(['notes', 'finance', 'insights', 'journal'])
     expect(s.profiles.personal.apps).toEqual(['insights', 'finance', 'notes', 'journal'])
     expect(s.profiles.personal.widgets).toEqual(['deadlines', 'notes', 'finance', 'devices'])
-    expect(s.profiles.gaming.widgets).toEqual(['devices'])
+    expect(s.profiles.gaming.widgets).toEqual(['gaming', 'devices'])
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, widgets: ['notes'] } } })
     expect(removed.profiles.personal.widgets).toEqual(['notes'])
   })

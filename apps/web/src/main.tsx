@@ -32,6 +32,7 @@ import { startProjectHubSync } from './projecthub/store'
 import { startKnowledgeSync } from './knowledge/store'
 import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
+import { startSleepGuard } from './gaming/timer'
 import { startTimeMachine } from './timemachine/store'
 import { startBridge } from './bridge/store'
 import { startIntelligence } from './intelligence/store'
@@ -105,6 +106,8 @@ startKnowledgeSync(supabase, () => isFeatureOn('knowledge'), onFeaturesChange)
 // Study Lab and Gaming Companion: own documents, synced once switched on.
 startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
 startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
+// Slaapbewaker: on an evening before a lesson day, a notice to stop gaming in time.
+startSleepGuard(defaultEngine)
 // Time Machine: restore points of profiles, flows and Spaces, on this device.
 startTimeMachine(() => isFeatureOn('timeMachine'), onFeaturesChange)
 // Intelligence: rules that propose flows; nothing happens until you approve one.
