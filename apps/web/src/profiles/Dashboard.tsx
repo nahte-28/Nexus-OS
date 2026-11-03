@@ -55,6 +55,7 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
   const now = useMinute()
   const Icon = PROFILE_ICONS[active.id]
   const devHub = useFeature('devHub')
+  const marketplace = useFeature('marketplace')
   return (
     <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 ${compact ? 'p-4' : 'p-6'}`}>
       <header className="space-y-1">
@@ -96,7 +97,7 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
 
       <WidgetGrid compact={compact} onOpenApp={onOpenApp} />
 
-      {devHub && <ExtensionWidgets />}
+      {(devHub || marketplace) && <ExtensionWidgets />}
     </section>
   )
 }

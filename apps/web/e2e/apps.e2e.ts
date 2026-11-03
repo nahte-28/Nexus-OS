@@ -51,6 +51,16 @@ for (const theme of ['focus', 'pulse'] as const) {
     }
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await files.getByRole('button', { name: 'Sluiten' }).click()
+    // Marketplace: a kind tab and the permission dialog of a widget.
+    await appButtons(page).getByText('Marketplace', { exact: true }).click()
+    const market = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Marketplace' })
+    await market.getByRole('tab', { name: 'Widgets' }).click()
+    await market.getByRole('button', { name: 'Installeren' }).first().click()
+    await expect(market.getByRole('button', { name: 'Toestaan en installeren' })).toBeVisible()
+    await check('Marketplace toestemming')
+    await market.getByRole('button', { name: 'Annuleren' }).click()
+    if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
+    else await market.getByRole('button', { name: 'Sluiten' }).click()
     // Offline-centrum: every tab.
     await appButtons(page).getByText('Offline-centrum', { exact: true }).click()
     const offline = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Offline-centrum' })

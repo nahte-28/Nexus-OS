@@ -213,6 +213,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],
   },
+  marketplace: {
+    summary: 'Marketplace: extra widgets, thema\'s, Flow-recepten en sjablonen, allemaal gemaakt door NEXUS zelf.',
+    tips: [
+      'Een widget toont eerst welke gegevens hij mag lezen; pas na Toestaan komt hij op je dashboard.',
+      'Een thema geldt voor het profiel dat nu aan staat; elk profiel kan een ander thema hebben.',
+      'Een Flow-recept komt uit in Flow Studio, maar staat nog uit tot je het nakijkt en aanzet.',
+      'Er komt niets van derden: alles zit al in NEXUS en gaat door dezelfde review als je eigen widgets.',
+    ],
+  },
   offline: {
     summary: 'Offline-centrum: wat er zonder internet werkt, wat nog wacht om verstuurd te worden en hoe je synchronisaties liepen.',
     tips: [
