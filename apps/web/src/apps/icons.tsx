@@ -270,6 +270,13 @@ export const ControlIcon = (p: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+export const OfflineIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.1 4.5 4.5 0 0 0 7 18z" />
+    <path d="m9.5 13.5 2 2 3.5-3.5" />
+  </svg>
+)
+
 export const ShieldIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base} {...p}>
     <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />

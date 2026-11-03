@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { syncOnce, toLifeItem, type LifeItem, type PullResult, type RemoteStore } from '@nexus/core'
 import { logEvent } from '../devtools/log'
+import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import { lifeStore, type LifeStore } from './store'
 
 const PAGE_SIZE = 500
@@ -116,8 +117,10 @@ export function startLifeSync(client: SupabaseClient | null, store: LifeStore = 
         const report = await syncOnce(store, remote)
         lifeSyncProblem.set(null)
         if (report.pushed || report.applied) logEvent('sync', `Agenda: ${report.pushed} verstuurd, ${report.applied} binnengehaald`)
+        reportSync('life', 'Agenda', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
       } catch (err) {
         lifeSyncProblem.set(problemText(err))
+        reportSync('life', 'Agenda', 'failed', problemText(err))
         logEvent('sync', `Agenda synchroniseren mislukt: ${problemText(err)}`, true)
       }
     })().finally(() => {
@@ -142,7 +145,9 @@ export function startLifeSync(client: SupabaseClient | null, store: LifeStore = 
   void client.auth.getSession().then(({ data }) => setSession(data.session))
   const { data } = client.auth.onAuthStateChange((_event, s) => setSession(s))
 
+  const unregister = registerChannel({ id: 'life', label: 'Agenda', pending: () => (session ? store.dirtyIds().length : 0), syncNow: sync })
   const unsubscribe = store.subscribe(() => {
+    refreshChannels()
     if (store.dirtyIds().length === 0) return
     clearTimeout(debounce)
     debounce = setTimeout(() => void sync(), PUSH_DEBOUNCE_MS)
@@ -158,6 +163,7 @@ export function startLifeSync(client: SupabaseClient | null, store: LifeStore = 
     clearTimeout(debounce)
     clearInterval(poll)
     unsubscribe()
+    unregister()
     data.subscription.unsubscribe()
     document.removeEventListener('visibilitychange', onVisible)
     window.removeEventListener('online', now)

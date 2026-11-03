@@ -51,6 +51,15 @@ for (const theme of ['focus', 'pulse'] as const) {
     }
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await files.getByRole('button', { name: 'Sluiten' }).click()
+    // Offline-centrum: every tab.
+    await appButtons(page).getByText('Offline-centrum', { exact: true }).click()
+    const offline = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Offline-centrum' })
+    for (const tab of ['Wachtrij', 'Samengevoegd', 'Geschiedenis', 'Per app']) {
+      await offline.getByRole('tab', { name: tab }).click()
+      await check(`Offline-centrum ${tab}`)
+    }
+    if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
+    else await offline.getByRole('button', { name: 'Sluiten' }).click()
     // Sentinel: every tab, not only the first.
     await appButtons(page).getByText('Sentinel', { exact: true }).click()
     const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
