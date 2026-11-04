@@ -27,4 +27,16 @@ class UpdateCheckTest {
     fun nothingWhenAlreadyNewest() {
         assertNull(UpdateCheck.newest(releases, 15))
     }
+    @Test
+    fun theWatchTakesItsOwnApkFromTheSameRelease() {
+        val tag = "companion-v1.0.41"
+        val base = "https://github.com/nahte-28/Nexus-OS/releases/download/$tag"
+        val both = """[{"tag_name":"$tag","draft":false,"prerelease":false,"assets":[{"name":"nexus-companion.apk","browser_download_url":"$base/nexus-companion.apk"},{"name":"nexus-watch.apk","browser_download_url":"$base/nexus-watch.apk"}]}]"""
+        val update = UpdateCheck.newest(both, 40, UpdateCheck.apkFor("app.nexusos.watch"))!!
+        assertEquals(41, update.build)
+        assertEquals("$base/nexus-watch.apk", update.url)
+        assertEquals("$base/nexus-companion.apk", UpdateCheck.newest(both, 40)!!.url)
+        assertNull(UpdateCheck.newest(releases, 10, UpdateCheck.WATCH_APK))
+        assertEquals(UpdateCheck.COMPANION_APK, UpdateCheck.apkFor("app.nexusos.companion"))
+    }
 }
