@@ -19,6 +19,7 @@ import {
   type Exam,
   type PlanResult,
   type StudyWindow,
+  linkedEvents,
 } from '@nexus/core'
 import { flashcardsStore } from '../flashcards/store'
 import { gradesStore } from '../grades/store'
@@ -206,7 +207,7 @@ function Planning() {
     const life = items.filter((i) => !(i.kind === 'appointment' && i.notes === STUDY_BLOCK_NOTE))
     for (let d = 0; d <= 60; d++) {
       const start = startOfDay(startOfDay(now) + d * DAY + 3_600_000)
-      for (const e of agendaDay({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: life, reminders: [] }, start)) {
+      for (const e of agendaDay({ calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items: life, reminders: [] }, start)) {
         if (e.kind === 'lesson' || e.kind === 'appointment' || e.kind === 'event') busy.push({ start: e.at, end: e.end })
       }
     }

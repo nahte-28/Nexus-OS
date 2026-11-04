@@ -3,7 +3,7 @@
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
 import { parseLayout, type WidgetLayout } from './dashboardLayout'
-import { CALENDAR_HOSTS, isCalendarEvent, type CalendarEvent } from './calendar'
+import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 import { parseSwitches, type FeatureSwitches } from './features'
@@ -151,6 +151,10 @@ export interface ProfilesState {
   googleUrl: string
   googleEvents: CalendarEvent[]
   googleSyncedAt: number | null
+  /** Other calendar links (Outlook, iCloud, a club, ...): their events show in the Agenda like Google ones. */
+  extraCalendars: ExtraCalendar[]
+  /** What each of those links gave last time, by calendar id; fetched anew on every device. */
+  extraEvents: Record<string, { events: CalendarEvent[]; syncedAt: number }>
   dagstart: DagstartSettings
   /** Profiles 2.0: the profile while lessons run. */
   agenda: AgendaRule
@@ -258,6 +262,8 @@ export function defaultProfilesState(): ProfilesState {
     googleUrl: '',
     googleEvents: [],
     googleSyncedAt: null,
+    extraCalendars: [],
+    extraEvents: {},
     dagstart: parseDagstart(null),
     agenda: { ...DEFAULT_AGENDA },
     klas: '',
@@ -503,6 +509,9 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
     merged = { ...merged, googleUrl: other.googleUrl, googleEvents: other.googleEvents, googleSyncedAt: other.googleSyncedAt }
   }
   if (base.lessons.length === 0 && other.lessons.length > 0) merged = { ...merged, lessons: other.lessons }
+  // A calendar link added on only one of the two devices so far is kept.
+  const extra = other.extraCalendars.filter((c) => !base.extraCalendars.some((b) => b.id === c.id || b.url === c.url))
+  if (extra.length > 0) merged = { ...merged, extraCalendars: [...base.extraCalendars, ...extra].slice(0, MAX_EXTRA_CALENDARS) }
   // Switches set on only one of the two devices so far are kept; where both chose, the newer copy wins.
   const features = { ...other.features, ...base.features }
   if (Object.keys(features).length !== Object.keys(base.features).length) merged = { ...merged, features }
@@ -510,6 +519,45 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
   if (Object.keys(classAgenda).length !== Object.keys(base.classAgenda).length) merged = { ...merged, classAgenda }
   if (merged === remote) return remote
   return { ...merged, revision: Math.max(local.revision, remote.revision) + 1 }
+}
+
+/** Another calendar link with its own name. */
+export interface ExtraCalendar {
+  id: string
+  name: string
+  url: string
+}
+
+function parseExtraCalendars(raw: unknown): ExtraCalendar[] {
+  if (!Array.isArray(raw)) return []
+  const out: ExtraCalendar[] = []
+  for (const c of raw as Array<Partial<ExtraCalendar> | null>) {
+    if (!c || typeof c.id !== 'string' || c.id.length > 64 || typeof c.name !== 'string' || typeof c.url !== 'string') continue
+    const url = icsUrl(c.url)
+    if (url && !out.some((o) => o.id === c.id)) out.push({ id: c.id, name: c.name.trim().slice(0, 40) || 'Agenda', url })
+  }
+  return out.slice(0, MAX_EXTRA_CALENDARS)
+}
+
+function parseExtraEvents(raw: unknown): ProfilesState['extraEvents'] {
+  const out: ProfilesState['extraEvents'] = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, MAX_EXTRA_CALENDARS)) {
+    const e = v as { events?: unknown; syncedAt?: unknown } | null
+    if (e && Array.isArray(e.events) && typeof e.syncedAt === 'number') out[k] = { events: e.events.filter(isCalendarEvent), syncedAt: e.syncedAt }
+  }
+  return out
+}
+
+/**
+ * Every event from a linked calendar besides the lessons: Google Agenda and the other links. An
+ * event without a place shows the name of its calendar instead.
+ */
+export function linkedEvents(state: Pick<ProfilesState, 'googleEvents' | 'extraCalendars' | 'extraEvents'>): CalendarEvent[] {
+  if (state.extraCalendars.length === 0) return state.googleEvents
+  const out = [...state.googleEvents]
+  for (const c of state.extraCalendars) for (const e of state.extraEvents[c.id]?.events ?? []) out.push(e.room ? e : { ...e, room: c.name })
+  return out
 }
 
 /** On/off choices keyed by id (team ids), at most 200. */
@@ -681,6 +729,8 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     googleUrl: typeof r.googleUrl === 'string' ? r.googleUrl : '',
     googleEvents: Array.isArray(r.googleEvents) ? r.googleEvents.filter(isCalendarEvent) : [],
     googleSyncedAt: typeof r.googleSyncedAt === 'number' ? r.googleSyncedAt : null,
+    extraCalendars: parseExtraCalendars(r.extraCalendars),
+    extraEvents: parseExtraEvents(r.extraEvents),
     dagstart: parseDagstart(r.dagstart),
     agenda: parseAgendaRule(r.agenda),
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',

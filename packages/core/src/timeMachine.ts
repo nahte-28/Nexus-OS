@@ -138,7 +138,7 @@ const omit = (v: unknown, keys: string[]): unknown => (isObject(v) ? Object.from
 const byId = (xs: unknown[]) => [...xs].sort((a, b) => String(isObject(a) ? a.id : '').localeCompare(String(isObject(b) ? b.id : '')))
 
 /** What lives in a profiles restore point: the settings, not the lessons fetched from a calendar link or a choice of the moment. */
-export const PROFILE_RUNTIME_KEYS = ['calendarEvents', 'calendarSyncedAt', 'googleEvents', 'googleSyncedAt', 'override', 'returnProfile', 'revision', 'schema'] as const
+export const PROFILE_RUNTIME_KEYS = ['calendarEvents', 'calendarSyncedAt', 'googleEvents', 'googleSyncedAt', 'extraEvents', 'override', 'returnProfile', 'revision', 'schema'] as const
 export function profilesPayload(state: ProfilesState): Record<string, unknown> {
   return omit(state, [...PROFILE_RUNTIME_KEYS]) as Record<string, unknown>
 }
@@ -287,6 +287,7 @@ const PROFILE_SETTING_LABELS: Record<string, string> = {
   lessons: 'Lesrooster',
   calendarUrl: 'Schoolkalender',
   googleUrl: 'Google Agenda',
+  extraCalendars: "Andere agenda's",
   klashubUrl: 'KlasHub-adres',
   dagstart: 'Dagstart',
   agenda: 'Profiel volgens lesrooster',
@@ -452,6 +453,9 @@ function diffProfiles(now: Record<string, unknown>, then: Record<string, unknown
   const link = (v: unknown) => (typeof v === 'string' && v ? 'gekoppeld' : 'niet gekoppeld')
   if (now.calendarUrl !== then.calendarUrl) push('Schoolkalender', now.calendarUrl && then.calendarUrl ? 'andere link' : `${link(now.calendarUrl)} → ${link(then.calendarUrl)}`)
   if (now.googleUrl !== then.googleUrl) push('Google Agenda', now.googleUrl && then.googleUrl ? 'andere link' : `${link(now.googleUrl)} → ${link(then.googleUrl)}`)
+  const ea = arr(now.extraCalendars)
+  const eb = arr(then.extraCalendars)
+  if (stableJson(ea) !== stableJson(eb)) push("Andere agenda's", `${ea.length} → ${eb.length} gekoppeld`)
   if (now.klashubUrl !== then.klashubUrl) push('KlasHub-adres', `${show(now.klashubUrl)} → ${show(then.klashubUrl)}`)
   const da = obj(now.dagstart)
   const db = obj(then.dagstart)

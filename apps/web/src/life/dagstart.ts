@@ -1,4 +1,4 @@
-import { dagstartNotice, dagstartNotices, wallDate, type AgendaInput, type DagstartExtra, type DagstartSettings } from '@nexus/core'
+import { dagstartNotice, linkedEvents, dagstartNotices, wallDate, type AgendaInput, type DagstartExtra, type DagstartSettings } from '@nexus/core'
 import { dagstartExtra, recordBriefing } from '../briefing/store'
 import type { ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
@@ -16,7 +16,7 @@ const CATCH_UP_MS = 3 * 60 * 60_000
 /** Lessons, agenda and reminders as Dagstart reads them. */
 export function dagstartInput(): AgendaInput {
   const { state } = profilesStore.getSnapshot()
-  return { calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: lifeStore.getSnapshot(), reminders: remindersStore.getSnapshot() }
+  return { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items: lifeStore.getSnapshot(), reminders: remindersStore.getSnapshot() }
 }
 
 export const dagstartSettings = (): DagstartSettings => profilesStore.getSnapshot().state.dagstart

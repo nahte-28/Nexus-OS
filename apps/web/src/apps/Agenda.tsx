@@ -33,6 +33,7 @@ import {
   reviewedWeek,
   reviewNoteTitle,
   weekFacts,
+  linkedEvents,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
@@ -169,7 +170,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   const overdue = deadlinesOf(items).filter((d) => d.doneAt === null && d.dueAt < now)
   // Seven days ahead; +1 hour per step keeps each start on the right day across a time change.
   const days = Array.from({ length: 7 }, (_, i) => startOfDay(today + i * DAY + 3_600_000))
-  const input = { calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }
+  const input = { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items, reminders }
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -619,7 +620,7 @@ function useClashes(id: string | null, startAt: number, endAt: number, repeat: A
   if (!Number.isFinite(startAt) || !Number.isFinite(endAt) || endAt <= startAt) return []
   const now = Date.now()
   const others = items.filter((i) => i.id !== id)
-  const input = { calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items: others, reminders: [] }
+  const input = { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items: others, reminders: [] }
   const out: string[] = []
   for (const o of occurrences({ startAt, endAt, repeat }, now, now + CLASH_WEEKS * 7 * DAY, 20)) {
     const day = startOfDay(o.startAt)
@@ -818,7 +819,7 @@ export function Dagstart() {
   const today = startOfDay(now)
   // The next morning it comes: today when the time is still ahead, else tomorrow.
   const nextDay = new Date(today).setHours(Number(settings.time.slice(0, 2)), Number(settings.time.slice(3, 5))) > now ? today : startOfDay(today + DAY + 3_600_000)
-  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, googleEvents: state.googleEvents, timetable: state.lessons, items, reminders }, nextDay, settings, dagstartExtra())
+  const preview = dagstartNotice({ calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items, reminders }, nextDay, settings, dagstartExtra())
 
   const test = async () => {
     setStatus('Versturen…')

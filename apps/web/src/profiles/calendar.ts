@@ -1,4 +1,4 @@
-import { CALENDAR_DAYS_AHEAD, calendarUrl, googleCalendarUrl, parseIcs, type CalendarEvent } from '@nexus/core'
+import { CALENDAR_DAYS_AHEAD, calendarUrl, googleCalendarUrl, icsUrl, MAX_EXTRA_CALENDARS, parseIcs, type CalendarEvent } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { apiBase } from '../platform/desktop'
 import { supabase } from '../sync/supabase'
@@ -72,13 +72,52 @@ export async function syncGoogle(
   return null
 }
 
-/** Refreshes the lessons and the Google Agenda at start and every few hours, when a link is set. */
+/**
+ * Adds another calendar link (or fetches one that is already there, by [id]) and stores its coming
+ * weeks of events. Returns an error text in Dutch, or null when it worked.
+ */
+export async function syncExtra(
+  link: string,
+  name: string,
+  id: string = crypto.randomUUID(),
+  store: ProfilesStore = profilesStore,
+  deps: Deps = defaultDeps,
+): Promise<string | null> {
+  const url = icsUrl(link)
+  if (!url) return 'Dit is geen agendalink. Gebruik een adres dat begint met https:// of webcal:// (een iCal- of .ics-link).'
+  const { extraCalendars } = store.getSnapshot().state
+  const existing = extraCalendars.find((c) => c.id === id)
+  if (!existing && extraCalendars.some((c) => c.url === url)) return 'Deze agenda is al gekoppeld.'
+  if (!existing && extraCalendars.length >= MAX_EXTRA_CALENDARS) return `Je kunt hoogstens ${MAX_EXTRA_CALENDARS} andere agenda's koppelen.`
+  const events = await fetchEvents(url, deps)
+  if (typeof events === 'string') return events
+  const label = name.trim().slice(0, 40) || existing?.name || new URL(url).hostname
+  store.update((s) => ({
+    ...s,
+    extraCalendars: s.extraCalendars.some((c) => c.id === id) ? s.extraCalendars.map((c) => (c.id === id ? { id, name: label, url } : c)) : [...s.extraCalendars, { id, name: label, url }],
+    extraEvents: { ...s.extraEvents, [id]: { events, syncedAt: deps.now() } },
+  }))
+  logEvent('system', `Agenda ${label}: ${events.length} afspraken opgehaald`)
+  return null
+}
+
+/** Unlinks another calendar; its events leave the Agenda. */
+export function removeExtra(id: string, store: ProfilesStore = profilesStore): void {
+  store.update((s) => {
+    const extraEvents = { ...s.extraEvents }
+    delete extraEvents[id]
+    return { ...s, extraCalendars: s.extraCalendars.filter((c) => c.id !== id), extraEvents }
+  })
+}
+
+/** Refreshes the lessons, the Google Agenda and the other calendars at start and every few hours, when a link is set. */
 export function startCalendarSync(store: ProfilesStore = profilesStore): () => void {
   const stale = (at: number | null) => at === null || Date.now() - at > REFRESH_MS
   const run = () => {
-    const { calendarUrl: link, calendarSyncedAt, googleUrl, googleSyncedAt } = store.getSnapshot().state
+    const { calendarUrl: link, calendarSyncedAt, googleUrl, googleSyncedAt, extraCalendars, extraEvents } = store.getSnapshot().state
     if (link && stale(calendarSyncedAt)) void syncCalendar(link, store)
     if (googleUrl && stale(googleSyncedAt)) void syncGoogle(googleUrl, store)
+    for (const c of extraCalendars) if (stale(extraEvents[c.id]?.syncedAt ?? null)) void syncExtra(c.url, c.name, c.id, store)
   }
   const first = setTimeout(run, 5_000)
   const timer = setInterval(run, 30 * 60_000)
