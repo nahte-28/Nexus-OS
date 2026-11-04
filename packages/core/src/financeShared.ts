@@ -49,9 +49,3 @@ export function sharedTotals(s: FinanceState): { owedToMe: number; iOwe: number 
   return { owedToMe: all.reduce((n, b) => n + Math.max(0, b.balance), 0), iOwe: all.reduce((n, b) => n + Math.max(0, -b.balance), 0) }
 }
 
-/** The shared costs involving [friendId], newest first. */
-export function sharedWith(s: FinanceState, friendId: string): SharedExpense[] {
-  return alive(s.shared)
-    .filter((e) => e.paidBy === friendId || e.among.includes(friendId))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
-}

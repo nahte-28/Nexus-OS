@@ -202,6 +202,10 @@ describe('Financiën', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Remo terugbetaald' }))
     expect(screen.getByText('jullie staan quitte')).toBeTruthy()
+    // A wrong tap on Terugbetaald can be undone.
+    fireEvent.click(screen.getByRole('button', { name: 'Terugbetaling van Remo ongedaan maken' }))
+    expect(screen.getAllByText(/is je € 12,00 schuldig/)).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Remo terugbetaald' }))
     fireEvent.click(screen.getByRole('button', { name: 'Pizza verwijderen' }))
     // Your share goes with it.
     expect(financeStore.getSnapshot().transactions[0].deletedAt).not.toBeNull()

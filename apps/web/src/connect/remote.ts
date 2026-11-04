@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Device, DevicePlatform, Envelope } from '@nexus/core'
+import { LATER_MARK } from '@nexus/core'
 
 export interface ConnectMessage extends Envelope {
   id: string
@@ -171,7 +172,7 @@ export function createConnectRemote(client: SupabaseClient): ConnectRemote {
         .is('sent_at', null)
         .gt('at', new Date(Date.now() + KEEP_DUE_MS).toISOString())
         // A notice that comes again after Later (made by the database) stays.
-        .not('ref', 'like', '%~later%')
+        .not('ref', 'like', `%${LATER_MARK}%`)
       check(error)
       await this.addPushes!(pushes)
     },

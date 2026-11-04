@@ -244,11 +244,6 @@ export function addFriend(name: string, now = Date.now()): string | null {
   return id
 }
 
-export function renameFriend(id: string, name: string, now = Date.now()) {
-  const clean = name.trim().slice(0, 60)
-  if (clean) update((s) => ({ ...s, friends: edit(s.friends, id, (f) => ({ ...f, name: clean, updatedAt: now })) }))
-}
-
 /** Removes a friend; shared costs stay, so your own share in the transactions does not change. */
 export function removeFriend(id: string, now = Date.now()) {
   update((s) => ({ ...s, friends: edit(s.friends, id, (f) => ({ ...f, name: '', deletedAt: now, updatedAt: now })) }))

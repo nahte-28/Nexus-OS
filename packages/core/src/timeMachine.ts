@@ -271,11 +271,6 @@ export function setTmSettings(state: TimeMachineState, patch: Partial<TimeMachin
   return pruneSnapshots({ ...state, settings: { ...state.settings, ...patch } }, now)
 }
 
-/** What the policy would remove right now, to show before you save a stricter one. */
-export function prunedBy(state: TimeMachineState, patch: Partial<TimeMachineSettings>, now: number): number {
-  return state.snapshots.length - setTmSettings(state, patch, now).snapshots.length
-}
-
 // ---- One part ------------------------------------------------------------------------------
 
 /** One part of a scope that can be put back on its own. */

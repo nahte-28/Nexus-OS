@@ -6,8 +6,6 @@ export const THEMES: ReadonlyArray<{ id: ThemeId; label: string; description: st
   { id: 'pulse', label: 'NEXUS Pulse', description: 'Futuristisch commandocentrum met accenten.' },
 ]
 
-export const DEFAULT_THEME: ThemeId = 'focus'
-
 export function isThemeId(value: unknown): value is ThemeId {
   return value === 'focus' || value === 'pulse'
 }
