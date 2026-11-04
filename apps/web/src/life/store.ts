@@ -73,9 +73,13 @@ export class LifeStore implements LocalStore<LifeItem> {
     this.channel?.postMessage('changed')
   }
 
-  async addDeadline(draft: DeadlineDraft, now = Date.now()): Promise<string> {
-    const id = crypto.randomUUID()
-    await this.save({ ...draft, kind: 'deadline', id, doneAt: null, updatedAt: now, deletedAt: null })
+  /**
+   * [extra] is for copies made by NEXUS itself (the klasagenda): a fixed id and an old edit time,
+   * so a version that is already on the server always wins over this one.
+   */
+  async addDeadline(draft: DeadlineDraft, now = Date.now(), extra: { id?: string; doneAt?: number | null; updatedAt?: number } = {}): Promise<string> {
+    const id = extra.id ?? crypto.randomUUID()
+    await this.save({ ...draft, kind: 'deadline', id, doneAt: extra.doneAt ?? null, updatedAt: extra.updatedAt ?? now, deletedAt: null })
     return id
   }
 

@@ -147,4 +147,17 @@ describe('Teams', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Opslaan' })[0])
     await waitFor(() => expect(api.setClass).toHaveBeenCalledWith('g1', '1IT3', true))
   })
+
+  it('lets every member put the group deadlines in their own Agenda', async () => {
+    const { classAgendaStore } = await import('../study/classAgenda')
+    classAgendaStore.reset()
+    render(<Teams api={fake('member')} />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Instellingen' }))
+    const box = await screen.findByLabelText('Groepsdeadlines in mijn Agenda zetten')
+    expect((box as HTMLInputElement).checked).toBe(false)
+    fireEvent.click(box)
+    expect(classAgendaStore.getSnapshot().groups).toEqual({ g1: true })
+    fireEvent.click(box)
+    expect(classAgendaStore.getSnapshot().groups).toEqual({})
+  })
 })

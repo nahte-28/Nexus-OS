@@ -86,6 +86,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Koppelen gaat met een code die je op het andere toestel invult.',
       'Zonder gsm-app kan je in Chrome op je gsm webmeldingen aanzetten.',
+      'Een webmelding van een deadline heeft de knoppen Klaar en Later: Klaar vinkt de deadline af, Later toont de melding over een uur opnieuw.',
     ],
   },
   account: {
@@ -211,6 +212,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Eigenaar, beheerder, lid of kijker: bij Leden staat wat elke rol mag. Kijkers lezen alleen mee.',
       'Bij Uitnodigingen kopieer of deel je een uitnodiging als link; wie ze opent, heeft de code al ingevuld.',
       'Onder Teams van je klas vul je je klas in (bv. 1IT3) en sluit je aan bij teams die open staan voor je klas.',
+      'Klasagenda: de groepsdeadlines van een klasteam komen vanzelf in je Agenda, met herinneringen. Bij Instellingen zet je dat per team aan of uit.',
       'Een uitnodiging heeft een rol, vervalt na een uur tot 30 dagen en kan maar een aantal keer werken.',
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
     ],

@@ -83,6 +83,9 @@
       if (!identity || (data.to && data.to !== identity.deviceId)) return fallback
       var payload = await decrypt(identity, data)
       if (!payload || typeof payload.title !== 'string') return fallback
+      // Meldingsknoppen: Klaar and Later, with the token the pc put in the encrypted notice.
+      var token = typeof payload.actionToken === 'string' ? payload.actionToken : null
+      var actions = token && Array.isArray(payload.actions) ? payload.actions.filter(function (a) { return a === 'done' || a === 'later' }) : []
       return {
         title: payload.title.slice(0, 120),
         options: {
@@ -91,7 +94,8 @@
           badge: '/icon-192.png',
           tag: tag,
           timestamp: typeof payload.postedAt === 'number' ? payload.postedAt : Date.now(),
-          data: { url: '/' },
+          actions: actions.map(function (a) { return { action: a, title: a === 'done' ? 'Klaar' : 'Later' } }),
+          data: { url: '/', ref: tag, token: actions.length ? token : null },
         },
       }
     } catch (err) {
@@ -113,22 +117,44 @@
     )
   })
 
+  /** Opens NEXUS, or focuses it, at the record [ref] is about. */
+  function openNexus(ref) {
+    return sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {
+      for (var i = 0; i < windows.length; i++) {
+        if ('focus' in windows[i]) {
+          if (ref) windows[i].postMessage({ type: 'nexus-open', ref: ref })
+          return windows[i].focus()
+        }
+      }
+      return sw.clients.openWindow(ref ? '/?melding=' + encodeURIComponent(ref) : '/')
+    })
+  }
+
+  /** Klaar or Later: the database does it; when that fails, NEXUS opens so you can do it there. */
+  function sendAction(action, data) {
+    return fetch('/api/push-action', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ref: data.ref, token: data.token, action: action }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('mislukt')
+      })
+      .catch(function () {
+        return openNexus(data.ref)
+      })
+  }
+
   // The tag is the notification's ref (deadline:<id>@…); NEXUS opens the record it is about.
   sw.addEventListener('notificationclick', function (event) {
     event.notification.close()
-    var ref = typeof event.notification.tag === 'string' ? event.notification.tag : ''
-    event.waitUntil(
-      sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windows) {
-        for (var i = 0; i < windows.length; i++) {
-          if ('focus' in windows[i]) {
-            if (ref) windows[i].postMessage({ type: 'nexus-open', ref: ref })
-            return windows[i].focus()
-          }
-        }
-        return sw.clients.openWindow(ref ? '/?melding=' + encodeURIComponent(ref) : '/')
-      }),
-    )
+    var data = event.notification.data || {}
+    if ((event.action === 'done' || event.action === 'later') && typeof data.token === 'string' && typeof data.ref === 'string') {
+      event.waitUntil(sendAction(event.action, data))
+      return
+    }
+    event.waitUntil(openNexus(typeof event.notification.tag === 'string' ? event.notification.tag : ''))
   })
 
-  sw.nexusPush = { noticeFor: noticeFor }
+  sw.nexusPush = { noticeFor: noticeFor, sendAction: sendAction }
 })(self)
