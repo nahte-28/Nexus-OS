@@ -168,16 +168,16 @@ describe('App shell', () => {
     expect(screen.getByText(/NEXUS OS 1\.0/)).toBeTruthy()
   })
 
-  it('shows a blueprint module only once it is switched on', () => {
+  it('shows a blueprint module while it is on and hides it when switched off', () => {
     mockViewport(false)
     renderApp()
     const sidebar = screen.getByRole('navigation', { name: 'Apps' })
-    expect(within(sidebar).queryByRole('button', { name: 'Spaces' })).toBeNull()
+    expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Instellingen' })[0])
     fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
-    expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
     expect(within(sidebar).queryByRole('button', { name: 'Spaces' })).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
+    expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
   })
 
   it('switches theme and remembers it', () => {

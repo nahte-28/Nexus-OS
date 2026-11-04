@@ -8,7 +8,7 @@ export function ModuleSettings() {
   return (
     <fieldset className="space-y-2 border-t border-nx-border pt-4 text-sm">
       <legend className="mb-2 text-sm font-semibold text-nx-muted">Nieuwe modules</legend>
-      <p className="text-nx-muted">Modules die geen SQL-stap nodig hebben, staan standaard aan. De andere zet je zelf aan nadat je hun SQL uitvoerde (Account › Database-check). Uit betekent dat de module helemaal verdwijnt. Met een account gelden je keuzes op al je toestellen.</p>
+      <p className="text-nx-muted">Alle modules staan standaard aan, behalve de Developer Hub. Werkt een module niet, kijk dan in Account › Database-check of haar SQL is uitgevoerd. Uit betekent dat de module helemaal verdwijnt. Met een account gelden je keuzes op al je toestellen.</p>
       <ul className="space-y-2">
         {FEATURES.map((f) => (
           <li key={f.id}>

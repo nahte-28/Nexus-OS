@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const { Files } = await import('./Files')
+const { setFeature } = await import('../features/store')
+// These tests cover plain Bestanden; Vault (on by default) has its own tests.
+setFeature('vault', false)
 
 describe('Bestanden', () => {
   afterEach(cleanup)

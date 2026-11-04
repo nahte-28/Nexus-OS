@@ -114,9 +114,9 @@ describe('module register', () => {
     expect(problems).toContain('Vault: gebruikt onbekende module zzz')
   })
 
-  it('turns on by default only modules without SQL that are not for developers', () => {
-    expect(STABLE_FEATURES.sort()).toEqual(['bridge', 'controlCenter', 'integration', 'intelligence', 'launcher', 'marketplace', 'offline', 'sentinel', 'timeMachine'])
-    for (const id of STABLE_FEATURES) expect(MODULES.find((m) => m.feature === id)?.schema, id).toBeNull()
+  it('turns every module on by default except the Developer Hub', () => {
+    expect(STABLE_FEATURES).not.toContain('devHub')
+    expect(STABLE_FEATURES.length).toBe(FEATURES.length - 1)
   })
 
   it('says which used modules are off', () => {
