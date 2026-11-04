@@ -6,7 +6,7 @@ import { cors, emailForToken, env, json } from './_shared.js'
  * Fetches a calendar link (.ics) for the logged-in user: the school calendar, a Google Agenda iCal
  * address or any other public calendar (Outlook, iCloud, a club). Browsers may not read those links
  * directly, so NEXUS asks here. Only https on the normal port, never to a bare IP address or a name
- * that points into a private network, and no redirects.
+ * that points into a private network, and every redirect is checked the same way.
  *
  * Vercel environment variables:
  *   NEXUS_CALENDAR_HOSTS   optional, comma-separated hosts; defaults to apih.ap.be (the AP intranet)
@@ -54,6 +54,46 @@ async function pointsOutside(url: string): Promise<boolean> {
   }
 }
 
+/** How many times a calendar link may send NEXUS on to another address (iCloud and Outlook do this). */
+const MAX_REDIRECTS = 5
+/** Big calendars (Outlook, years of Google history) can take a while. */
+const TIMEOUT_MS = 20_000
+
+type Fetch = typeof fetch
+
+/**
+ * Fetches the calendar behind [url], following redirects by hand so every next address is checked
+ * like the first: public https only, never into a private network. The text, or an error in Dutch.
+ */
+export async function fetchCalendar(url: string, checkFirst: boolean, doFetch: Fetch = fetch, outside: (url: string) => Promise<boolean> = pointsOutside): Promise<string | { status: number; error: string }> {
+  const signal = AbortSignal.timeout(TIMEOUT_MS)
+  let at = url
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if ((hop > 0 || checkFirst) && !(await outside(at))) return { status: 400, error: 'Deze agendalink wijst niet naar een openbare website.' }
+    let response: Response
+    try {
+      response = await doFetch(at, { redirect: 'manual', signal, headers: { accept: 'text/calendar, text/plain;q=0.9, */*;q=0.5', 'user-agent': 'NEXUS-OS-Agenda/1.0' } })
+    } catch (err) {
+      const timeout = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')
+      return { status: 502, error: timeout ? 'De agenda deed er te lang over om te antwoorden. Probeer het later opnieuw.' : 'De agenda reageert niet. Klopt de link, en is de agenda openbaar of gedeeld?' }
+    }
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      const next = location ? publicUrl(new URL(location, at).href) : null
+      if (!next) return { status: 502, error: 'De agenda stuurt door naar een adres dat NEXUS niet mag openen.' }
+      at = next
+      continue
+    }
+    if (!response.ok) return { status: 502, error: `De agenda gaf een fout (${response.status}). Klopt de link nog, en is de agenda openbaar of gedeeld?` }
+    try {
+      return await response.text()
+    } catch {
+      return { status: 502, error: 'De agenda deed er te lang over om te antwoorden. Probeer het later opnieuw.' }
+    }
+  }
+  return { status: 502, error: 'De agenda stuurt te vaak door.' }
+}
+
 export function allowedUrl(text: unknown, hosts: string[]): string | null {
   if (typeof text !== 'string') return null
   let url: URL
@@ -93,16 +133,10 @@ export async function POST(request: Request): Promise<Response> {
   const known = allowedUrl(body.url, [...hosts, GOOGLE_HOST])
   const url = known ?? publicUrl(body.url)
   if (!url) return json(request, 400, 'Dit is geen agendalink die NEXUS kan lezen. Gebruik een https- of webcal-link naar een agenda (.ics).')
-  if (!known && !(await pointsOutside(url))) return json(request, 400, 'Deze agendalink wijst niet naar een openbare website.')
 
-  let text: string
-  try {
-    const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(8000), headers: { accept: 'text/calendar' } })
-    if (!response.ok) return json(request, 502, `De agenda gaf een fout (${response.status}). Klopt de link nog?`)
-    text = await response.text()
-  } catch {
-    return json(request, 502, 'De agenda reageert niet. Probeer het later opnieuw.')
-  }
+  const got = await fetchCalendar(url, !known)
+  if (typeof got !== 'string') return json(request, got.status, got.error)
+  const text = got
   if (text.length > MAX_BYTES || !text.includes('BEGIN:VCALENDAR')) return json(request, 502, 'Deze link geeft geen agenda terug.')
   return new Response(text, { status: 200, headers: { 'content-type': 'text/calendar; charset=utf-8', 'cache-control': 'no-store', ...cors(request) } })
 }
