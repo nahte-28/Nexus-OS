@@ -67,11 +67,6 @@ export function togglePin(s: LauncherState, r: LauncherRef | SearchResult): Laun
   return { ...s, pinned: [...s.pinned, ref].slice(-MAX_PINNED) }
 }
 
-/** Leaves out what no longer exists (a deleted note, an app hidden in this profile). */
-export function stillThere(refs: LauncherRef[], exists: (r: LauncherRef) => boolean): LauncherRef[] {
-  return refs.filter(exists)
-}
-
 // Settings pages ------------------------------------------------------------------------------------
 
 /** The places where settings live, so "thema" or "back-up" finds them. */

@@ -6,8 +6,6 @@
 
 export type CaptureKind = 'note' | 'deadline' | 'reminder'
 
-export const CAPTURE_KIND_LABELS: Record<CaptureKind, string> = { note: 'Notitie', deadline: 'Deadline', reminder: 'Herinnering' }
-
 export interface Capture {
   kind: CaptureKind
   /** First line, without the date words. */

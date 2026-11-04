@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeEvent, toEvent } from './events'
-import { FEATURES } from './features'
+import { FEATURES, STABLE_FEATURES } from './features'
 import { emptyFinance, type FinanceState, type RecurringItem, type Subscription } from './finance'
 import { eventChains, eventCounts, monthGrid, paymentCalendar, platformHealth, relatedTo, type RelatedInput } from './integration'
 import type { LifeItem } from './life'
@@ -114,8 +114,13 @@ describe('module register', () => {
     expect(problems).toContain('Vault: gebruikt onbekende module zzz')
   })
 
+  it('turns on by default only modules without SQL that are not for developers', () => {
+    expect(STABLE_FEATURES.sort()).toEqual(['bridge', 'controlCenter', 'integration', 'intelligence', 'launcher', 'marketplace', 'offline', 'sentinel', 'timeMachine'])
+    for (const id of STABLE_FEATURES) expect(MODULES.find((m) => m.feature === id)?.schema, id).toBeNull()
+  })
+
   it('says which used modules are off', () => {
-    const marketplace = moduleStatus({ marketplace: true }).find((m) => m.manifest.feature === 'marketplace')!
+    const marketplace = moduleStatus({ marketplace: true, devHub: false }).find((m) => m.manifest.feature === 'marketplace')!
     expect(marketplace).toMatchObject({ on: true, missingUses: ['devHub'] })
   })
 })

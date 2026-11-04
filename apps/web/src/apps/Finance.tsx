@@ -62,6 +62,7 @@ import {
   removeBudget,
   removeContribution,
   removeFriend,
+  removeSettlement,
   removeShared,
   removeRecurring,
   removeGoal,
@@ -1541,6 +1542,9 @@ function Shared({ openAt }: { openAt: number }) {
   const recent = alive(state.shared)
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
     .slice(0, 30)
+  const settled = alive(state.settlements)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updatedAt)
+    .slice(0, 10)
 
   return (
     <>
@@ -1621,6 +1625,24 @@ function Shared({ openAt }: { openAt: number }) {
           ))}
         </ul>
       </Section>
+      {settled.length > 0 && (
+        <Section title="Terugbetalingen">
+          <ul className="space-y-1">
+            {settled.map((t) => (
+              <li key={t.id} className="flex items-center gap-2 border-b border-nx-border py-1.5 last:border-0">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{t.amount > 0 ? `${who(t.friendId)} betaalde je terug` : `jij betaalde ${who(t.friendId)} terug`}</span>
+                  <span className="block text-xs text-nx-muted">{dayLabel(t.date)}</span>
+                </span>
+                <span className="shrink-0 text-xs tabular-nums">{money(Math.abs(t.amount))}</span>
+                <button type="button" className={smallButton} aria-label={`Terugbetaling van ${who(t.friendId)} ongedaan maken`} onClick={() => removeSettlement(t.id)}>
+                  Ongedaan maken
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </>
   )
 }

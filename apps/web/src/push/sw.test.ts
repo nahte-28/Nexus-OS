@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { encryptFor, exportPublicKey, generateDeviceKeyPair } from '@nexus/core'
+import { encryptFor, exportPublicKey, generateDeviceKeyPair, PUSH_ACTION_LABELS } from '@nexus/core'
 import { update } from '../state/db'
 
 interface Notice {
@@ -62,7 +62,7 @@ describe('meldingsknoppen in the service worker', () => {
     const payload = { v: 1, app: 'nexus', appName: 'NEXUS', kind: 'notification', title: 'Verslag', postedAt: 5, ref, actions: ['done', 'later', 'wis'], actionToken: 'abcdefghijklmnopqrstuvwxyz012345' }
     const envelope = await encryptFor(identity.publicKey, 'gsm', JSON.stringify(payload))
     const notice = await loadWorker().self.nexusPush.noticeFor({ ...envelope, ref, to: 'gsm' })
-    expect(notice.options).toMatchObject({ actions: [{ action: 'done', title: 'Klaar' }, { action: 'later', title: 'Later' }], data: { ref, token: 'abcdefghijklmnopqrstuvwxyz012345' } })
+    expect(notice.options).toMatchObject({ actions: [{ action: 'done', title: PUSH_ACTION_LABELS.done }, { action: 'later', title: PUSH_ACTION_LABELS.later }], data: { ref, token: 'abcdefghijklmnopqrstuvwxyz012345' } })
   })
 
   it('sends a tapped button to the server, and opens NEXUS when that fails', async () => {

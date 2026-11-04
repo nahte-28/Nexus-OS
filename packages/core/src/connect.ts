@@ -146,10 +146,6 @@ export function trimInbox(items: InboxItem[], max: number): InboxItem[] {
   return sorted.slice(0, max)
 }
 
-export function activeDevices(devices: Device[]): Device[] {
-  return devices.filter((d) => d.revokedAt === null)
-}
-
 export const PLATFORM_LABELS: Record<DevicePlatform, string> = {
   web: 'Webbrowser',
   android: 'Android',

@@ -64,8 +64,6 @@ export const MODULES: ModuleManifest[] = [
   m('integration', null, { uses: ['inbox', 'projectHub', 'vault', 'devHub'] }),
 ]
 
-export const moduleOf = (feature: FeatureId) => MODULES.find((x) => x.feature === feature) ?? null
-
 /**
  * What is wrong with the register: a switch without a manifest, an app that does not exist, a
  * module it uses that is unknown, or a SQL file the Database-check does not list.
