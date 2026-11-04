@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { useSyncExternalStore } from 'react'
 import { logEvent } from '../devtools/log'
 import { lifeStore, type LifeStore } from '../life/store'
+import { profilesStore } from '../profiles/store'
 import { Teams } from '../teams/teams'
 import { groupError, StudyGroups } from './group'
 
@@ -36,26 +37,48 @@ function write(next: Stored): void {
   } catch {
     // Full or blocked storage: the klasagenda still works, it only forgets what it saw.
   }
-  for (const l of listeners) l()
+  refresh()
 }
 
-/** Your klasagenda choices on this device. */
+// Choices made on this device before they travelled with the profiles: take them over once.
+if (Object.keys(stored.groups).length > 0 && Object.keys(profilesStore.getSnapshot().state.classAgenda).length === 0) {
+  const old = stored.groups
+  profilesStore.update((s) => ({ ...s, classAgenda: old }))
+}
+
+/** Your choices per team travel with your profiles; what this device saw stays here. */
+let snapshot: ClassAgendaState = { groups: profilesStore.getSnapshot().state.classAgenda, seen: stored.seen }
+const refresh = () => {
+  const groups = profilesStore.getSnapshot().state.classAgenda
+  if (groups === snapshot.groups && stored.seen === snapshot.seen) return
+  snapshot = { groups, seen: stored.seen }
+  for (const l of listeners) l()
+}
+profilesStore.subscribe(() => {
+  const before = snapshot.groups
+  refresh()
+  if (snapshot.groups !== before) kick?.()
+})
+
+/** Your klasagenda: the choices per team (on every device) and what this device saw. */
 export const classAgendaStore = {
-  getSnapshot: (): ClassAgendaState => stored,
+  getSnapshot: (): ClassAgendaState => snapshot,
   subscribe(listener: () => void): () => void {
     listeners.add(listener)
     return () => listeners.delete(listener)
   },
   /** Switches the klasagenda of one team on or off; null follows the class again. */
   setGroup(groupId: string, on: boolean | null): void {
-    const groups = { ...stored.groups }
-    if (on === null) delete groups[groupId]
-    else groups[groupId] = on
-    write({ ...stored, groups })
-    kick?.()
+    profilesStore.update((s) => {
+      const classAgenda = { ...s.classAgenda }
+      if (on === null) delete classAgenda[groupId]
+      else classAgenda[groupId] = on
+      return { ...s, classAgenda }
+    })
   },
   /** For tests. */
   reset(): void {
+    profilesStore.update((s) => ({ ...s, classAgenda: {} }))
     write({ user: null, ...emptyClassAgenda() })
   },
 }
@@ -92,7 +115,7 @@ export async function syncClassAgenda(client: SupabaseClient, life: LifeStore = 
   for (const t of tasks.data as TaskRow[]) byGroup[t.group_id]?.push({ id: t.id, groupId: t.group_id, createdBy: t.created_by, title: t.title, dueAt: Number(t.due_at), doneBy: mine.has(t.id) ? [me] : [] })
   const ids = [...new Set([...Object.values(byGroup).flat().map((t) => t.id), ...Object.keys(stored.seen)])]
   const copyIdOf = Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await classCopyId(me, id)] as const)))
-  const plan = planClassAgenda({ groups, tasks: byGroup, life: life.all(), me, copyIdOf, state: stored, now })
+  const plan = planClassAgenda({ groups, tasks: byGroup, life: life.all(), me, copyIdOf, state: { groups: snapshot.groups, seen: stored.seen }, now })
 
   for (const a of plan.add) await life.addDeadline({ title: a.title, dueAt: a.dueAt, projectId: null, notes: a.notes, remind: DEFAULT_REMIND, target: 'phone' }, now, { id: a.id, doneAt: a.done ? now : null, updatedAt: 1 })
   for (const u of plan.update) {

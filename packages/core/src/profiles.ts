@@ -6,6 +6,7 @@ import { parseLayout, type WidgetLayout } from './dashboardLayout'
 import { CALENDAR_HOSTS, isCalendarEvent, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
+import { parseSwitches, type FeatureSwitches } from './features'
 
 export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
 /** Accent colours a profile can use instead of its theme's own; null keeps the theme's. */
@@ -155,6 +156,10 @@ export interface ProfilesState {
   agenda: AgendaRule
   /** Your class, e.g. 1IT3; Teams shows the teams open to it. Empty when not set. */
   klas: string
+  /** Instellingen › Nieuwe modules: your switches, the same on every device. */
+  features: FeatureSwitches
+  /** Klasagenda: your choice per team (on or off); a team without a choice follows its class. */
+  classAgenda: Record<string, boolean>
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -256,6 +261,8 @@ export function defaultProfilesState(): ProfilesState {
     dagstart: parseDagstart(null),
     agenda: { ...DEFAULT_AGENDA },
     klas: '',
+    features: {},
+    classAgenda: {},
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -496,8 +503,21 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
     merged = { ...merged, googleUrl: other.googleUrl, googleEvents: other.googleEvents, googleSyncedAt: other.googleSyncedAt }
   }
   if (base.lessons.length === 0 && other.lessons.length > 0) merged = { ...merged, lessons: other.lessons }
+  // Switches set on only one of the two devices so far are kept; where both chose, the newer copy wins.
+  const features = { ...other.features, ...base.features }
+  if (Object.keys(features).length !== Object.keys(base.features).length) merged = { ...merged, features }
+  const classAgenda = { ...other.classAgenda, ...base.classAgenda }
+  if (Object.keys(classAgenda).length !== Object.keys(base.classAgenda).length) merged = { ...merged, classAgenda }
   if (merged === remote) return remote
   return { ...merged, revision: Math.max(local.revision, remote.revision) + 1 }
+}
+
+/** On/off choices keyed by id (team ids), at most 200. */
+function parseChoices(raw: unknown): Record<string, boolean> {
+  const out: Record<string, boolean> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, 200)) if (typeof v === 'boolean' && k.length <= 64) out[k] = v
+  return out
 }
 
 /** Keeps the newer of two copies (from this device and another one) without ping-pong. */
@@ -664,6 +684,8 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     dagstart: parseDagstart(r.dagstart),
     agenda: parseAgendaRule(r.agenda),
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',
+    features: parseSwitches(r.features),
+    classAgenda: parseChoices(r.classAgenda),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }
