@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { briefingLines, buildBriefing, logBriefing, mergeBriefing, parseBriefing, unsorted, type BriefingChannel, type BriefingInput, type BriefingState, type DagstartExtra } from '@nexus/core'
+import { briefingLines, linkedEvents, buildBriefing, logBriefing, mergeBriefing, parseBriefing, unsorted, type BriefingChannel, type BriefingInput, type BriefingState, type DagstartExtra } from '@nexus/core'
 import { capturesStore } from '../capture/hub'
 import { isFeatureOn } from '../features/store'
 import { habitsStore } from '../habits/store'
@@ -23,7 +23,7 @@ export function briefingInput(): BriefingInput {
   const { state } = profilesStore.getSnapshot()
   return {
     calendarEvents: state.calendarEvents,
-    googleEvents: state.googleEvents,
+    googleEvents: linkedEvents(state),
     timetable: state.lessons,
     items: lifeStore.getSnapshot(),
     reminders: remindersStore.getSnapshot(),

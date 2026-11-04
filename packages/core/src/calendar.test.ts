@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calendarUrl, googleCalendarUrl, nextCalendarEvent, parseIcs } from './calendar'
+import { calendarUrl, icsUrl, googleCalendarUrl, nextCalendarEvent, parseIcs } from './calendar'
 
 const ics = [
   'BEGIN:VCALENDAR',
@@ -101,5 +101,13 @@ describe('repeating events', () => {
       '07-31',
       '08-31',
     ])
+  })
+})
+
+describe('icsUrl', () => {
+  it('takes public https and webcal links, not local ones', () => {
+    expect(icsUrl(' webcal://club.example.be/a.ics ')).toBe('https://club.example.be/a.ics')
+    for (const bad of ['http://club.example.be/a.ics', 'https://10.0.0.1/a.ics', 'https://[::1]/a.ics', 'https://nas.local/a.ics', 'https://intranet/a.ics', 'ftp://x.example/a.ics'])
+      expect(icsUrl(bad)).toBeNull()
   })
 })

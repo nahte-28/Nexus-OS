@@ -42,6 +42,28 @@ export function googleCalendarUrl(text: string): string | null {
   return pathname.startsWith('/calendar/ical/') && pathname.endsWith('.ics') ? url : null
 }
 
+/** At most this many other calendars besides the school calendar and Google Agenda. */
+export const MAX_EXTRA_CALENDARS = 10
+
+/**
+ * The link if it is any public https (or webcal) calendar address: Outlook, iCloud, a sports club,
+ * a public holiday list. No passwords, ports, bare IP addresses or local names; the server checks
+ * once more where the name points before it fetches.
+ */
+export function icsUrl(text: string): string | null {
+  let url: URL
+  try {
+    url = new URL(text.trim().replace(/^webcal:/i, 'https:'))
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'https:' || url.username || url.password || url.port) return null
+  const host = url.hostname.toLowerCase()
+  if (!host.includes('.') || host.startsWith('[') || /^[\d.]+$/.test(host)) return null
+  if (host === 'localhost' || /\.(localhost|local|internal|lan|home|arpa)$/.test(host)) return null
+  return url.href.length <= 500 ? url.href : null
+}
+
 /** UTC milliseconds of a wall-clock time in [timeZone]; correct across summer and winter time. */
 function zonedTime(y: number, mo: number, d: number, h: number, mi: number, s: number, timeZone: string): number {
   const guess = Date.UTC(y, mo - 1, d, h, mi, s)

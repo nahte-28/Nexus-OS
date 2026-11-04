@@ -98,7 +98,7 @@ export function Tour({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
     {
       title: 'Lesrooster en profielen',
       text: 'Plak in Profielen de link "Koppel agenda" van het AP-intranet of je Google Agenda. School Mode gaat dan vanzelf aan tijdens de lessen.',
-      done: profiles.calendarUrl !== '' || profiles.googleUrl !== '',
+      done: profiles.calendarUrl !== '' || profiles.googleUrl !== '' || profiles.extraCalendars.length > 0,
       action: { label: 'Profielen openen', run: () => go('profiles') },
     },
     { title: 'Klaar', text: 'Zoek alles met Ctrl+K, maak snel een notitie met Alt+N en bewaar af en toe een back-up in Instellingen. Deze rondleiding vind je ook terug in Instellingen.' },

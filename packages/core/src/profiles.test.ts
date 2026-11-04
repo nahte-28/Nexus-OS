@@ -10,6 +10,7 @@ import {
   activeProfile,
   chooseProfile,
   defaultProfilesState,
+  linkedEvents,
   isWindowOpen,
   mergeFirstSync,
   moveItem,
@@ -200,6 +201,18 @@ describe('next lesson', () => {
     expect(merged.features).toEqual({ teams: true, bridge: false, vault: true })
     expect(merged.classAgenda).toEqual({ g1: false, g2: true })
     expect(parseProfilesState({ ...pc, features: { teams: 'ja', nope: true, vault: false }, classAgenda: { g: 1, h: true } })).toMatchObject({ features: { vault: false }, classAgenda: { h: true } })
+  })
+
+  it('keeps other calendar links from both devices and drops bad ones', () => {
+    const club = { id: 'c1', name: 'Voetbal', url: 'https://club.example.be/a.ics' }
+    const work = { id: 'c2', name: 'Werk', url: 'https://outlook.office365.com/x/calendar.ics' }
+    const pc = { ...defaultProfilesState(), extraCalendars: [club], revision: 9 }
+    const phone = { ...defaultProfilesState(), extraCalendars: [{ ...club, id: 'other' }, work], revision: 4 }
+    expect(mergeFirstSync(pc, phone).extraCalendars).toEqual([club, work])
+    const parsed = parseProfilesState({ ...pc, extraCalendars: [club, { id: 'x', name: 'Thuis', url: 'https://nas.local/a.ics' }, { id: 'c1', name: 'dubbel', url: club.url }], extraEvents: { c1: { events: [{ start: 1, end: 2, subject: 'Match' }], syncedAt: 5 }, c9: 'nee' } })
+    expect(parsed.extraCalendars).toEqual([club])
+    expect(parsed.extraEvents).toEqual({ c1: { events: [{ start: 1, end: 2, subject: 'Match' }], syncedAt: 5 } })
+    expect(linkedEvents(parsed)).toEqual([{ start: 1, end: 2, subject: 'Match', room: 'Voetbal' }])
   })
 
   it('returns to the profile picked before school, not the default', () => {

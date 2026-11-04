@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { defaultProfilesState } from '@nexus/core'
-import { syncCalendar, syncGoogle } from './calendar'
+import { defaultProfilesState, linkedEvents } from '@nexus/core'
+import { removeExtra, syncCalendar, syncExtra, syncGoogle } from './calendar'
 import { ProfilesStore } from './store'
 
 const NOW = Date.parse('2026-10-20T07:00:00Z')
@@ -41,5 +41,34 @@ describe('school calendar sync', () => {
     const { state } = store.getSnapshot()
     expect(state).toMatchObject({ googleUrl: google, googleSyncedAt: NOW, calendarEvents: [] })
     expect(state.googleEvents.map((e) => e.subject)).toEqual(['Tandarts'])
+  })
+})
+
+describe('other calendars', () => {
+  const deps = (body = ICS) => ({ fetch: vi.fn(async () => new Response(body.replace('Networking', 'Training'))), token: async () => 'token', now: () => NOW })
+
+  it('adds a calendar with its name, refreshes it in place and unlinks it', async () => {
+    const store = new ProfilesStore(() => NOW, defaultProfilesState())
+    const d = deps()
+    expect(await syncExtra('webcal://club.example.be/agenda.ics', 'Voetbal', 'c1', store, d)).toBeNull()
+    expect(d.fetch).toHaveBeenCalledWith('/api/calendar', expect.objectContaining({ body: JSON.stringify({ url: 'https://club.example.be/agenda.ics' }) }))
+    let { state } = store.getSnapshot()
+    expect(state.extraCalendars).toEqual([{ id: 'c1', name: 'Voetbal', url: 'https://club.example.be/agenda.ics' }])
+    expect(linkedEvents(state)).toEqual([expect.objectContaining({ subject: 'Training', room: 'Voetbal' })])
+    expect(await syncExtra('https://club.example.be/agenda.ics', 'Voetbal', 'c1', store, d)).toBeNull()
+    expect(store.getSnapshot().state.extraCalendars).toHaveLength(1)
+    expect(await syncExtra('https://club.example.be/agenda.ics', 'Nog eens', 'c2', store, d)).toMatch(/al gekoppeld/)
+    removeExtra('c1', store)
+    ;({ state } = store.getSnapshot())
+    expect(state.extraCalendars).toEqual([])
+    expect(state.extraEvents).toEqual({})
+  })
+
+  it('refuses local and IP addresses before asking the server', async () => {
+    const store = new ProfilesStore(() => NOW, defaultProfilesState())
+    const d = deps()
+    for (const bad of ['http://club.example.be/a.ics', 'https://192.168.1.10/a.ics', 'https://localhost/a.ics', 'https://nas.local/a.ics', 'https://user:pw@club.example.be/a.ics'])
+      expect(await syncExtra(bad, 'x', 'c1', store, d)).toMatch(/geen agendalink/)
+    expect(d.fetch).not.toHaveBeenCalled()
   })
 })

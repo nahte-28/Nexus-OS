@@ -23,7 +23,7 @@ import {
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { fetchProfilesServerView, type ProfilesServerView } from '../flows/sync'
-import { syncCalendar, syncGoogle } from '../profiles/calendar'
+import { removeExtra, syncCalendar, syncExtra, syncGoogle } from '../profiles/calendar'
 import { chooseFor, profilesStore, useProfileHistory, useProfiles, type ChoiceDuration } from '../profiles/store'
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
 import { ACCENTS } from '../theme/accents'
@@ -268,6 +268,7 @@ function Timetable() {
 
       <CalendarLink />
       <GoogleLink />
+      <ExtraCalendars />
 
       <form
         className="space-y-2 border-t border-nx-border pt-4"
@@ -411,6 +412,91 @@ function GoogleLink() {
         </p>
       )}
     </form>
+  )
+}
+
+/** Other calendar links (Outlook, iCloud, a club, a holiday list): their events show in the Agenda too. */
+function ExtraCalendars() {
+  const { state } = useProfiles()
+  const [name, setName] = useState('')
+  const [link, setLink] = useState('')
+  const [busy, setBusy] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const when = (at: number) => new Date(at).toLocaleString('nl-BE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  return (
+    <section aria-label="Andere agenda's" className="space-y-2 border-t border-nx-border pt-4">
+      <h3 className="font-medium">Andere agenda's</h3>
+      <p className="text-nx-muted">
+        Koppel nog meer agenda's met hun iCal-link (https:// of webcal://, vaak eindigend op .ics): Outlook ("Agenda publiceren", de ICS-link),
+        iCloud (agenda delen als openbare agenda), je sportclub of een lijst met feestdagen. Hun afspraken verschijnen in de Agenda en de
+        Studieplanner plant eromheen. NEXUS leest alleen; een geheime link deel je met niemand.
+      </p>
+      {state.extraCalendars.length > 0 && (
+        <ul className="space-y-1">
+          {state.extraCalendars.map((c) => {
+            const got = state.extraEvents[c.id]
+            return (
+              <li key={c.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
+                <span className="font-medium">{c.name}</span>
+                <span className="text-nx-muted">{got ? `${got.events.length} afspraken, bijgewerkt ${when(got.syncedAt)}` : 'nog niet opgehaald'}</span>
+                <span className="ml-auto flex gap-2">
+                  <button
+                    type="button"
+                    className={button}
+                    disabled={busy !== null}
+                    onClick={() => {
+                      setBusy(c.id)
+                      setMessage(null)
+                      void syncExtra(c.url, c.name, c.id).then((error) => {
+                        setBusy(null)
+                        setMessage(error ?? `${c.name} is bijgewerkt.`)
+                      })
+                    }}
+                  >
+                    {busy === c.id ? 'Ophalen...' : 'Bijwerken'}
+                  </button>
+                  <button type="button" className={button} aria-label={`${c.name} ontkoppelen`} onClick={() => removeExtra(c.id)}>
+                    Ontkoppelen
+                  </button>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <form
+        aria-label="Agenda toevoegen"
+        className="space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          setBusy('new')
+          setMessage(null)
+          void syncExtra(link, name).then((error) => {
+            setBusy(null)
+            setMessage(error ?? 'De agenda is gekoppeld.')
+            if (!error) {
+              setName('')
+              setLink('')
+            }
+          })
+        }}
+      >
+        <div className="flex flex-wrap gap-2">
+          <label className="flex flex-col gap-1">
+            Naam
+            <input className={field} value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="Bv. Werk of Voetbal" />
+          </label>
+          <label className="flex min-w-0 flex-1 flex-col gap-1">
+            Agendalink
+            <input type="url" className={field} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://... .ics of webcal://..." />
+          </label>
+        </div>
+        <button type="submit" className={primaryButton} disabled={busy !== null || !link.trim()}>
+          {busy === 'new' ? 'Ophalen...' : 'Agenda toevoegen'}
+        </button>
+      </form>
+      {message && <p role="status">{message}</p>}
+    </section>
   )
 }
 
