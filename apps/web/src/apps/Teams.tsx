@@ -686,7 +686,7 @@ function ClassAgendaToggle({ team }: { team: StudyGroup }) {
       </label>
       <p className="text-xs text-nx-muted">
         {team.klas ? `Dit is een klasteam (${team.klas}), dus dit staat standaard aan.` : 'Voor teams zonder klas staat dit standaard uit.'} Ze komen in je Agenda met de gewone herinneringen; vink je er een af, dan staat hij ook hier als klaar. Een deadline die je uit je Agenda verwijdert, komt niet terug.
-        {chosen && ' Dit is jouw keuze op dit apparaat.'}
+        {chosen && ' Je keuze geldt op al je toestellen.'}
       </p>
     </div>
   )

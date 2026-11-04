@@ -193,6 +193,15 @@ describe('next lesson', () => {
     expect(mergeFirstSync({ ...defaultProfilesState(), revision: 1 }, browser)).toBe(browser)
   })
 
+  it('keeps module switches and klasagenda choices on every device, merging them on the first sync', () => {
+    const pc = { ...defaultProfilesState(), features: { teams: true, bridge: false }, classAgenda: { g1: false }, revision: 9 }
+    const phone = { ...defaultProfilesState(), features: { teams: false, vault: true }, classAgenda: { g2: true }, revision: 4 }
+    const merged = mergeFirstSync(pc, phone)
+    expect(merged.features).toEqual({ teams: true, bridge: false, vault: true })
+    expect(merged.classAgenda).toEqual({ g1: false, g2: true })
+    expect(parseProfilesState({ ...pc, features: { teams: 'ja', nope: true, vault: false }, classAgenda: { g: 1, h: true } })).toMatchObject({ features: { vault: false }, classAgenda: { h: true } })
+  })
+
   it('returns to the profile picked before school, not the default', () => {
     // Monday 07:30: Gaming by hand, before the window opens.
     let s = chooseProfile(state(), 'gaming', at('2026-10-19T07:30:00+02:00'))
