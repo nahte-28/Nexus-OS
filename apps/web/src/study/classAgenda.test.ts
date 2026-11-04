@@ -1,9 +1,9 @@
 import { classCopyId } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { lifeStore } = await import('../life/store')
-const { classAgendaStore, syncClassAgenda } = await import('./classAgenda')
+const { classAgendaStore, startClassAgenda, syncClassAgenda } = await import('./classAgenda')
 
 const ME = 'me-1'
 const DAY = 86_400_000
@@ -85,5 +85,33 @@ describe('klasagenda op Supabase', () => {
     await lifeStore.remove(await classCopyId(ME, 't1'))
     await syncClassAgenda(client, lifeStore, now)
     expect(lifeStore.getSnapshot()).toEqual([])
+  })
+
+  it('listens live while Teams is on and syncs right after a change', async () => {
+    const now = Date.now()
+    const tables = {
+      study_groups: [{ id: 'g1', name: 'Klas', invite_code: 'A', created_by: 'x', klas: '1IT3', class_open: false }],
+      study_group_tasks: [] as Array<Record<string, unknown>>,
+      study_group_task_done: [],
+    }
+    const handlers: Array<() => void> = []
+    const channel = { on: (_e: string, _f: unknown, cb: () => void) => (handlers.push(cb), channel), subscribe: () => channel }
+    const removeChannel = vi.fn(async () => 'ok')
+    const client = Object.assign(fakeClient(tables), {
+      channel: vi.fn(() => channel),
+      removeChannel,
+      auth: { getSession: async () => ({ data: { session: { user: { id: ME } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+    }) as unknown as SupabaseClient
+    let on = true
+    const listeners = new Set<() => void>()
+    const stop = startClassAgenda(client, () => on, (l) => (listeners.add(l), () => listeners.delete(l)), lifeStore)
+    expect(handlers).toHaveLength(3)
+    tables.study_group_tasks.push({ id: 't1', group_id: 'g1', created_by: 'x', title: 'Live', due_at: now + DAY })
+    handlers[0]()
+    await vi.waitFor(() => expect(lifeStore.getSnapshot().map((i) => i.kind === 'deadline' && i.title)).toEqual(['Live']), { timeout: 3000 })
+    on = false
+    for (const l of listeners) l()
+    expect(removeChannel).toHaveBeenCalled()
+    stop()
   })
 })

@@ -7,8 +7,11 @@ import { Teams } from '../teams/teams'
 import { groupError, StudyGroups } from './group'
 
 const KEY = 'nexus.classagenda'
-const POLL_MS = 5 * 60_000
+/** A safety net: live updates bring changes at once, the poll catches what they missed. */
+const POLL_MS = 15 * 60_000
 const DEBOUNCE_MS = 3000
+/** Live changes come in bursts (a deadline and who is done); wait a moment and take them together. */
+const LIVE_DEBOUNCE_MS = 1000
 
 interface Stored extends ClassAgendaState {
   user: string | null
@@ -103,8 +106,9 @@ export async function syncClassAgenda(client: SupabaseClient, life: LifeStore = 
 }
 
 /**
- * Keeps the klasagenda up to date while NEXUS runs: after signing in, every few minutes, and soon
- * after you tick something off in the Agenda. Only while the Teams module is on.
+ * Keeps the klasagenda up to date while NEXUS runs: live when a group deadline changes, after
+ * signing in, soon after you tick something off in the Agenda, and every 15 minutes as a safety
+ * net. Only while the Teams module is on.
  */
 export function startClassAgenda(client: SupabaseClient | null, enabled: () => boolean, onFeatures: (l: () => void) => () => void, life: LifeStore = lifeStore): () => void {
   if (!client) return () => {}
@@ -134,14 +138,31 @@ export function startClassAgenda(client: SupabaseClient | null, enabled: () => b
       }
     }
   }
-  const schedule = () => {
+  const schedule = (wait = DEBOUNCE_MS) => {
     clearTimeout(timer)
-    timer = setTimeout(() => void run(), DEBOUNCE_MS)
+    timer = setTimeout(() => void run(), wait)
   }
-  kick = schedule
+  kick = () => schedule()
+  // Live: row level security sends only changes in your own teams, and only while the module is on.
+  let channel: ReturnType<SupabaseClient['channel']> | null = null
+  const live = () => {
+    if (enabled() && !channel) {
+      channel = client.channel('nexus-klasagenda')
+      for (const table of ['study_group_tasks', 'study_group_task_done', 'study_group_members'])
+        channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => schedule(LIVE_DEBOUNCE_MS))
+      channel.subscribe()
+    } else if (!enabled() && channel) {
+      void client.removeChannel(channel)
+      channel = null
+    }
+  }
+  live()
   const poll = setInterval(() => void run(), POLL_MS)
-  const unsubscribeLife = life.subscribe(schedule)
-  const unsubscribeFeatures = onFeatures(schedule)
+  const unsubscribeLife = life.subscribe(() => schedule())
+  const unsubscribeFeatures = onFeatures(() => {
+    live()
+    schedule()
+  })
   const { data } = client.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_IN') schedule()
     if (event === 'SIGNED_OUT') write({ user: null, groups: {}, seen: {} })
@@ -151,6 +172,7 @@ export function startClassAgenda(client: SupabaseClient | null, enabled: () => b
     clearTimeout(timer)
     clearInterval(poll)
     kick = null
+    if (channel) void client.removeChannel(channel)
     unsubscribeLife()
     unsubscribeFeatures()
     data.subscription.unsubscribe()
