@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -28,6 +29,7 @@ import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
 import app.nexusos.companion.Protocol
 import app.nexusos.companion.Store
+import app.nexusos.companion.Updater
 import kotlin.math.roundToInt
 
 /** Production address of the NEXUS web app; editable on the login screen. */
@@ -87,6 +89,7 @@ class WatchActivity : Activity() {
         Connect.addListener(onChange)
         render()
         scroll.requestFocus()
+        if (Updater.state is Updater.State.Idle) Updater.check(this)
         if (store.signedIn) {
             Connect.refreshDevices(this)
             Connect.receive(this)
@@ -187,11 +190,43 @@ class WatchActivity : Activity() {
         status?.let { text(it) }
 
         space(12)
+        updates()
+
+        space(12)
         text("Aangemeld als ${store.email}", muted = true, size = 12f)
         DeviceKey.publicKey()?.let { text("Code: ${ConnectCrypto.fingerprint(it)}", muted = true, size = 12f) }
         button("Afmelden") {
             Inbox.stop()
             Connect.signOut(this) { status = null; render() }
+        }
+    }
+
+    /**
+     * Bijwerken: the newest nexus-watch.apk from the GitHub release, installed over this version
+     * without the pc. The first time Android asks to allow installing apps from NEXUS.
+     */
+    private fun updates() {
+        heading("Bijwerken", 15f)
+        text("Versie ${packageManager.getPackageInfo(packageName, 0).versionName}", muted = true, size = 12f)
+        when (val state = Updater.state) {
+            Updater.State.Idle, Updater.State.Checking -> text("Zoeken naar een nieuwe versie…", muted = true, size = 12f)
+            Updater.State.Current -> text("Je hebt de nieuwste versie.", muted = true, size = 12f)
+            is Updater.State.Failed -> text(state.error, size = 12f)
+            is Updater.State.Downloading -> text("Versie ${state.update.version} wordt gedownload…", size = 12f)
+            is Updater.State.Available -> {
+                text("Versie ${state.update.version} is er.", bold = true)
+                if (!packageManager.canRequestPackageInstalls()) {
+                    text("Sta eerst toe dat NEXUS apps installeert. Daarna kom je hier terug.", muted = true, size = 12f)
+                    button("Toestaan", primary = true) {
+                        startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+                    }
+                } else {
+                    button("Bijwerken", primary = true) { Updater.install(this) }
+                }
+            }
+        }
+        if (Updater.state !is Updater.State.Available && Updater.state !is Updater.State.Downloading) {
+            button("Zoeken naar updates") { Updater.check(this) }
         }
     }
 

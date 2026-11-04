@@ -12,6 +12,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- The focus timer buzzes at the end of a focus round and of a pause. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Updates itself from the GitHub release, like the companion; Android asks to confirm. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name="app.nexusos.watch.WatchApp"
@@ -61,6 +63,7 @@
         </service>
 
         <receiver android:name="app.nexusos.companion.SafetyReceiver" android:exported="false" />
+        <receiver android:name="app.nexusos.companion.UpdateReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.RefreshReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.FocusReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.WatchBootReceiver" android:exported="false">

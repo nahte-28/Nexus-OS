@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXUS downloaden</title>
+<link rel="icon" href="/icon.svg">
+<style>
+  :root { --bg: #f7f7fb; --card: #fff; --text: #16161d; --muted: #5d5d6e; --border: #dcdce6; --accent: #4f46e5; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f0f15; --card: #181822; --text: #ececf3; --muted: #a2a2b5; --border: #2c2c3a; --accent: #8b85ff; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 0 0 4px; }
+  p { margin: 8px 0; }
+  .muted { color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 16px; }
+  a.button { display: inline-block; margin-top: 8px; padding: 10px 16px; border-radius: 10px; background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; }
+  a.button[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+  ol { padding-left: 20px; margin: 8px 0 0; }
+  li { margin: 4px 0; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 14px; background: color-mix(in srgb, var(--border) 50%, transparent); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+  .version { font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>NEXUS downloaden</h1>
+  <p class="muted">NEXUS werkt in je browser op <a href="/">deze site</a>. Wil je meldingen ook als NEXUS dicht is, installeer dan de apps hieronder. Je hebt een NEXUS-account nodig: maak er een in de browser.</p>
+
+  <section aria-labelledby="pc">
+    <h2 id="pc">Windows</h2>
+    <p class="version muted" data-version="desktop">Nieuwste versie zoeken…</p>
+    <a class="button" data-link="desktop" aria-disabled="true" href="https://github.com/nahte-28/Nexus-OS/releases">nexus-os-setup.exe</a>
+    <ol>
+      <li>Voer het bestand uit. Windows kan zeggen dat de app onbekend is: kies <b>Meer informatie</b> en dan <b>Toch uitvoeren</b>.</li>
+      <li>Daarna werkt NEXUS zichzelf bij.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="gsm">
+    <h2 id="gsm">Android-gsm</h2>
+    <p class="version muted" data-version="companion">Nieuwste versie zoeken…</p>
+    <a class="button" data-link="companion" aria-disabled="true" href="https://github.com/nahte-28/Nexus-OS/releases">nexus-companion.apk</a>
+    <ol>
+      <li>Open dit op je gsm, download het bestand en sta installeren uit je browser toe.</li>
+      <li>Ga daarna naar App-info › ⋮ › <b>Beperkte instellingen toestaan</b>, zodat je NEXUS meldingstoegang kunt geven.</li>
+      <li>Daarna werkt de app zichzelf bij.</li>
+    </ol>
+    <p class="muted">Kun je geen apps installeren (bv. door ouderlijk toezicht)? Zet dan in NEXUS in Chrome de webmeldingen aan, die komen ook op je horloge.</p>
+  </section>
+
+  <section aria-labelledby="watch">
+    <h2 id="watch">Wear OS-horloge</h2>
+    <p class="version muted" data-version="watch">Nieuwste versie zoeken…</p>
+    <a class="button" data-link="watch" aria-disabled="true" href="https://github.com/nahte-28/Nexus-OS/releases">nexus-watch.apk</a>
+    <p>Een horloge heeft geen browser om apps te installeren, dus de eerste keer gaat het via je pc:</p>
+    <ol>
+      <li>Zet op het horloge de ontwikkelaarsopties aan (Instellingen › Systeem › Over › tik zeven keer op het buildnummer), en daarin <b>ADB-foutopsporing</b> en <b>Draadloze foutopsporing</b>.</li>
+      <li>Installeer op je pc de <a href="https://developer.android.com/tools/releases/platform-tools">Android SDK Platform-Tools</a> en download het bestand hierboven.</li>
+      <li>Zet horloge en pc op hetzelfde wifi. Schoolwifi werkt niet; de hotspot van je gsm (2,4 GHz) wel, met Bluetooth op het horloge uit.</li>
+      <li>Open cmd in de map <code>platform-tools</code>. Tik bij Draadloze foutopsporing op <b>Koppelen met code</b> en typ <code>adb pair &lt;ip&gt;:&lt;poort&gt;</code>, daarna <code>adb connect &lt;ip&gt;:&lt;poort&gt;</code> (de poort bovenaan, niet die van het koppelen) en <code>adb install -r nexus-watch.apk</code>.</li>
+      <li>Open NEXUS op het horloge en log in. Daarna werkt hij zichzelf bij: onder <b>Bijwerken</b> tik je op <b>Bijwerken</b> als er een nieuwe versie is.</li>
+    </ol>
+  </section>
+
+  <p class="muted">NEXUS is nog in ontwikkeling. De apps zijn niet ondertekend door Google of Microsoft en staan niet in een winkel. Alles komt van de <a href="https://github.com/nahte-28/Nexus-OS/releases">releases op GitHub</a>.</p>
+</main>
+<script>
+  // Fills in the newest release of each app from GitHub; without it the buttons open the releases page.
+  const wanted = {
+    desktop: { tag: 'desktop-v', asset: 'nexus-os-setup.exe' },
+    companion: { tag: 'companion-v', asset: 'nexus-companion.apk' },
+    watch: { tag: 'companion-v', asset: 'nexus-watch.apk' },
+  }
+  const build = (tag) => Number(tag.split('.').pop()) || 0
+  fetch('https://api.github.com/repos/nahte-28/Nexus-OS/releases?per_page=40')
+    .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    .then((releases) => {
+      for (const [key, w] of Object.entries(wanted)) {
+        const best = releases
+          .filter((r) => !r.draft && !r.prerelease && r.tag_name.startsWith(w.tag) && r.assets.some((a) => a.name === w.asset))
+          .sort((a, b) => build(b.tag_name) - build(a.tag_name))[0]
+        const version = document.querySelector(`[data-version="${key}"]`)
+        const link = document.querySelector(`[data-link="${key}"]`)
+        if (!best) {
+          version.textContent = 'Nog geen versie gevonden.'
+          continue
+        }
+        const asset = best.assets.find((a) => a.name === w.asset)
+        version.textContent = `Versie ${best.tag_name.slice(w.tag.length)}, ${new Date(best.published_at).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })}`
+        link.href = asset.browser_download_url
+        link.removeAttribute('aria-disabled')
+      }
+    })
+    .catch(() => {
+      for (const el of document.querySelectorAll('[data-version]')) el.textContent = 'Kon de nieuwste versie niet ophalen: de knop opent de lijst met versies.'
+      for (const el of document.querySelectorAll('[data-link]')) el.removeAttribute('aria-disabled')
+    })
+</script>
+</body>
+</html>

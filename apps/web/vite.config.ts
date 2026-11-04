@@ -71,6 +71,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         navigateFallback: '/index.html',
+        // The download page is its own page, also for people without NEXUS.
+        navigateFallbackDenylist: [/^\/download/],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Shows web-push notifications, also when NEXUS is closed (see public/push-sw.js).
         importScripts: ['push-sw.js'],

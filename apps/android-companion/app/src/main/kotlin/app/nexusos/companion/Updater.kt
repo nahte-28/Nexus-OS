@@ -13,8 +13,9 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * Updates the companion from GitHub releases: checks for a newer APK, downloads it and hands it
- * to Android's package installer, which installs it over this version (same signing key).
+ * Updates the companion (and the watch app, which compiles this file too) from GitHub releases:
+ * checks for a newer APK, downloads it and hands it to Android's package installer, which installs
+ * it over this version (same signing key).
  */
 object Updater {
     sealed interface State {
@@ -56,7 +57,7 @@ object Updater {
                         if (!response.isSuccessful) throw java.io.IOException("GitHub gaf ${response.code}")
                         response.body?.string().orEmpty()
                     }
-                    UpdateCheck.newest(body, currentBuild(app))?.let { State.Available(it) } ?: State.Current
+                    UpdateCheck.newest(body, currentBuild(app), UpdateCheck.apkFor(app.packageName))?.let { State.Available(it) } ?: State.Current
                 } catch (e: Exception) {
                     State.Failed("Updates zoeken lukte niet: ${e.message ?: e.javaClass.simpleName}")
                 }

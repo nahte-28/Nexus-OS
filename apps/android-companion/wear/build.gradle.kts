@@ -20,7 +20,8 @@ android {
     sourceSets["main"].apply {
         // The watch signs in, decrypts and keeps the safety net exactly like the companion: it
         // compiles the companion's code and adds its own screen. Unused classes (the notification
-        // listener, the updater) are compiled too but not in the manifest, so they never run.
+        // listener) are compiled too but not in the manifest, so they never run. The updater runs
+        // here too and takes nexus-watch.apk from the same release.
         java.srcDirs("../app/src/main/kotlin", "src/main/kotlin")
         res.srcDirs("../app/src/main/res")
     }

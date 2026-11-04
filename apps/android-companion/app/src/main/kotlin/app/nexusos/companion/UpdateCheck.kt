@@ -11,13 +11,18 @@ object UpdateCheck {
     /** Only APKs from this repository's companion releases are ever downloaded. */
     const val DOWNLOAD_PREFIX = "https://github.com/nahte-28/Nexus-OS/releases/download/companion-v"
     private const val TAG_PREFIX = "companion-v"
-    private const val APK_NAME = "nexus-companion.apk"
+    const val COMPANION_APK = "nexus-companion.apk"
+    /** The watch app comes with the same release and build number as the companion. */
+    const val WATCH_APK = "nexus-watch.apk"
+
+    /** Which APK of a release updates the app with this package name. */
+    fun apkFor(packageName: String): String = if (packageName == "app.nexusos.watch") WATCH_APK else COMPANION_APK
 
     /**
      * The newest release with a higher build number than [currentBuild]. The build number is the
      * last part of the version (companion-v0.8.42 is build 42) and equals the app's versionCode.
      */
-    fun newest(releasesJson: String, currentBuild: Int): AvailableUpdate? {
+    fun newest(releasesJson: String, currentBuild: Int, apkName: String = COMPANION_APK): AvailableUpdate? {
         val releases = JSONArray(releasesJson)
         var best: AvailableUpdate? = null
         for (i in 0 until releases.length()) {
@@ -31,7 +36,7 @@ object UpdateCheck {
             for (j in 0 until assets.length()) {
                 val asset = assets.getJSONObject(j)
                 val url = asset.optString("browser_download_url")
-                if (asset.optString("name") == APK_NAME && url.startsWith(DOWNLOAD_PREFIX)) {
+                if (asset.optString("name") == apkName && url.startsWith(DOWNLOAD_PREFIX)) {
                     best = AvailableUpdate(version, build, url)
                 }
             }
