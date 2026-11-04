@@ -8,7 +8,7 @@ export function ModuleSettings() {
   return (
     <fieldset className="space-y-2 border-t border-nx-border pt-4 text-sm">
       <legend className="mb-2 text-sm font-semibold text-nx-muted">Nieuwe modules</legend>
-      <p className="text-nx-muted">Modules uit de blueprint komen hier één voor één bij. Uit betekent dat de module helemaal verdwijnt.</p>
+      <p className="text-nx-muted">Modules die geen SQL-stap nodig hebben, staan standaard aan. De andere zet je zelf aan nadat je hun SQL uitvoerde (Account › Database-check). Uit betekent dat de module helemaal verdwijnt.</p>
       <ul className="space-y-2">
         {FEATURES.map((f) => (
           <li key={f.id}>
@@ -23,6 +23,7 @@ export function ModuleSettings() {
               <span>
                 <span className="font-medium">{f.title}</span>
                 {!f.available && <span className="ml-2 text-xs text-nx-muted">binnenkort</span>}
+                {f.available && f.defaultOn && <span className="ml-2 text-xs text-nx-muted">standaard aan</span>}
                 <span className="block text-nx-muted">{f.description}</span>
               </span>
             </label>
