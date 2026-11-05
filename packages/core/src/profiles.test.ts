@@ -12,6 +12,7 @@ import {
   defaultProfilesState,
   linkedEvents,
   calendarSources,
+  plannedCalendarNotices,
   isWindowOpen,
   mergeFirstSync,
   moveItem,
@@ -215,11 +216,21 @@ describe('next lesson', () => {
     expect(parsed.extraEvents).toEqual({ c1: { events: [{ start: 1, end: 2, subject: 'Match' }], syncedAt: 5 } })
     expect(linkedEvents(parsed)).toEqual([{ start: 1, end: 2, subject: 'Match', room: 'Voetbal', source: 'c1' }])
     expect(calendarSources({ ...parsed, googleUrl: 'x', calendarLook: { google: { color: 'red', hidden: true } } })).toEqual([
-      { id: 'school', name: 'Lessen', color: 'blue', hidden: false },
-      { id: 'google', name: 'Google Agenda', color: 'red', hidden: true },
-      { id: 'c1', name: 'Voetbal', color: 'amber', hidden: false },
+      { id: 'school', name: 'Lessen', color: 'blue', hidden: false, notify: false },
+      { id: 'google', name: 'Google Agenda', color: 'red', hidden: true, notify: true },
+      { id: 'c1', name: 'Voetbal', color: 'amber', hidden: false, notify: true },
     ])
     expect(parseProfilesState({ calendarLook: { c1: { color: 'green', hidden: 1 }, c2: { color: 'neon' } } }).calendarLook).toEqual({ c1: { color: 'green', hidden: false } })
+  })
+
+  it('plans a notice before calendar events for the phone and watch, not before lessons unless asked', () => {
+    const now = Date.parse('2026-11-05T12:00:00Z')
+    const match = { start: Date.parse('2026-11-05T19:00:00Z'), end: Date.parse('2026-11-05T22:00:00Z'), subject: 'Competitie' }
+    const lesson = { start: Date.parse('2026-11-06T07:30:00Z'), end: Date.parse('2026-11-06T09:30:00Z'), subject: 'Netwerken' }
+    const state = { ...defaultProfilesState(), calendarEvents: [lesson], extraCalendars: [{ id: 'c1', name: 'Darts', url: 'https://x.example/a.ics' }], extraEvents: { c1: { events: [match, { ...match, start: now + 60_000, subject: 'Te laat' }], syncedAt: now } } }
+    expect(plannedCalendarNotices(state, now)).toEqual([{ ref: expect.stringMatching(/^calendar:c1:\d+:\w+$/), at: match.start - 30 * 60_000, title: '20:00 Competitie', text: 'Over 30 min · Darts' }])
+    const withLessons = plannedCalendarNotices({ ...state, calendarLead: 60, calendarLook: { school: { color: 'blue', hidden: false, notify: true }, c1: { color: 'red', hidden: false, notify: false } } }, now)
+    expect(withLessons.map((n) => [n.title, n.at])).toEqual([['08:30 Netwerken', lesson.start - 60 * 60_000]])
   })
 
   it('returns to the profile picked before school, not the default', () => {

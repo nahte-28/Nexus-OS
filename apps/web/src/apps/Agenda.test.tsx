@@ -38,7 +38,7 @@ describe('Agenda', () => {
     expect(within(today()).getByText(/Competitie/, { selector: 'span' }).closest('li')!.className).toContain('border-l-red-500')
     fireEvent.click(screen.getByRole('checkbox', { name: 'Fairplay darts' }))
     expect(within(today()).queryByText(/Competitie/, { selector: 'span' })).toBeNull()
-    expect(profilesStore.getSnapshot().state.calendarLook.c1).toEqual({ color: 'red', hidden: true })
+    expect(profilesStore.getSnapshot().state.calendarLook.c1).toEqual({ color: 'red', hidden: true, notify: true })
     profilesStore.update((s) => ({ ...s, extraCalendars: [], extraEvents: {}, calendarLook: {} }))
   })
 

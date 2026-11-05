@@ -37,6 +37,7 @@ import {
   calendarSources,
   CALENDAR_COLORS,
   CALENDAR_COLOR_LABELS,
+  CALENDAR_LEADS,
   type CalendarColor,
   type CalendarLook,
   type CalendarSource,
@@ -201,7 +202,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
           </ul>
         </section>
       )}
-      {sources.length > 1 && <CalendarLegend sources={sources} />}
+      {sources.length > 1 && <CalendarLegend sources={sources} lead={state.calendarLead} />}
       {days.map((day) => {
         const entries = agendaDay(input, day).filter(shown)
         const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
@@ -254,12 +255,12 @@ const EDGE: Record<CalendarColor, string> = {
   gray: 'border-l-slate-400',
 }
 
-function setLook(id: string, patch: Partial<CalendarLook>, current: CalendarLook): void {
-  profilesStore.update((s) => ({ ...s, calendarLook: { ...s.calendarLook, [id]: { color: current.color, hidden: current.hidden, ...patch } } }))
+function setLook(id: string, patch: Partial<CalendarLook>, current: CalendarSource): void {
+  profilesStore.update((s) => ({ ...s, calendarLook: { ...s.calendarLook, [id]: { color: current.color, hidden: current.hidden, notify: current.notify, ...patch } } }))
 }
 
 /** Which calendars show in the overview, each with its colour; the colour can be changed here too. */
-function CalendarLegend({ sources }: { sources: CalendarSource[] }) {
+function CalendarLegend({ sources, lead }: { sources: CalendarSource[]; lead: number }) {
   return (
     <section aria-label="Agenda's" className="space-y-1">
       <ul className="flex flex-wrap gap-2">
@@ -274,11 +275,11 @@ function CalendarLegend({ sources }: { sources: CalendarSource[] }) {
         ))}
       </ul>
       <details>
-        <summary className="cursor-pointer text-xs text-nx-muted">Kleuren kiezen</summary>
-        <div className="mt-1 flex flex-wrap gap-3">
+        <summary className="cursor-pointer text-xs text-nx-muted">Kleuren en meldingen</summary>
+        <ul className="mt-1 space-y-1">
           {sources.map((s) => (
-            <label key={s.id} className="flex items-center gap-1">
-              {s.name}
+            <li key={s.id} className="flex flex-wrap items-center gap-3">
+              <span className="min-w-28">{s.name}</span>
               <select aria-label={`Kleur van ${s.name}`} className="rounded-md border border-nx-border bg-nx-surface px-1 py-0.5" value={s.color} onChange={(e) => setLook(s.id, { color: e.target.value as CalendarColor }, s)}>
                 {CALENDAR_COLORS.map((c) => (
                   <option key={c} value={c}>
@@ -286,9 +287,24 @@ function CalendarLegend({ sources }: { sources: CalendarSource[] }) {
                   </option>
                 ))}
               </select>
-            </label>
+              <label className="flex items-center gap-1">
+                <input type="checkbox" aria-label={`Melding vooraf voor ${s.name}`} checked={s.notify} onChange={(e) => setLook(s.id, { notify: e.target.checked }, s)} />
+                Melding op gsm en horloge
+              </label>
+            </li>
           ))}
-        </div>
+        </ul>
+        <label className="mt-2 flex items-center gap-2">
+          Melding
+          <select aria-label="Hoe lang vooraf" className="rounded-md border border-nx-border bg-nx-surface px-1 py-0.5" value={lead} onChange={(e) => profilesStore.update((st) => ({ ...st, calendarLead: Number(e.target.value) }))}>
+            {CALENDAR_LEADS.map((m) => (
+              <option key={m} value={m}>
+                {m < 60 ? `${m} min` : `${m / 60} uur`}
+              </option>
+            ))}
+          </select>
+          vooraf. De volgende afspraken staan ook op de tegel van je horloge.
+        </label>
       </details>
     </section>
   )
