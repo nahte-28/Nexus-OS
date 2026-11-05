@@ -155,6 +155,8 @@ export interface ProfilesState {
   extraCalendars: ExtraCalendar[]
   /** What each of those links gave last time, by calendar id; fetched anew on every device. */
   extraEvents: Record<string, { events: CalendarEvent[]; syncedAt: number }>
+  /** Colour and on/off per calendar in the Agenda: 'school', 'google' or an id from extraCalendars. */
+  calendarLook: Record<string, CalendarLook>
   dagstart: DagstartSettings
   /** Profiles 2.0: the profile while lessons run. */
   agenda: AgendaRule
@@ -264,6 +266,7 @@ export function defaultProfilesState(): ProfilesState {
     googleSyncedAt: null,
     extraCalendars: [],
     extraEvents: {},
+    calendarLook: {},
     dagstart: parseDagstart(null),
     agenda: { ...DEFAULT_AGENDA },
     klas: '',
@@ -549,6 +552,44 @@ function parseExtraEvents(raw: unknown): ProfilesState['extraEvents'] {
   return out
 }
 
+export const CALENDAR_COLORS = ['blue', 'green', 'amber', 'red', 'purple', 'teal', 'pink', 'gray'] as const
+export type CalendarColor = (typeof CALENDAR_COLORS)[number]
+export const CALENDAR_COLOR_LABELS: Record<CalendarColor, string> = { blue: 'Blauw', green: 'Groen', amber: 'Oranje', red: 'Rood', purple: 'Paars', teal: 'Blauwgroen', pink: 'Roze', gray: 'Grijs' }
+
+export interface CalendarLook {
+  color: CalendarColor
+  /** Left out of the Agenda overview; it still counts for the Studieplanner and the Dagstart. */
+  hidden: boolean
+}
+
+function parseCalendarLook(raw: unknown): Record<string, CalendarLook> {
+  const out: Record<string, CalendarLook> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, MAX_EXTRA_CALENDARS + 2)) {
+    const l = v as Partial<CalendarLook> | null
+    if (k.length <= 64 && l && CALENDAR_COLORS.includes(l.color as CalendarColor)) out[k] = { color: l.color as CalendarColor, hidden: l.hidden === true }
+  }
+  return out
+}
+
+export interface CalendarSource extends CalendarLook {
+  id: string
+  name: string
+}
+
+/** The calendars in the Agenda (lessons, Google Agenda, the other links) with their colour and switch. */
+export function calendarSources(state: Pick<ProfilesState, 'googleUrl' | 'extraCalendars' | 'calendarLook'>): CalendarSource[] {
+  const list = [
+    { id: 'school', name: 'Lessen' },
+    ...(state.googleUrl ? [{ id: 'google', name: 'Google Agenda' }] : []),
+    ...state.extraCalendars.map((c) => ({ id: c.id, name: c.name })),
+  ]
+  return list.map((s, i) => {
+    const look: CalendarLook | undefined = state.calendarLook[s.id]
+    return { ...s, color: look?.color ?? CALENDAR_COLORS[i % CALENDAR_COLORS.length], hidden: look?.hidden ?? false }
+  })
+}
+
 /**
  * Every event from a linked calendar besides the lessons: Google Agenda and the other links. An
  * event without a place shows the name of its calendar instead.
@@ -556,7 +597,7 @@ function parseExtraEvents(raw: unknown): ProfilesState['extraEvents'] {
 export function linkedEvents(state: Pick<ProfilesState, 'googleEvents' | 'extraCalendars' | 'extraEvents'>): CalendarEvent[] {
   if (state.extraCalendars.length === 0) return state.googleEvents
   const out = [...state.googleEvents]
-  for (const c of state.extraCalendars) for (const e of state.extraEvents[c.id]?.events ?? []) out.push(e.room ? e : { ...e, room: c.name })
+  for (const c of state.extraCalendars) for (const e of state.extraEvents[c.id]?.events ?? []) out.push({ ...e, room: e.room || c.name, source: c.id })
   return out
 }
 
@@ -731,6 +772,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     googleSyncedAt: typeof r.googleSyncedAt === 'number' ? r.googleSyncedAt : null,
     extraCalendars: parseExtraCalendars(r.extraCalendars),
     extraEvents: parseExtraEvents(r.extraEvents),
+    calendarLook: parseCalendarLook(r.calendarLook),
     dagstart: parseDagstart(r.dagstart),
     agenda: parseAgendaRule(r.agenda),
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',

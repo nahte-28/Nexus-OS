@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const { Agenda } = await import('./Agenda')
+const { profilesStore } = await import('../profiles/store')
 
 describe('Agenda', () => {
   afterEach(cleanup)
@@ -22,6 +23,23 @@ describe('Agenda', () => {
     const box = within(tomorrow).getByRole('checkbox', { name: 'Verslag labo 3 klaar' })
     fireEvent.click(box)
     await waitFor(() => expect((within(screen.getByRole('region', { name: 'Morgen' })).getByRole('checkbox') as HTMLInputElement).checked).toBe(true))
+  })
+
+  it('colours each calendar and hides one from the week', () => {
+    const at = new Date()
+    at.setHours(20, 0, 0, 0)
+    const event = { start: at.getTime(), end: at.getTime() + 3_600_000, subject: 'Competitie' }
+    profilesStore.update((s) => ({ ...s, extraCalendars: [{ id: 'c1', name: 'Fairplay darts', url: 'https://fairplay.example/a.ics' }], extraEvents: { c1: { events: [event], syncedAt: Date.now() } }, calendarLook: {} }))
+    render(<Agenda />)
+    const today = () => screen.getByRole('region', { name: 'Vandaag' })
+    const row = within(today()).getByText(/Competitie/, { selector: 'span' }).closest('li')!
+    expect(row.className).toContain('border-l-emerald-500')
+    fireEvent.change(screen.getByRole('combobox', { name: 'Kleur van Fairplay darts' }), { target: { value: 'red' } })
+    expect(within(today()).getByText(/Competitie/, { selector: 'span' }).closest('li')!.className).toContain('border-l-red-500')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Fairplay darts' }))
+    expect(within(today()).queryByText(/Competitie/, { selector: 'span' })).toBeNull()
+    expect(profilesStore.getSnapshot().state.calendarLook.c1).toEqual({ color: 'red', hidden: true })
+    profilesStore.update((s) => ({ ...s, extraCalendars: [], extraEvents: {}, calendarLook: {} }))
   })
 
   it('groups deadlines in projects with their progress', async () => {

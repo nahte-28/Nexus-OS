@@ -34,6 +34,12 @@ import {
   reviewNoteTitle,
   weekFacts,
   linkedEvents,
+  calendarSources,
+  CALENDAR_COLORS,
+  CALENDAR_COLOR_LABELS,
+  type CalendarColor,
+  type CalendarLook,
+  type CalendarSource,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
@@ -171,6 +177,9 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   // Seven days ahead; +1 hour per step keeps each start on the right day across a time change.
   const days = Array.from({ length: 7 }, (_, i) => startOfDay(today + i * DAY + 3_600_000))
   const input = { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items, reminders }
+  const sources = calendarSources(state)
+  const look = new Map(sources.map((s) => [s.id, s]))
+  const shown = (e: AgendaEntry) => !('source' in e && e.source && look.get(e.source)?.hidden)
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -192,8 +201,9 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
           </ul>
         </section>
       )}
+      {sources.length > 1 && <CalendarLegend sources={sources} />}
       {days.map((day) => {
-        const entries = agendaDay(input, day)
+        const entries = agendaDay(input, day).filter(shown)
         const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
         return (
           <section key={day} aria-label={dayTitle(day, today)} className="space-y-1">
@@ -208,6 +218,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
                     entry={e}
                     project={e.kind === 'deadline' ? projects.get(e.deadline.projectId ?? '') : undefined}
                     clashes={'end' in e ? clashes.get(e) : undefined}
+                    color={'source' in e && e.source ? look.get(e.source)?.color : undefined}
                   />
                 ))}
               </ul>
@@ -222,11 +233,72 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   )
 }
 
-function Entry({ entry, project, clashes }: { entry: AgendaEntry; project?: Project; clashes?: string[] }) {
+const DOT: Record<CalendarColor, string> = {
+  blue: 'bg-sky-500',
+  green: 'bg-emerald-500',
+  amber: 'bg-amber-500',
+  red: 'bg-red-500',
+  purple: 'bg-violet-500',
+  teal: 'bg-teal-500',
+  pink: 'bg-pink-500',
+  gray: 'bg-slate-400',
+}
+const EDGE: Record<CalendarColor, string> = {
+  blue: 'border-l-sky-500',
+  green: 'border-l-emerald-500',
+  amber: 'border-l-amber-500',
+  red: 'border-l-red-500',
+  purple: 'border-l-violet-500',
+  teal: 'border-l-teal-500',
+  pink: 'border-l-pink-500',
+  gray: 'border-l-slate-400',
+}
+
+function setLook(id: string, patch: Partial<CalendarLook>, current: CalendarLook): void {
+  profilesStore.update((s) => ({ ...s, calendarLook: { ...s.calendarLook, [id]: { color: current.color, hidden: current.hidden, ...patch } } }))
+}
+
+/** Which calendars show in the overview, each with its colour; the colour can be changed here too. */
+function CalendarLegend({ sources }: { sources: CalendarSource[] }) {
+  return (
+    <section aria-label="Agenda's" className="space-y-1">
+      <ul className="flex flex-wrap gap-2">
+        {sources.map((s) => (
+          <li key={s.id}>
+            <label className={`flex items-center gap-1.5 rounded-full border border-nx-border px-2 py-0.5 ${s.hidden ? 'opacity-60' : ''}`}>
+              <input type="checkbox" checked={!s.hidden} onChange={(e) => setLook(s.id, { hidden: !e.target.checked }, s)} />
+              <span aria-hidden className={`inline-block h-2.5 w-2.5 rounded-full ${DOT[s.color]}`} />
+              {s.name}
+            </label>
+          </li>
+        ))}
+      </ul>
+      <details>
+        <summary className="cursor-pointer text-xs text-nx-muted">Kleuren kiezen</summary>
+        <div className="mt-1 flex flex-wrap gap-3">
+          {sources.map((s) => (
+            <label key={s.id} className="flex items-center gap-1">
+              {s.name}
+              <select aria-label={`Kleur van ${s.name}`} className="rounded-md border border-nx-border bg-nx-surface px-1 py-0.5" value={s.color} onChange={(e) => setLook(s.id, { color: e.target.value as CalendarColor }, s)}>
+                {CALENDAR_COLORS.map((c) => (
+                  <option key={c} value={c}>
+                    {CALENDAR_COLOR_LABELS[c]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </details>
+    </section>
+  )
+}
+
+function Entry({ entry, project, clashes, color }: { entry: AgendaEntry; project?: Project; clashes?: string[]; color?: CalendarColor }) {
   if (entry.kind === 'deadline') return <DeadlineLine deadline={entry.deadline} project={project} showTime />
   const series = entry.kind === 'appointment' && entry.appointment.repeat ? entry.appointment : null
   return (
-    <li className="flex flex-wrap items-baseline gap-x-2 rounded-md bg-nx-surface-2 px-2 py-1.5">
+    <li className={`flex flex-wrap items-baseline gap-x-2 rounded-md bg-nx-surface-2 px-2 py-1.5 ${color ? `border-l-4 ${EDGE[color]}` : ''}`}>
       <span className="w-24 shrink-0 text-nx-muted tabular-nums">
         {clock(entry.at)}
         {entry.kind === 'lesson' || entry.kind === 'appointment' || entry.kind === 'event' ? `–${clock(entry.end)}` : ''}

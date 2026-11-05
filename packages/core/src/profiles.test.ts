@@ -11,6 +11,7 @@ import {
   chooseProfile,
   defaultProfilesState,
   linkedEvents,
+  calendarSources,
   isWindowOpen,
   mergeFirstSync,
   moveItem,
@@ -212,7 +213,13 @@ describe('next lesson', () => {
     const parsed = parseProfilesState({ ...pc, extraCalendars: [club, { id: 'x', name: 'Thuis', url: 'https://nas.local/a.ics' }, { id: 'c1', name: 'dubbel', url: club.url }], extraEvents: { c1: { events: [{ start: 1, end: 2, subject: 'Match' }], syncedAt: 5 }, c9: 'nee' } })
     expect(parsed.extraCalendars).toEqual([club])
     expect(parsed.extraEvents).toEqual({ c1: { events: [{ start: 1, end: 2, subject: 'Match' }], syncedAt: 5 } })
-    expect(linkedEvents(parsed)).toEqual([{ start: 1, end: 2, subject: 'Match', room: 'Voetbal' }])
+    expect(linkedEvents(parsed)).toEqual([{ start: 1, end: 2, subject: 'Match', room: 'Voetbal', source: 'c1' }])
+    expect(calendarSources({ ...parsed, googleUrl: 'x', calendarLook: { google: { color: 'red', hidden: true } } })).toEqual([
+      { id: 'school', name: 'Lessen', color: 'blue', hidden: false },
+      { id: 'google', name: 'Google Agenda', color: 'red', hidden: true },
+      { id: 'c1', name: 'Voetbal', color: 'amber', hidden: false },
+    ])
+    expect(parseProfilesState({ calendarLook: { c1: { color: 'green', hidden: 1 }, c2: { color: 'neon' } } }).calendarLook).toEqual({ c1: { color: 'green', hidden: false } })
   })
 
   it('returns to the profile picked before school, not the default', () => {

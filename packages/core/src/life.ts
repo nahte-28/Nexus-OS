@@ -280,11 +280,11 @@ export function plannedDeadlineNotices(items: LifeItem[], now: number, horizon =
 }
 
 export type AgendaEntry =
-  | { kind: 'lesson'; at: number; end: number; title: string; detail?: string }
+  | { kind: 'lesson'; at: number; end: number; title: string; detail?: string; source?: 'school' }
   | { kind: 'deadline'; at: number; title: string; detail?: string; deadline: Deadline }
   | { kind: 'appointment'; at: number; end: number; title: string; detail?: string; appointment: Appointment; occurrence: Occurrence }
   | { kind: 'reminder'; at: number; title: string; detail?: string }
-  | { kind: 'event'; at: number; end: number; title: string; detail?: string }
+  | { kind: 'event'; at: number; end: number; title: string; detail?: string; source: string }
 
 /** UTC ms of HH:MM on the local day of [dayStart]. */
 function atTime(dayStart: number, time: string): number {
@@ -312,17 +312,17 @@ export function agendaDay({ calendarEvents, googleEvents = [], timetable, items,
   const inDay = (t: number) => t >= dayStart && t < dayEnd
   const entries: AgendaEntry[] = []
   if (calendarEvents.length > 0) {
-    for (const e of calendarEvents) if (inDay(e.start)) entries.push({ kind: 'lesson', at: e.start, end: e.end, title: e.subject, ...(e.room ? { detail: e.room } : {}) })
+    for (const e of calendarEvents) if (inDay(e.start)) entries.push({ kind: 'lesson', at: e.start, end: e.end, title: e.subject, source: 'school', ...(e.room ? { detail: e.room } : {}) })
   } else {
     const weekday = ((new Date(dayStart).getDay() + 6) % 7) + 1
     for (const l of timetable) {
-      if (l.day === weekday) entries.push({ kind: 'lesson', at: atTime(dayStart, l.start), end: atTime(dayStart, l.end), title: l.subject, ...(l.room ? { detail: l.room } : {}) })
+      if (l.day === weekday) entries.push({ kind: 'lesson', at: atTime(dayStart, l.start), end: atTime(dayStart, l.end), title: l.subject, source: 'school', ...(l.room ? { detail: l.room } : {}) })
     }
   }
   // Like appointments, a Google event shows on every day it covers.
   for (const e of googleEvents) {
     if (e.start < dayEnd && (e.end > dayStart || inDay(e.start))) {
-      entries.push({ kind: 'event', at: Math.max(e.start, dayStart), end: Math.min(e.end, dayEnd), title: e.subject, ...(e.room ? { detail: e.room } : {}) })
+      entries.push({ kind: 'event', at: Math.max(e.start, dayStart), end: Math.min(e.end, dayEnd), title: e.subject, source: e.source ?? 'google', ...(e.room ? { detail: e.room } : {}) })
     }
   }
   const names = new Map(projectsOf(items).map((p) => [p.id, p.name]))

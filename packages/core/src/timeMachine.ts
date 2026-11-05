@@ -288,6 +288,7 @@ const PROFILE_SETTING_LABELS: Record<string, string> = {
   calendarUrl: 'Schoolkalender',
   googleUrl: 'Google Agenda',
   extraCalendars: "Andere agenda's",
+  calendarLook: 'Agendakleuren',
   klashubUrl: 'KlasHub-adres',
   dagstart: 'Dagstart',
   agenda: 'Profiel volgens lesrooster',
