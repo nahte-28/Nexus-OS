@@ -3,7 +3,7 @@
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
 import { parseLayout, type WidgetLayout } from './dashboardLayout'
-import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, type CalendarEvent } from './calendar'
+import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, SCHOOL_TIME_ZONE, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 import { parseSwitches, type FeatureSwitches } from './features'
@@ -157,6 +157,8 @@ export interface ProfilesState {
   extraEvents: Record<string, { events: CalendarEvent[]; syncedAt: number }>
   /** Colour and on/off per calendar in the Agenda: 'school', 'google' or an id from extraCalendars. */
   calendarLook: Record<string, CalendarLook>
+  /** Minutes before an event that its notice comes. */
+  calendarLead: number
   dagstart: DagstartSettings
   /** Profiles 2.0: the profile while lessons run. */
   agenda: AgendaRule
@@ -267,6 +269,7 @@ export function defaultProfilesState(): ProfilesState {
     extraCalendars: [],
     extraEvents: {},
     calendarLook: {},
+    calendarLead: 30,
     dagstart: parseDagstart(null),
     agenda: { ...DEFAULT_AGENDA },
     klas: '',
@@ -560,6 +563,8 @@ export interface CalendarLook {
   color: CalendarColor
   /** Left out of the Agenda overview; it still counts for the Studieplanner and the Dagstart. */
   hidden: boolean
+  /** A notice on your phone and watch before each event; on by default except for lessons. */
+  notify?: boolean
 }
 
 function parseCalendarLook(raw: unknown): Record<string, CalendarLook> {
@@ -567,7 +572,7 @@ function parseCalendarLook(raw: unknown): Record<string, CalendarLook> {
   if (!raw || typeof raw !== 'object') return out
   for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, MAX_EXTRA_CALENDARS + 2)) {
     const l = v as Partial<CalendarLook> | null
-    if (k.length <= 64 && l && CALENDAR_COLORS.includes(l.color as CalendarColor)) out[k] = { color: l.color as CalendarColor, hidden: l.hidden === true }
+    if (k.length <= 64 && l && CALENDAR_COLORS.includes(l.color as CalendarColor)) out[k] = { color: l.color as CalendarColor, hidden: l.hidden === true, ...(typeof l.notify === 'boolean' ? { notify: l.notify } : {}) }
   }
   return out
 }
@@ -575,6 +580,7 @@ function parseCalendarLook(raw: unknown): Record<string, CalendarLook> {
 export interface CalendarSource extends CalendarLook {
   id: string
   name: string
+  notify: boolean
 }
 
 /** The calendars in the Agenda (lessons, Google Agenda, the other links) with their colour and switch. */
@@ -586,8 +592,44 @@ export function calendarSources(state: Pick<ProfilesState, 'googleUrl' | 'extraC
   ]
   return list.map((s, i) => {
     const look: CalendarLook | undefined = state.calendarLook[s.id]
-    return { ...s, color: look?.color ?? CALENDAR_COLORS[i % CALENDAR_COLORS.length], hidden: look?.hidden ?? false }
+    return { ...s, color: look?.color ?? CALENDAR_COLORS[i % CALENDAR_COLORS.length], hidden: look?.hidden ?? false, notify: look?.notify ?? s.id !== 'school' }
   })
+}
+
+export const CALENDAR_LEADS = [10, 15, 30, 60, 120]
+/** At most this many calendar notices in the phone and watch plan, so deadlines keep their place. */
+export const MAX_CALENDAR_NOTICES = 15
+
+function shortHash(text: string): string {
+  let h = 0
+  for (let i = 0; i < text.length; i++) h = (Math.imul(31, h) + text.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+/**
+ * Notices before the events of your calendars (lessons only when you switch that on), for the
+ * phone and watch plan: the watch tile shows them, and the phone notifies [calendarLead] minutes
+ * ahead. The ref is calendar:<calendar>:<start>:<title hash>, the same on every device.
+ */
+export function plannedCalendarNotices(
+  state: Pick<ProfilesState, 'calendarEvents' | 'googleUrl' | 'googleEvents' | 'extraCalendars' | 'extraEvents' | 'calendarLook' | 'calendarLead'>,
+  now: number,
+  horizon = 3 * 24 * 60 * 60_000,
+): Array<{ ref: string; at: number; title: string; text?: string }> {
+  const notify = new Set(calendarSources(state).filter((s) => s.notify).map((s) => s.id))
+  const lead = state.calendarLead * 60_000
+  const clock = new Intl.DateTimeFormat('nl-BE', { hour: '2-digit', minute: '2-digit', timeZone: SCHOOL_TIME_ZONE })
+  const events = [...(notify.has('school') ? state.calendarEvents.map((e) => ({ ...e, source: 'school' })) : []), ...linkedEvents(state).map((e) => ({ ...e, source: e.source ?? 'google' }))]
+  return events
+    .filter((e) => notify.has(e.source) && e.start - lead > now && e.start - lead <= now + horizon)
+    .sort((a, b) => a.start - b.start)
+    .slice(0, MAX_CALENDAR_NOTICES)
+    .map((e) => ({
+      ref: `calendar:${e.source}:${e.start}:${shortHash(e.subject)}`,
+      at: e.start - lead,
+      title: `${clock.format(e.start)} ${e.subject}`.slice(0, 120),
+      text: `Over ${state.calendarLead} min${e.room ? ` · ${e.room}` : ''}`,
+    }))
 }
 
 /**
@@ -773,6 +815,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     extraCalendars: parseExtraCalendars(r.extraCalendars),
     extraEvents: parseExtraEvents(r.extraEvents),
     calendarLook: parseCalendarLook(r.calendarLook),
+    calendarLead: CALENDAR_LEADS.includes(r.calendarLead as number) ? (r.calendarLead as number) : 30,
     dagstart: parseDagstart(r.dagstart),
     agenda: parseAgendaRule(r.agenda),
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',

@@ -1,4 +1,4 @@
-import { openDeadlines, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -33,7 +33,7 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...plannedCalendarNotices(profilesStore.getSnapshot().state, now), ...flowNotices])
 }
 
 interface Sent {
