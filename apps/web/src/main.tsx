@@ -33,6 +33,7 @@ import { startProjectHubSync } from './projecthub/store'
 import { startKnowledgeSync } from './knowledge/store'
 import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
+import { startDartsSync } from './darts/store'
 import { startVault } from './vault/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
@@ -113,6 +114,7 @@ startKnowledgeSync(supabase, () => isFeatureOn('knowledge'), onFeaturesChange)
 // Study Lab and Gaming Companion: own documents, synced once switched on.
 startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
 startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
+startDartsSync(supabase, () => isFeatureOn('darts'), onFeaturesChange)
 // Vault: tags, collections, versions and the trash of your files; empties the trash after 30 days.
 startVault(supabase, () => isFeatureOn('vault'), onFeaturesChange)
 // Slaapbewaker: on an evening before a lesson day, a notice to stop gaming in time.

@@ -206,6 +206,17 @@ export const HELP: Record<AppId, HelpTopic> = {
       'In Vrienden zie je wie uit je teams aan het gamen is en plan je samen een sessie; kies per team of het jou ziet gamen.',
     ],
   },
+  darts: {
+    summary: 'Darts: een scorebord voor 301, 501 en 701 met uitgooi-tips en je statistieken.',
+    tips: [
+      'Start een wedstrijd met 1 tot 4 spelers en tik na elke beurt het totaal van je drie pijlen in, zoals op een scorebord.',
+      'Bij double-out is een beurt die onder nul gaat, op 1 eindigt of niet met een dubbel kan uitgooien, een bust: ze telt niet.',
+      'Kun je uitgooien, dan toont Darts een route, bv. T20 T20 Bull. Gooi je uit met minder dan drie pijlen, kies dan 1 of 2 pijlen.',
+      'Een fout getikt? Ongedaan maken neemt de laatste beurt terug, ook als die een leg won.',
+      'Statistieken tellen voor jouw naam (Instellingen): gemiddelde per drie pijlen, first 9, 180\'s, 140+, hoogste finish en beste leg.',
+      'Heb je een dartskalender gekoppeld (Profielen › Andere agenda\'s), dan staan je volgende dartsafspraken bovenaan.',
+    ],
+  },
   teams: {
     summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
     tips: [
