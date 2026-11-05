@@ -9,6 +9,8 @@ export interface CalendarEvent {
   end: number
   subject: string
   room?: string
+  /** Which linked calendar it came from (an id from Andere agenda's); Google Agenda when absent. Not stored. */
+  source?: string
 }
 
 /** Times without a zone or Z are local time at school. */
