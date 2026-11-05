@@ -3,6 +3,7 @@
  * from your own matches (3-dart average, first 9, 180s, highest checkout). You type the total of
  * each visit, as on a scoreboard. One document per account (user_settings key 'darts'). Pure logic.
  */
+import { MAX_PRACTICE, mergePractice, parsePractice, type DartsPractice } from './dartsPractice'
 
 export type DartsMode = 301 | 501 | 701
 export const DARTS_MODES: DartsMode[] = [301, 501, 701]
@@ -50,11 +51,13 @@ export interface DartsSettings {
 
 export interface DartsState {
   matches: DartsMatch[]
+  /** Practice rounds (Around the Clock, checkout training). */
+  practice: DartsPractice[]
   settings: DartsSettings
   revision: number
 }
 
-export const emptyDarts = (): DartsState => ({ matches: [], settings: { me: 'Ik', mode: 501, legsToWin: 3, doubleOut: true, updatedAt: 0 }, revision: 0 })
+export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', mode: 501, legsToWin: 3, doubleOut: true, updatedAt: 0 }, revision: 0 })
 
 // Parsing and merging -------------------------------------------------------------------------------
 
@@ -108,6 +111,7 @@ export function parseDarts(raw: unknown): DartsState {
   const base = emptyDarts().settings
   return {
     matches: (Array.isArray(v.matches) ? v.matches : []).map(parseMatch).filter((m): m is DartsMatch => m !== null).slice(0, MAX_MATCHES),
+    practice: (Array.isArray(v.practice) ? v.practice : []).map(parsePractice).filter((p): p is DartsPractice => p !== null).slice(0, MAX_PRACTICE),
     settings: { me: str(s.me, MAX_NAME).trim() || base.me, mode: mode(s.mode), legsToWin: legs(s.legsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
     revision: num(v.revision) ?? 0,
   }
@@ -121,6 +125,7 @@ export function mergeDarts(a: DartsState, b: DartsState): DartsState {
   }
   return {
     matches: [...byId.values()].sort((x, y) => y.startedAt - x.startedAt).slice(0, MAX_MATCHES),
+    practice: mergePractice(a.practice, b.practice),
     settings: b.settings.updatedAt > a.settings.updatedAt ? b.settings : a.settings,
     revision: Math.max(a.revision, b.revision),
   }
