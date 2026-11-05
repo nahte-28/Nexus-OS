@@ -10,6 +10,7 @@ import {
   linkedEvents,
   liveMatches,
   newMatch,
+  playerAverage,
   remaining,
   toThrow,
   undoVisit,
@@ -147,6 +148,10 @@ function Scoreboard({ match }: { match: DartsMatch }) {
                 <span className="text-nx-muted">legs {legsWon(match, i)}</span>
               </div>
               <div className="text-3xl font-semibold tabular-nums">{remaining(match, i)}</div>
+              <div className="text-xs text-nx-muted" aria-label={`Gemiddelde van ${p}`}>
+                gem. {avg(playerAverage(match, i))}
+                {match.legs.length > 1 && <> · deze leg {avg(playerAverage(match, i, leg))}</>}
+              </div>
               {last && <div className="text-xs text-nx-muted">vorige beurt: {last.bust ? `${last.score} (bust)` : last.score}</div>}
             </li>
           )
@@ -223,6 +228,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   )
 }
 
+const avg = (a: number | null) => (a === null ? '–' : a.toFixed(2))
 const n = (darts: number) => <span className="text-nx-muted">{darts === 1 ? 'pijl' : 'pijlen'}</span>
 
 function Upcoming() {
@@ -278,6 +284,7 @@ function History() {
       {matches.map((m) => (
         <li key={m.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
           <span className="font-medium">{m.players.map((p, i) => `${p} ${legsWon(m, i)}`).join(' – ')}</span>
+          <span className="text-nx-muted">gem. {m.players.map((p, i) => `${p} ${avg(playerAverage(m, i))}`).join(' · ')}</span>
           <span className="text-nx-muted">
             {m.mode} · {when(m.startedAt)} · {m.winner !== null ? `${m.players[m.winner]} won` : running(m) ? 'bezig' : 'gestopt'}
           </span>
@@ -543,6 +550,7 @@ function Settings() {
           Double-out
         </label>
       </div>
+      <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Nieuwe modules, dan verdwijnt de app overal.</p>
     </div>
   )
 }

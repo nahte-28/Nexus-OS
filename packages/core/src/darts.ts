@@ -265,6 +265,20 @@ export function checkoutRoute(rest: number, doubleOut = true, darts = 3): string
   return null
 }
 
+/** Points per three darts for [player], over the whole match or one leg; null before the first visit. A bust counts as three darts for nothing. */
+export function playerAverage(m: DartsMatch, player: number, leg?: DartsLeg): number | null {
+  let points = 0
+  let darts = 0
+  for (const l of leg ? [leg] : m.legs) {
+    for (const v of l.visits) {
+      if (v.player !== player) continue
+      points += v.bust ? 0 : v.score
+      darts += v.darts
+    }
+  }
+  return darts > 0 ? Math.round((points / darts) * 300) / 100 : null
+}
+
 // Stats ---------------------------------------------------------------------------------------------
 
 export interface DartsStats {

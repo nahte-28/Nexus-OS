@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, legsWon, mergeDarts, newMatch, parseDarts, remaining, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
+import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, legsWon, mergeDarts, newMatch, parseDarts, playerAverage, remaining, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
 
 const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
@@ -88,5 +88,15 @@ describe('darts scorer', () => {
     expect(stopped.winner).toBeNull()
     expect(stopped.finishedAt).toBe(9)
     expect(watchMatch({ id: 'l3', mode: 501, startedAt: 5, visits: [{ score: 179, darts: 3 }] }, 'Ethan', 9)).toBeNull()
+  })
+
+  it('gives each player an average for the match and the leg', () => {
+    let m = newMatch('a', ['Ethan', 'Remo'], { mode: 501, legsToWin: 2, doubleOut: true }, 1) as DartsMatch
+    expect(playerAverage(m, 0)).toBeNull()
+    for (const s of [100, 60, 140, 45]) m = addVisit(m, s, 2) as DartsMatch
+    expect(playerAverage(m, 0)).toBe(120)
+    expect(playerAverage(m, 1)).toBe(52.5)
+    m = addVisit(m, 180, 3) as DartsMatch // Ethan again: 100 + 140 + 180 in nine darts
+    expect(playerAverage(m, 0, m.legs[0])).toBe(140)
   })
 })
