@@ -41,6 +41,10 @@ import {
   type CalendarColor,
   type CalendarLook,
   type CalendarSource,
+  dayBlocks,
+  gridHours,
+  weekDays,
+  weekStart,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
@@ -181,10 +185,26 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   const sources = calendarSources(state)
   const look = new Map(sources.map((s) => [s.id, s]))
   const shown = (e: AgendaEntry) => !('source' in e && e.source && look.get(e.source)?.hidden)
+  const [view, setView] = useState<AgendaView>(readView)
+  const chooseView = (v: AgendaView) => {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      // Private window: the choice lasts until the tab closes.
+    }
+  }
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="min-w-0 flex-1 text-lg font-semibold">Je week</h2>
+        <div role="group" aria-label="Weergave" className="flex rounded-md border border-nx-border text-sm">
+          {(['lijst', 'rooster'] as const).map((v) => (
+            <button key={v} type="button" aria-pressed={view === v} className={`px-2 py-1 ${view === v ? 'bg-nx-surface-2 font-medium' : ''}`} onClick={() => chooseView(v)}>
+              {v === 'lijst' ? 'Lijst' : 'Rooster'}
+            </button>
+          ))}
+        </div>
         <button type="button" className={button} onClick={() => onAdd('Afspraken')}>
           + Afspraak
         </button>
@@ -203,7 +223,8 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
         </section>
       )}
       {sources.length > 1 && <CalendarLegend sources={sources} lead={state.calendarLead} />}
-      {days.map((day) => {
+      {view === 'rooster' && <WeekGrid input={input} shown={shown} look={look} projects={projects} now={now} />}
+      {view === 'lijst' && days.map((day) => {
         const entries = agendaDay(input, day).filter(shown)
         const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
         return (
@@ -231,6 +252,120 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
         <p className="text-nx-muted">Je lessen verschijnen hier zodra je in Profielen je lesrooster of de agendalink van school instelt.</p>
       )}
     </>
+  )
+}
+
+type AgendaView = 'lijst' | 'rooster'
+const VIEW_KEY = 'nexus.agenda.view'
+function readView(): AgendaView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'rooster' ? 'rooster' : 'lijst'
+  } catch {
+    return 'lijst'
+  }
+}
+
+/** Block colour: the calendar's own colour, else by kind (appointment, deadline, reminder). */
+function blockClass(e: AgendaEntry, look: Map<string, CalendarSource>): string {
+  const color = 'source' in e && e.source ? look.get(e.source)?.color : undefined
+  if (color) return `${EDGE[color]} bg-nx-surface-2`
+  if (e.kind === 'deadline') return 'border-l-red-500 bg-red-500/10'
+  if (e.kind === 'reminder') return 'border-l-amber-500 bg-amber-500/10'
+  return 'border-l-nx-accent bg-nx-surface-2'
+}
+
+const HOUR_PX = 48
+
+/** Week as a timetable: a column per day, every agenda in its own colour. */
+function WeekGrid({ input, shown, look, projects, now }: {
+  input: Parameters<typeof agendaDay>[0]
+  shown: (e: AgendaEntry) => boolean
+  look: Map<string, CalendarSource>
+  projects: Map<string, Project>
+  now: number
+}) {
+  const [monday, setMonday] = useState(() => weekStart(now))
+  const [picked, setPicked] = useState<{ day: number; i: number } | null>(null)
+  const days = weekDays(monday)
+  const entries = days.map((d) => agendaDay(input, d).filter(shown))
+  const { from, to } = gridHours(entries, days)
+  const hours = Array.from({ length: to - from }, (_, i) => from + i)
+  const height = (to - from) * HOUR_PX
+  const today = startOfDay(now)
+  const move = (weeks: number) => {
+    const d = new Date(monday)
+    d.setDate(d.getDate() + weeks * 7)
+    setMonday(d.getTime())
+    setPicked(null)
+  }
+  const pickedEntry = picked ? entries[days.indexOf(picked.day)]?.[picked.i] : undefined
+  const sunday = new Date(days[6]).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' })
+  const first = new Date(monday).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short' })
+  return (
+    <section aria-label="Weekrooster" className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={button} aria-label="Vorige week" onClick={() => move(-1)}>‹</button>
+        <span className="font-medium">{first} – {sunday}</span>
+        <button type="button" className={button} aria-label="Volgende week" onClick={() => move(1)}>›</button>
+        {monday !== weekStart(now) && (
+          <button type="button" className="text-sm text-nx-muted underline" onClick={() => { setMonday(weekStart(now)); setPicked(null) }}>
+            Deze week
+          </button>
+        )}
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-nx-border">
+        <div className="grid min-w-[40rem]" style={{ gridTemplateColumns: '2.5rem repeat(7, minmax(0, 1fr))' }}>
+          <div />
+          {days.map((d) => (
+            <div key={d} className={`border-b border-l border-nx-border px-1 py-1 text-center text-xs ${d === today ? 'font-semibold text-nx-accent' : 'text-nx-muted'}`}>
+              {new Date(d).toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric' })}
+            </div>
+          ))}
+          <div className="relative" style={{ height }}>
+            {hours.map((h, i) => (
+              <span key={h} className="absolute right-1 -translate-y-1/2 text-[10px] text-nx-muted tabular-nums" style={{ top: i * HOUR_PX }}>
+                {i === 0 ? '' : `${h}:00`}
+              </span>
+            ))}
+          </div>
+          {days.map((d, di) => (
+            <div key={d} className={`relative border-l border-nx-border ${d === today ? 'bg-nx-accent/5' : ''}`} style={{ height }}>
+              {hours.map((h, i) => i > 0 && <div key={h} aria-hidden className="absolute inset-x-0 border-t border-nx-border/60" style={{ top: i * HOUR_PX }} />)}
+              {dayBlocks(entries[di], d, from, to).map((b) => {
+                const i = entries[di].indexOf(b.entry)
+                const on = picked?.day === d && picked.i === i
+                const time = 'end' in b.entry ? `${clock(b.entry.at)}–${clock(b.entry.end)}` : clock(b.entry.at)
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    title={`${time} ${b.entry.title}`}
+                    aria-label={`${time} ${b.entry.title}`}
+                    aria-pressed={on}
+                    onClick={() => setPicked(on ? null : { day: d, i })}
+                    className={`absolute overflow-hidden rounded border-l-4 px-1 text-left text-[11px] leading-tight ${blockClass(b.entry, look)} ${on ? 'ring-2 ring-nx-accent' : ''}`}
+                    style={{ top: `${b.top * 100}%`, height: `${b.height * 100}%`, left: `${(b.lane / b.lanes) * 100}%`, width: `${100 / b.lanes}%` }}
+                  >
+                    <span className="block truncate font-medium">{b.entry.title}</span>
+                    {b.height * height > 30 && <span className="block truncate text-nx-muted">{time}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      {pickedEntry && (
+        <ul aria-label="Gekozen afspraak">
+          <Entry
+            entry={pickedEntry}
+            project={pickedEntry.kind === 'deadline' ? projects.get(pickedEntry.deadline.projectId ?? '') : undefined}
+            color={'source' in pickedEntry && pickedEntry.source ? look.get(pickedEntry.source)?.color : undefined}
+          />
+        </ul>
+      )}
+      <p className="text-xs text-nx-muted">Tik op een blok voor de details.</p>
+    </section>
   )
 }
 

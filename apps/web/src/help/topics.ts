@@ -13,7 +13,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Je deadlines, projecten en afspraken op één plek, met een overzicht van wat eraan komt.',
     tips: [
       'Met Integratie (Nieuwe modules) zie je onder een deadline of project wat erbij hoort, en opent een aangetikte melding meteen de juiste deadline.',
-      'Overzicht toont wat vandaag en deze week op je wacht.',
+      'Overzicht toont wat vandaag en deze week op je wacht, als lijst of als rooster per week met elke agenda in haar kleur.',
       'Een deadline kan een melding sturen naar je gsm en horloge, ook als je pc uit staat.',
       'Een afspraak kan elke dag, week, maand of jaar terugkomen; één keer overslaan kan in Overzicht.',
       'Overlapt een afspraak met een les of een andere afspraak, dan zie je dat meteen.',

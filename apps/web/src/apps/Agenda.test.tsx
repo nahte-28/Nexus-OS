@@ -42,6 +42,27 @@ describe('Agenda', () => {
     profilesStore.update((s) => ({ ...s, extraCalendars: [], extraEvents: {}, calendarLook: {} }))
   })
 
+  it('shows the week as a timetable and moves between weeks', () => {
+    const at = new Date()
+    at.setHours(20, 0, 0, 0)
+    const event = { start: at.getTime(), end: at.getTime() + 2 * 3_600_000, subject: 'Competitie' }
+    profilesStore.update((s) => ({ ...s, extraCalendars: [{ id: 'c1', name: 'Fairplay darts', url: 'https://fairplay.example/a.ics' }], extraEvents: { c1: { events: [event], syncedAt: Date.now() } }, calendarLook: {} }))
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('button', { name: 'Rooster' }))
+    const grid = screen.getByRole('region', { name: 'Weekrooster' })
+    const block = within(grid).getByRole('button', { name: '20:00–22:00 Competitie' })
+    expect(block.className).toContain('border-l-emerald-500')
+    fireEvent.click(block)
+    expect(within(screen.getByRole('list', { name: 'Gekozen afspraak' })).getByText(/Fairplay darts/)).toBeTruthy()
+    fireEvent.click(within(grid).getByRole('button', { name: 'Volgende week' }))
+    expect(within(grid).queryByRole('button', { name: '20:00–22:00 Competitie' })).toBeNull()
+    fireEvent.click(within(grid).getByRole('button', { name: 'Deze week' }))
+    expect(within(grid).getByRole('button', { name: '20:00–22:00 Competitie' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Lijst' }))
+    expect(screen.queryByRole('region', { name: 'Weekrooster' })).toBeNull()
+    profilesStore.update((s) => ({ ...s, extraCalendars: [], extraEvents: {}, calendarLook: {} }))
+  })
+
   it('groups deadlines in projects with their progress', async () => {
     render(<Agenda />)
     fireEvent.click(screen.getByRole('tab', { name: 'Projecten' }))
