@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { habitsStore } from '../habits/store'
 import { focusStore } from '../study/timer'
+import { dartsStore } from '../darts/store'
+import { emptyDarts } from '@nexus/core'
 import { applyAction } from './actions'
 
 describe('actions from the watch', () => {
@@ -19,5 +21,16 @@ describe('actions from the watch', () => {
     const at = Date.now()
     await applyAction({ v: 1, kind: 'action', action: 'focus', minutes: 25, task: '', at })
     expect(focusStore.getSnapshot().log.at(-1)).toEqual({ at, minutes: 25, task: 'Focus op het horloge' })
+  })
+
+  it('puts a darts leg from the watch in the history, once', async () => {
+    dartsStore.adopt({ ...emptyDarts(), settings: { ...emptyDarts().settings, me: 'Ethan' } })
+    const action = { v: 1 as const, kind: 'action' as const, action: 'darts' as const, id: 'w1', mode: 501 as const, startedAt: 1, visits: [{ score: 100, darts: 3 }], at: 2 }
+    await applyAction(action)
+    await applyAction({ ...action, visits: [{ score: 60, darts: 3 }] })
+    const matches = dartsStore.getSnapshot().matches
+    expect(matches).toHaveLength(1)
+    expect(matches[0]).toMatchObject({ id: 'watch-w1', players: ['Ethan'], finishedAt: 2 })
+    expect(matches[0].legs[0].visits[0].score).toBe(100)
   })
 })

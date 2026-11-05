@@ -185,6 +185,27 @@ export function addVisit(m: DartsMatch, score: number, now: number, darts = 3): 
   return next
 }
 
+/** The id a leg from the watch gets in NEXUS, so a second delivery changes nothing. */
+export const watchMatchId = (id: string) => `watch-${id}`
+
+/**
+ * A solo leg scored on the watch, as a one-leg match for [me]: the visits are replayed with these
+ * rules, so the watch cannot add what the scorer would refuse. A leg that was not out counts as stopped.
+ */
+export function watchMatch(leg: { id: string; mode: 301 | 501; startedAt: number; visits: Array<{ score: number; darts: number }> }, me: string, at: number): DartsMatch | null {
+  const start = newMatch(watchMatchId(leg.id), [me], { mode: leg.mode, legsToWin: 1, doubleOut: true }, leg.startedAt)
+  if ('error' in start) return null
+  let m: DartsMatch = start
+  for (const v of leg.visits) {
+    const next = addVisit(m, v.score, at, v.darts)
+    if ('error' in next) continue
+    m = next
+    if (m.winner !== null) break
+  }
+  if (currentLeg(m).visits.length === 0 && m.winner === null) return null
+  return { ...m, finishedAt: m.finishedAt ?? at, updatedAt: at }
+}
+
 /** Takes the last visit back, also when it won a leg or the match. */
 export function undoVisit(m: DartsMatch, now: number): DartsMatch {
   let all = m.legs

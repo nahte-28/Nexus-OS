@@ -22,6 +22,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import app.nexusos.companion.Connect
 import app.nexusos.companion.ConnectCrypto
+import app.nexusos.companion.DartsLeg
 import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.GamingTimer
 import app.nexusos.companion.PlanGaming
@@ -30,6 +31,7 @@ import app.nexusos.companion.Notifier
 import app.nexusos.companion.Protocol
 import app.nexusos.companion.Store
 import app.nexusos.companion.Updater
+import app.nexusos.companion.WatchDarts
 import kotlin.math.roundToInt
 
 /** Production address of the NEXUS web app; editable on the login screen. */
@@ -170,6 +172,9 @@ class WatchActivity : Activity() {
         gaming(now)
 
         space(12)
+        darts()
+
+        space(12)
         text(if (Inbox.connected) "Live verbonden met NEXUS." else "Haalt elk halfuur op wat NEXUS stuurde.", muted = true, size = 12f)
         if (!Notifier.enabled(this)) {
             text("Meldingen staan uit, dus het horloge kan je niet waarschuwen.")
@@ -286,6 +291,131 @@ class WatchActivity : Activity() {
         render()
     }
 
+    /**
+     * Darts: a solo leg of 501 or 301 (double-out). Type the total of each visit; the watch shows
+     * what is left and a checkout tip. When the leg ends it goes to NEXUS, into the stats of Darts.
+     */
+    private var dartsFinish: Int? = null
+    private var dartsBusy = false
+
+    private fun darts() {
+        heading("Darts", 15f)
+        val leg = WatchDarts.decode(dartsPrefs().getString("leg", null))
+        if (leg == null || (leg.over && leg.sent && dartsFinish == null && dartsShowDone != leg.id)) {
+            text("Tel een leg bij: tik na elke beurt het totaal van je drie pijlen in. Daarna staat ze in je Darts-statistieken in NEXUS.", muted = true, size = 12f)
+            for (mode in WatchDarts.MODES) {
+                button("$mode starten", primary = mode == WatchDarts.MODES.first()) {
+                    saveLeg(DartsLeg(java.util.UUID.randomUUID().toString(), mode, System.currentTimeMillis()))
+                    dartsFinish = null
+                    render()
+                }
+            }
+            return
+        }
+        if (leg.over) {
+            text(if (leg.finished) "Uit in ${leg.dartsThrown} pijlen" else "Gestopt op ${leg.remaining}", bold = true)
+            text("Gemiddelde ${"%.1f".format(leg.average)} per beurt", muted = true, size = 12f)
+            if (!leg.sent) {
+                button(if (dartsBusy) "Bezig…" else "Naar NEXUS sturen", primary = true) { sendLeg(leg) }
+            } else {
+                text("Staat in NEXUS.", muted = true, size = 12f)
+            }
+            button("Nieuwe leg") {
+                dartsShowDone = null
+                saveLeg(DartsLeg(java.util.UUID.randomUUID().toString(), leg.mode, System.currentTimeMillis()))
+                render()
+            }
+            if (!leg.sent) button("Ongedaan maken") { saveLeg(WatchDarts.undo(leg)); render() }
+            return
+        }
+        text("Nog ${leg.remaining}", bold = true, size = 22f)
+        WatchDarts.checkout(leg.remaining)?.let { text("Tip: ${it.joinToString(" ")}", size = 13f) }
+        if (leg.visits.isNotEmpty()) {
+            text("Laatste: " + leg.visits.takeLast(3).joinToString(", ") { if (it.bust) "${it.score} bust" else "${it.score}" }, muted = true, size = 12f)
+        }
+        val pending = dartsFinish
+        if (pending != null) {
+            text("$pending uit! In hoeveel pijlen?", bold = true)
+            val fewest = WatchDarts.checkout(pending)?.size ?: 3
+            row((fewest..3).map { n -> "$n" to { addScore(leg, pending, n) } })
+            button("Terug") { dartsFinish = null; render() }
+            return
+        }
+        val score = input("Score van je beurt", 0).apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        button("Invoeren", primary = true) { enterScore(leg, score.text.toString()) }
+        row(listOf(0, 26, 41).map { n -> "$n" to { enterScore(leg, "$n") } })
+        row(listOf(45, 60, 81).map { n -> "$n" to { enterScore(leg, "$n") } })
+        row(listOf(85, 100, 140).map { n -> "$n" to { enterScore(leg, "$n") } })
+        row(listOf("180" to { enterScore(leg, "180") }, "↶" to { saveLeg(WatchDarts.undo(leg)); render() }))
+        button("Stoppen") {
+            if (leg.visits.isEmpty()) {
+                dartsPrefs().edit().remove("leg").apply()
+                render()
+            } else {
+                val stopped = leg.copy(stoppedAt = System.currentTimeMillis())
+                saveLeg(stopped)
+                sendLeg(stopped)
+            }
+        }
+    }
+
+    private var dartsShowDone: String? = null
+
+    private fun enterScore(leg: DartsLeg, raw: String) {
+        val score = raw.trim().toIntOrNull()
+        if (score == null) {
+            status = "Tik een score van 0 tot 180."
+            render()
+            return
+        }
+        if (WatchDarts.wouldFinish(leg, score)) {
+            dartsFinish = score
+            render()
+            return
+        }
+        addScore(leg, score, 3)
+    }
+
+    private fun addScore(leg: DartsLeg, score: Int, darts: Int) {
+        dartsFinish = null
+        when (val r = WatchDarts.add(leg, score, darts)) {
+            is WatchDarts.Result.Error -> status = r.message
+            is WatchDarts.Result.Ok -> {
+                status = null
+                saveLeg(r.leg)
+                if (r.leg.finished) {
+                    dartsShowDone = r.leg.id
+                    sendLeg(r.leg)
+                    return
+                }
+            }
+        }
+        render()
+    }
+
+    private fun sendLeg(leg: DartsLeg) {
+        if (dartsBusy) return
+        dartsBusy = true
+        dartsShowDone = leg.id
+        Connect.sendToNexus(this, WatchDarts.payload(leg, System.currentTimeMillis())) { error ->
+            dartsBusy = false
+            if (error == null) {
+                WatchDarts.decode(dartsPrefs().getString("leg", null))?.takeIf { it.id == leg.id }?.let { saveLeg(it.copy(sent = true)) }
+                status = "De leg staat in NEXUS zodra het op je pc of gsm openstaat."
+            } else {
+                status = error
+            }
+            render()
+        }
+        render()
+    }
+
+    private fun dartsPrefs() = getSharedPreferences("darts", MODE_PRIVATE)
+
+    private fun saveLeg(leg: DartsLeg) {
+        dartsPrefs().edit().putString("leg", WatchDarts.encode(leg)).apply()
+    }
+
     // Small view helpers for the programmatic layout.
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
@@ -338,5 +468,24 @@ class WatchActivity : Activity() {
             },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(6) },
         )
+    }
+
+    /** Buttons side by side, for the quick scores. */
+    private fun row(items: List<Pair<String, () -> Unit>>) {
+        val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for ((label, onClick) in items) {
+            line.addView(
+                Button(this).apply {
+                    text = label
+                    isAllCaps = false
+                    minWidth = 0
+                    minimumWidth = 0
+                    setPadding(0, 0, 0, 0)
+                    setOnClickListener { onClick() }
+                },
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(2); marginEnd = dp(2) },
+            )
+        }
+        content.addView(line, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
     }
 }

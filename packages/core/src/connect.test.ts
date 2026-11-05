@@ -61,6 +61,10 @@ describe('connect payloads', () => {
     expect(parseAction({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })).toEqual({ v: 1, kind: 'action', action: 'done', ref: 'deadline:d1@100-60', at: 7 })
     expect(parseAction({ v: 1, kind: 'action', action: 'gaming', op: 'start', at: 7 })).toEqual({ v: 1, kind: 'action', action: 'gaming', op: 'start', at: 7 })
     expect(parseAction({ v: 1, kind: 'action', action: 'gaming', op: 'pause', at: 7 })).toBeNull()
+    const leg = { v: 1, kind: 'action', action: 'darts', id: 'l1', mode: 501, startedAt: 5, visits: [{ score: 180, darts: 3 }, { score: 999 }, { score: 41, darts: 2 }], at: 7 }
+    expect(parseAction(leg)).toEqual({ ...leg, visits: [{ score: 180, darts: 3 }, { score: 41, darts: 2 }] })
+    expect(parseAction({ ...leg, mode: 701 })).toBeNull()
+    expect(parseAction({ ...leg, visits: [] })).toBeNull()
     expect(parseAction({ v: 1, kind: 'action', action: 'delete', ref: 'x', at: 7 })).toBeNull()
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 25, at: 9 })).toEqual({ v: 1, kind: 'action', action: 'focus', minutes: 25, task: '', at: 9 })
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 900, at: 9 })).toBeNull()

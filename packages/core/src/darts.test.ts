@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, legsWon, mergeDarts, newMatch, parseDarts, remaining, toThrow, undoVisit, type DartsMatch } from './darts'
+import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, legsWon, mergeDarts, newMatch, parseDarts, remaining, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
 
 const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
@@ -75,5 +75,18 @@ describe('darts scorer', () => {
       { start: 6, subject: 'Les' },
     ]
     expect(dartsEvents(events, 2).map((e) => e.start)).toEqual([3, 5])
+  })
+
+  it('turns a leg from the watch into a one-leg match with the same rules', () => {
+    const won = watchMatch({ id: 'l1', mode: 301, startedAt: 5, visits: [{ score: 180, darts: 3 }, { score: 120, darts: 3 }, { score: 81, darts: 3 }, { score: 40, darts: 2 }] }, 'Ethan', 9)!
+    expect(won.id).toBe('watch-l1')
+    expect(won.players).toEqual(['Ethan'])
+    expect(won.winner).toBe(0)
+    expect(won.legs[0].visits.map((v) => v.bust)).toEqual([false, true, false, false])
+    expect(dartsStats([won], 'ethan').bestLeg).toBe(11)
+    const stopped = watchMatch({ id: 'l2', mode: 501, startedAt: 5, visits: [{ score: 60, darts: 3 }] }, 'Ethan', 9)!
+    expect(stopped.winner).toBeNull()
+    expect(stopped.finishedAt).toBe(9)
+    expect(watchMatch({ id: 'l3', mode: 501, startedAt: 5, visits: [{ score: 179, darts: 3 }] }, 'Ethan', 9)).toBeNull()
   })
 })
