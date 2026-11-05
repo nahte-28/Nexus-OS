@@ -213,6 +213,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij double-out is een beurt die onder nul gaat, op 1 eindigt of niet met een dubbel kan uitgooien, een bust: ze telt niet.',
       'Kun je uitgooien, dan toont Darts een route, bv. T20 T20 Bull. Gooi je uit met minder dan drie pijlen, kies dan 1 of 2 pijlen.',
       'Een fout getikt? Ongedaan maken neemt de laatste beurt terug, ook als die een leg won.',
+      'Oefenen: Around the Clock (1 tot 20 en de bull, tik Raak of Mis per pijl) en Checkout-training (een willekeurige finish uitgooien in hoogstens 9 pijlen). Je resultaten staan bij Statistieken.',
       'Statistieken tellen voor jouw naam (Instellingen): gemiddelde per drie pijlen, first 9, 180\'s, 140+, hoogste finish en beste leg.',
       'Heb je een dartskalender gekoppeld (Profielen › Andere agenda\'s), dan staan je volgende dartsafspraken bovenaan.',
     ],
