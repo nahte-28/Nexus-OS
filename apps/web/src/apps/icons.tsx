@@ -348,3 +348,11 @@ export const JournalIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M8 3v18M11 8h4M11 12h4" />
   </svg>
 )
+
+export const DartsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="11" cy="13" r="8" />
+    <circle cx="11" cy="13" r="4" />
+    <path d="M11 13l9-9M17 4h3v3" />
+  </svg>
+)

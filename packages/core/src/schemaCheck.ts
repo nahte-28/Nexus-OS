@@ -46,6 +46,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261103090000_team_gaming.sql', label: 'Gamevrienden: wie speelt en samen spelen', needs: [{ table: 'team_playing' }, { table: 'team_game_plans' }, { table: 'team_game_rsvp' }] },
   { file: '20261103120000_vault.sql', label: 'Vault: tags, verzamelingen en prullenbak syncen', needs: [{ settingsKey: 'vault' }] },
   { file: '20261103150000_push_actions.sql', label: 'Meldingsknoppen: Klaar en Later op je gsm en horloge', needs: [{ fn: 'push_action' }] },
+  { file: '20261105090000_darts.sql', label: 'Darts syncen', needs: [{ settingsKey: 'darts' }] },
 ]
 
 /** What nexus_schema_status() returns. */
