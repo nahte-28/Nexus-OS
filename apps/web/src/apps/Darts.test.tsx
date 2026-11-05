@@ -27,6 +27,8 @@ describe('Darts', () => {
     throwScore(180)
     expect(within(board()).getByText('Remo', { selector: 'b' })).toBeTruthy()
     throwScore(100)
+    expect(screen.getByLabelText('Gemiddelde van Ethan').textContent).toContain('gem. 180.00')
+    expect(screen.getByLabelText('Gemiddelde van Remo').textContent).toContain('gem. 80.00')
     // Ethan has 141 left.
     expect(screen.getByText('T20 T15 D18')).toBeTruthy()
     throwScore(150)
