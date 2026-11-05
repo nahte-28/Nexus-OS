@@ -52,12 +52,13 @@ export interface PlanGaming {
  * Something done on another device. "done": a deadline or habit ticked off on the watch; the [ref] is
  * the one of the notice it came from (deadline:<id>@... or habit:<id>@<date>). "focus": a focus round
  * finished on the watch, for the focus log of Studie and Inzichten. "gaming": the Gaming timer started or
- * stopped on the watch.
+ * stopped on the watch. "darts": a solo leg scored on the watch, for the history and stats of Darts.
  */
 export type ActionPayload =
   | { v: 1; kind: 'action'; action: 'done'; ref: string; at: number }
   | { v: 1; kind: 'action'; action: 'focus'; minutes: number; task: string; at: number }
   | { v: 1; kind: 'action'; action: 'gaming'; op: 'start' | 'stop'; at: number }
+  | { v: 1; kind: 'action'; action: 'darts'; id: string; mode: 301 | 501; startedAt: number; visits: Array<{ score: number; darts: number }>; at: number }
 
 export type ActionTarget = { kind: 'deadline'; id: string } | { kind: 'habit'; id: string; date: string }
 
@@ -74,6 +75,17 @@ export function parseAction(value: unknown): ActionPayload | null {
   }
   if (p.action === 'gaming' && (p.op === 'start' || p.op === 'stop')) {
     return { v: 1, kind: 'action', action: 'gaming', op: p.op, at: p.at }
+  }
+  if (p.action === 'darts' && (p.mode === 301 || p.mode === 501) && Array.isArray(p.visits)) {
+    const id = str(p.id, 80)
+    const startedAt = typeof p.startedAt === 'number' && Number.isFinite(p.startedAt) ? p.startedAt : p.at
+    const visits = p.visits.slice(0, 100).flatMap((x) => {
+      const v = x as Record<string, unknown> | null
+      return v && typeof v.score === 'number' && Number.isInteger(v.score) && v.score >= 0 && v.score <= 180
+        ? [{ score: v.score, darts: typeof v.darts === 'number' && v.darts >= 1 && v.darts <= 3 ? Math.round(v.darts) : 3 }]
+        : []
+    })
+    return id && visits.length > 0 ? { v: 1, kind: 'action', action: 'darts', id, mode: p.mode, startedAt, visits, at: p.at } : null
   }
   return null
 }
