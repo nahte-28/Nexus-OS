@@ -378,3 +378,11 @@ export const WeatherIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M8 19h9a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 8 12.5 3.3 3.3 0 0 0 8 19z" />
   </svg>
 )
+
+export const ContactsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="5" y="3" width="14" height="18" rx="2" />
+    <circle cx="12" cy="10" r="2.5" />
+    <path d="M8.5 16.5a3.5 3.5 0 0 1 7 0M3 7h2M3 12h2M3 17h2" />
+  </svg>
+)
