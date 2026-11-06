@@ -4,6 +4,7 @@ import { useSync } from '../sync/SyncContext'
 import type { SyncState } from '../sync/engine'
 import { DatabaseCheck } from '../account/DatabaseCheck'
 import { missingSupabaseEnv, supabase } from '../sync/supabase'
+import { AboutMe } from '../profiles/AboutMe'
 
 export function statusText(state: SyncState): string {
   switch (state.status) {
@@ -182,6 +183,9 @@ export function Account() {
       <div>
         <h2 className="text-lg font-semibold">Account</h2>
         <p className="text-nx-muted">Aangemeld als {state.email}</p>
+      </div>
+      <div className="rounded-lg border border-nx-border p-3">
+        <AboutMe />
       </div>
       <div className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
         <p role="status" className="font-medium">

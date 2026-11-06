@@ -168,6 +168,8 @@ export interface ProfilesState {
   features: FeatureSwitches
   /** Klasagenda: your choice per team (on or off); a team without a choice follows its class. */
   classAgenda: Record<string, boolean>
+  /** Account › Over jou: who uses NEXUS; the role decides whether the first profile is School or Werk. */
+  about: AboutMe
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -188,7 +190,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 13
+export const PROFILES_SCHEMA = 14
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -275,6 +277,7 @@ export function defaultProfilesState(): ProfilesState {
     klas: '',
     features: {},
     classAgenda: {},
+    about: { ...EMPTY_ABOUT },
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -515,6 +518,7 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
     merged = { ...merged, googleUrl: other.googleUrl, googleEvents: other.googleEvents, googleSyncedAt: other.googleSyncedAt }
   }
   if (base.lessons.length === 0 && other.lessons.length > 0) merged = { ...merged, lessons: other.lessons }
+  if (base.about.role === null && !base.about.name && (other.about.role !== null || other.about.name)) merged = { ...merged, about: other.about }
   // A calendar link added on only one of the two devices so far is kept.
   const extra = other.extraCalendars.filter((c) => !base.extraCalendars.some((b) => b.id === c.id || b.url === c.url))
   if (extra.length > 0) merged = { ...merged, extraCalendars: [...base.extraCalendars, ...extra].slice(0, MAX_EXTRA_CALENDARS) }
@@ -821,6 +825,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',
     features: parseSwitches(r.features),
     classAgenda: parseChoices(r.classAgenda),
+    about: parseAbout(r.about),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }
@@ -862,3 +867,81 @@ export function moveItem<T>(list: T[], item: T, by: -1 | 1): T[] {
 export function profileApps(profile: Profile): AppId[] {
   return [...profile.apps.filter((a) => !ALWAYS_VISIBLE_APPS.includes(a)), ...ALWAYS_VISIBLE_APPS]
 }
+
+// About you ------------------------------------------------------------------------------------------
+
+/** What you do: it decides whether the first profile is School (with lessons and KlasHub) or Werk. */
+export type LifeRole = 'student' | 'work' | 'other'
+export const LIFE_ROLES: LifeRole[] = ['student', 'work', 'other']
+export const LIFE_ROLE_LABELS: Record<LifeRole, string> = { student: 'Ik studeer', work: 'Ik werk', other: 'Iets anders' }
+
+export interface AboutMe {
+  /** How NEXUS greets you; empty when not filled in. */
+  name: string
+  role: LifeRole | null
+  /** Your school or work, e.g. AP Hogeschool. */
+  place: string
+  /** YYYY-MM-DD, or empty. */
+  birthday: string
+}
+
+export const EMPTY_ABOUT: AboutMe = { name: '', role: null, place: '', birthday: '' }
+const MAX_ABOUT = 60
+
+function parseAbout(raw: unknown): AboutMe {
+  if (typeof raw !== 'object' || raw === null) return { ...EMPTY_ABOUT }
+  const a = raw as Record<string, unknown>
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, MAX_ABOUT) : '')
+  return {
+    name: text(a.name),
+    role: LIFE_ROLES.includes(a.role as LifeRole) ? (a.role as LifeRole) : null,
+    place: text(a.place),
+    birthday: typeof a.birthday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.birthday) ? a.birthday : '',
+  }
+}
+
+/** Apps that only make sense while you study. */
+export const SCHOOL_ONLY_APPS: AppId[] = ['klashub', 'study', 'grades', 'flashcards']
+
+/** The first profile when you work (or do something else): your day without lessons or KlasHub. */
+export const WORK_PROFILE: Pick<Profile, 'name' | 'description' | 'apps' | 'widgets'> = {
+  name: 'Werk',
+  description: 'Je werkdag: afspraken, taken en notities, met minder afleiding.',
+  apps: ['agenda', 'notes', 'files', 'reminders', 'habits', 'insights', 'assistant', 'notifications', 'devices', 'account', 'about'],
+  widgets: ['deadlines', 'notes', 'notifications'],
+}
+
+/**
+ * Saves what you do and shapes the profiles to it: studying keeps School (lessons, KlasHub,
+ * Studie); working or something else turns it into Werk and takes the school apps out of every
+ * profile. Switching back to studying puts them back. Your own changes to other apps are kept.
+ */
+export function applyRole(state: ProfilesState, role: LifeRole): ProfilesState {
+  const about = { ...state.about, role }
+  const profiles = { ...state.profiles }
+  if (role === 'student') {
+    const base = DEFAULT_PROFILES.school
+    profiles.school = { ...profiles.school, name: base.name, description: base.description, apps: [...base.apps], widgets: [...base.widgets] }
+    for (const id of PROFILE_IDS) {
+      if (id === 'school') continue
+      const missing = DEFAULT_PROFILES[id].apps.filter((a) => SCHOOL_ONLY_APPS.includes(a) && !profiles[id].apps.includes(a))
+      if (missing.length > 0) profiles[id] = { ...profiles[id], apps: [...profiles[id].apps, ...missing] }
+    }
+  } else {
+    profiles.school = { ...profiles.school, ...WORK_PROFILE, apps: [...WORK_PROFILE.apps], widgets: [...WORK_PROFILE.widgets] }
+    for (const id of PROFILE_IDS) {
+      const apps = profiles[id].apps.filter((a) => !SCHOOL_ONLY_APPS.includes(a))
+      const widgets = profiles[id].widgets.filter((w) => w !== 'klashub' && w !== 'next_class' && w !== 'ai_study')
+      if (apps.length !== profiles[id].apps.length || widgets.length !== profiles[id].widgets.length) profiles[id] = { ...profiles[id], apps, widgets }
+    }
+  }
+  return { ...state, about, profiles }
+}
+
+/** Fills in what you typed about yourself (name, school or work, birthday); the role goes through [applyRole]. */
+export function setAbout(state: ProfilesState, patch: Partial<Omit<AboutMe, 'role'>>): ProfilesState {
+  return { ...state, about: parseAbout({ ...state.about, ...patch }) }
+}
+
+/** Whether NEXUS should still ask who you are (nothing filled in yet). */
+export const needsAbout = (state: Pick<ProfilesState, 'about'>) => state.about.role === null
