@@ -370,3 +370,11 @@ export const CalculatorIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" />
   </svg>
 )
+
+export const WeatherIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M8 4v1M3.5 8.5h1M4.8 4.8l.7.7M11.2 4.8l-.7.7" />
+    <path d="M5.6 10.5A3 3 0 1 1 10.9 8" />
+    <path d="M8 19h9a3.5 3.5 0 0 0 .4-7A5 5 0 0 0 8 12.5 3.3 3.3 0 0 0 8 19z" />
+  </svg>
+)

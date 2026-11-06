@@ -28,6 +28,9 @@
     },
     "api/calendar.ts": {
       "maxDuration": 30
+    },
+    "api/weather.ts": {
+      "maxDuration": 15
     }
   }
 }

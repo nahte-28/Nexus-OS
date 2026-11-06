@@ -4,7 +4,7 @@
  * by default (STABLE_FEATURES) except the Developer Hub, which is for developers only. The
  * database has every SQL step (Database-check), so modules with tables work for everyone. Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace' | 'integration' | 'darts' | 'clock' | 'calculator'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace' | 'integration' | 'darts' | 'clock' | 'calculator' | 'weather'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -32,6 +32,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'darts', title: 'Darts', description: 'Een scorebord voor 301, 501 en 701 met legs, double-out en uitgooi-tips, statistieken (gemiddelde, first 9, 180\'s, hoogste finish) en je dartsafspraken uit de Agenda.', defaultOn: true, available: true },
   { id: 'clock', title: 'Klok', description: 'Wekkers die ook op je gsm en horloge afgaan, een timer, een stopwatch met rondetijden en een wereldklok.', defaultOn: true, available: true },
   { id: 'calculator', title: 'Rekenmachine', description: 'Een rekenmachine met haakjes, procenten en een komma, die je laatste berekeningen onthoudt.', defaultOn: true, available: true },
+  { id: 'weather', title: 'Weer', description: 'Het weer van nu, de komende uren en de week voor je eigen plaatsen, met een tip als je een paraplu nodig hebt. Werkt ook offline met het laatst opgehaalde weer.', defaultOn: true, available: true },
   { id: 'teams', title: 'Teams', description: 'Je studiegroepen met rollen (eigenaar, beheerder, lid, kijker), uitnodigingen die vervallen en projecten waar het team samen aan werkt.', defaultOn: true, available: true },
   { id: 'launcher', title: 'Launcher', description: 'Zoeken overal (Ctrl+K) wordt de Launcher: recent geopend, vastgezette items, instellingen en opdrachten die vooraf tonen wat ze doen.', defaultOn: true, available: true },
   { id: 'sentinel', title: 'Sentinel', description: 'Eén beveiligingscentrum: je apparaten, sessies en wat je toestond, met een activiteitenlog en een melding bij een nieuw gekoppeld apparaat.', defaultOn: true, available: true },

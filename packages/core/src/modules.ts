@@ -57,6 +57,7 @@ export const MODULES: ModuleManifest[] = [
   m('darts', 'darts', { docKeys: ['darts'], schema: '20261105090000_darts.sql' }),
   m('clock', 'clock', { localKeys: ['nexus.clock'], uses: [] }),
   m('calculator', 'calculator', { localKeys: ['nexus.calculator'] }),
+  m('weather', 'weather', { localKeys: ['nexus.weather'] }),
   m('teams', 'teams', { tables: ['study_groups', 'team_invites', 'team_projects', 'team_project_tasks'], localKeys: ['nexus.classagenda'], schema: '20261030150000_teams.sql', events: ['study_group'] }),
   m('controlCenter', 'controlcenter'),
   m('launcher', null, { localKeys: ['nexus.launcher'] }),

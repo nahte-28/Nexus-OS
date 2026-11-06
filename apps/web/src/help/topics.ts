@@ -238,6 +238,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Rekenmachine is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },
+  weather: {
+    summary: 'Weer: het weer van nu, de komende uren en de week.',
+    tips: [
+      'Zoek een plaats op naam of kies Mijn locatie. Je kunt tot 6 plaatsen bewaren en er bovenaan tussen wisselen.',
+      'Het weer komt van Open-Meteo. NEXUS stuurt alleen de plaats mee, afgerond op ongeveer een kilometer, en vernieuwt hoogstens om het halfuur (of als je op Vernieuwen tikt).',
+      'Zonder internet zie je het laatst opgehaalde weer, met het uur waarop het binnenkwam.',
+      'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+    ],
+  },
   teams: {
     summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
     tips: [
