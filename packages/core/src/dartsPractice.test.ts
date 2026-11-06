@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mergeDarts, parseDarts } from './darts'
-import { checkoutResult, clockTarget, clockThrow, finishable, newPractice, parsePractice, pickCheckout, practiceStats, stopPractice, undoPractice, type DartsPractice } from './dartsPractice'
+import { BOBS_TARGETS, bobsRound, bobsScore, bobsTarget, checkoutResult, clockTarget, clockThrow, finishable, newPractice, parsePractice, pickCheckout, practiceStats, practiceSummary, scoringAverage, scoringVisit, stopPractice, undoPractice, type DartsPractice } from './dartsPractice'
 
 const seq = (...xs: number[]) => {
   let i = 0
@@ -70,5 +70,71 @@ describe('darts practice', () => {
     expect(merged.practice.map((p) => p.id)).toEqual(['q', 'p'])
     expect(merged.practice[1].throws).toEqual([true])
     expect(parseDarts(JSON.parse(JSON.stringify(merged))).practice).toEqual(merged.practice)
+  })
+})
+
+describe('more darts practice', () => {
+  it('plays Doubles rond from D1 to the bull', () => {
+    let p = newPractice('d', 'doubles', 1)
+    expect(clockTarget(p)).toBe('D1')
+    p = clockThrow(p, false, 2)
+    for (let i = 0; i < 20; i++) p = clockThrow(p, true, 3)
+    expect(clockTarget(p)).toBe('Bull')
+    p = clockThrow(p, true, 4)
+    expect(p.finishedAt).toBe(4)
+    expect(practiceSummary(p)).toBe('22 pijlen')
+  })
+
+  it("scores Bob's 27 and stops below zero", () => {
+    let p = newPractice('b', 'bobs27', 1)
+    expect(bobsTarget(p)).toBe('D1')
+    p = bobsRound(p, 1, 2) // +2 → 29
+    p = bobsRound(p, 0, 3) // -4 → 25
+    expect(bobsScore(p)).toBe(25)
+    expect(bobsTarget(p)).toBe('D3')
+    p = bobsRound(p, 0, 4) // -6 → 19
+    p = bobsRound(p, 0, 5) // -8 → 11
+    p = bobsRound(p, 0, 6) // -10 → 1
+    expect(p.finishedAt).toBeNull()
+    p = bobsRound(p, 0, 7) // -12 → -11
+    expect(p.finishedAt).toBe(7)
+    expect(bobsTarget(p)).toBeNull()
+    p = undoPractice(p, 8)
+    expect(bobsScore(p)).toBe(1)
+    expect(p.finishedAt).toBeNull()
+  })
+
+  it('reaches the bull in a perfect round of Bob\'s 27', () => {
+    let p = newPractice('b', 'bobs27', 1)
+    for (let i = 0; i < BOBS_TARGETS; i++) p = bobsRound(p, 3, 2)
+    expect(p.finishedAt).toBe(2)
+    expect(bobsScore(p)).toBe(27 + 3 * (420 + 50))
+  })
+
+  it('counts a scoring round of ten visits', () => {
+    let p = newPractice('s', 'scoring', 1)
+    expect(scoringVisit(p, 179, 2)).toEqual({ error: '179 kan niet met drie pijlen.' })
+    for (const v of [60, 100, 45, 140, 26, 81, 60, 180, 41, 85]) {
+      const next = scoringVisit(p, v, 3)
+      if ('error' in next) throw new Error(next.error)
+      p = next
+    }
+    expect(p.finishedAt).toBe(3)
+    expect(scoringAverage(p)).toBe(81.8)
+    expect('error' in scoringVisit(p, 60, 4)).toBe(true)
+  })
+
+  it('keeps the new rounds through parse and adds them to the stats', () => {
+    const bobs: DartsPractice = { ...newPractice('b', 'bobs27', 2), hits: [1, 2, 0], finishedAt: 3 }
+    const scoring: DartsPractice = { ...newPractice('s', 'scoring', 1), visits: Array(10).fill(60), finishedAt: 2 }
+    const doubles: DartsPractice = { ...newPractice('d', 'doubles', 3), throws: [false, ...Array(21).fill(true)] }
+    const parsed = [bobs, scoring, doubles].map((p) => parsePractice(JSON.parse(JSON.stringify(p))))
+    expect(parsed).toEqual([bobs, scoring, doubles])
+    expect(parsePractice({ ...scoring, visits: [60, 179, 200, 45] })?.visits).toEqual([60, 45])
+    const s = practiceStats([bobs, scoring, doubles])
+    expect(s.bobsBest).toBe(27 + 2 + 8 - 6)
+    expect(s.scoringBest).toBe(60)
+    expect(s.doublesBest).toBe(22)
+    expect(s.doublesHitRate).toBe(95)
   })
 })

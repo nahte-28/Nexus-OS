@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, legsWon, mergeDarts, newMatch, parseDarts, playerAverage, remaining, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
+import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, knownPlayers, legsWon, mergeDarts, newMatch, parseDarts, playerAverage, playerLabel, remaining, removePlayer, savePlayer, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
 
 const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
@@ -98,5 +98,33 @@ describe('darts scorer', () => {
     expect(playerAverage(m, 1)).toBe(52.5)
     m = addVisit(m, 180, 3) as DartsMatch // Ethan again: 100 + 140 + 180 in nine darts
     expect(playerAverage(m, 0, m.legs[0])).toBe(140)
+  })
+})
+
+describe('darts nicknames', () => {
+  it('keeps nicknames for you and your players', () => {
+    let s = emptyDarts().settings
+    s = { ...s, me: 'Ethan' }
+    const a = savePlayer(s, 'ethan', 'The Power', 1)
+    if ('error' in a) throw new Error(a.error)
+    const b = savePlayer(a, ' Remo ', 'Snakebite', 2)
+    if ('error' in b) throw new Error(b.error)
+    const c = savePlayer(b, 'remo', 'Bully', 3)
+    if ('error' in c) throw new Error(c.error)
+    expect(c.nickname).toBe('The Power')
+    expect(c.roster).toEqual([{ name: 'Remo', nickname: 'Bully' }])
+    expect(playerLabel(c, 'REMO')).toBe("REMO 'Bully'")
+    expect(playerLabel(c, 'Jan')).toBe('Jan')
+    expect(savePlayer(c, '  ', 'x', 4)).toEqual({ error: 'Geef de speler een naam.' })
+    expect(removePlayer(c, 'Remo', 5).roster).toEqual([])
+  })
+
+  it('parses the roster and lists everyone with stats', () => {
+    const state = parseDarts({ settings: { me: 'Ethan', nickname: ' The Power ', roster: [{ name: 'Remo', nickname: 'Bully' }, { name: 'remo' }, { name: '' }, 'x'] } })
+    expect(state.settings.nickname).toBe('The Power')
+    expect(state.settings.roster).toEqual([{ name: 'Remo', nickname: 'Bully' }])
+    const m = newMatch('m', ['Jan', 'ethan'], { mode: 501, legsToWin: 1, doubleOut: true }, 1)
+    if ('error' in m) throw new Error(m.error)
+    expect(knownPlayers({ ...state, matches: [m] })).toEqual(['Ethan', 'Remo', 'Jan'])
   })
 })

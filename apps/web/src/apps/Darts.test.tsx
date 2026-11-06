@@ -74,4 +74,56 @@ describe('Darts', () => {
     expect(stats.textContent).toContain('1 van 2 (50%)')
     expect(dartsStore.getSnapshot().practice).toHaveLength(2)
   })
+
+  it('keeps nicknames, picks a regular player and shows stats per player', () => {
+    render(<Darts />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Instellingen' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Jouw bijnaam (mag leeg)' }), { target: { value: 'The Power' } })
+    const add = screen.getByRole('form', { name: 'Speler toevoegen' })
+    fireEvent.change(within(add).getByRole('textbox', { name: 'Naam' }), { target: { value: 'Remo' } })
+    fireEvent.change(within(add).getByRole('textbox', { name: 'Bijnaam' }), { target: { value: 'Bully' } })
+    fireEvent.click(within(add).getByRole('button', { name: 'Toevoegen' }))
+    expect((screen.getByRole('textbox', { name: 'Bijnaam van Remo' }) as HTMLInputElement).value).toBe('Bully')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Spelen' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Vaste spelers' })).getByRole('button', { name: "+ Remo 'Bully'" }))
+    expect((screen.getByRole('textbox', { name: 'Speler 2' }) as HTMLInputElement).value).toBe('Remo')
+    fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+    const board = screen.getByRole('region', { name: 'Scorebord' })
+    expect(within(board).getByText("'The Power'")).toBeTruthy()
+    expect(within(board).getByText("'Bully'")).toBeTruthy()
+    throwScore(100)
+    throwScore(60)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Statistieken' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Speler' }), { target: { value: 'Remo' } })
+    expect(within(screen.getByLabelText('Statistieken van Remo')).getAllByText('60.00', { selector: 'dd' })).toHaveLength(2) // average and first 9
+  })
+
+  it("plays Bob's 27, a scoring round and Doubles rond", () => {
+    render(<Darts />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Oefenen' }))
+    fireEvent.click(screen.getByRole('button', { name: "Bob's 27" }))
+    const bobs = () => screen.getByRole('region', { name: "Bob's 27" })
+    expect(within(bobs()).getByText('D1')).toBeTruthy()
+    fireEvent.click(within(bobs()).getByRole('button', { name: '2 raak' }))
+    expect(within(bobs()).getByText('stand: 31')).toBeTruthy()
+    fireEvent.click(within(bobs()).getByRole('button', { name: 'Stoppen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Nieuwe oefening' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scoring op T20' }))
+    const scoring = () => screen.getByRole('region', { name: 'Scoring op T20' })
+    for (let i = 0; i < 10; i++) fireEvent.click(within(scoring()).getByRole('button', { name: i % 2 ? '100' : '60' }))
+    expect(within(scoring()).getByText('80.0')).toBeTruthy()
+    expect(within(scoring()).getByText('Klaar')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Nieuwe oefening' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Doubles rond' }))
+    expect(within(screen.getByRole('region', { name: 'Doubles rond' })).getByText('D1')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Statistieken' }))
+    const stats = screen.getByLabelText('Statistieken van het oefenen')
+    expect(stats.textContent).toContain("Beste Bob's 2731")
+    expect(stats.textContent).toContain('80 per beurt')
+  })
 })
