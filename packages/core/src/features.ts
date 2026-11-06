@@ -4,7 +4,7 @@
  * by default (STABLE_FEATURES) except the Developer Hub, which is for developers only. The
  * database has every SQL step (Database-check), so modules with tables work for everyone. Pure logic.
  */
-export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace' | 'integration' | 'darts' | 'clock' | 'calculator' | 'weather' | 'contacts'
+export type FeatureId = 'spaces' | 'inbox' | 'timeMachine' | 'bridge' | 'intelligence' | 'devHub' | 'capture' | 'briefing' | 'projectHub' | 'knowledge' | 'studyLab' | 'gaming' | 'teams' | 'controlCenter' | 'launcher' | 'sentinel' | 'vault' | 'offline' | 'marketplace' | 'integration' | 'darts' | 'clock' | 'calculator' | 'weather' | 'contacts' | 'browser'
 
 export interface FeatureInfo {
   id: FeatureId
@@ -34,6 +34,7 @@ export const FEATURES: FeatureInfo[] = [
   { id: 'calculator', title: 'Rekenmachine', description: 'Een rekenmachine met haakjes, procenten en een komma, die je laatste berekeningen onthoudt.', defaultOn: true, available: true },
   { id: 'weather', title: 'Weer', description: 'Het weer van nu, de komende uren en de week voor je eigen plaatsen, met een tip als je een paraplu nodig hebt. Werkt ook offline met het laatst opgehaalde weer.', defaultOn: true, available: true },
   { id: 'contacts', title: 'Contacten', description: 'Je adresboek met telefoon, e-mail, adres en verjaardag, een melding op iemands verjaardag (ook op gsm en horloge) en importeren of exporteren als .vcf.', defaultOn: true, available: true },
+  { id: 'browser', title: 'Browser', description: 'Een startpagina met zoekbalk en je bladwijzers in mappen, op elk toestel dezelfde. In de Windows-app opent een site in een eigen NEXUS-browservenster met tabbladen.', defaultOn: true, available: true },
   { id: 'teams', title: 'Teams', description: 'Je studiegroepen met rollen (eigenaar, beheerder, lid, kijker), uitnodigingen die vervallen en projecten waar het team samen aan werkt.', defaultOn: true, available: true },
   { id: 'launcher', title: 'Launcher', description: 'Zoeken overal (Ctrl+K) wordt de Launcher: recent geopend, vastgezette items, instellingen en opdrachten die vooraf tonen wat ze doen.', defaultOn: true, available: true },
   { id: 'sentinel', title: 'Sentinel', description: 'Eén beveiligingscentrum: je apparaten, sessies en wat je toestond, met een activiteitenlog en een melding bij een nieuw gekoppeld apparaat.', defaultOn: true, available: true },

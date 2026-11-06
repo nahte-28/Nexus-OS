@@ -252,6 +252,16 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },
+  browser: {
+    summary: 'Browser: een startpagina met zoekbalk en je bladwijzers.',
+    tips: [
+      'Typ een adres (bv. vrt.be) of een zoekterm en tik Ga. Een zoekterm gaat naar je zoekmachine, die je onderaan kiest.',
+      'Voeg bladwijzers toe met + Bladwijzer, eventueel in een map zoals School. Ze staan in je account, dus op elk toestel dezelfde.',
+      'Met Bewerken verplaats, wijzig of verwijder je een bladwijzer.',
+      'In de webversie en op je gsm opent een site in je gewone browser: de meeste sites laten niet toe dat ze binnen een andere site draaien.',
+      'Browser is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+    ],
+  },
   contacts: {
     summary: 'Contacten: je adresboek met verjaardagen.',
     tips: [

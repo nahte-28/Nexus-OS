@@ -7,6 +7,7 @@ import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, SCHOOL_TI
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 import { parseSwitches, type FeatureSwitches } from './features'
+import { emptyBrowser, mergeBookmarks, parseBrowser, type BrowserSettings } from './browser'
 
 export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
 /** Accent colours a profile can use instead of its theme's own; null keeps the theme's. */
@@ -170,6 +171,8 @@ export interface ProfilesState {
   classAgenda: Record<string, boolean>
   /** Account › Over jou: who uses NEXUS; the role decides whether the first profile is School or Werk. */
   about: AboutMe
+  /** Browser: your bookmarks and search engine, the same on every device. */
+  browser: BrowserSettings
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -278,6 +281,7 @@ export function defaultProfilesState(): ProfilesState {
     features: {},
     classAgenda: {},
     about: { ...EMPTY_ABOUT },
+    browser: emptyBrowser(),
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -527,6 +531,9 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
   if (Object.keys(features).length !== Object.keys(base.features).length) merged = { ...merged, features }
   const classAgenda = { ...other.classAgenda, ...base.classAgenda }
   if (Object.keys(classAgenda).length !== Object.keys(base.classAgenda).length) merged = { ...merged, classAgenda }
+  // Bookmarks saved on only one of the two devices so far are kept.
+  const bookmarks = mergeBookmarks(merged.browser.bookmarks, other.browser.bookmarks)
+  if (bookmarks !== merged.browser.bookmarks) merged = { ...merged, browser: { ...merged.browser, bookmarks } }
   if (merged === remote) return remote
   return { ...merged, revision: Math.max(local.revision, remote.revision) + 1 }
 }
@@ -826,6 +833,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     features: parseSwitches(r.features),
     classAgenda: parseChoices(r.classAgenda),
     about: parseAbout(r.about),
+    browser: parseBrowser(r.browser),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }
