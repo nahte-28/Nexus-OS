@@ -9,6 +9,7 @@ import { dagstartExtra } from '../briefing/store'
 import { habitsStore } from '../habits/store'
 import { contactsStore } from '../contacts/store'
 import { isFeatureOn } from '../features/store'
+import { weatherStore } from '../weather/store'
 import { gamingStore } from '../gaming/store'
 import { currentSleepPlan, gamingNow, planGaming } from '../gaming/timer'
 import { lifeStore } from '../life/store'
@@ -107,7 +108,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), weatherStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

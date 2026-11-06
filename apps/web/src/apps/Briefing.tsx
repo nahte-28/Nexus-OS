@@ -20,6 +20,8 @@ import { useConnect } from '../connect/ConnectContext'
 import { habitsStore } from '../habits/store'
 import { defaultDeadlineEffects } from '../life/alerts'
 import { sendDagstartTest } from '../life/dagstart'
+import { useFeature } from '../features/store'
+import { weatherForDagstart, weatherStore } from '../weather/store'
 import { lifeStore } from '../life/store'
 import { useProfiles } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
@@ -130,12 +132,21 @@ function Overview({ briefing, onTab }: { briefing: BriefingData; onTab: (t: Tab)
     }
   }
   const top = briefing.priorities.slice(0, 3)
+  const weatherOn = useFeature('weather')
+  useSyncExternalStore(weatherStore.subscribe, weatherStore.getSnapshot)
+  const weather = weatherOn ? weatherForDagstart(briefing.dayStart) : null
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold first-letter:uppercase">{longDay(briefing.dayStart)}</h2>
         <p className="text-nx-muted">{briefing.headline}</p>
       </div>
+      {weather && (
+        <section aria-label="Weer" className="flex items-center justify-between gap-2 rounded-lg border border-nx-border p-3">
+          <p>{weather}</p>
+          <button type="button" className="shrink-0 text-xs underline" onClick={() => openApp('weather')}>Weer openen</button>
+        </section>
+      )}
       <section aria-label="Eerst" className="space-y-2 rounded-lg border border-nx-border p-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-medium">Eerst</h3>

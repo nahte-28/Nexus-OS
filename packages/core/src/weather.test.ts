@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseForecast, parsePlaces, weatherLabel, weatherLine, weatherTip } from './weather'
+import { dagstartWeatherLine, parseForecast, parsePlaces, weatherLabel, weatherLine, weatherTip } from './weather'
 
 const RAW = {
   timezone: 'Europe/Brussels',
@@ -34,5 +34,16 @@ describe('weer', () => {
     const f = parseForecast(RAW)!
     expect(weatherLine('Antwerpen', f)).toBe('Antwerpen: 12° en lichte regen, vandaag 8° tot 14°, 70% kans op regen')
     expect(weatherTip(f)).toBe('Neem een paraplu mee.')
+  })
+})
+
+describe('weer in de Dagstart', () => {
+  it('gives the line of the right day only', () => {
+    const f = parseForecast(RAW)!
+    const day = f.days[0].at
+    expect(dagstartWeatherLine('Antwerpen', f, day + 3600_000)).toBe('Weer in Antwerpen: 8° tot 14°, lichte regen, 70% kans op regen. Neem een paraplu mee.')
+    expect(dagstartWeatherLine('Antwerpen', f, day + 2 * 86_400_000)).toBeNull()
+    const dry = { ...f, days: [{ ...f.days[0], code: 0, rainChance: 5 }] }
+    expect(dagstartWeatherLine('Gent', dry, day)).toBe('Weer in Gent: 8° tot 14°, zonnig.')
   })
 })

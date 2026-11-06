@@ -7,6 +7,7 @@ import { habitsStore } from '../habits/store'
 import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
+import { weatherForDagstart } from '../weather/store'
 import { createProblem, DocStore, startDocSync } from '../state/docStore'
 import { examsStore } from '../study/exams'
 
@@ -38,9 +39,13 @@ export function briefingInput(): BriefingInput {
  * stands at the moment of its Dagstart, so the plan for the phone stays the same from minute to minute.
  */
 export function dagstartExtra(): DagstartExtra | undefined {
-  if (!isFeatureOn('briefing')) return undefined
-  const input = briefingInput()
-  return (dayStart, at) => briefingLines(buildBriefing(input, dayStart, at))
+  const briefing = isFeatureOn('briefing') ? briefingInput() : null
+  const weather = isFeatureOn('weather')
+  if (!briefing && !weather) return undefined
+  return (dayStart, at) => {
+    const line = weather ? weatherForDagstart(dayStart) : null
+    return [...(line ? [line] : []), ...(briefing ? briefingLines(buildBriefing(briefing, dayStart, at)) : [])]
+  }
 }
 
 /** Remembers that a Dagstart went out; does nothing while the module is off. */

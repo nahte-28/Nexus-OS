@@ -14,7 +14,7 @@ describe('Weer', () => {
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
-    weatherStore.update(() => ({ places: [], selected: 0, cache: {} }))
+    weatherStore.update(() => ({ places: [], selected: 0, cache: {}, inDagstart: true }))
   })
 
   it('finds a place and shows its forecast', async () => {

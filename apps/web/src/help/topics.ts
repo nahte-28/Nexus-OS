@@ -244,6 +244,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Zoek een plaats op naam of kies Mijn locatie. Je kunt tot 6 plaatsen bewaren en er bovenaan tussen wisselen.',
       'Het weer komt van Open-Meteo. NEXUS stuurt alleen de plaats mee, afgerond op ongeveer een kilometer, en vernieuwt hoogstens om het halfuur (of als je op Vernieuwen tikt).',
       'Zonder internet zie je het laatst opgehaalde weer, met het uur waarop het binnenkwam.',
+      'Het weer van je eerste plaats staat ook in je Dagstart en bovenaan de Dagbriefing, met een tip als je een paraplu nodig hebt. Uitzetten kan met het vinkje in Weer.',
       'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },

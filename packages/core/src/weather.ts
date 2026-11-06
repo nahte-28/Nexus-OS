@@ -131,3 +131,17 @@ export function weatherTip(f: Forecast): string | null {
 /** How long a fetched forecast counts as fresh. */
 export const WEATHER_FRESH_MS = 30 * 60_000
 export const MAX_WEATHER_PLACES = 6
+
+/** The forecast of the local day starting at [dayStart], or null when the forecast does not reach it. */
+export function forecastDay(f: Forecast, dayStart: number): WeatherDay | null {
+  return f.days.find((d) => Math.abs(d.at - dayStart) < 12 * 60 * 60_000) ?? null
+}
+
+/** The weather line for the Dagstart of [dayStart], like "Weer in Antwerpen: 8° tot 14°, lichte regen, 70% kans op regen. Neem een paraplu mee." */
+export function dagstartWeatherLine(place: string, f: Forecast, dayStart: number): string | null {
+  const d = forecastDay(f, dayStart)
+  if (!d) return null
+  const tip = weatherTip({ ...f, days: [d] })
+  const rain = d.rainChance >= 20 ? `, ${Math.round(d.rainChance)}% kans op regen` : ''
+  return `Weer in ${place}: ${Math.round(d.min)}° tot ${Math.round(d.max)}°, ${weatherLabel(d.code).text.toLowerCase()}${rain}.${tip ? ` ${tip}` : ''}`
+}
