@@ -6,7 +6,7 @@ import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -64,6 +64,7 @@ const Clock = load('Clock', () => import('./Clock'))
 const Calculator = load('Calculator', () => import('./Calculator'))
 const Weather = load('Weather', () => import('./Weather'))
 const Contacts = load('Contacts', () => import('./Contacts'))
+const Browser = load('Browser', () => import('./Browser'))
 const Teams = load('Teams', () => import('./Teams'))
 const ControlCenter = load('ControlCenter', () => import('./ControlCenter'))
 const Sentinel = load('Sentinel', () => import('./Sentinel'))
@@ -139,6 +140,7 @@ export const APPS: AppDefinition[] = [
   { id: 'calculator', title: 'Rekenmachine', icon: CalculatorIcon, component: Calculator, defaultSize: { width: 340, height: 560 }, feature: 'calculator' },
   { id: 'weather', title: 'Weer', icon: WeatherIcon, component: Weather, defaultSize: { width: 560, height: 640 }, feature: 'weather' },
   { id: 'contacts', title: 'Contacten', icon: ContactsIcon, component: Contacts, defaultSize: { width: 600, height: 620 }, feature: 'contacts' },
+  { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, feature: 'browser' },
   { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
   { id: 'controlcenter', title: 'Control Center', icon: ControlIcon, component: ControlCenter, defaultSize: { width: 820, height: 640 }, feature: 'controlCenter' },
   { id: 'sentinel', title: 'Sentinel', icon: ShieldIcon, component: Sentinel, defaultSize: { width: 760, height: 620 }, feature: 'sentinel' },
