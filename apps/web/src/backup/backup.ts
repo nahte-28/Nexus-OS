@@ -12,6 +12,8 @@ import {
   parseGaming,
   parseDarts,
   mergeDarts,
+  mergeContacts,
+  parseContacts,
   mergeGaming,
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -41,6 +43,7 @@ import { knowledgeStore } from '../knowledge/store'
 import { studyLabStore } from '../studylab/store'
 import { gamingStore } from '../gaming/store'
 import { dartsStore } from '../darts/store'
+import { contactsStore } from '../contacts/store'
 import { flashcardsStore } from '../flashcards/store'
 import { flowsStore, parseFlowsState } from '../flows/store'
 import { gradesStore } from '../grades/store'
@@ -76,6 +79,7 @@ const DOCS: Record<BackupDoc, Doc<any>> = {
   studylab: doc(studyLabStore, parseStudyLab, mergeStudyLab),
   gaming: doc(gamingStore, parseGaming, mergeGaming),
   darts: doc(dartsStore, parseDarts, mergeDarts),
+  contacts: doc(contactsStore, parseContacts, (a, b) => mergeContacts(a, b)),
 }
 
 /** Everything on this device in one back-up. Files kept only in your account are fetched first when [withFiles]. */

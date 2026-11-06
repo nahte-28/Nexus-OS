@@ -247,6 +247,16 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },
+  contacts: {
+    summary: 'Contacten: je adresboek met verjaardagen.',
+    tips: [
+      'Tik op + Nieuw voor een contact met telefoon, e-mail, adres, verjaardag en een notitie. Favorieten staan bovenaan.',
+      'Zoeken werkt op naam, e-mail en nummer; 0470 vindt ook +32 470.',
+      'Op iemands verjaardag krijg je een melding (standaard om 09:00, ook op gsm en horloge). Je kiest het uur bij Instellingen, of zet het per contact uit.',
+      'Exporteer op je gsm je contacten als .vcf en importeer dat bestand bij Instellingen. Alles exporteren geeft een .vcf voor je gsm of een ander programma.',
+      'Je contacten volgen je naar je andere apparaten zodra de SQL-stap Contacten syncen gedaan is (Account › Database-check).',
+    ],
+  },
   teams: {
     summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
     tips: [

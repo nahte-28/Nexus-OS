@@ -1,4 +1,4 @@
-import { openDeadlines, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -7,6 +7,8 @@ import { flowsStore, flowStudioEnabled } from '../flows/store'
 import { dagstartInput, dagstartSettings } from '../life/dagstart'
 import { dagstartExtra } from '../briefing/store'
 import { habitsStore } from '../habits/store'
+import { contactsStore } from '../contacts/store'
+import { isFeatureOn } from '../features/store'
 import { gamingStore } from '../gaming/store'
 import { currentSleepPlan, gamingNow, planGaming } from '../gaming/timer'
 import { lifeStore } from '../life/store'
@@ -33,7 +35,7 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
         now,
       })
     : []
-  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...plannedCalendarNotices(profilesStore.getSnapshot().state, now), ...flowNotices])
+  return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...plannedCalendarNotices(profilesStore.getSnapshot().state, now), ...(isFeatureOn('contacts') ? plannedBirthdayNotices(contactsStore.getSnapshot(), now) : []), ...flowNotices])
 }
 
 interface Sent {
@@ -105,7 +107,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

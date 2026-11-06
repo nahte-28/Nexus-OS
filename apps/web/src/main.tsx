@@ -34,6 +34,8 @@ import { startKnowledgeSync } from './knowledge/store'
 import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
 import { startDartsSync } from './darts/store'
+import { startContactsSync } from './contacts/store'
+import { startBirthdayAlerts } from './contacts/alerts'
 import { startVault } from './vault/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
@@ -115,6 +117,9 @@ startKnowledgeSync(supabase, () => isFeatureOn('knowledge'), onFeaturesChange)
 startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
 startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
 startDartsSync(supabase, () => isFeatureOn('darts'), onFeaturesChange)
+// Contacten: the address book, and a notice on someone's birthday.
+startContactsSync(supabase, () => isFeatureOn('contacts'), onFeaturesChange)
+startBirthdayAlerts(defaultEngine, () => isFeatureOn('contacts'))
 // Vault: tags, collections, versions and the trash of your files; empties the trash after 30 days.
 startVault(supabase, () => isFeatureOn('vault'), onFeaturesChange)
 // Slaapbewaker: on an evening before a lesson day, a notice to stop gaming in time.
