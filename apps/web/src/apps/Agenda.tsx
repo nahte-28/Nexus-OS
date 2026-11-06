@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useSyncExternalStore } 
 import {
   ACCENT_IDS,
   agendaDay,
+  birthdayLabel,
+  birthdaysOn,
   dagstartNotice,
   appointmentsOf,
   DEFAULT_APPOINTMENT_REMIND,
@@ -50,6 +52,8 @@ import { useConnect } from '../connect/ConnectContext'
 import { defaultDeadlineEffects } from '../life/alerts'
 import { sendDagstartTest } from '../life/dagstart'
 import { dagstartExtra } from '../briefing/store'
+import { useContacts } from '../contacts/store'
+import { useFeature } from '../features/store'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
 import { Related } from '../integration/Related'
@@ -185,6 +189,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   const sources = calendarSources(state)
   const look = new Map(sources.map((s) => [s.id, s]))
   const shown = (e: AgendaEntry) => !('source' in e && e.source && look.get(e.source)?.hidden)
+  const birthdays = useBirthdays()
   const [view, setView] = useState<AgendaView>(readView)
   const chooseView = (v: AgendaView) => {
     setView(v)
@@ -223,14 +228,16 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
         </section>
       )}
       {sources.length > 1 && <CalendarLegend sources={sources} lead={state.calendarLead} />}
-      {view === 'rooster' && <WeekGrid input={input} shown={shown} look={look} projects={projects} now={now} />}
+      {view === 'rooster' && <WeekGrid input={input} shown={shown} look={look} projects={projects} now={now} birthdays={birthdays} />}
       {view === 'lijst' && days.map((day) => {
         const entries = agendaDay(input, day).filter(shown)
         const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
         return (
           <section key={day} aria-label={dayTitle(day, today)} className="space-y-1">
             <h3 className="font-medium">{dayTitle(day, today)}</h3>
+            {birthdays(day).map((b) => <p key={b} className="text-sm">🎂 {b}</p>)}
             {entries.length === 0 ? (
+              birthdays(day).length > 0 ? null :
               <p className="text-nx-muted">Niets gepland.</p>
             ) : (
               <ul className="space-y-1">
@@ -255,6 +262,13 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
   )
 }
 
+/** Who is jarig on a day, from Contacten (empty while that module is off). */
+function useBirthdays(): (day: number) => string[] {
+  const contacts = useContacts()
+  const on = useFeature('contacts')
+  return (day) => (on ? birthdaysOn(contacts, day).map(birthdayLabel) : [])
+}
+
 type AgendaView = 'lijst' | 'rooster'
 const VIEW_KEY = 'nexus.agenda.view'
 function readView(): AgendaView {
@@ -277,7 +291,8 @@ function blockClass(e: AgendaEntry, look: Map<string, CalendarSource>): string {
 const HOUR_PX = 48
 
 /** Week as a timetable: a column per day, every agenda in its own colour. */
-function WeekGrid({ input, shown, look, projects, now }: {
+function WeekGrid({ input, shown, look, projects, now, birthdays }: {
+  birthdays: (day: number) => string[]
   input: Parameters<typeof agendaDay>[0]
   shown: (e: AgendaEntry) => boolean
   look: Map<string, CalendarSource>
@@ -319,6 +334,7 @@ function WeekGrid({ input, shown, look, projects, now }: {
           {days.map((d) => (
             <div key={d} className={`border-b border-l border-nx-border px-1 py-1 text-center text-xs ${d === today ? 'font-semibold text-nx-accent' : 'text-nx-muted'}`}>
               {new Date(d).toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric' })}
+              {birthdays(d).map((b) => <span key={b} className="block truncate text-[10px] font-normal text-nx-text" title={b}>🎂 {b}</span>)}
             </div>
           ))}
           <div className="relative" style={{ height }}>

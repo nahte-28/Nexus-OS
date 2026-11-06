@@ -305,3 +305,20 @@ export function importContacts(state: ContactsState, drafts: ContactDraft[], new
   }
   return { state: next, added, skipped }
 }
+
+/** Who has a birthday on the local day of [dayStart]. */
+export function birthdaysOn(state: ContactsState, dayStart: number): Array<{ id: string; name: string; turns: number | null }> {
+  return listContacts(state).flatMap((c) => {
+    const next = nextBirthday(c.birthday, dayStart)
+    return next && next.at === startOfDay(dayStart) ? [{ id: c.id, name: c.name, turns: next.turns }] : []
+  })
+}
+
+/** "Anna wordt 22" or "Anna verjaart". */
+export const birthdayLabel = (b: { name: string; turns: number | null }) => (b.turns !== null && b.turns > 0 ? `${b.name} wordt ${b.turns}` : `${b.name} verjaart`)
+
+/** The Dagstart line for the birthdays of [dayStart], or null. */
+export function dagstartBirthdayLine(state: ContactsState, dayStart: number): string | null {
+  const list = birthdaysOn(state, dayStart)
+  return list.length === 0 ? null : `Jarig: ${list.map(birthdayLabel).join(', ')}`
+}

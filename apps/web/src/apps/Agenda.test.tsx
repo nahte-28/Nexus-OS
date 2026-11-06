@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 const { Agenda } = await import('./Agenda')
 const { profilesStore } = await import('../profiles/store')
+const { contactsStore } = await import('../contacts/store')
+const { emptyContacts, saveContact, emptyContact } = await import('@nexus/core')
 
 describe('Agenda', () => {
   afterEach(cleanup)
@@ -23,6 +25,20 @@ describe('Agenda', () => {
     const box = within(tomorrow).getByRole('checkbox', { name: 'Verslag labo 3 klaar' })
     fireEvent.click(box)
     await waitFor(() => expect((within(screen.getByRole('region', { name: 'Morgen' })).getByRole('checkbox') as HTMLInputElement).checked).toBe(true))
+  })
+
+  it('shows who is jarig in the week and in the Dagstart', () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const birthday = `2000-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`
+    const saved = saveContact(emptyContacts(), { ...emptyContact(), name: 'Anna', birthday }, 'a')
+    if (typeof saved === 'string') throw new Error(saved)
+    contactsStore.adopt(saved)
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Overzicht' }))
+    const turns = tomorrow.getFullYear() - 2000
+    expect(within(screen.getByRole('region', { name: 'Morgen' })).getByText(`🎂 Anna wordt ${turns}`)).toBeTruthy()
+    contactsStore.adopt(emptyContacts())
   })
 
   it('colours each calendar and hides one from the week', () => {
