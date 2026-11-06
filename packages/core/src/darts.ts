@@ -10,6 +10,15 @@ export const DARTS_MODES: DartsMode[] = [301, 501, 701]
 export const MAX_PLAYERS = 4
 export const MAX_MATCHES = 500
 const MAX_NAME = 30
+const MAX_NICKNAME = 30
+/** Players you often play with, each with an optional nickname. */
+export const MAX_ROSTER = 20
+
+/** A player you play with often; the nickname is shown on the scoreboard and in the history. */
+export interface DartsPlayer {
+  name: string
+  nickname: string
+}
 
 /** One visit: up to three darts, entered as their total. */
 export interface DartsVisit {
@@ -43,6 +52,10 @@ export interface DartsMatch {
 export interface DartsSettings {
   /** Your own name in matches, so the stats know which player is you. */
   me: string
+  /** Your own nickname, e.g. "The Power"; empty for none. */
+  nickname: string
+  /** Players you often play with, to pick when you start a match. */
+  roster: DartsPlayer[]
   mode: DartsMode
   legsToWin: number
   doubleOut: boolean
@@ -57,7 +70,7 @@ export interface DartsState {
   revision: number
 }
 
-export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', mode: 501, legsToWin: 3, doubleOut: true, updatedAt: 0 }, revision: 0 })
+export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, doubleOut: true, updatedAt: 0 }, revision: 0 })
 
 // Parsing and merging -------------------------------------------------------------------------------
 
@@ -104,6 +117,20 @@ function parseMatch(raw: unknown): DartsMatch | null {
   }
 }
 
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
+
+function parseRoster(raw: unknown): DartsPlayer[] {
+  const out: DartsPlayer[] = []
+  for (const x of Array.isArray(raw) ? raw : []) {
+    const p = x as Record<string, unknown> | null
+    const name = str(p?.name, MAX_NAME).trim()
+    if (!name || out.some((o) => sameName(o.name, name))) continue
+    out.push({ name, nickname: str(p?.nickname, MAX_NICKNAME).trim() })
+    if (out.length >= MAX_ROSTER) break
+  }
+  return out
+}
+
 export function parseDarts(raw: unknown): DartsState {
   if (typeof raw !== 'object' || raw === null) return emptyDarts()
   const v = raw as Record<string, unknown>
@@ -112,7 +139,7 @@ export function parseDarts(raw: unknown): DartsState {
   return {
     matches: (Array.isArray(v.matches) ? v.matches : []).map(parseMatch).filter((m): m is DartsMatch => m !== null).slice(0, MAX_MATCHES),
     practice: (Array.isArray(v.practice) ? v.practice : []).map(parsePractice).filter((p): p is DartsPractice => p !== null).slice(0, MAX_PRACTICE),
-    settings: { me: str(s.me, MAX_NAME).trim() || base.me, mode: mode(s.mode), legsToWin: legs(s.legsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
     revision: num(v.revision) ?? 0,
   }
 }
@@ -137,6 +164,47 @@ export function mergeDarts(a: DartsState, b: DartsState): DartsState {
 const IMPOSSIBLE = new Set([163, 166, 169, 172, 173, 175, 176, 178, 179])
 /** Left-overs of 170 or less that cannot be finished with a double in three darts. */
 const BOGEY = new Set([159, 162, 163, 165, 166, 168, 169])
+
+// Players and nicknames ----------------------------------------------------------------------------
+
+/** The nickname of [name]: yours for your own name, else from your players; empty when there is none. */
+export function nicknameOf(settings: DartsSettings, name: string): string {
+  if (sameName(name, settings.me)) return settings.nickname.trim()
+  return settings.roster.find((p) => sameName(p.name, name))?.nickname.trim() ?? ''
+}
+
+/** "Ethan 'The Power'" when there is a nickname, else just the name. */
+export function playerLabel(settings: DartsSettings, name: string): string {
+  const nick = nicknameOf(settings, name)
+  return nick ? `${name} '${nick}'` : name
+}
+
+/** Adds a player to your list, or changes the nickname of one already there. */
+export function savePlayer(settings: DartsSettings, name: string, nickname: string, now: number): DartsSettings | { error: string } {
+  const clean = name.trim().slice(0, MAX_NAME)
+  // Not trimmed while typing, so "The Power" keeps its space; parse and nicknameOf trim it.
+  const nick = nickname.slice(0, MAX_NICKNAME)
+  if (!clean) return { error: 'Geef de speler een naam.' }
+  if (sameName(clean, settings.me)) return { ...settings, nickname: nick, updatedAt: now }
+  const known = settings.roster.some((p) => sameName(p.name, clean))
+  if (!known && settings.roster.length >= MAX_ROSTER) return { error: `Hoogstens ${MAX_ROSTER} spelers.` }
+  const roster = known ? settings.roster.map((p) => (sameName(p.name, clean) ? { name: p.name, nickname: nick } : p)) : [...settings.roster, { name: clean, nickname: nick }]
+  return { ...settings, roster, updatedAt: now }
+}
+
+export const removePlayer = (settings: DartsSettings, name: string, now: number): DartsSettings => ({ ...settings, roster: settings.roster.filter((p) => !sameName(p.name, name)), updatedAt: now })
+
+/** Everyone with stats: you first, then your players, then other names from matches. */
+export function knownPlayers(state: DartsState): string[] {
+  const out: string[] = []
+  const add = (n: string) => {
+    if (n.trim() && !out.some((o) => sameName(o, n))) out.push(n.trim())
+  }
+  add(state.settings.me)
+  state.settings.roster.forEach((p) => add(p.name))
+  liveMatches(state).forEach((m) => m.players.forEach(add))
+  return out
+}
 
 export const liveMatches = (s: DartsState) => s.matches.filter((m) => m.deletedAt === null).sort((a, b) => b.startedAt - a.startedAt)
 export const currentLeg = (m: DartsMatch): DartsLeg => m.legs[m.legs.length - 1]

@@ -29,6 +29,21 @@ import {
   undoPractice,
   type DartsPractice,
   type PracticeGame,
+  BOBS_TARGETS,
+  PRACTICE_GAMES,
+  PRACTICE_HELP,
+  SCORING_VISITS,
+  bobsRound,
+  bobsScore,
+  bobsTarget,
+  knownPlayers,
+  nicknameOf,
+  playerLabel,
+  practiceSummary,
+  removePlayer,
+  savePlayer,
+  scoringAverage,
+  scoringVisit,
 } from '@nexus/core'
 import { dartsStore, dartsSyncProblem, useDarts } from '../darts/store'
 import { useProfiles } from '../profiles/store'
@@ -87,6 +102,28 @@ function NewMatch() {
           </button>
         )}
       </div>
+      {settings.roster.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Vaste spelers">
+          <span className="text-nx-muted">Vaste spelers:</span>
+          {settings.roster.map((r) => {
+            const taken = players.some((p) => p.trim().toLowerCase() === r.name.toLowerCase())
+            return (
+              <button
+                key={r.name}
+                type="button"
+                className={small}
+                disabled={taken || (players.every((p) => p.trim() !== '') && players.length >= 4)}
+                onClick={() => {
+                  const empty = players.findIndex((p) => p.trim() === '')
+                  setPlayers(empty >= 0 ? players.map((p, j) => (j === empty ? r.name : p)) : [...players, r.name])
+                }}
+              >
+                + {playerLabel(settings, r.name)}
+              </button>
+            )
+          })}
+        </div>
+      )}
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
           Spel
@@ -116,6 +153,7 @@ function NewMatch() {
 }
 
 function Scoreboard({ match }: { match: DartsMatch }) {
+  const { settings } = useDarts()
   const [score, setScore] = useState('')
   const [darts, setDarts] = useState(3)
   const [error, setError] = useState<string | null>(null)
@@ -144,7 +182,10 @@ function Scoreboard({ match }: { match: DartsMatch }) {
           return (
             <li key={i} className={`rounded-lg border px-3 py-2 ${turn === i ? 'border-nx-accent bg-nx-surface-2' : 'border-nx-border'}`} aria-current={turn === i ? 'true' : undefined}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-medium">{p}</span>
+                <span className="font-medium">
+                  {p}
+                  {nicknameOf(settings, p) && <span className="ml-1 text-xs font-normal italic text-nx-muted">'{nicknameOf(settings, p)}'</span>}
+                </span>
                 <span className="text-nx-muted">legs {legsWon(match, i)}</span>
               </div>
               <div className="text-3xl font-semibold tabular-nums">{remaining(match, i)}</div>
@@ -200,7 +241,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
       )}
       {match.winner !== null && (
         <p role="status" className="font-medium">
-          {match.players[match.winner]} wint met {legsWon(match, match.winner)}–{Math.max(...match.players.map((_, i) => (i === match.winner ? 0 : legsWon(match, i))))}.
+          {playerLabel(settings, match.players[match.winner])} wint met {legsWon(match, match.winner)}–{Math.max(...match.players.map((_, i) => (i === match.winner ? 0 : legsWon(match, i))))}.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
@@ -278,15 +319,16 @@ function Play() {
 function History() {
   const state = useDarts()
   const matches = liveMatches(state)
+  const label = (p: string) => playerLabel(state.settings, p)
   if (matches.length === 0) return <p className="text-nx-muted">Nog geen wedstrijden.</p>
   return (
     <ul className="space-y-1">
       {matches.map((m) => (
         <li key={m.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
-          <span className="font-medium">{m.players.map((p, i) => `${p} ${legsWon(m, i)}`).join(' – ')}</span>
+          <span className="font-medium">{m.players.map((p, i) => `${label(p)} ${legsWon(m, i)}`).join(' – ')}</span>
           <span className="text-nx-muted">gem. {m.players.map((p, i) => `${p} ${avg(playerAverage(m, i))}`).join(' · ')}</span>
           <span className="text-nx-muted">
-            {m.mode} · {when(m.startedAt)} · {m.winner !== null ? `${m.players[m.winner]} won` : running(m) ? 'bezig' : 'gestopt'}
+            {m.mode} · {when(m.startedAt)} · {m.winner !== null ? `${label(m.players[m.winner])} won` : running(m) ? 'bezig' : 'gestopt'}
           </span>
           <button
             type="button"
@@ -304,7 +346,10 @@ function History() {
 
 function Stats() {
   const state = useDarts()
-  const s = dartsStats(state.matches, state.settings.me)
+  const players = knownPlayers(state)
+  const [picked, setPicked] = useState(state.settings.me)
+  const who = players.find((p) => p.toLowerCase() === picked.toLowerCase()) ?? state.settings.me
+  const s = dartsStats(state.matches, who)
   const rows: Array<[string, string | number]> = [
     ['Gemiddelde (3 pijlen)', s.average.toFixed(2)],
     ['First 9', s.first9.toFixed(2)],
@@ -333,15 +378,48 @@ function Stats() {
           ['Pijlen per checkout', p.checkoutDarts ?? '–'],
         ] as Array<[string, string | number]>)
       : []),
+    ...(p.doublesRounds > 0 || p.doublesHitRate > 0
+      ? ([
+          ['Doubles rond: rondes', p.doublesRounds],
+          ['Beste doubles-ronde', p.doublesBest ? `${p.doublesBest} pijlen` : '–'],
+          ['Doubles raak', `${p.doublesHitRate}%`],
+        ] as Array<[string, string | number]>)
+      : []),
+    ...(p.bobsRounds > 0
+      ? ([
+          ["Bob's 27: rondes", p.bobsRounds],
+          ["Beste Bob's 27", p.bobsBest ?? '–'],
+          ["Bob's 27, laatste 5", p.bobsRecent ?? '–'],
+        ] as Array<[string, string | number]>)
+      : []),
+    ...(p.scoringAverage !== null
+      ? ([
+          ['Scoring: rondes', p.scoringRounds],
+          ['Beste scoring-ronde', p.scoringBest !== null ? `${p.scoringBest} per beurt` : '–'],
+          ['Scoring gemiddeld', `${p.scoringAverage} per beurt`],
+        ] as Array<[string, string | number]>)
+      : []),
   ]
   return (
     <div className="space-y-4">
-      {s.matches === 0 ? (
-        <p className="text-nx-muted">Nog geen wedstrijden met {state.settings.me}. Je naam pas je aan bij Instellingen.</p>
-      ) : (
-        <StatList label={`Statistieken van ${state.settings.me}`} rows={rows} />
+      {players.length > 1 && (
+        <label className="flex items-center gap-2">
+          Speler
+          <select className={`${field} w-auto`} value={who} onChange={(e) => setPicked(e.target.value)}>
+            {players.map((p) => (
+              <option key={p} value={p}>
+                {playerLabel(state.settings, p)}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
-      {practiceRows.length > 0 && (
+      {s.matches === 0 ? (
+        <p className="text-nx-muted">Nog geen wedstrijden met {who}. Je naam pas je aan bij Instellingen.</p>
+      ) : (
+        <StatList label={`Statistieken van ${who}`} rows={rows} />
+      )}
+      {practiceRows.length > 0 && who === state.settings.me && (
         <section className="space-y-1">
           <h3 className="font-medium">Oefenen</h3>
           <StatList label="Statistieken van het oefenen" rows={practiceRows} />
@@ -383,7 +461,7 @@ function Practice() {
     <div className="space-y-4">
       {current ? (
         <>
-          {current.game === 'clock' ? <ClockRound round={current} /> : <CheckoutRound round={current} />}
+          {current.game === 'clock' || current.game === 'doubles' ? <ClockRound round={current} /> : current.game === 'bobs27' ? <BobsRound round={current} /> : current.game === 'scoring' ? <ScoringRound round={current} /> : <CheckoutRound round={current} />}
           {current.finishedAt !== null && (
             <button type="button" className={small} onClick={() => setShown(null)}>
               Nieuwe oefening
@@ -393,15 +471,16 @@ function Practice() {
       ) : (
         <section className="space-y-2">
           <h3 className="font-medium">Kies een oefening</h3>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className={primaryButton} onClick={() => start('clock')}>
-              Around the Clock
-            </button>
-            <button type="button" className={button} onClick={() => start('checkout')}>
-              Checkout-training
-            </button>
-          </div>
-          <p className="text-sm text-nx-muted">Around the Clock: raak 1 tot 20 en dan de bull, in volgorde. Checkout-training: gooi een willekeurige finish uit in hoogstens 9 pijlen.</p>
+          <ul className="space-y-2">
+            {PRACTICE_GAMES.map((g, i) => (
+              <li key={g} className="flex flex-wrap items-center gap-2">
+                <button type="button" className={i === 0 ? primaryButton : button} onClick={() => start(g)}>
+                  {PRACTICE_LABELS[g]}
+                </button>
+                <span className="text-sm text-nx-muted">{PRACTICE_HELP[g]}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       {live.filter((p) => p.finishedAt !== null).length > 0 && (
@@ -415,7 +494,7 @@ function Practice() {
                 <li key={p.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
                   <span className="font-medium">{PRACTICE_LABELS[p.game]}</span>
                   <span className="text-nx-muted">
-                    {when(p.startedAt)} · {p.game === 'clock' ? (clockHits(p) >= CLOCK_TARGETS ? `${p.throws.length} pijlen` : `tot ${clockHits(p)} van ${CLOCK_TARGETS}`) : `${p.attempts.filter((a) => a.darts !== null).length} van ${p.attempts.length} uit`}
+                    {when(p.startedAt)} · {practiceSummary(p)}
                   </span>
                   <button
                     type="button"
@@ -439,7 +518,7 @@ function ClockRound({ round }: { round: DartsPractice }) {
   const hits = clockHits(round)
   const now = () => Date.now()
   return (
-    <section aria-label="Around the Clock" className="space-y-3 rounded-lg border border-nx-border p-3">
+    <section aria-label={PRACTICE_LABELS[round.game]} className="space-y-3 rounded-lg border border-nx-border p-3">
       <div className="flex items-baseline gap-3">
         <span className="text-sm text-nx-muted">{target ? 'Gooi op' : 'Klaar'}</span>
         <span className="text-4xl font-semibold tabular-nums" aria-live="polite">
@@ -521,6 +600,163 @@ function CheckoutRound({ round }: { round: DartsPractice }) {
   )
 }
 
+function BobsRound({ round }: { round: DartsPractice }) {
+  const target = bobsTarget(round)
+  const score = bobsScore(round)
+  const now = () => Date.now()
+  return (
+    <section aria-label="Bob's 27" className="space-y-3 rounded-lg border border-nx-border p-3">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <span className="text-sm text-nx-muted">{target ? 'Gooi op' : 'Klaar'}</span>
+        <span className="text-4xl font-semibold tabular-nums" aria-live="polite">
+          {target ?? `${score} punten`}
+        </span>
+        {target && <span className="text-sm text-nx-muted">stand: {score}</span>}
+      </div>
+      <div aria-hidden className="h-2 overflow-hidden rounded-full bg-nx-surface-2">
+        <div className="h-full bg-nx-accent" style={{ width: `${(round.hits.length / BOBS_TARGETS) * 100}%` }} />
+      </div>
+      {target ? (
+        <>
+          <p className="text-sm">Hoeveel van je drie pijlen zaten in {target}?</p>
+          <div className="flex flex-wrap gap-1.5">
+            {[0, 1, 2, 3].map((h) => (
+              <button key={h} type="button" className={h === 0 ? button : primaryButton} aria-label={`${h} raak`} onClick={() => savePractice(bobsRound(round, h, now()))}>
+                {h}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={small} disabled={round.hits.length === 0} onClick={() => savePractice(undoPractice(round, now()))}>
+              Ongedaan maken
+            </button>
+            <button type="button" className={`${small} ml-auto`} onClick={() => savePractice(stopPractice(round, now()))}>
+              Stoppen
+            </button>
+          </div>
+        </>
+      ) : (
+        <p>{score <= 0 ? `Onder nul na ${round.hits.length} doubles.` : `Rond met ${score} punten.`}</p>
+      )}
+    </section>
+  )
+}
+
+function ScoringRound({ round }: { round: DartsPractice }) {
+  const [score, setScore] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const average = scoringAverage(round)
+  const submit = (value: number) => {
+    const next = scoringVisit(round, value, Date.now())
+    if ('error' in next) return setError(next.error)
+    setError(null)
+    setScore('')
+    savePractice(next)
+  }
+  return (
+    <section aria-label="Scoring op T20" className="space-y-3 rounded-lg border border-nx-border p-3">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <span className="text-sm text-nx-muted">{round.finishedAt === null ? `Beurt ${round.visits.length + 1} van ${SCORING_VISITS}` : 'Klaar'}</span>
+        <span className="text-4xl font-semibold tabular-nums" aria-live="polite">
+          {average === null ? '–' : average.toFixed(1)}
+        </span>
+        <span className="text-sm text-nx-muted">per beurt</span>
+      </div>
+      {round.finishedAt === null ? (
+        <form
+          aria-label="Scoring-beurt"
+          className="space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (score !== '') submit(Number(score))
+          }}
+        >
+          <div className="flex gap-2">
+            <input aria-label="Score op T20" inputMode="numeric" className={field} value={score} onChange={(e) => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="Totaal van 3 pijlen" />
+            <button type="submit" className={primaryButton} disabled={score === ''}>
+              Invoeren
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {QUICK.map((q) => (
+              <button key={q} type="button" className={small} onClick={() => submit(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+          {error && <p role="alert">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={small} disabled={round.visits.length === 0} onClick={() => savePractice(undoPractice(round, Date.now()))}>
+              Ongedaan maken
+            </button>
+            <button type="button" className={`${small} ml-auto`} onClick={() => savePractice(stopPractice(round, Date.now()))}>
+              Stoppen
+            </button>
+          </div>
+        </form>
+      ) : null}
+      {round.visits.length > 0 && <p className="text-sm text-nx-muted">Beurten: {round.visits.join(', ')}</p>}
+    </section>
+  )
+}
+
+function Players() {
+  const { settings } = useDarts()
+  const [name, setName] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const apply = (next: typeof settings | { error: string }) => {
+    if ('error' in next) return setError(next.error)
+    setError(null)
+    dartsStore.update((s) => ({ ...s, settings: next }))
+    return true
+  }
+  return (
+    <section aria-label="Vaste spelers" className="space-y-2">
+      <h3 className="font-medium">Vaste spelers</h3>
+      <p className="text-sm text-nx-muted">Spelers met wie je vaak gooit. Je kiest ze snel bij een nieuwe wedstrijd, en hun bijnaam staat op het scorebord.</p>
+      {settings.roster.length > 0 && (
+        <ul className="space-y-1">
+          {settings.roster.map((p) => (
+            <li key={p.name} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
+              <span className="font-medium">{p.name}</span>
+              <input
+                aria-label={`Bijnaam van ${p.name}`}
+                className={`${field} w-40`}
+                value={p.nickname}
+                maxLength={30}
+                placeholder="Bijnaam"
+                onChange={(e) => apply(savePlayer(settings, p.name, e.target.value, Date.now()))}
+              />
+              <button type="button" className={`${small} ml-auto`} aria-label={`${p.name} weghalen`} onClick={() => apply(removePlayer(settings, p.name, Date.now()))}>
+                Weghalen
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form
+        aria-label="Speler toevoegen"
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (apply(savePlayer(settings, name, nickname, Date.now()))) {
+            setName('')
+            setNickname('')
+          }
+        }}
+      >
+        <input aria-label="Naam" className={`${field} w-40`} value={name} maxLength={30} placeholder="Naam" onChange={(e) => setName(e.target.value)} />
+        <input aria-label="Bijnaam" className={`${field} w-40`} value={nickname} maxLength={30} placeholder="Bijnaam (mag leeg)" onChange={(e) => setNickname(e.target.value)} />
+        <button type="submit" className={button}>
+          Toevoegen
+        </button>
+      </form>
+      {error && <p role="alert">{error}</p>}
+    </section>
+  )
+}
+
 function Settings() {
   const { settings } = useDarts()
   const set = (patch: Partial<typeof settings>) => dartsStore.update((s) => ({ ...s, settings: { ...s.settings, ...patch, updatedAt: Date.now() } }))
@@ -529,6 +765,10 @@ function Settings() {
       <label className="flex flex-col gap-1">
         Jouw naam in wedstrijden (voor je statistieken)
         <input className={field} value={settings.me} maxLength={30} onChange={(e) => set({ me: e.target.value })} />
+      </label>
+      <label className="flex flex-col gap-1">
+        Jouw bijnaam (mag leeg)
+        <input className={field} value={settings.nickname} maxLength={30} placeholder="bv. The Power" onChange={(e) => set({ nickname: e.target.value })} />
       </label>
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
@@ -550,6 +790,7 @@ function Settings() {
           Double-out
         </label>
       </div>
+      <Players />
       <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Nieuwe modules, dan verdwijnt de app overal.</p>
     </div>
   )
