@@ -245,6 +245,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Het weer komt van Open-Meteo. NEXUS stuurt alleen de plaats mee, afgerond op ongeveer een kilometer, en vernieuwt hoogstens om het halfuur (of als je op Vernieuwen tikt).',
       'Zonder internet zie je het laatst opgehaalde weer, met het uur waarop het binnenkwam.',
       'Het weer van je eerste plaats staat ook in je Dagstart en bovenaan de Dagbriefing, met een tip als je een paraplu nodig hebt. Uitzetten kan met het vinkje in Weer.',
+      'Met de NEXUS-app op je horloge zie je het weer van vandaag bovenaan de tegel en de app. Daarvoor moet NEXUS ergens openstaan; ouder dan 12 uur wordt het niet getoond.',
       'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },

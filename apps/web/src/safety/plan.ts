@@ -1,4 +1,4 @@
-import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, type PlanWeather, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -9,7 +9,7 @@ import { dagstartExtra } from '../briefing/store'
 import { habitsStore } from '../habits/store'
 import { contactsStore } from '../contacts/store'
 import { isFeatureOn } from '../features/store'
-import { weatherStore } from '../weather/store'
+import { weatherForWatch, weatherStore } from '../weather/store'
 import { gamingStore } from '../gaming/store'
 import { currentSleepPlan, gamingNow, planGaming } from '../gaming/timer'
 import { lifeStore } from '../life/store'
@@ -63,10 +63,13 @@ export async function sendPlanIfChanged(
   plan: PlannedNotice[],
   now = Date.now(),
   gaming: PlanGaming | null = null,
+  weather: PlanWeather | null = null,
 ): Promise<number> {
   const state = connect.getSnapshot()
   if (state.status !== 'ready') return 0
-  const key = JSON.stringify(gaming ? { plan, gaming } : plan)
+  // The fetch time alone does not make it worth sending again.
+  const shownWeather = weather ? { ...weather, at: 0 } : null
+  const key = JSON.stringify(gaming || shownWeather ? { plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}) } : plan)
   let sent = 0
   for (const phone of phonesOf(state)) {
     const last = readSent(phone.id)
@@ -74,7 +77,7 @@ export async function sendPlanIfChanged(
     if (!last && plan.length === 0 && !gaming) continue
     if (last && last.key === key && now - last.at < REFRESH_MS) continue
     try {
-      if (phone.platform === 'android') await connect.sendPlan(phone.id, plan, gaming)
+      if (phone.platform === 'android') await (weather ? connect.sendPlan(phone.id, plan, gaming, weather) : connect.sendPlan(phone.id, plan, gaming))
       else await connect.sendPushPlan(phone.id, plan)
       writeStorage(sentKey(phone.id), JSON.stringify({ key, at: now }))
       sent++
@@ -99,7 +102,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const check = () => {
     if (busy || stopped) return
     busy = true
-    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming()).finally(() => (busy = false))
+    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming(), isFeatureOn('weather') ? weatherForWatch() : null).finally(() => (busy = false))
   }
   const soon = () => {
     clearTimeout(debounce)

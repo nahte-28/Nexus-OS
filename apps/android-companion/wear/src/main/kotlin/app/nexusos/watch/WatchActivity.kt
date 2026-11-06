@@ -25,6 +25,7 @@ import app.nexusos.companion.ConnectCrypto
 import app.nexusos.companion.DartsLeg
 import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.GamingTimer
+import app.nexusos.companion.WatchWeather
 import app.nexusos.companion.PlanGaming
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
@@ -140,6 +141,12 @@ class WatchActivity : Activity() {
     private fun overview() {
         val now = System.currentTimeMillis()
         val coming = Glance.coming(this, now)
+        WatchWeather.load(this, now)?.let { w ->
+            heading("Weer in ${w.place}", 15f)
+            text(WatchWeather.line(w), bold = true)
+            text(w.label, muted = true, size = 12f)
+            space(12)
+        }
         heading("Komt eraan", 15f)
         if (coming.isEmpty()) {
             text("Niets gepland. Deadlines, herinneringen en afspraken die naar je gsm gaan, komen hier vanzelf bij zodra NEXUS openstaat.", muted = true)

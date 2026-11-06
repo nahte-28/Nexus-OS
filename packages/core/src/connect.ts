@@ -41,6 +41,22 @@ export interface PlanPayload {
   sentAt: number
   /** The Gaming timer, so the watch shows whether it runs; absent from older NEXUS versions. */
   gaming?: PlanGaming | null
+  /** Today's weather of your first place in Weer, for the watch tile; absent when Weer is off. */
+  weather?: PlanWeather | null
+}
+
+export interface PlanWeather {
+  place: string
+  /** Now, rounded to whole degrees. */
+  temp: number
+  min: number
+  max: number
+  rainChance: number
+  /** In Dutch, like "Lichte regen". */
+  label: string
+  icon: string
+  /** When the forecast was fetched; the watch hides it when it gets old. */
+  at: number
 }
 
 export interface PlanGaming {
