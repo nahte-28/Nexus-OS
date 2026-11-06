@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  birthdayNotices, cleanBirthday, deleteContact, emptyContact, emptyContacts, importContacts, listContacts, mergeContacts, nextBirthday,
+  birthdayLabel, birthdayNotices, birthdaysOn, cleanBirthday, dagstartBirthdayLine, deleteContact, emptyContact, emptyContacts, importContacts, listContacts, mergeContacts, nextBirthday,
   parseContacts, parseVCards, plannedBirthdayNotices, saveContact, telHref, toVCards, upcomingBirthdays, type ContactsState,
 } from './contacts'
 
@@ -78,5 +78,16 @@ describe('contacten', () => {
     expect(importContacts(first.state, drafts, () => `c${n++}`, 2)).toMatchObject({ added: 0, skipped: 2 })
     const back = parseVCards(toVCards(listContacts(first.state)))
     expect(back.map((d) => [d.name, d.phone, d.birthday, d.notes])).toEqual([['Anna Peeters', '+32 470 11 22 33', '2004-11-10', 'Klasgenote, 1IT3'], ['Bert Janssens', '', '--01-07', '']])
+  })
+})
+
+describe('verjaardagen in de agenda', () => {
+  it('lists who is jarig on a day', () => {
+    let s = save(emptyContacts(), 'Anna', { birthday: '2004-11-07' }, 'a')
+    s = save(s, 'Bert', { birthday: '--11-07' }, 'b')
+    s = save(s, 'Carl', { birthday: '1990-11-08' }, 'c')
+    expect(birthdaysOn(s, at(2026, 11, 7)).map(birthdayLabel)).toEqual(['Anna wordt 22', 'Bert verjaart'])
+    expect(dagstartBirthdayLine(s, at(2026, 11, 8))).toBe('Jarig: Carl wordt 36')
+    expect(dagstartBirthdayLine(s, at(2026, 11, 9))).toBeNull()
   })
 })

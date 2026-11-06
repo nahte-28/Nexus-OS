@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { briefingLines, linkedEvents, buildBriefing, logBriefing, mergeBriefing, parseBriefing, unsorted, type BriefingChannel, type BriefingInput, type BriefingState, type DagstartExtra } from '@nexus/core'
+import { briefingLines, dagstartBirthdayLine, linkedEvents, buildBriefing, logBriefing, mergeBriefing, parseBriefing, unsorted, type BriefingChannel, type BriefingInput, type BriefingState, type DagstartExtra } from '@nexus/core'
 import { capturesStore } from '../capture/hub'
 import { isFeatureOn } from '../features/store'
 import { habitsStore } from '../habits/store'
@@ -8,6 +8,7 @@ import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
 import { weatherForDagstart } from '../weather/store'
+import { contactsStore } from '../contacts/store'
 import { createProblem, DocStore, startDocSync } from '../state/docStore'
 import { examsStore } from '../study/exams'
 
@@ -41,10 +42,11 @@ export function briefingInput(): BriefingInput {
 export function dagstartExtra(): DagstartExtra | undefined {
   const briefing = isFeatureOn('briefing') ? briefingInput() : null
   const weather = isFeatureOn('weather')
-  if (!briefing && !weather) return undefined
+  const contacts = isFeatureOn('contacts') ? contactsStore.getSnapshot() : null
+  if (!briefing && !weather && !contacts) return undefined
   return (dayStart, at) => {
-    const line = weather ? weatherForDagstart(dayStart) : null
-    return [...(line ? [line] : []), ...(briefing ? briefingLines(buildBriefing(briefing, dayStart, at)) : [])]
+    const lines = [weather ? weatherForDagstart(dayStart) : null, contacts ? dagstartBirthdayLine(contacts, dayStart) : null].filter((l): l is string => l !== null)
+    return [...lines, ...(briefing ? briefingLines(buildBriefing(briefing, dayStart, at)) : [])]
   }
 }
 
