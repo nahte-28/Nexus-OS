@@ -5,12 +5,23 @@
  */
 import { MAX_PRACTICE, mergePractice, parsePractice, type DartsPractice } from './dartsPractice'
 
-export type DartsMode = 301 | 501 | 701
-export const DARTS_MODES: DartsMode[] = [301, 501, 701]
+/** The score each player starts a leg on: 501, 301, 701 or any own number from 2 to 1001 (e.g. 170). */
+export type DartsMode = number
+/** The usual starting scores; any other number from MIN_START to MAX_START is a custom game. */
+export const DARTS_MODES: DartsMode[] = [170, 301, 501, 701, 1001]
+export const MIN_START = 2
+export const MAX_START = 1001
+/** Sides in a match: players, or pairs (koppels). */
 export const MAX_PLAYERS = 4
+/** Players per side in a pairs match. */
+export const MAX_MEMBERS = 2
+export const MAX_LEGS_TO_WIN = 11
+export const MAX_SETS_TO_WIN = 7
 export const MAX_MATCHES = 500
 const MAX_NAME = 30
 const MAX_NICKNAME = 30
+/** A pair's name, "Ethan & Remo". */
+const MAX_TEAM = 2 * MAX_NAME + 3
 /** Players you often play with, each with an optional nickname. */
 export const MAX_ROSTER = 20
 
@@ -27,9 +38,13 @@ export interface DartsVisit {
   /** Darts thrown; fewer than 3 only on the finishing visit. */
   darts: number
   bust: boolean
+  /** In a pairs match: which member of the side threw (0 or 1). */
+  by?: number
 }
 
 export interface DartsLeg {
+  /** The set this leg belongs to, from 0; always 0 without sets. */
+  set: number
   starter: number
   visits: DartsVisit[]
   winner: number | null
@@ -38,9 +53,15 @@ export interface DartsLeg {
 export interface DartsMatch {
   id: string
   mode: DartsMode
+  /** Legs to win a set (or the match without sets): best of 5 legs is 3. */
   legsToWin: number
+  /** Sets to win the match; 1 means a match without sets. */
+  setsToWin: number
   doubleOut: boolean
+  /** One name per side; a pair is shown as "Ethan & Remo". */
   players: string[]
+  /** Who is in each side, in throwing order; one name for a single player. */
+  members: string[][]
   legs: DartsLeg[]
   winner: number | null
   startedAt: number
@@ -58,6 +79,7 @@ export interface DartsSettings {
   roster: DartsPlayer[]
   mode: DartsMode
   legsToWin: number
+  setsToWin: number
   doubleOut: boolean
   updatedAt: number
 }
@@ -70,21 +92,40 @@ export interface DartsState {
   revision: number
 }
 
-export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, doubleOut: true, updatedAt: 0 }, revision: 0 })
+export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, setsToWin: 1, doubleOut: true, updatedAt: 0 }, revision: 0 })
 
 // Parsing and merging -------------------------------------------------------------------------------
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '')
-const mode = (v: unknown): DartsMode => (DARTS_MODES.includes(v as DartsMode) ? (v as DartsMode) : 501)
-const legs = (v: unknown) => Math.min(11, Math.max(1, Math.round(num(v) ?? 3)))
+/** Whether [v] is a starting score a leg can be played from. */
+export const validStart = (v: unknown): v is DartsMode => typeof v === 'number' && Number.isInteger(v) && v >= MIN_START && v <= MAX_START
+const mode = (v: unknown): DartsMode => (validStart(v) ? v : 501)
+const legs = (v: unknown) => Math.min(MAX_LEGS_TO_WIN, Math.max(1, Math.round(num(v) ?? 3)))
+const sets = (v: unknown) => Math.min(MAX_SETS_TO_WIN, Math.max(1, Math.round(num(v) ?? 1)))
+
+/** "best of 5" for 3 legs to win. */
+export const bestOf = (toWin: number) => 2 * toWin - 1
+/** The legs (or sets) to win for "best of [n]"; an even n rounds up, so best of 4 is first to 3. */
+export const toWinFromBestOf = (n: number) => Math.max(1, Math.floor(Math.round(n) / 2) + 1)
+
+/** "best of 5 legs" or "best of 3 sets, best of 5 legs per set". */
+export function formatLabel(m: Pick<DartsMatch, 'legsToWin' | 'setsToWin'>): string {
+  const legPart = m.legsToWin === 1 ? '1 leg' : `best of ${bestOf(m.legsToWin)} legs`
+  return m.setsToWin > 1 ? `best of ${bestOf(m.setsToWin)} sets, ${legPart} per set` : legPart
+}
 
 function parseMatch(raw: unknown): DartsMatch | null {
   if (typeof raw !== 'object' || raw === null) return null
   const m = raw as Record<string, unknown>
   if (typeof m.id !== 'string' || !Array.isArray(m.players)) return null
-  const players = m.players.filter((p): p is string => typeof p === 'string').map((p) => p.slice(0, MAX_NAME)).slice(0, MAX_PLAYERS)
+  const players = m.players.filter((p): p is string => typeof p === 'string').map((p) => p.slice(0, MAX_TEAM)).slice(0, MAX_PLAYERS)
   if (players.length === 0) return null
+  const rawMembers = Array.isArray(m.members) ? m.members : []
+  const members = players.map((p, i) => {
+    const list = Array.isArray(rawMembers[i]) ? (rawMembers[i] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => x.slice(0, MAX_NAME)).slice(0, MAX_MEMBERS) : []
+    return list.length > 0 ? list : [p]
+  })
   const who = (v: unknown) => {
     const n = num(v)
     return n !== null && n >= 0 && n < players.length ? Math.round(n) : null
@@ -98,17 +139,22 @@ function parseMatch(raw: unknown): DartsMatch | null {
       const score = num(v?.score)
       if (!v || player === null || score === null || score < 0 || score > 180) return []
       const darts = num(v.darts)
-      return [{ player, score: Math.round(score), darts: darts !== null && darts >= 1 && darts <= 3 ? Math.round(darts) : 3, bust: v.bust === true }]
+      const by = num(v.by)
+      const member = by !== null && by >= 0 && by < members[player].length ? Math.round(by) : 0
+      return [{ player, score: Math.round(score), darts: darts !== null && darts >= 1 && darts <= 3 ? Math.round(darts) : 3, bust: v.bust === true, ...(members[player].length > 1 ? { by: member } : {}) }]
     })
-    return [{ starter: who(leg.starter) ?? 0, visits, winner: who(leg.winner) }]
+    const set = num(leg.set)
+    return [{ set: set !== null && set >= 0 ? Math.round(set) : 0, starter: who(leg.starter) ?? 0, visits, winner: who(leg.winner) }]
   })
   return {
     id: m.id,
     mode: mode(m.mode),
     legsToWin: legs(m.legsToWin),
+    setsToWin: sets(m.setsToWin),
     doubleOut: m.doubleOut !== false,
     players,
-    legs: parsedLegs.length > 0 ? parsedLegs : [{ starter: 0, visits: [], winner: null }],
+    members,
+    legs: parsedLegs.length > 0 ? parsedLegs : [{ set: 0, starter: 0, visits: [], winner: null }],
     winner: who(m.winner),
     startedAt: num(m.startedAt) ?? 0,
     finishedAt: num(m.finishedAt),
@@ -139,7 +185,7 @@ export function parseDarts(raw: unknown): DartsState {
   return {
     matches: (Array.isArray(v.matches) ? v.matches : []).map(parseMatch).filter((m): m is DartsMatch => m !== null).slice(0, MAX_MATCHES),
     practice: (Array.isArray(v.practice) ? v.practice : []).map(parsePractice).filter((p): p is DartsPractice => p !== null).slice(0, MAX_PRACTICE),
-    settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), setsToWin: sets(s.setsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
     revision: num(v.revision) ?? 0,
   }
 }
@@ -202,7 +248,7 @@ export function knownPlayers(state: DartsState): string[] {
   }
   add(state.settings.me)
   state.settings.roster.forEach((p) => add(p.name))
-  liveMatches(state).forEach((m) => m.players.forEach(add))
+  liveMatches(state).forEach((m) => m.members.flat().forEach(add))
   return out
 }
 
@@ -221,11 +267,52 @@ export function toThrow(m: DartsMatch): number | null {
   return (leg.starter + leg.visits.length) % m.players.length
 }
 
-export function newMatch(id: string, players: string[], options: Pick<DartsMatch, 'mode' | 'legsToWin' | 'doubleOut'>, now: number): DartsMatch | { error: string } {
-  const names = players.map((p) => p.trim().slice(0, MAX_NAME)).filter(Boolean)
-  if (names.length === 0) return { error: 'Geef minstens één speler een naam.' }
-  if (names.length > MAX_PLAYERS) return { error: `Hoogstens ${MAX_PLAYERS} spelers.` }
-  return { id, ...options, legsToWin: legs(options.legsToWin), players: names, legs: [{ starter: 0, visits: [], winner: null }], winner: null, startedAt: now, finishedAt: null, updatedAt: now, deletedAt: null }
+export type MatchOptions = Pick<DartsMatch, 'mode' | 'legsToWin' | 'doubleOut'> & { setsToWin?: number }
+
+/**
+ * A new match. [players] holds one name per side, or for pairs (koppels) the members of each side;
+ * a side with an empty name is left out.
+ */
+export function newMatch(id: string, players: Array<string | string[]>, options: MatchOptions, now: number): DartsMatch | { error: string } {
+  const members = players.map((p) => (Array.isArray(p) ? p : [p]).map((x) => x.trim().slice(0, MAX_NAME)).filter(Boolean).slice(0, MAX_MEMBERS)).filter((m) => m.length > 0)
+  if (members.length === 0) return { error: 'Geef minstens één speler een naam.' }
+  if (members.length > MAX_PLAYERS) return { error: `Hoogstens ${MAX_PLAYERS} ${players.some(Array.isArray) ? 'koppels' : 'spelers'}.` }
+  if (!validStart(options.mode)) return { error: `Een spel start op ${MIN_START} tot ${MAX_START}.` }
+  const all = members.flat().map((n) => n.toLowerCase())
+  if (new Set(all).size !== all.length) return { error: 'Elke speler mag maar één keer meedoen.' }
+  return {
+    id,
+    mode: options.mode,
+    doubleOut: options.doubleOut,
+    legsToWin: legs(options.legsToWin),
+    setsToWin: sets(options.setsToWin ?? 1),
+    players: members.map((m) => m.join(' & ')),
+    members,
+    legs: [{ set: 0, starter: 0, visits: [], winner: null }],
+    winner: null,
+    startedAt: now,
+    finishedAt: null,
+    updatedAt: now,
+    deletedAt: null,
+  }
+}
+
+/** Whether this is a pairs match (a side with two players). */
+export const isPairs = (m: DartsMatch) => m.members.some((x) => x.length > 1)
+
+/** Who of [side] throws the next visit of [leg]: members take turns, and who starts moves on every leg. */
+function memberToThrow(m: DartsMatch, side: number, leg: DartsLeg): number {
+  const count = m.members[side]?.length ?? 1
+  if (count <= 1) return 0
+  const done = leg.visits.filter((v) => v.player === side).length
+  return (done + m.legs.indexOf(leg)) % count
+}
+
+/** The name of whoever throws now, or null when the match is over. */
+export function throwerName(m: DartsMatch): string | null {
+  const side = toThrow(m)
+  if (side === null) return null
+  return m.members[side][memberToThrow(m, side, currentLeg(m))] ?? m.players[side]
 }
 
 /**
@@ -242,13 +329,15 @@ export function addVisit(m: DartsMatch, score: number, now: number, darts = 3): 
   const finishable = !m.doubleOut || (score <= 170 && !BOGEY.has(score))
   const bust = left < 0 || (m.doubleOut && left === 1) || (left === 0 && !finishable)
   const leg = currentLeg(m)
-  const visit: DartsVisit = { player, score, darts: left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3, bust }
+  const pairs = (m.members[player]?.length ?? 1) > 1
+  const visit: DartsVisit = { player, score, darts: left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3, bust, ...(pairs ? { by: memberToThrow(m, player, leg) } : {}) }
   const done: DartsLeg = { ...leg, visits: [...leg.visits, visit], winner: left === 0 && !bust ? player : null }
   let next: DartsMatch = { ...m, legs: [...m.legs.slice(0, -1), done], updatedAt: now }
   if (done.winner !== null) {
-    const won = next.legs.filter((l) => l.winner === player).length
-    if (won >= m.legsToWin) next = { ...next, winner: player, finishedAt: now }
-    else next = { ...next, legs: [...next.legs, { starter: (leg.starter + 1) % m.players.length, visits: [], winner: null }] }
+    const starter = (leg.starter + 1) % m.players.length
+    if (legsInSet(next, player, leg.set) < m.legsToWin) next = { ...next, legs: [...next.legs, { set: leg.set, starter, visits: [], winner: null }] }
+    else if (setsWon(next, player) >= m.setsToWin) next = { ...next, winner: player, finishedAt: now }
+    else next = { ...next, legs: [...next.legs, { set: leg.set + 1, starter, visits: [], winner: null }] }
   }
   return next
 }
@@ -283,7 +372,23 @@ export function undoVisit(m: DartsMatch, now: number): DartsMatch {
   return { ...m, legs: [...all.slice(0, -1), { ...leg, visits: leg.visits.slice(0, -1), winner: null }], winner: null, finishedAt: null, updatedAt: now }
 }
 
+/** Legs [player] won over the whole match. */
 export const legsWon = (m: DartsMatch, player: number) => m.legs.filter((l) => l.winner === player).length
+/** Legs [player] won in [set] (default: the set being played). */
+export const legsInSet = (m: DartsMatch, player: number, set = currentLeg(m).set) => m.legs.filter((l) => l.set === set && l.winner === player).length
+/** Sets [player] won; without sets this is 1 for the winner of the match. */
+export function setsWon(m: DartsMatch, player: number): number {
+  const last = m.legs.reduce<number>((n, l) => Math.max(n, l.set), 0)
+  let won = 0
+  for (let set = 0; set <= last; set++) if (legsInSet(m, player, set) >= m.legsToWin) won++
+  return won
+}
+
+/** The score of a match: "3–1" in legs, or "2–1 sets" with sets. */
+export function matchScore(m: DartsMatch): string {
+  const count = m.setsToWin > 1 ? (i: number) => setsWon(m, i) : (i: number) => legsWon(m, i)
+  return `${m.players.map((_, i) => count(i)).join('–')}${m.setsToWin > 1 ? ' sets' : ''}`
+}
 
 // Checkout tips -------------------------------------------------------------------------------------
 
@@ -334,12 +439,13 @@ export function checkoutRoute(rest: number, doubleOut = true, darts = 3): string
 }
 
 /** Points per three darts for [player], over the whole match or one leg; null before the first visit. A bust counts as three darts for nothing. */
-export function playerAverage(m: DartsMatch, player: number, leg?: DartsLeg): number | null {
+export function playerAverage(m: DartsMatch, player: number, leg?: DartsLeg, member?: number): number | null {
   let points = 0
   let darts = 0
   for (const l of leg ? [leg] : m.legs) {
     for (const v of l.visits) {
       if (v.player !== player) continue
+      if (member !== undefined && (v.by ?? 0) !== member) continue
       points += v.bust ? 0 : v.score
       darts += v.darts
     }
@@ -376,12 +482,14 @@ export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
   const key = name.trim().toLowerCase()
   for (const m of matches) {
     if (m.deletedAt !== null) continue
-    const me = m.players.findIndex((p) => p.trim().toLowerCase() === key)
+    const me = m.members.findIndex((side) => side.some((p) => p.trim().toLowerCase() === key))
     if (me < 0) continue
+    const member = m.members[me].findIndex((p) => p.trim().toLowerCase() === key)
+    const pair = m.members[me].length > 1
     stats.matches++
     if (m.winner === me) stats.matchesWon++
     for (const leg of m.legs) {
-      const mine = leg.visits.filter((v) => v.player === me)
+      const mine = leg.visits.filter((v) => v.player === me && (!pair || (v.by ?? 0) === member))
       if (mine.length === 0) continue
       stats.legs++
       let legDarts = 0
@@ -400,8 +508,10 @@ export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
       })
       if (leg.winner === me) {
         stats.legsWon++
-        stats.highestCheckout = Math.max(stats.highestCheckout, mine[mine.length - 1].score)
-        stats.bestLeg = stats.bestLeg === null ? legDarts : Math.min(stats.bestLeg, legDarts)
+        // In pairs only your own finish counts, and a leg is not yours alone.
+        const finish = leg.visits[leg.visits.length - 1]
+        if (!pair || (finish.by ?? 0) === member) stats.highestCheckout = Math.max(stats.highestCheckout, finish.score)
+        if (!pair) stats.bestLeg = stats.bestLeg === null ? legDarts : Math.min(stats.bestLeg, legDarts)
       }
     }
   }

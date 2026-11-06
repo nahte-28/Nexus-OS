@@ -16,6 +16,20 @@ import {
   undoVisit,
   type DartsMatch,
   type DartsMode,
+  type DartsSettings,
+  MAX_LEGS_TO_WIN,
+  MAX_PLAYERS,
+  MAX_SETS_TO_WIN,
+  MAX_START,
+  MIN_START,
+  bestOf,
+  formatLabel,
+  isPairs,
+  legsInSet,
+  matchScore,
+  setsWon,
+  throwerName,
+  validStart,
   CHECKOUT_DARTS,
   CLOCK_TARGETS,
   PRACTICE_LABELS,
@@ -65,40 +79,147 @@ function saveMatch(next: DartsMatch): void {
   dartsStore.update((s) => ({ ...s, matches: [next, ...s.matches.filter((m) => m.id !== next.id)] }))
 }
 
+/** Starting score, best of legs, sets and double-out; shared by a new match and the defaults. */
+function FormatFields({ value, onChange }: { value: Format; onChange: (f: Format) => void }) {
+  const [ownOpen, setOwnOpen] = useState(!DARTS_MODES.includes(value.mode))
+  const custom = ownOpen || !DARTS_MODES.includes(value.mode)
+  const [own, setOwn] = useState(custom ? String(value.mode) : '')
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="flex flex-col gap-1">
+        Spel
+        <select
+          className={`${field} w-auto`}
+          value={custom ? 'eigen' : String(value.mode)}
+          onChange={(e) => {
+            if (e.target.value === 'eigen') {
+              setOwnOpen(true)
+              setOwn(String(value.mode))
+              return
+            }
+            setOwnOpen(false)
+            onChange({ ...value, mode: Number(e.target.value) })
+          }}
+        >
+          {DARTS_MODES.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+          <option value="eigen">Eigen score…</option>
+        </select>
+      </label>
+      {custom && (
+        <label className="flex flex-col gap-1">
+          Startscore ({MIN_START} tot {MAX_START})
+          <input
+            type="number"
+            min={MIN_START}
+            max={MAX_START}
+            className={`${field} w-24`}
+            value={own}
+            onChange={(e) => {
+              setOwn(e.target.value)
+              const n = Number(e.target.value)
+              if (validStart(n)) onChange({ ...value, mode: n })
+            }}
+          />
+        </label>
+      )}
+      <label className="flex flex-col gap-1">
+        Legs
+        <select className={`${field} w-auto`} value={value.legsToWin} onChange={(e) => onChange({ ...value, legsToWin: Number(e.target.value) })}>
+          {Array.from({ length: MAX_LEGS_TO_WIN }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n === 1 ? '1 leg' : `best of ${bestOf(n)}`}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1">
+        Sets
+        <select className={`${field} w-auto`} value={value.setsToWin} onChange={(e) => onChange({ ...value, setsToWin: Number(e.target.value) })}>
+          {Array.from({ length: MAX_SETS_TO_WIN }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n === 1 ? 'geen sets' : `best of ${bestOf(n)}`}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="flex items-center gap-2 pb-1.5">
+        <input type="checkbox" checked={value.doubleOut} onChange={(e) => onChange({ ...value, doubleOut: e.target.checked })} />
+        Double-out
+      </label>
+    </div>
+  )
+}
+
+type Format = { mode: DartsMode; legsToWin: number; setsToWin: number; doubleOut: boolean }
+
 function NewMatch() {
   const { settings } = useDarts()
+  const [pairs, setPairs] = useState(false)
   const [players, setPlayers] = useState<string[]>([settings.me, ''])
-  const [mode, setMode] = useState<DartsMode>(settings.mode)
-  const [legs, setLegs] = useState(settings.legsToWin)
-  const [doubleOut, setDoubleOut] = useState(settings.doubleOut)
+  const [format, setFormat] = useState<Format>({ mode: settings.mode, legsToWin: settings.legsToWin, setsToWin: settings.setsToWin, doubleOut: settings.doubleOut })
   const [error, setError] = useState<string | null>(null)
+  const size = pairs ? 2 : 1
+  const maxSlots = MAX_PLAYERS * size
+  const sides = Array.from({ length: Math.ceil(players.length / size) }, (_, i) => players.slice(i * size, i * size + size))
+  const slotName = (i: number) => (pairs ? `Koppel ${Math.floor(i / 2) + 1}, speler ${(i % 2) + 1}` : `Speler ${i + 1}`)
+  const togglePairs = (on: boolean) => {
+    setPairs(on)
+    const filled = players.filter((p) => p.trim() !== '')
+    const want = on ? 4 : 2
+    const list = filled.slice(0, on ? 8 : 4)
+    while (list.length < want || (on && list.length % 2 === 1)) list.push('')
+    setPlayers(list)
+  }
   return (
     <form
       aria-label="Nieuwe wedstrijd"
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault()
-        const m = newMatch(crypto.randomUUID(), players, { mode, legsToWin: legs, doubleOut }, Date.now())
+        const m = newMatch(crypto.randomUUID(), pairs ? sides : players, format, Date.now())
         if ('error' in m) return setError(m.error)
         setError(null)
         saveMatch(m)
       }}
     >
-      <h3 className="font-medium">Nieuwe wedstrijd</h3>
-      <div className="space-y-1">
-        {players.map((p, i) => (
-          <div key={i} className="flex gap-2">
-            <input aria-label={`Speler ${i + 1}`} className={field} value={p} maxLength={30} placeholder={`Speler ${i + 1}`} onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))} />
-            {players.length > 1 && (
-              <button type="button" className={small} aria-label={`Speler ${i + 1} weghalen`} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>
-                ✕
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="font-medium">Nieuwe wedstrijd</h3>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={pairs} onChange={(e) => togglePairs(e.target.checked)} />
+          Koppels (2 tegen 2)
+        </label>
+      </div>
+      <div className="space-y-2">
+        {sides.map((side, s) => (
+          <div key={s} className={pairs ? 'space-y-1 rounded-lg border border-nx-border p-2' : 'space-y-1'} role={pairs ? 'group' : undefined} aria-label={pairs ? `Koppel ${s + 1}` : undefined}>
+            {pairs && <div className="text-xs text-nx-muted">Koppel {s + 1}</div>}
+            {side.map((p, k) => {
+              const i = s * size + k
+              return (
+                <div key={i} className="flex gap-2">
+                  <input aria-label={slotName(i)} className={field} value={p} maxLength={30} placeholder={pairs ? `Speler ${k + 1}` : slotName(i)} onChange={(e) => setPlayers(players.map((x, j) => (j === i ? e.target.value : x)))} />
+                  {!pairs && players.length > 1 && (
+                    <button type="button" className={small} aria-label={`${slotName(i)} weghalen`} onClick={() => setPlayers(players.filter((_, j) => j !== i))}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            {pairs && sides.length > 2 && (
+              <button type="button" className={small} aria-label={`Koppel ${s + 1} weghalen`} onClick={() => setPlayers(players.filter((_, j) => Math.floor(j / 2) !== s))}>
+                Koppel weghalen
               </button>
             )}
           </div>
         ))}
-        {players.length < 4 && (
-          <button type="button" className={small} onClick={() => setPlayers([...players, ''])}>
-            + Speler
+        {players.length < maxSlots && (
+          <button type="button" className={small} onClick={() => setPlayers([...players, ...Array(size).fill('')])}>
+            {pairs ? '+ Koppel' : '+ Speler'}
           </button>
         )}
       </div>
@@ -107,16 +228,14 @@ function NewMatch() {
           <span className="text-nx-muted">Vaste spelers:</span>
           {settings.roster.map((r) => {
             const taken = players.some((p) => p.trim().toLowerCase() === r.name.toLowerCase())
+            const empty = players.findIndex((p) => p.trim() === '')
             return (
               <button
                 key={r.name}
                 type="button"
                 className={small}
-                disabled={taken || (players.every((p) => p.trim() !== '') && players.length >= 4)}
-                onClick={() => {
-                  const empty = players.findIndex((p) => p.trim() === '')
-                  setPlayers(empty >= 0 ? players.map((p, j) => (j === empty ? r.name : p)) : [...players, r.name])
-                }}
+                disabled={taken || (empty < 0 && players.length >= maxSlots)}
+                onClick={() => setPlayers(empty >= 0 ? players.map((p, j) => (j === empty ? r.name : p)) : [...players, r.name, ...Array(size - 1).fill('')])}
               >
                 + {playerLabel(settings, r.name)}
               </button>
@@ -124,32 +243,18 @@ function NewMatch() {
           })}
         </div>
       )}
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
-          Spel
-          <select className={`${field} w-auto`} value={mode} onChange={(e) => setMode(Number(e.target.value) as DartsMode)}>
-            {DARTS_MODES.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Legs om te winnen
-          <input type="number" min={1} max={11} className={`${field} w-20`} value={legs} onChange={(e) => setLegs(Number(e.target.value) || 1)} />
-        </label>
-        <label className="flex items-center gap-2 pb-1.5">
-          <input type="checkbox" checked={doubleOut} onChange={(e) => setDoubleOut(e.target.checked)} />
-          Double-out
-        </label>
-      </div>
+      <FormatFields value={format} onChange={setFormat} />
       {error && <p role="alert">{error}</p>}
       <button type="submit" className={primaryButton}>
         Starten
       </button>
     </form>
   )
+}
+
+/** A side as shown: its name, with nicknames of the players in it. */
+function sideLabel(settings: DartsSettings, match: DartsMatch, side: number): string {
+  return match.members[side].map((p) => playerLabel(settings, p)).join(' & ')
 }
 
 function Scoreboard({ match }: { match: DartsMatch }) {
@@ -174,7 +279,8 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   return (
     <section aria-label="Scorebord" className="space-y-3">
       <p className="text-nx-muted">
-        {match.mode} · {match.doubleOut ? 'double-out' : 'single-out'} · eerst tot {match.legsToWin} {match.legsToWin === 1 ? 'leg' : 'legs'} · leg {match.legs.length}
+        {match.mode} · {match.doubleOut ? 'double-out' : 'single-out'} · {formatLabel(match)}
+        {isPairs(match) && ' · koppels'} · {match.setsToWin > 1 && `set ${leg.set + 1}, `}leg {match.legs.filter((l) => l.set === leg.set).length}
       </p>
       <ul className="grid gap-2 sm:grid-cols-2">
         {match.players.map((p, i) => {
@@ -183,16 +289,26 @@ function Scoreboard({ match }: { match: DartsMatch }) {
             <li key={i} className={`rounded-lg border px-3 py-2 ${turn === i ? 'border-nx-accent bg-nx-surface-2' : 'border-nx-border'}`} aria-current={turn === i ? 'true' : undefined}>
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-medium">
-                  {p}
-                  {nicknameOf(settings, p) && <span className="ml-1 text-xs font-normal italic text-nx-muted">'{nicknameOf(settings, p)}'</span>}
+                  {match.members[i].map((name, k) => (
+                    <span key={name}>
+                      {k > 0 && ' & '}
+                      {name}
+                      {nicknameOf(settings, name) && <span className="ml-1 text-xs font-normal italic text-nx-muted">'{nicknameOf(settings, name)}'</span>}
+                    </span>
+                  ))}
                 </span>
-                <span className="text-nx-muted">legs {legsWon(match, i)}</span>
+                <span className="text-nx-muted">
+                  {match.setsToWin > 1 && <>sets {setsWon(match, i)} · </>}legs {match.setsToWin > 1 ? legsInSet(match, i) : legsWon(match, i)}
+                </span>
               </div>
               <div className="text-3xl font-semibold tabular-nums">{remaining(match, i)}</div>
               <div className="text-xs text-nx-muted" aria-label={`Gemiddelde van ${p}`}>
                 gem. {avg(playerAverage(match, i))}
                 {match.legs.length > 1 && <> · deze leg {avg(playerAverage(match, i, leg))}</>}
               </div>
+              {match.members[i].length > 1 && (
+                <div className="text-xs text-nx-muted">{match.members[i].map((name, k) => `${name} ${avg(playerAverage(match, i, undefined, k))}`).join(' · ')}</div>
+              )}
               {last && <div className="text-xs text-nx-muted">vorige beurt: {last.bust ? `${last.score} (bust)` : last.score}</div>}
             </li>
           )
@@ -209,7 +325,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
           }}
         >
           <p>
-            <b>{match.players[turn]}</b> gooit, nog {left}.{route && <> Uitgooien: <b>{route.join(' ')}</b></>}
+            <b>{throwerName(match)}</b> gooit{isPairs(match) && <> voor {match.players[turn]}</>}, nog {left}.{route && <> Uitgooien: <b>{route.join(' ')}</b></>}
           </p>
           <div className="flex gap-2">
             <input aria-label="Score van deze beurt" inputMode="numeric" className={field} value={score} onChange={(e) => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="Totaal van 3 pijlen" />
@@ -241,7 +357,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
       )}
       {match.winner !== null && (
         <p role="status" className="font-medium">
-          {playerLabel(settings, match.players[match.winner])} wint met {legsWon(match, match.winner)}–{Math.max(...match.players.map((_, i) => (i === match.winner ? 0 : legsWon(match, i))))}.
+          {sideLabel(settings, match, match.winner)} wint met {matchScore(match)}.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
@@ -257,7 +373,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
             type="button"
             className={primaryButton}
             onClick={() => {
-              const again = newMatch(crypto.randomUUID(), [...match.players.slice(1), match.players[0]], match, Date.now())
+              const again = newMatch(crypto.randomUUID(), [...match.members.slice(1), match.members[0]], match, Date.now())
               if (!('error' in again)) saveMatch(again)
             }}
           >
@@ -325,10 +441,12 @@ function History() {
     <ul className="space-y-1">
       {matches.map((m) => (
         <li key={m.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
-          <span className="font-medium">{m.players.map((p, i) => `${label(p)} ${legsWon(m, i)}`).join(' – ')}</span>
+          <span className="font-medium">
+            {m.members.map((side) => side.map(label).join(' & ')).join(' – ')}: {matchScore(m)}
+          </span>
           <span className="text-nx-muted">gem. {m.players.map((p, i) => `${p} ${avg(playerAverage(m, i))}`).join(' · ')}</span>
           <span className="text-nx-muted">
-            {m.mode} · {when(m.startedAt)} · {m.winner !== null ? `${label(m.players[m.winner])} won` : running(m) ? 'bezig' : 'gestopt'}
+            {m.mode} · {formatLabel(m)} · {when(m.startedAt)} · {m.winner !== null ? `${m.members[m.winner].map(label).join(' & ')} won` : running(m) ? 'bezig' : 'gestopt'}
           </span>
           <button
             type="button"
@@ -770,26 +888,10 @@ function Settings() {
         Jouw bijnaam (mag leeg)
         <input className={field} value={settings.nickname} maxLength={30} placeholder="bv. The Power" onChange={(e) => set({ nickname: e.target.value })} />
       </label>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
-          Standaard spel
-          <select className={`${field} w-auto`} value={settings.mode} onChange={(e) => set({ mode: Number(e.target.value) as DartsMode })}>
-            {DARTS_MODES.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          Legs om te winnen
-          <input type="number" min={1} max={11} className={`${field} w-20`} value={settings.legsToWin} onChange={(e) => set({ legsToWin: Number(e.target.value) || 1 })} />
-        </label>
-        <label className="flex items-center gap-2 pb-1.5">
-          <input type="checkbox" checked={settings.doubleOut} onChange={(e) => set({ doubleOut: e.target.checked })} />
-          Double-out
-        </label>
-      </div>
+      <section aria-label="Standaard wedstrijd" className="space-y-1">
+        <h3 className="font-medium">Standaard wedstrijd</h3>
+        <FormatFields value={{ mode: settings.mode, legsToWin: settings.legsToWin, setsToWin: settings.setsToWin, doubleOut: settings.doubleOut }} onChange={(f) => set(f)} />
+      </section>
       <Players />
       <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Nieuwe modules, dan verdwijnt de app overal.</p>
     </div>

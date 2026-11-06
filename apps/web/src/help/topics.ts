@@ -211,6 +211,8 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Darts: een scorebord voor 301, 501 en 701 met uitgooi-tips en je statistieken.',
     tips: [
       'Start een wedstrijd met 1 tot 4 spelers en tik na elke beurt het totaal van je drie pijlen in, zoals op een scorebord.',
+      'Spel: 170, 301, 501, 701, 1001 of een eigen startscore (2 tot 1001). Legs en sets kies je als best of 3, 5, 7 …; met sets wint wie eerst genoeg sets heeft.',
+      'Koppels: vink Koppels aan voor 2 tegen 2. De spelers van een koppel gooien om beurt, en wie van het koppel begint wisselt elke leg. Statistieken tellen per speler.',
       'Bij double-out is een beurt die onder nul gaat, op 1 eindigt of niet met een dubbel kan uitgooien, een bust: ze telt niet.',
       'Kun je uitgooien, dan toont Darts een route, bv. T20 T20 Bull. Gooi je uit met minder dan drie pijlen, kies dan 1 of 2 pijlen.',
       'Een fout getikt? Ongedaan maken neemt de laatste beurt terug, ook als die een leg won.',

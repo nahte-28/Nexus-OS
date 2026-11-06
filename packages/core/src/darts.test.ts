@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addVisit, checkoutRoute, dartsEvents, dartsStats, emptyDarts, knownPlayers, legsWon, mergeDarts, newMatch, parseDarts, playerAverage, playerLabel, remaining, removePlayer, savePlayer, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
+import { addVisit, checkoutRoute, currentLeg, formatLabel, isPairs, legsInSet, matchScore, setsWon, throwerName, toWinFromBestOf, validStart, dartsEvents, dartsStats, emptyDarts, knownPlayers, legsWon, mergeDarts, newMatch, parseDarts, playerAverage, playerLabel, remaining, removePlayer, savePlayer, toThrow, undoVisit, watchMatch, type DartsMatch } from './darts'
 
 const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
@@ -57,7 +57,7 @@ describe('darts scorer', () => {
 
   it('parses, drops nonsense and merges by match', () => {
     const m = start()
-    const raw = { matches: [m, { id: 'x' }, { ...m, id: 'm2', legs: [{ visits: [{ player: 9, score: 50 }, { player: 1, score: 200 }] }] }], settings: { me: 'Ethan', mode: 999 } }
+    const raw = { matches: [m, { id: 'x' }, { ...m, id: 'm2', legs: [{ visits: [{ player: 9, score: 50 }, { player: 1, score: 200 }] }] }], settings: { me: 'Ethan', mode: 1500 } }
     const s = parseDarts(raw)
     expect(s.matches.map((x) => x.id)).toEqual(['m1', 'm2'])
     expect(s.matches[1].legs[0].visits).toEqual([])
@@ -126,5 +126,74 @@ describe('darts nicknames', () => {
     const m = newMatch('m', ['Jan', 'ethan'], { mode: 501, legsToWin: 1, doubleOut: true }, 1)
     if ('error' in m) throw new Error(m.error)
     expect(knownPlayers({ ...state, matches: [m] })).toEqual(['Ethan', 'Remo', 'Jan'])
+  })
+})
+
+describe('darts formats', () => {
+  const visit = (m: DartsMatch, score: number, darts = 3) => ok(addVisit(m, score, 1, darts))
+
+  it('plays a custom game from 170', () => {
+    let m = ok(newMatch('c', ['Ethan'], { mode: 170, legsToWin: 1, doubleOut: true }, 1))
+    expect(remaining(m, 0)).toBe(170)
+    expect(checkoutRoute(170)).toEqual(['T20', 'T20', 'Bull'])
+    m = visit(m, 170)
+    expect(m.winner).toBe(0)
+    expect('error' in newMatch('x', ['Ethan'], { mode: 1, legsToWin: 1, doubleOut: true }, 1)).toBe(true)
+    expect(validStart(1001)).toBe(true)
+    expect(validStart(1002)).toBe(false)
+  })
+
+  it('counts best of 3 sets of best of 3 legs', () => {
+    expect(toWinFromBestOf(5)).toBe(3)
+    expect(toWinFromBestOf(4)).toBe(3)
+    let m = ok(newMatch('s', ['A', 'B'], { mode: 2 + 0, legsToWin: toWinFromBestOf(3), setsToWin: toWinFromBestOf(3), doubleOut: false }, 1))
+    expect(formatLabel(m)).toBe('best of 3 sets, best of 3 legs per set')
+    // Start on 2 single-out: every visit of 2 wins the leg for whoever throws.
+    const winLeg = (side: number) => {
+      if (toThrow(m) !== side) m = visit(m, 0)
+      m = visit(m, 2, 1)
+    }
+    winLeg(0)
+    winLeg(0)
+    expect(setsWon(m, 0)).toBe(1)
+    expect(currentLeg(m).set).toBe(1)
+    winLeg(1)
+    winLeg(1)
+    expect(matchScore(m)).toBe('1–1 sets')
+    winLeg(0)
+    expect(m.winner).toBeNull()
+    winLeg(0)
+    expect(m.winner).toBe(0)
+    expect(matchScore(m)).toBe('2–1 sets')
+    m = undoVisit(m, 2)
+    expect(m.winner).toBeNull()
+    expect(legsInSet(m, 0)).toBe(1)
+  })
+
+  it('lets pairs take turns and keeps stats per player', () => {
+    let m = ok(newMatch('p', [['Ethan', 'Remo'], ['Jan', 'Piet']], { mode: 501, legsToWin: 2, doubleOut: true }, 1))
+    expect(m.players).toEqual(['Ethan & Remo', 'Jan & Piet'])
+    expect(isPairs(m)).toBe(true)
+    const order: string[] = []
+    for (const score of [100, 60, 140, 45, 180]) {
+      order.push(throwerName(m)!)
+      m = visit(m, score)
+    }
+    expect(order).toEqual(['Ethan', 'Jan', 'Remo', 'Piet', 'Ethan'])
+    expect(playerAverage(m, 0, undefined, 0)).toBe(140)
+    expect(playerAverage(m, 0, undefined, 1)).toBe(140)
+    expect(dartsStats([m], 'Ethan')).toMatchObject({ matches: 1, oneEighties: 1, tons: 1 })
+    expect(dartsStats([m], 'Remo')).toMatchObject({ matches: 1, tonForty: 1 })
+    const parsed = parseDarts(JSON.parse(JSON.stringify({ matches: [m] }))).matches[0]
+    expect(parsed).toEqual(m)
+    expect(knownPlayers({ ...emptyDarts(), matches: [m] })).toEqual(['Ik', 'Ethan', 'Remo', 'Jan', 'Piet'])
+    expect('error' in newMatch('d', [['Ethan', 'Remo'], ['ethan']], { mode: 501, legsToWin: 1, doubleOut: true }, 1)).toBe(true)
+  })
+
+  it('moves who starts in a pair to the other member each leg', () => {
+    let m = ok(newMatch('p', [['A', 'B'], ['C', 'D']], { mode: 40, legsToWin: 2, doubleOut: true }, 1))
+    m = visit(m, 40, 1) // A wins leg 1
+    expect(toThrow(m)).toBe(1)
+    expect(throwerName(m)).toBe('D')
   })
 })
