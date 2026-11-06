@@ -13,7 +13,7 @@ import {
 } from '@nexus/core'
 import { SIDEBAR_WIDTH } from '../desktop/Desktop'
 import { TASKBAR_HEIGHT } from '../desktop/Taskbar'
-import { useProfiles } from '../profiles/store'
+import { profilesStore, useProfiles } from '../profiles/store'
 import { newSpace, openLayout, saveLayout, switchToSpace } from '../spaces/actions'
 import { spacesStore, spacesSyncProblem, useCurrentSpace, useSpaces } from '../spaces/store'
 import { readStorage, writeStorage } from '../state/storage'
@@ -68,7 +68,8 @@ export function Spaces() {
 
 const appName = (id: AppId) => APPS.find((a) => a.id === id)?.title ?? id
 const apps = (s: Space) => (s.windows.length === 0 ? 'geen apps' : s.windows.map((w) => appName(w.appId)).join(', '))
-const profileName = (id: string) => ({ school: 'School', personal: 'Persoonlijk', gaming: 'Gaming', developer: 'Developer' })[id] ?? id
+/** The profile's own name, so a School profile that became Werk shows as Werk. */
+const profileName = (id: string) => profilesStore.getSnapshot().state.profiles[id as 'school']?.name ?? id
 
 function MySpaces() {
   const state = useSpaces()

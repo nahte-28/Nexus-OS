@@ -40,6 +40,7 @@ import { FlowCanvas } from '../flows/FlowCanvas'
 import { appName, currentContext, defaultEffects, runNow } from '../flows/runner'
 import { flowsStore, useFlowRuns, useFlows, type FlowRun } from '../flows/store'
 import { clearFlowRuns, fetchFlowsServerStatus, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn, type FlowsServerStatus } from '../flows/sync'
+import { profilesStore } from '../profiles/store'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -55,7 +56,11 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'settings', label: 'Instellingen' },
 ]
 
-const PROFILE_NAMES: Record<ProfileId, string> = { school: 'School', personal: 'Persoonlijk', gaming: 'Gaming', developer: 'Developer' }
+/** The profiles' own names, so a School profile that became Werk shows as Werk. */
+const profileNames = (): Record<ProfileId, string> => {
+  const { profiles } = profilesStore.getSnapshot().state
+  return { school: profiles.school.name, personal: profiles.personal.name, gaming: profiles.gaming.name, developer: profiles.developer.name }
+}
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo']
 const time = (at: number) => new Date(at).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -515,7 +520,7 @@ function ProfileSelect({ value, onChange, label = 'Profiel' }: { value: ProfileI
       <select className={field} value={value} onChange={(e) => onChange(e.target.value as ProfileId)}>
         {PROFILE_IDS.map((id) => (
           <option key={id} value={id}>
-            {PROFILE_NAMES[id]}
+            {profileNames()[id]}
           </option>
         ))}
       </select>

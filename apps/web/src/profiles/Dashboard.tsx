@@ -12,7 +12,7 @@ import {
   type WidgetLayout,
   type WidgetSize,
 } from '@nexus/core'
-import { alive, budgetStatus, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, type AppId, type WidgetId } from '@nexus/core'
+import { alive, budgetStatus, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, needsAbout, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
@@ -28,6 +28,7 @@ import { installUpdate, useUpdate } from '../platform/update'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
 import { profilesStore, useProfiles } from './store'
+import { AboutMe } from './AboutMe'
 import { PROFILE_ICONS, reasonText } from './ui'
 
 type OpenApp = (id: AppId) => void
@@ -60,7 +61,7 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
     <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 ${compact ? 'p-4' : 'p-6'}`}>
       <header className="space-y-1">
         <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
-          {active.id === 'school' ? 'School Workspace' : `${greeting(now)}`}
+          {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}
         </h1>
         <p className="text-nx-muted">
           {new Date(now).toLocaleDateString('nl-BE', {
@@ -70,6 +71,8 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
           })}
         </p>
       </header>
+
+      <Welcome />
 
       <FlowPrompts onOpenApp={onOpenApp} />
 
@@ -138,6 +141,44 @@ function FlowPrompts({ onOpenApp }: { onOpenApp: OpenApp }) {
         )
       })}
     </ul>
+  )
+}
+
+const WELCOME_KEY = 'nexus.about.later'
+
+/** On a fresh NEXUS: asks who you are, so the first profile fits (School or Werk). Stays until Opslaan or Later. */
+function Welcome() {
+  const { state } = useProfiles()
+  const [open, setOpen] = useState(() => {
+    try {
+      return needsAbout(state) && localStorage.getItem(WELCOME_KEY) === null
+    } catch {
+      return needsAbout(state)
+    }
+  })
+  if (!open) return null
+  const close = () => {
+    try {
+      localStorage.setItem(WELCOME_KEY, '1')
+    } catch {
+      // Private window: the card comes back next time.
+    }
+    setOpen(false)
+  }
+  return (
+    <section aria-label="Welkom" className="nx-glass space-y-3 rounded-2xl border border-nx-accent p-4">
+      <h2 className="text-lg font-semibold">Welkom bij NEXUS</h2>
+      <p className="text-sm text-nx-muted">Vertel kort wie je bent, dan past NEXUS zich aan. Je kan dit later aanpassen in Account.</p>
+      <AboutMe />
+      <div className="flex gap-2">
+        <button type="button" className="rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text" onClick={close}>
+          Opslaan
+        </button>
+        <button type="button" className="rounded-lg border border-nx-border px-3 py-1.5 text-sm" onClick={close}>
+          Later
+        </button>
+      </div>
+    </section>
   )
 }
 

@@ -93,6 +93,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   account: {
     summary: 'Aanmelden, synchroniseren en de controle van de database.',
     tips: [
+      'Over jou: je naam, wat je doet en waar. Kies je "Ik werk" of "Iets anders", dan wordt het profiel School het profiel Werk, zonder schoolapps; met "Ik studeer" komen die terug.',
       'Wachtwoord vergeten? Je krijgt een eenmalige link per mail en kiest daarna een nieuw wachtwoord hier.',
       'Database-check toont welke SQL-stappen in Supabase nog ontbreken, met de SQL om te kopiëren.',
     ],

@@ -108,7 +108,7 @@ export interface LauncherCommand {
 export type CommandValues = Record<string, string>
 
 const PROFILE_CHOICES = [
-  { value: 'school', label: 'School' },
+  { value: 'school', label: 'School / Werk' },
   { value: 'personal', label: 'Persoonlijk' },
   { value: 'gaming', label: 'Gaming' },
   { value: 'developer', label: 'Developer' },
