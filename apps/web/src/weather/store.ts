@@ -1,4 +1,4 @@
-import { MAX_WEATHER_PLACES, parseForecast, parsePlaces, validCoords, WEATHER_FRESH_MS, type Forecast, type WeatherPlace } from '@nexus/core'
+import { dagstartWeatherLine, MAX_WEATHER_PLACES, parseForecast, parsePlaces, validCoords, WEATHER_FRESH_MS, type Forecast, type WeatherPlace } from '@nexus/core'
 import { apiBase } from '../platform/desktop'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -7,11 +7,13 @@ export interface WeatherState {
   places: WeatherPlace[]
   selected: number
   cache: Record<string, { at: number; forecast: Forecast }>
+  /** Whether the first place's weather goes in the Dagstart and the Dagbriefing. */
+  inDagstart: boolean
 }
 
 const KEY = 'nexus.weather'
 export const placeKey = (p: Pick<WeatherPlace, 'lat' | 'lon'>) => `${p.lat.toFixed(2)},${p.lon.toFixed(2)}`
-const EMPTY: WeatherState = { places: [], selected: 0, cache: {} }
+const EMPTY: WeatherState = { places: [], selected: 0, cache: {}, inDagstart: true }
 
 export function parseWeatherState(raw: string | null): WeatherState {
   try {
@@ -26,7 +28,7 @@ export function parseWeatherState(raw: string | null): WeatherState {
       if (c && forecast) cache[placeKey(p)] = { at: c.at, forecast }
     }
     const selected = typeof o.selected === 'number' && o.selected >= 0 && o.selected < places.length ? o.selected : 0
-    return { places, selected, cache }
+    return { places, selected, cache, inDagstart: o.inDagstart !== false }
   } catch {
     return EMPTY
   }
@@ -109,6 +111,37 @@ export function removePlace(index: number): void {
     const places = s.places.filter((_, i) => i !== index)
     const cache = { ...s.cache }
     delete cache[placeKey(gone)]
-    return { places, selected: Math.min(s.selected, Math.max(0, places.length - 1)), cache }
+    return { ...s, places, selected: Math.min(s.selected, Math.max(0, places.length - 1)), cache }
   })
+}
+
+/** Forecasts older than this are not used in the Dagstart: better no weather than stale weather. */
+const DAGSTART_MAX_AGE_MS = 12 * 60 * 60_000
+
+/** The weather line for the Dagstart of [dayStart], from your first place in Weer; null when there is none. */
+export function weatherForDagstart(dayStart: number, now = Date.now()): string | null {
+  const s = weatherStore.getSnapshot()
+  const place = s.places[0]
+  if (!s.inDagstart || !place) return null
+  const cached = s.cache[placeKey(place)]
+  if (!cached || now - cached.at > DAGSTART_MAX_AGE_MS) return null
+  return dagstartWeatherLine(place.name, cached.forecast, dayStart)
+}
+
+const REFRESH_CHECK_MS = 5 * 60_000
+
+/**
+ * Keeps the first place's forecast fresh while NEXUS runs and Weer is on, so the Dagstart has it in
+ * the morning. At most one request per half hour; nothing is asked while offline.
+ */
+export function startWeatherRefresh(enabled: () => boolean): () => void {
+  const tick = () => {
+    const place = weatherStore.getSnapshot().places[0]
+    if (!enabled() || !place || !weatherStore.getSnapshot().inDagstart) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+    void refreshForecast(place).catch(() => {})
+  }
+  tick()
+  const timer = setInterval(tick, REFRESH_CHECK_MS)
+  return () => clearInterval(timer)
 }

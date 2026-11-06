@@ -168,6 +168,10 @@ export function Weather() {
         <button type="button" className={small} onClick={() => removePlace(state.selected)} aria-label={`${place.name} weghalen`}>Weghalen</button>
       </div>
       {adding && <Search onDone={() => setAdding(false)} />}
+      <label className="flex items-center gap-1.5 text-xs text-nx-muted">
+        <input type="checkbox" checked={state.inDagstart} onChange={(e) => weatherStore.update((s) => ({ ...s, inDagstart: e.target.checked }))} />
+        Het weer van {state.places[0]?.name} in je Dagstart en Dagbriefing
+      </label>
       {error && <p role="alert">{error}</p>}
       {cached ? <ForecastView forecast={cached.forecast} fetchedAt={cached.at} /> : !error && <p className="text-nx-muted">Weer ophalen…</p>}
     </div>
