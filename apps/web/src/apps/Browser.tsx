@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { bookmarkGroups, deleteBookmark, hostOf, moveBookmark, resolveInput, saveBookmark, SEARCH_ENGINES, type Bookmark, type BrowserSettings, type SearchEngine } from '@nexus/core'
-import { openWebApp } from '../platform/desktop'
+import { openInNexusBrowser } from '../browser/bridge'
+import { isDesktopApp, openWebApp } from '../platform/desktop'
 import { profilesStore, useProfiles } from '../profiles/store'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -10,8 +11,8 @@ const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium t
 
 const setBrowser = (change: (b: BrowserSettings) => BrowserSettings) => profilesStore.update((s) => ({ ...s, browser: change(s.browser) }))
 
-/** Opens a site: in the Windows app in its own window, elsewhere in a new tab of your browser. */
-export const openSite = (url: string) => void openWebApp(url)
+/** Opens a site: in the Windows app in the NEXUS Browser window, elsewhere in a new tab of your browser. */
+export const openSite = (url: string) => void (isDesktopApp ? openInNexusBrowser(url) : openWebApp(url))
 
 function Letter({ title }: { title: string }) {
   const letter = (title.trim()[0] ?? '?').toUpperCase()

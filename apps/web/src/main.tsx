@@ -37,6 +37,7 @@ import { startDartsSync } from './darts/store'
 import { startContactsSync } from './contacts/store'
 import { startBirthdayAlerts } from './contacts/alerts'
 import { startWeatherRefresh } from './weather/store'
+import { startBrowserBookmarks } from './browser/bridge'
 import { startVault } from './vault/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
@@ -123,6 +124,7 @@ startContactsSync(supabase, () => isFeatureOn('contacts'), onFeaturesChange)
 startBirthdayAlerts(defaultEngine, () => isFeatureOn('contacts'))
 // Weer: keeps the first place's forecast fresh for the Dagstart.
 startWeatherRefresh(() => isFeatureOn('weather'))
+startBrowserBookmarks()
 // Vault: tags, collections, versions and the trash of your files; empties the trash after 30 days.
 startVault(supabase, () => isFeatureOn('vault'), onFeaturesChange)
 // Slaapbewaker: on an evening before a lesson day, a notice to stop gaming in time.
