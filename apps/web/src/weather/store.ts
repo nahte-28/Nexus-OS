@@ -1,4 +1,4 @@
-import { dagstartWeatherLine, MAX_WEATHER_PLACES, parseForecast, parsePlaces, validCoords, WEATHER_FRESH_MS, type Forecast, type WeatherPlace } from '@nexus/core'
+import { dagstartWeatherLine, planWeather, type PlanWeather, MAX_WEATHER_PLACES, parseForecast, parsePlaces, validCoords, WEATHER_FRESH_MS, type Forecast, type WeatherPlace } from '@nexus/core'
 import { apiBase } from '../platform/desktop'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -132,16 +132,27 @@ const REFRESH_CHECK_MS = 5 * 60_000
 
 /**
  * Keeps the first place's forecast fresh while NEXUS runs and Weer is on, so the Dagstart has it in
- * the morning. At most one request per half hour; nothing is asked while offline.
+ * the morning and the watch tile shows today's weather. At most one request per half hour; nothing is asked while offline.
  */
 export function startWeatherRefresh(enabled: () => boolean): () => void {
   const tick = () => {
     const place = weatherStore.getSnapshot().places[0]
-    if (!enabled() || !place || !weatherStore.getSnapshot().inDagstart) return
+    if (!enabled() || !place) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return
     void refreshForecast(place).catch(() => {})
   }
   tick()
   const timer = setInterval(tick, REFRESH_CHECK_MS)
   return () => clearInterval(timer)
+}
+
+/** Today's weather of your first place for the watch tile, or null. */
+export function weatherForWatch(now = Date.now()): PlanWeather | null {
+  const s = weatherStore.getSnapshot()
+  const place = s.places[0]
+  const cached = place ? s.cache[placeKey(place)] : undefined
+  if (!place || !cached || now - cached.at > DAGSTART_MAX_AGE_MS) return null
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  return planWeather(place.name, cached.forecast, cached.at, today.getTime())
 }

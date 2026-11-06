@@ -37,6 +37,15 @@ describe('safety net sending', () => {
     expect(await sendPlanIfChanged(c, plan, 2000, gaming)).toBe(0)
   })
 
+  it('sends the weather for the watch, but not again only because it was fetched again', async () => {
+    const c = connect()
+    const weather = { place: 'Antwerpen', temp: 12, min: 8, max: 14, rainChance: 70, label: 'Lichte regen', icon: '🌦️', at: 5 }
+    expect(await sendPlanIfChanged(c, plan, 0, null, weather)).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', plan, null, weather)
+    expect(await sendPlanIfChanged(c, plan, 1000, null, { ...weather, at: 900 })).toBe(0)
+    expect(await sendPlanIfChanged(c, plan, 2000, null, { ...weather, temp: 13 })).toBe(1)
+  })
+
   it('sends nothing while there is nothing to plan or no phone', async () => {
     const c = connect()
     expect(await sendPlanIfChanged(c, [], 0)).toBe(0)

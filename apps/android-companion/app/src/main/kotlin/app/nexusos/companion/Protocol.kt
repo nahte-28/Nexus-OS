@@ -23,6 +23,19 @@ data class PlanGaming(val game: String, val startedAt: Long)
 /** The "gaming" field of a plan: [known] is false when an older NEXUS sent no such field. */
 data class PlanGamingField(val known: Boolean, val gaming: PlanGaming?, val sentAt: Long)
 
+/** Today's weather as NEXUS sent it with the safety net (PlanPayload.weather in packages/core/src/connect.ts). */
+data class PlanWeather(
+    val place: String,
+    val temp: Int,
+    val min: Int,
+    val max: Int,
+    val rainChance: Int,
+    val label: String,
+    val icon: String,
+    /** When NEXUS fetched it. */
+    val at: Long,
+)
+
 /** Text or a link sent with NEXUS Bridge; mirrors BridgePayload in packages/core/src/bridge.ts. */
 data class BridgeTransfer(
     val transferId: String,
@@ -135,6 +148,21 @@ object Protocol {
         val startedAt = g.optLong("startedAt", 0L)
         val game = g.optString("game").trim().take(80).ifEmpty { "Gaming" }
         return PlanGamingField(true, if (startedAt > 0) PlanGaming(game, startedAt) else null, sentAt)
+    }
+
+    /** The weather in a "plan" payload: null when [json] is no plan or carries no weather. */
+    fun parsePlanWeather(json: String): PlanWeather? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val w = o.optJSONObject("weather") ?: return null
+        val place = w.optString("place").trim().take(40)
+        val at = w.optLong("at", 0L)
+        if (place.isEmpty() || at <= 0 || !w.has("temp")) return null
+        fun deg(key: String) = w.optInt(key).coerceIn(-80, 80)
+        return PlanWeather(
+            place, deg("temp"), deg("min"), deg("max"), w.optInt("rainChance").coerceIn(0, 100),
+            w.optString("label").trim().take(40).ifEmpty { "Weer" }, w.optString("icon").take(8), at,
+        )
     }
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.

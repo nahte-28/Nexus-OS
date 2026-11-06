@@ -140,8 +140,10 @@ object Connect {
                 if (plaintext == null) continue
                 val plan = Protocol.parsePlan(plaintext)
                 if (plan != null) {
-                    Safety.replacePlan(app, message.senderDeviceId, plan)
+                    // Weather and Gaming first: replacing the plan redraws the watch tile.
+                    Protocol.parsePlanWeather(plaintext)?.let { WatchWeather.save(app, it) }
                     Protocol.parsePlanGaming(plaintext)?.let { GamingTimer.fromPlan(app, it) }
+                    Safety.replacePlan(app, message.senderDeviceId, plan)
                     continue
                 }
                 val transfer = Protocol.parseBridge(plaintext)

@@ -1,3 +1,4 @@
+import type { PlanWeather } from './connect'
 // Weer: a forecast from Open-Meteo (free, no key), fetched through /api/weather. Pure logic.
 
 export interface WeatherPlace {
@@ -144,4 +145,12 @@ export function dagstartWeatherLine(place: string, f: Forecast, dayStart: number
   const tip = weatherTip({ ...f, days: [d] })
   const rain = d.rainChance >= 20 ? `, ${Math.round(d.rainChance)}% kans op regen` : ''
   return `Weer in ${place}: ${Math.round(d.min)}° tot ${Math.round(d.max)}°, ${weatherLabel(d.code).text.toLowerCase()}${rain}.${tip ? ` ${tip}` : ''}`
+}
+
+/** Today's weather for the watch (PlanPayload.weather), or null when the forecast has no today. */
+export function planWeather(place: string, f: Forecast, fetchedAt: number, dayStart: number): PlanWeather | null {
+  const d = forecastDay(f, dayStart)
+  if (!d) return null
+  const l = weatherLabel(f.now.code, f.now.day)
+  return { place: place.slice(0, 40), temp: Math.round(f.now.temp), min: Math.round(d.min), max: Math.round(d.max), rainChance: Math.round(d.rainChance), label: l.text, icon: l.icon, at: fetchedAt }
 }

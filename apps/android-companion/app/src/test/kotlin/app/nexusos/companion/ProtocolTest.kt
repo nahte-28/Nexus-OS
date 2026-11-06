@@ -95,6 +95,15 @@ class ProtocolTest {
     }
 
     @Test
+    fun readsTheWeatherFromAPlan() {
+        val w = Protocol.parsePlanWeather("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"weather\":{\"place\":\"Antwerpen\",\"temp\":12,\"min\":8,\"max\":14,\"rainChance\":70,\"label\":\"Lichte regen\",\"icon\":\"R\",\"at\":40}}")
+        assertEquals(PlanWeather("Antwerpen", 12, 8, 14, 70, "Lichte regen", "R", 40), w)
+        assertEquals("R 12° · 8° tot 14° · 70% regen", WatchWeather.line(w!!))
+        assertNull(Protocol.parsePlanWeather("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50}"))
+        assertNull(Protocol.parsePlanWeather("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"weather\":{\"place\":\"\",\"temp\":1,\"at\":3}}"))
+    }
+
+    @Test
     fun readsTheGamingTimerFromAPlan() {
         val on = Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"gaming\":{\"game\":\"Zelda\",\"startedAt\":40}}")!!
         assertEquals(PlanGamingField(true, PlanGaming("Zelda", 40), 50), on)
