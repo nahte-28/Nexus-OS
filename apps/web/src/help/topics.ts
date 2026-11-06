@@ -220,6 +220,24 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Heb je een dartskalender gekoppeld (Profielen › Andere agenda\'s), dan staan je volgende dartsafspraken bovenaan.',
     ],
   },
+  clock: {
+    summary: 'Klok: wekkers, een timer, een stopwatch en een wereldklok.',
+    tips: [
+      'Een wekker is een herinnering die elke dag of elke week afgaat, ook op je gsm en horloge. Je ziet en wist hem ook in Herinneringen.',
+      'De timer en de stopwatch lopen door als je Klok sluit. Is de timer om, dan krijg je een melding zolang NEXUS openstaat.',
+      'In Wereldklok zet je tot 8 steden, met het tijdsverschil met hier en of het daar al morgen is.',
+      'Klok is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+    ],
+  },
+  calculator: {
+    summary: 'Rekenmachine: rekenen met haakjes, procenten en een komma.',
+    tips: [
+      'Tik of typ een berekening, bv. (12,5 + 7) × 3, en druk op Enter of =.',
+      'Procenten werken zoals op een zakrekenmachine: 200 + 10% is 220, 80 × 25% is 20.',
+      'Je laatste 20 berekeningen staan onder Geschiedenis, alleen op dit toestel. Tik erop om verder te rekenen.',
+      'Rekenmachine is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+    ],
+  },
   teams: {
     summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
     tips: [
