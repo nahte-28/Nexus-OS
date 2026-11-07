@@ -2,6 +2,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WindowEvent};
 
+mod browser;
 mod update;
 mod web;
 
@@ -26,7 +27,19 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![MINIMIZED_FLAG]),
         ))
-        .invoke_handler(tauri::generate_handler![update::check_update, update::install_update, web::open_in_browser_command])
+        .manage(browser::BrowserState::default())
+        .invoke_handler(tauri::generate_handler![
+            update::check_update,
+            update::install_update,
+            web::open_in_browser_command,
+            browser::browser_open,
+            browser::browser_tabs,
+            browser::browser_select,
+            browser::browser_close_tab,
+            browser::browser_navigate,
+            browser::browser_go,
+            browser::browser_bookmark
+        ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
@@ -61,9 +74,12 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             // Closing hides NEXUS to the tray so notifications keep arriving; quit from the tray menu.
+            // The browser window really closes.
             if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
             }
         })
         .run(tauri::generate_context!())

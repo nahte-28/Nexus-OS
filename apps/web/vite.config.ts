@@ -79,6 +79,10 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
+  build: {
+    // browser.html: the toolbar of the NEXUS Browser window in the Windows app.
+    rollupOptions: { input: { main: 'index.html', browser: 'browser.html' } },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
