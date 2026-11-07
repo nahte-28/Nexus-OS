@@ -1,10 +1,17 @@
 //! Self-update: looks for a newer installer among the GitHub releases, downloads it and runs it
 //! in passive mode, so a new version installs over the running one without a setup wizard.
+//!
+//! The releases feed on github.com comes first: the GitHub API allows only 60 requests an hour
+//! per network address without an account, which a school or home network shares, so the API is
+//! only the fallback when the feed lists no desktop release.
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 const RELEASES_API: &str = "https://api.github.com/repos/nahte-28/Nexus-OS/releases?per_page=30";
+/// The newest releases (about 10) as an Atom feed, on github.com itself, without the API limit.
+const RELEASES_FEED: &str = "https://github.com/nahte-28/Nexus-OS/releases.atom";
+const FEED_TAG: &str = "/releases/tag/desktop-v";
 /// Only installers from this repository's releases are ever downloaded.
 const DOWNLOAD_PREFIX: &str = "https://github.com/nahte-28/Nexus-OS/releases/download/desktop-v";
 const TAG_PREFIX: &str = "desktop-v";
@@ -41,16 +48,57 @@ fn client() -> Result<reqwest::Client, String> {
 #[tauri::command]
 pub async fn check_update(app: AppHandle) -> Result<Option<UpdateInfo>, String> {
     let current = app.package_info().version.clone();
-    let releases: Vec<Release> = client()?
+    let client = client()?;
+    if let Some(found) = from_feed(&client, &current).await {
+        return Ok(found);
+    }
+    let releases: Vec<Release> = client
         .get(RELEASES_API)
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| format!("GitHub niet bereikbaar: {e}"))?
+        .map_err(|e| {
+            if e.status().is_some_and(|s| s.as_u16() == 403 || s.as_u16() == 429) {
+                "GitHub laat even geen opvragingen meer toe vanaf dit netwerk. Probeer het over een uur opnieuw.".to_string()
+            } else {
+                format!("GitHub niet bereikbaar: {e}")
+            }
+        })?
         .json()
         .await
         .map_err(|e| e.to_string())?;
     Ok(newest(&releases, &current))
+}
+
+/// Some(answer) when the feed settles it; None to ask the API instead (feed unreachable, no
+/// desktop release among its entries, or the installer of the newest one is missing).
+async fn from_feed(client: &reqwest::Client, current: &semver::Version) -> Option<Option<UpdateInfo>> {
+    let feed = client.get(RELEASES_FEED).send().await.ok()?.error_for_status().ok()?.text().await.ok()?;
+    let version = newest_in_feed(&feed)?;
+    if version <= *current {
+        return Some(None);
+    }
+    let url = format!("{DOWNLOAD_PREFIX}{version}/{INSTALLER_NAME}");
+    // github.com answers an existing download with a redirect (not followed here) and a missing
+    // installer with a 404.
+    let probe = reqwest::Client::builder()
+        .user_agent("NEXUS-OS-desktop")
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .ok()?;
+    probe.head(&url).send().await.ok()?.error_for_status().ok()?;
+    Some(Some(UpdateInfo { version: version.to_string(), url }))
+}
+
+/// The highest desktop version in the releases feed (tags like desktop-v1.0.116).
+fn newest_in_feed(feed: &str) -> Option<semver::Version> {
+    feed.match_indices(FEED_TAG)
+        .filter_map(|(at, _)| {
+            let rest = &feed[at + FEED_TAG.len()..];
+            let end = rest.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(rest.len());
+            semver::Version::parse(&rest[..end]).ok()
+        })
+        .max()
 }
 
 fn newest(releases: &[Release], current: &semver::Version) -> Option<UpdateInfo> {
@@ -117,5 +165,14 @@ mod tests {
         let found = newest(&releases, &semver::Version::parse("0.8.4").unwrap()).unwrap();
         assert_eq!(found.version, "0.8.10");
         assert!(newest(&releases, &semver::Version::parse("0.8.10").unwrap()).is_none());
+    }
+
+    #[test]
+    fn reads_the_newest_desktop_version_from_the_feed() {
+        let feed = r#"<feed><entry><link rel="alternate" type="text/html" href="https://github.com/nahte-28/Nexus-OS/releases/tag/companion-v1.0.90"/></entry>
+<entry><link rel="alternate" type="text/html" href="https://github.com/nahte-28/Nexus-OS/releases/tag/desktop-v1.0.117"/><id>tag:github.com,2008:Repository/1/desktop-v1.0.117</id></entry>
+<entry><link rel="alternate" type="text/html" href="https://github.com/nahte-28/Nexus-OS/releases/tag/desktop-v1.0.9"/></entry></feed>"#;
+        assert_eq!(newest_in_feed(feed), Some(semver::Version::parse("1.0.117").unwrap()));
+        assert_eq!(newest_in_feed("<feed></feed>"), None);
     }
 }
