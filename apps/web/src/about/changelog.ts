@@ -13,6 +13,11 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-07',
+    title: 'Browser in de Windows-app bleef wit',
+    items: ['Het NEXUS-browservenster laadt nu de site in plaats van een wit scherm te tonen.'],
+  },
+  {
+    date: '2026-11-07',
     title: 'Wat is er nieuw op Over NEXUS',
     items: ['Over NEXUS toont nu na elke update wat er veranderd is.'],
   },
