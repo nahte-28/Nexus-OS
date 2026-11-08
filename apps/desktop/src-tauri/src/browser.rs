@@ -195,28 +195,31 @@ fn active_view(app: &AppHandle) -> Result<Webview, String> {
     app.get_webview(&label(active)).ok_or_else(|| "Tabblad niet gevonden".to_string())
 }
 
+// The commands are async on purpose: a sync command runs on the main thread, and creating a
+// window or webview there deadlocks WebView2 on Windows, which left the browser window white.
+
 /// Opens [url] in a new tab of the NEXUS Browser (and the window, when it is not open yet).
 #[tauri::command]
-pub fn browser_open(app: AppHandle, webview: Webview, url: String) -> Result<u32, String> {
+pub async fn browser_open(app: AppHandle, webview: Webview, url: String) -> Result<u32, String> {
     allowed(&webview)?;
     new_tab(&app, parse(&url)?)
 }
 
 #[tauri::command]
-pub fn browser_tabs(app: AppHandle, webview: Webview) -> Result<Tabs, String> {
+pub async fn browser_tabs(app: AppHandle, webview: Webview) -> Result<Tabs, String> {
     allowed(&webview)?;
     Ok(app.state::<BrowserState>().tabs.lock().unwrap().clone())
 }
 
 #[tauri::command]
-pub fn browser_select(app: AppHandle, webview: Webview, id: u32) -> Result<(), String> {
+pub async fn browser_select(app: AppHandle, webview: Webview, id: u32) -> Result<(), String> {
     allowed(&webview)?;
     select(&app, id);
     Ok(())
 }
 
 #[tauri::command]
-pub fn browser_close_tab(app: AppHandle, webview: Webview, id: u32) -> Result<(), String> {
+pub async fn browser_close_tab(app: AppHandle, webview: Webview, id: u32) -> Result<(), String> {
     allowed(&webview)?;
     if let Some(view) = app.get_webview(&label(id)) {
         let _ = view.close();
@@ -246,7 +249,7 @@ pub fn browser_close_tab(app: AppHandle, webview: Webview, id: u32) -> Result<()
 
 /// Goes to [url] in the open tab, or opens a tab when there is none.
 #[tauri::command]
-pub fn browser_navigate(app: AppHandle, webview: Webview, url: String) -> Result<(), String> {
+pub async fn browser_navigate(app: AppHandle, webview: Webview, url: String) -> Result<(), String> {
     allowed(&webview)?;
     let url = parse(&url)?;
     match active_view(&app) {
@@ -257,7 +260,7 @@ pub fn browser_navigate(app: AppHandle, webview: Webview, url: String) -> Result
 
 /// "back", "forward" or "reload" in the open tab.
 #[tauri::command]
-pub fn browser_go(app: AppHandle, webview: Webview, action: String) -> Result<(), String> {
+pub async fn browser_go(app: AppHandle, webview: Webview, action: String) -> Result<(), String> {
     allowed(&webview)?;
     let view = active_view(&app)?;
     match action.as_str() {
@@ -270,7 +273,7 @@ pub fn browser_go(app: AppHandle, webview: Webview, action: String) -> Result<()
 
 /// The toolbar asks the main window to save a bookmark there, so it syncs with the account.
 #[tauri::command]
-pub fn browser_bookmark(app: AppHandle, webview: Webview, url: String, title: String) -> Result<(), String> {
+pub async fn browser_bookmark(app: AppHandle, webview: Webview, url: String, title: String) -> Result<(), String> {
     allowed(&webview)?;
     let url = parse(&url)?;
     let title: String = title.chars().take(80).collect();
