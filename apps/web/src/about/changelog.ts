@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-09',
+    title: 'Browser: geschiedenis, downloads en zoomen',
+    items: [
+      'De Browser-app toont in de Windows-app je geschiedenis, te doorzoeken en te wissen; die blijft op je pc.',
+      'Downloads komen in je map Downloads en staan in de werkbalk met "Toon in map".',
+      'In- en uitzoomen per tabblad met − en +, of Ctrl + / Ctrl − / Ctrl 0.',
+    ],
+  },
+  {
+    date: '2026-11-09',
     title: 'Melding na een update',
     items: ['Na een update toont NEXUS één keer kort wat er nieuw is, met een knop naar Over NEXUS.'],
   },

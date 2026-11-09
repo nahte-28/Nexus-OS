@@ -38,7 +38,11 @@ pub fn run() {
             browser::browser_close_tab,
             browser::browser_navigate,
             browser::browser_go,
-            browser::browser_bookmark
+            browser::browser_bookmark,
+            browser::browser_zoom,
+            browser::browser_downloads,
+            browser::browser_show_download,
+            browser::browser_clear_downloads
         ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
