@@ -22,7 +22,7 @@ convert "$dir/screen.ppm" "$dir/screen.png"
 colours=$(convert "$dir/screen.png" -format %k info:)
 echo "Kleuren op het scherm na $wait_s s: $colours"
 # The system log goes to the serial port; show what matters for the session.
-grep -aiE "greetd|tuigreet|labwc|nexus|wlr|seat|drm|webkit|live-config|error|fail" "$dir/serial.log" | grep -av "Kernel command line" | tail -80 || true
+grep -aiE "greetd|tuigreet|labwc|nexus|wlr|egl|render|seat|drm|webkit|live-config|error|fail" "$dir/serial.log" | grep -av "Kernel command line" | tail -80 || true
 if [ "$colours" -lt 50 ]; then
   echo "Het scherm lijkt nog een tekstconsole: de NEXUS-sessie startte niet." >&2
   exit 1
