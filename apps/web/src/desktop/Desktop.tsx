@@ -3,6 +3,7 @@ import type { AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
+import { WhatsNew } from '../shell/WhatsNew'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
@@ -60,6 +61,7 @@ export function Desktop() {
       <Tour onOpenApp={openApp} />
       <QuickCapture />
       <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
+      <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
     </div>
   )
 }

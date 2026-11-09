@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CHANGELOG } from '../about/changelog'
+import { markChangelogSeen } from '../about/seen'
 
 /** Major and minor only, e.g. "1.0" for 1.0.3. */
 const shortVersion = __APP_VERSION__.split('.').slice(0, 2).join('.')
@@ -12,6 +13,8 @@ function day(date: string): string {
 
 export function About() {
   const [all, setAll] = useState(false)
+  // Reading the list here counts as having seen what is new.
+  useEffect(() => markChangelogSeen(), [])
   const entries = all ? CHANGELOG : CHANGELOG.slice(0, SHOWN)
   return (
     <div className="space-y-3 p-4 text-sm leading-relaxed">

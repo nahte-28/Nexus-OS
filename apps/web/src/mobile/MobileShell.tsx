@@ -3,6 +3,7 @@ import type { AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
+import { WhatsNew } from '../shell/WhatsNew'
 import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
@@ -69,6 +70,7 @@ export function MobileShell() {
       <Tour onOpenApp={switchTo} />
       <QuickCapture />
       <OfflineBanner bottom={80} />
+      <WhatsNew bottom={80} />
 
       <main className="min-h-0 flex-1 overflow-auto">
         {app ? (
