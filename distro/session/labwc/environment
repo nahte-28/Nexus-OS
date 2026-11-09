@@ -1,0 +1,3 @@
+# Keyboard: Belgian AZERTY. Change "be" to "us" (QWERTY) or another layout in
+# ~/.config/nexus-session/environment after copying this folder there.
+XKB_DEFAULT_LAYOUT=be

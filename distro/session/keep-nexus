@@ -1,0 +1,10 @@
+#!/bin/sh
+# Keeps NEXUS running as the desktop: starts it again when it stops, but gives up after
+# three quick crashes in a row, so a broken update does not loop. Right-click the background
+# for the menu (terminal, log out) when that happens.
+quick=0
+while [ "$quick" -lt 3 ]; do
+  started=$(date +%s)
+  nexus-desktop --session
+  if [ $(( $(date +%s) - started )) -lt 10 ]; then quick=$((quick + 1)); else quick=0; fi
+done

@@ -3,6 +3,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, WindowEvent};
 
 mod browser;
+mod session;
 mod update;
 mod web;
 
@@ -42,7 +43,11 @@ pub fn run() {
             browser::browser_zoom,
             browser::browser_downloads,
             browser::browser_show_download,
-            browser::browser_clear_downloads
+            browser::browser_clear_downloads,
+            session::session_info,
+            session::linux_apps,
+            session::linux_app_open,
+            session::session_power
         ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
@@ -71,7 +76,15 @@ pub fn run() {
                 .build(app)?;
 
             // The window starts hidden (see tauri.conf.json) to avoid a flash when starting minimized.
-            if !std::env::args().any(|arg| arg == MINIMIZED_FLAG) {
+            if session::is_session() {
+                // NEXUS is the desktop: it fills the screen without a title bar, and Linux apps
+                // open on top of it. Maximized rather than fullscreen, so those apps stay visible.
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_decorations(false);
+                    let _ = window.maximize();
+                }
+                show_main(app.handle());
+            } else if !std::env::args().any(|arg| arg == MINIMIZED_FLAG) {
                 show_main(app.handle());
             }
             Ok(())
@@ -82,7 +95,10 @@ pub fn run() {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" {
                     api.prevent_close();
-                    let _ = window.hide();
+                    // In the NEXUS session there is nothing behind NEXUS to come back to.
+                    if !session::is_session() {
+                        let _ = window.hide();
+                    }
                 }
             }
         })

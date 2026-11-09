@@ -38,6 +38,19 @@
         "languages": ["Dutch"],
         "installMode": "currentUser"
       }
+    },
+    "linux": {
+      "deb": {
+        "recommends": ["labwc", "foot", "wireplumber", "brightnessctl"],
+        "files": {
+          "/usr/share/wayland-sessions/nexus.desktop": "../../../distro/session/nexus.desktop",
+          "/usr/bin/nexus-session": "../../../distro/session/nexus-session",
+          "/usr/lib/nexus-session/keep-nexus": "../../../distro/session/keep-nexus",
+          "/usr/share/nexus-session/labwc/rc.xml": "../../../distro/session/labwc/rc.xml",
+          "/usr/share/nexus-session/labwc/menu.xml": "../../../distro/session/labwc/menu.xml",
+          "/usr/share/nexus-session/labwc/environment": "../../../distro/session/labwc/environment"
+        }
+      }
     }
   }
 }

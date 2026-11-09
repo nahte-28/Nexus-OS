@@ -393,3 +393,18 @@ export const GlobeIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
   </svg>
 )
+
+/** A terminal window: Linux apps on this computer. */
+export const TerminalIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M7 9l3 3-3 3M12 15h5" />
+  </svg>
+)
+
+export const PowerIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M12 3v8" />
+    <path d="M6.3 7.3a8 8 0 1 0 11.4 0" />
+  </svg>
+)
