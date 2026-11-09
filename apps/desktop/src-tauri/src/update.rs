@@ -1,5 +1,6 @@
-//! Self-update: looks for a newer installer among the GitHub releases, downloads it and runs it
-//! in passive mode, so a new version installs over the running one without a setup wizard.
+//! Self-update: looks for a newer installer among the GitHub releases, downloads it and installs
+//! it over the running version. Windows runs the setup in passive mode; on Linux an AppImage
+//! replaces itself and a .deb installs through pkexec (a password prompt), then NEXUS restarts.
 //!
 //! The releases feed on github.com comes first: the GitHub API allows only 60 requests an hour
 //! per network address without an account, which a school or home network shares, so the API is
@@ -15,7 +16,33 @@ const FEED_TAG: &str = "/releases/tag/desktop-v";
 /// Only installers from this repository's releases are ever downloaded.
 const DOWNLOAD_PREFIX: &str = "https://github.com/nahte-28/Nexus-OS/releases/download/desktop-v";
 const TAG_PREFIX: &str = "desktop-v";
-const INSTALLER_NAME: &str = "nexus-os-setup.exe";
+/// The file that updates this copy of NEXUS, per platform and way of installing.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Kind {
+    WindowsSetup,
+    AppImage,
+    Deb,
+}
+
+impl Kind {
+    fn current() -> Kind {
+        if cfg!(windows) {
+            Kind::WindowsSetup
+        } else if std::env::var_os("APPIMAGE").is_some() {
+            Kind::AppImage
+        } else {
+            Kind::Deb
+        }
+    }
+
+    fn asset(self) -> &'static str {
+        match self {
+            Kind::WindowsSetup => "nexus-os-setup.exe",
+            Kind::AppImage => "nexus-os.AppImage",
+            Kind::Deb => "nexus-os.deb",
+        }
+    }
+}
 
 #[derive(Deserialize)]
 struct Release {
@@ -48,8 +75,9 @@ fn client() -> Result<reqwest::Client, String> {
 #[tauri::command]
 pub async fn check_update(app: AppHandle) -> Result<Option<UpdateInfo>, String> {
     let current = app.package_info().version.clone();
+    let kind = Kind::current();
     let client = client()?;
-    if let Some(found) = from_feed(&client, &current).await {
+    if let Some(found) = from_feed(&client, &current, kind).await {
         return Ok(found);
     }
     let releases: Vec<Release> = client
@@ -67,18 +95,18 @@ pub async fn check_update(app: AppHandle) -> Result<Option<UpdateInfo>, String> 
         .json()
         .await
         .map_err(|e| e.to_string())?;
-    Ok(newest(&releases, &current))
+    Ok(newest(&releases, &current, kind))
 }
 
 /// Some(answer) when the feed settles it; None to ask the API instead (feed unreachable, no
 /// desktop release among its entries, or the installer of the newest one is missing).
-async fn from_feed(client: &reqwest::Client, current: &semver::Version) -> Option<Option<UpdateInfo>> {
+async fn from_feed(client: &reqwest::Client, current: &semver::Version, kind: Kind) -> Option<Option<UpdateInfo>> {
     let feed = client.get(RELEASES_FEED).send().await.ok()?.error_for_status().ok()?.text().await.ok()?;
     let version = newest_in_feed(&feed)?;
     if version <= *current {
         return Some(None);
     }
-    let url = format!("{DOWNLOAD_PREFIX}{version}/{INSTALLER_NAME}");
+    let url = format!("{DOWNLOAD_PREFIX}{version}/{}", kind.asset());
     // github.com answers an existing download with a redirect (not followed here) and a missing
     // installer with a 404.
     let probe = reqwest::Client::builder()
@@ -101,13 +129,13 @@ fn newest_in_feed(feed: &str) -> Option<semver::Version> {
         .max()
 }
 
-fn newest(releases: &[Release], current: &semver::Version) -> Option<UpdateInfo> {
+fn newest(releases: &[Release], current: &semver::Version, kind: Kind) -> Option<UpdateInfo> {
     releases
         .iter()
         .filter(|r| !r.draft && !r.prerelease)
         .filter_map(|r| {
             let version = semver::Version::parse(r.tag_name.strip_prefix(TAG_PREFIX)?).ok()?;
-            let asset = r.assets.iter().find(|a| a.name == INSTALLER_NAME)?;
+            let asset = r.assets.iter().find(|a| a.name == kind.asset())?;
             Some((version, asset.browser_download_url.clone()))
         })
         .filter(|(version, _)| version > current)
@@ -118,7 +146,8 @@ fn newest(releases: &[Release], current: &semver::Version) -> Option<UpdateInfo>
 /// Downloads the installer and starts it; the installer closes NEXUS, updates it and starts it again.
 #[tauri::command]
 pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
-    if !url.starts_with(DOWNLOAD_PREFIX) {
+    let kind = Kind::current();
+    if !url.starts_with(DOWNLOAD_PREFIX) || !url.ends_with(&format!("/{}", kind.asset())) {
         return Err("Onbekend downloadadres.".into());
     }
     let bytes = client()?
@@ -130,15 +159,62 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
         .bytes()
         .await
         .map_err(|e| format!("Downloaden mislukt: {e}"))?;
-    let path = std::env::temp_dir().join("nexus-os-update-setup.exe");
-    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
-    // /P: passive (progress only, no questions), /R: start NEXUS again when done.
-    std::process::Command::new(&path)
-        .args(["/P", "/R"])
-        .spawn()
-        .map_err(|e| format!("Installatie starten mislukt: {e}"))?;
+    match kind {
+        Kind::WindowsSetup => {
+            let path = std::env::temp_dir().join("nexus-os-update-setup.exe");
+            std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+            // /P: passive (progress only, no questions), /R: start NEXUS again when done.
+            std::process::Command::new(&path)
+                .args(["/P", "/R"])
+                .spawn()
+                .map_err(|e| format!("Installatie starten mislukt: {e}"))?;
+        }
+        Kind::AppImage => {
+            let target = std::path::PathBuf::from(std::env::var_os("APPIMAGE").ok_or("Geen AppImage")?);
+            replace_appimage(&target, &bytes)?;
+            std::process::Command::new(&target)
+                .spawn()
+                .map_err(|e| format!("NEXUS opnieuw starten mislukt: {e}"))?;
+        }
+        Kind::Deb => {
+            let path = std::env::temp_dir().join("nexus-os-update.deb");
+            std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+            // pkexec asks for the password in a system dialog; apt replaces the files in place.
+            let status = tauri::async_runtime::spawn_blocking(move || {
+                std::process::Command::new("pkexec").args(["apt-get", "install", "-y"]).arg(&path).status()
+            })
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| format!("Installatie starten mislukt: {e}"))?;
+            if !status.success() {
+                return Err("De installatie werd afgebroken of mislukte.".into());
+            }
+            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+            std::process::Command::new(exe)
+                .spawn()
+                .map_err(|e| format!("NEXUS opnieuw starten mislukt: {e}"))?;
+        }
+    }
     app.exit(0);
     Ok(())
+}
+
+/// Writes the new AppImage next to the old one and swaps them in one step, so a failed
+/// download never leaves a broken NEXUS behind.
+fn replace_appimage(target: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let next = target.with_extension("update");
+        std::fs::write(&next, bytes).map_err(|e| format!("Opslaan mislukt: {e}"))?;
+        std::fs::set_permissions(&next, std::fs::Permissions::from_mode(0o755)).map_err(|e| e.to_string())?;
+        std::fs::rename(&next, target).map_err(|e| format!("Vervangen mislukt: {e}"))
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (target, bytes);
+        Err("Alleen op Linux".into())
+    }
 }
 
 #[cfg(test)]
@@ -157,14 +233,39 @@ mod tests {
     #[test]
     fn picks_the_newest_newer_installer() {
         let releases = vec![
-            release("desktop-v0.8.3", INSTALLER_NAME),
-            release("desktop-v0.8.10", INSTALLER_NAME),
+            release("desktop-v0.8.3", "nexus-os-setup.exe"),
+            release("desktop-v0.8.10", "nexus-os-setup.exe"),
             release("companion-v0.8.20", "nexus-companion.apk"),
             release("desktop-v0.8.12", "other.zip"),
         ];
-        let found = newest(&releases, &semver::Version::parse("0.8.4").unwrap()).unwrap();
+        let v = |s: &str| semver::Version::parse(s).unwrap();
+        let found = newest(&releases, &v("0.8.4"), Kind::WindowsSetup).unwrap();
         assert_eq!(found.version, "0.8.10");
-        assert!(newest(&releases, &semver::Version::parse("0.8.10").unwrap()).is_none());
+        assert!(newest(&releases, &v("0.8.10"), Kind::WindowsSetup).is_none());
+        assert!(newest(&releases, &v("0.8.4"), Kind::AppImage).is_none());
+    }
+
+    #[test]
+    fn linux_picks_its_own_file() {
+        let releases = vec![release("desktop-v1.0.120", "nexus-os.AppImage"), release("desktop-v1.0.121", "nexus-os.deb")];
+        let v = semver::Version::parse("1.0.119").unwrap();
+        assert_eq!(newest(&releases, &v, Kind::AppImage).unwrap().version, "1.0.120");
+        assert_eq!(newest(&releases, &v, Kind::Deb).unwrap().version, "1.0.121");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn replaces_an_appimage_in_one_step() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("nexus-appimage-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let target = dir.join("NEXUS.AppImage");
+        std::fs::write(&target, b"old").unwrap();
+        replace_appimage(&target, b"new").unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"new");
+        assert_eq!(std::fs::metadata(&target).unwrap().permissions().mode() & 0o777, 0o755);
+        assert!(!dir.join("NEXUS.update").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

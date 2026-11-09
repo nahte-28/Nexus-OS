@@ -9,6 +9,7 @@ import { flowsStore, useFlowRuns, useFlows, useFlowStudioEnabled } from '../flow
 import { useInbox } from '../inbox/store'
 import { lifeStore } from '../life/store'
 import { checkForUpdate, useUpdate } from '../platform/update'
+import { desktopAppName } from '../platform/desktop'
 import { useProfiles } from '../profiles/store'
 import { openApp } from '../shell/openApp'
 import { useOnline } from '../shell/OfflineBanner'
@@ -163,7 +164,7 @@ export function ControlCenter() {
           <button type="button" className={toggle} disabled={update.status === 'checking'} onClick={() => void checkForUpdate()}>
             <span>
               <span className="block font-medium">Zoeken naar updates</span>
-              <span className="block text-xs text-nx-muted">De Windows-app installeert ze zelf.</span>
+              <span className="block text-xs text-nx-muted">De {desktopAppName} installeert ze zelf.</span>
             </span>
           </button>
           <button type="button" className={toggle} onClick={() => openApp('profiles')}>

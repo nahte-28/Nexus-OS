@@ -87,7 +87,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Koppelen gaat met een code die je op het andere toestel invult.',
       'Zonder gsm-app kan je in Chrome op je gsm webmeldingen aanzetten.',
       'Een webmelding van een deadline heeft de knoppen Klaar en Later: Klaar vinkt de deadline af, Later toont de melding over een uur opnieuw.',
-      'De apps voor Windows, je gsm en je horloge, met uitleg om te installeren, staan op /download. Die link kun je ook naar anderen sturen.',
+      'De apps voor Windows, Linux, je gsm en je horloge, met uitleg om te installeren, staan op /download. Die link kun je ook naar anderen sturen.',
     ],
   },
   account: {

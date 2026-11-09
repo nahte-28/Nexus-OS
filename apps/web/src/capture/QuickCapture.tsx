@@ -4,7 +4,7 @@ import { MicIcon, QuickNoteIcon } from '../apps/icons'
 import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
-import { isDesktopApp } from '../platform/desktop'
+import { isDesktopApp, isLinuxApp } from '../platform/desktop'
 import { useFeature } from '../features/store'
 import { capturesStore, useCaptures } from './hub'
 import { captureState, closeCapture, openCapture } from './open'
@@ -180,7 +180,7 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
             </span>
           </div>
         ) : (
-          isDesktopApp && <p className="text-xs text-nx-muted">Inspreken: klik in het tekstvak en druk op Windows+H.</p>
+          isDesktopApp && !isLinuxApp && <p className="text-xs text-nx-muted">Inspreken: klik in het tekstvak en druk op Windows+H.</p>
         )}
         {hub && liveTemplates(captures).length > 0 && (
           <select

@@ -17,7 +17,7 @@ import {
   type NexusEvent,
 } from '@nexus/core'
 import { logEvent } from '../devtools/log'
-import { isDesktopApp } from '../platform/desktop'
+import { desktopAppName, isDesktopApp } from '../platform/desktop'
 import { createProblem, DocStore, startDocSync } from '../state/docStore'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -60,7 +60,7 @@ export function inboxDeviceName(): string {
   }
   const stored = readStorage(DEVICE_KEY)
   if (stored) return stored
-  if (isDesktopApp) return 'Windows-app'
+  if (isDesktopApp) return desktopAppName
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
   return /Android|iPhone|iPad/i.test(ua) ? 'Gsm (browser)' : 'Browser'
 }

@@ -5,8 +5,16 @@
 
 import { logEvent } from '../devtools/log'
 
-/** True when this page runs inside the NEXUS Windows app instead of a browser. */
+/** True when this page runs inside the NEXUS Windows or Linux app instead of a browser. */
 export const isDesktopApp = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+
+/** The pc app runs on Linux (WebKitGTK) or Windows (WebView2); the browser on a gsm never counts. */
+export const isLinuxApp =
+  isDesktopApp && typeof navigator !== 'undefined' && /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent)
+
+/** How NEXUS calls the pc app in texts: "Windows-app" or "Linux-app". */
+export const desktopAppName = isLinuxApp ? 'Linux-app' : 'Windows-app'
+export const desktopOsName = isLinuxApp ? 'Linux' : 'Windows'
 
 /** Shows a Windows notification through the app; resolves to false when not allowed. */
 export async function notifyDesktop(title: string, body: string): Promise<boolean> {

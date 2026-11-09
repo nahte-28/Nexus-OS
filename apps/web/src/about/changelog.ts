@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-09',
+    title: 'NEXUS voor Linux',
+    items: [
+      'NEXUS bestaat nu ook als Linux-app: een .deb voor Debian, Ubuntu en Mint, en een AppImage voor andere distributies. Je vindt ze op /download.',
+      'De Linux-app werkt zichzelf bij zoals de Windows-app; met de .deb vraagt een update je wachtwoord.',
+      '"Toon in map" bij een download opent je bestandsbeheer op Linux.',
+    ],
+  },
+  {
+    date: '2026-11-09',
     title: 'Browser: geschiedenis, downloads en zoomen',
     items: [
       'De Browser-app toont in de Windows-app je geschiedenis, te doorzoeken en te wissen; die blijft op je pc.',

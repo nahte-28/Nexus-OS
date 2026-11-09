@@ -39,6 +39,17 @@
     </ol>
   </section>
 
+  <section aria-labelledby="linux">
+    <h2 id="linux">Linux</h2>
+    <p class="version muted" data-version="deb">Nieuwste versie zoeken…</p>
+    <a class="button" data-link="deb" aria-disabled="true" href="https://github.com/nahte-28/Nexus-OS/releases">nexus-os.deb</a>
+    <a class="button" data-link="appimage" aria-disabled="true" href="https://github.com/nahte-28/Nexus-OS/releases">nexus-os.AppImage</a>
+    <ol>
+      <li>Debian, Ubuntu of Mint: open <code>nexus-os.deb</code> of typ <code>sudo apt install ./nexus-os.deb</code>. Bij een update vraagt NEXUS je wachtwoord.</li>
+      <li>Een andere distributie: download <code>nexus-os.AppImage</code>, typ <code>chmod +x nexus-os.AppImage</code> en start het. Het werkt zichzelf bij.</li>
+    </ol>
+  </section>
+
   <section aria-labelledby="gsm">
     <h2 id="gsm">Android-gsm</h2>
     <p class="version muted" data-version="companion">Nieuwste versie zoeken…</p>
@@ -71,6 +82,8 @@
   // Fills in the newest release of each app from GitHub; without it the buttons open the releases page.
   const wanted = {
     desktop: { tag: 'desktop-v', asset: 'nexus-os-setup.exe' },
+    deb: { tag: 'desktop-v', asset: 'nexus-os.deb' },
+    appimage: { tag: 'desktop-v', asset: 'nexus-os.AppImage' },
     companion: { tag: 'companion-v', asset: 'nexus-companion.apk' },
     watch: { tag: 'companion-v', asset: 'nexus-watch.apk' },
   }
@@ -85,13 +98,14 @@
         const version = document.querySelector(`[data-version="${key}"]`)
         const link = document.querySelector(`[data-link="${key}"]`)
         if (!best) {
-          version.textContent = 'Nog geen versie gevonden.'
+          if (version) version.textContent = 'Nog geen versie gevonden.'
           continue
         }
         const asset = best.assets.find((a) => a.name === w.asset)
-        version.textContent = `Versie ${best.tag_name.slice(w.tag.length)}, ${new Date(best.published_at).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })}`
         link.href = asset.browser_download_url
         link.removeAttribute('aria-disabled')
+        if (!version) continue
+        version.textContent = `Versie ${best.tag_name.slice(w.tag.length)}, ${new Date(best.published_at).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })}`
       }
     })
     .catch(() => {

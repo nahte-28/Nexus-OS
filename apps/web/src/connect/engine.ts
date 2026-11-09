@@ -22,7 +22,7 @@ import {
   type InboxItem,
 } from '@nexus/core'
 import { getAll, getValue, update } from '../state/db'
-import { isDesktopApp, notifyDesktop } from '../platform/desktop'
+import { desktopOsName, isDesktopApp, notifyDesktop } from '../platform/desktop'
 import { errorText } from '../sync/engine'
 import { ConnectSetupError, pushActionsAvailable, type ConnectRemote, type PlannedPush, type PushSubscriptionKeys } from './remote'
 import { logEvent } from '../devtools/log'
@@ -196,7 +196,7 @@ export class ConnectEngine {
     const identity: Identity = {
       userId,
       deviceId: crypto.randomUUID(),
-      name: isDesktopApp ? 'NEXUS voor Windows' : defaultDeviceName(navigator.userAgent),
+      name: isDesktopApp ? `NEXUS voor ${desktopOsName}` : defaultDeviceName(navigator.userAgent),
       publicKey: await exportPublicKey(pair.publicKey),
       privateKey: pair.privateKey,
     }
