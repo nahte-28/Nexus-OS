@@ -10,7 +10,7 @@ accel=""
 # shellcheck disable=SC2086
 qemu-system-x86_64 $accel -m 4096 -smp 2 -display none -vga virtio \
   -cdrom "$iso" -kernel "$dir/vmlinuz" -initrd "$dir/initrd.img" \
-  -append "boot=live components username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be console=ttyS0" \
+  -append "boot=live components username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be console=tty1 console=ttyS0 systemd.journald.forward_to_console=1 systemd.log_color=0" \
   -serial file:"$dir/serial.log" -monitor unix:"$dir/monitor.sock",server,nowait &
 qemu=$!
 wait_s=${SMOKE_WAIT:-240}
@@ -21,7 +21,8 @@ kill "$qemu" || true
 convert "$dir/screen.ppm" "$dir/screen.png"
 colours=$(convert "$dir/screen.png" -format %k info:)
 echo "Kleuren op het scherm na $wait_s s: $colours"
-grep -E "greetd|labwc|nexus" "$dir/serial.log" | tail -20 || true
+# The system log goes to the serial port; show what matters for the session.
+grep -aiE "greetd|tuigreet|labwc|nexus|wlr|seat|drm|webkit|live-config|error|fail" "$dir/serial.log" | grep -av "Kernel command line" | tail -80 || true
 if [ "$colours" -lt 50 ]; then
   echo "Het scherm lijkt nog een tekstconsole: de NEXUS-sessie startte niet." >&2
   exit 1
