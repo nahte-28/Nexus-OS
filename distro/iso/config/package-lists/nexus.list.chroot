@@ -47,3 +47,5 @@ curl
 apt-transport-https
 live-config
 live-config-systemd
+# Creates the live user (a recommendation of live-config, which this build does not install by itself)
+user-setup

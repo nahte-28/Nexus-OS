@@ -23,7 +23,7 @@ lb config \
   --iso-publisher "NEXUS OS; https://github.com/nahte-28/Nexus-OS" \
   --iso-volume "NEXUS OS $version" \
   --image-name nexus-os \
-  --bootappend-live "boot=live components quiet splash username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be timezone=Europe/Brussels"
+  --bootappend-live "boot=live components quiet splash noautologin username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be timezone=Europe/Brussels"
 lb build
 mkdir -p "$here/out"
 mv nexus-os-amd64.hybrid.iso "$here/out/nexus-os-$version-amd64.iso"

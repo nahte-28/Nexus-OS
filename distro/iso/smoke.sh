@@ -10,7 +10,7 @@ accel=""
 # shellcheck disable=SC2086
 qemu-system-x86_64 $accel -m 4096 -smp 2 -display none -vga virtio \
   -cdrom "$iso" -kernel "$dir/vmlinuz" -initrd "$dir/initrd.img" \
-  -append "boot=live components username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be console=tty1 console=ttyS0 systemd.journald.forward_to_console=1 systemd.log_color=0" \
+  -append "boot=live components noautologin username=nexus hostname=nexus locales=nl_BE.UTF-8 keyboard-layouts=be console=tty1 console=ttyS0 systemd.journald.forward_to_console=1 systemd.log_color=0" \
   -serial file:"$dir/serial.log" -monitor unix:"$dir/monitor.sock",server,nowait &
 qemu=$!
 wait_s=${SMOKE_WAIT:-240}
