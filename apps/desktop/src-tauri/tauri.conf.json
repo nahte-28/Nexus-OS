@@ -31,7 +31,7 @@
     "targets": ["nsis"],
     "category": "Productivity",
     "shortDescription": "NEXUS OS",
-    "longDescription": "Een modulair, persoonlijk ecosysteem voor web, Windows, Android en smartwatch.",
+    "longDescription": "Een modulair, persoonlijk ecosysteem voor web, Windows, Linux, Android en smartwatch.",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
     "windows": {
       "nsis": {
