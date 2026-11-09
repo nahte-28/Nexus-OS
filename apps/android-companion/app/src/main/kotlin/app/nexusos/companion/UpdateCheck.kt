@@ -8,6 +8,12 @@ data class AvailableUpdate(val version: String, val build: Int, val url: String)
 /** Pure parsing of the GitHub releases list, so it can be unit tested without Android. */
 object UpdateCheck {
     const val RELEASES_API = "https://api.github.com/repos/nahte-28/Nexus-OS/releases?per_page=30"
+    /**
+     * The newest releases (about 10) as an Atom feed on github.com itself. Checked first: the API
+     * allows only 60 requests an hour per network address without an account.
+     */
+    const val RELEASES_FEED = "https://github.com/nahte-28/Nexus-OS/releases.atom"
+    private const val FEED_TAG = "/releases/tag/companion-v"
     /** Only APKs from this repository's companion releases are ever downloaded. */
     const val DOWNLOAD_PREFIX = "https://github.com/nahte-28/Nexus-OS/releases/download/companion-v"
     private const val TAG_PREFIX = "companion-v"
@@ -40,6 +46,27 @@ object UpdateCheck {
                     best = AvailableUpdate(version, build, url)
                 }
             }
+        }
+        return best
+    }
+
+    /**
+     * The newest companion release in the Atom feed with a higher build number than [currentBuild];
+     * its download address is built from the tag and only used after it was found to exist.
+     */
+    fun newestInFeed(feed: String, currentBuild: Int, apkName: String = COMPANION_APK): AvailableUpdate? {
+        var best: AvailableUpdate? = null
+        var at = feed.indexOf(FEED_TAG)
+        while (at >= 0) {
+            val start = at + FEED_TAG.length
+            var end = start
+            while (end < feed.length && (feed[end].isDigit() || feed[end] == '.')) end++
+            val version = feed.substring(start, end).trimEnd('.')
+            val build = version.substringAfterLast('.').toIntOrNull()
+            if (build != null && version.isNotEmpty() && build > currentBuild && (best == null || build > best.build)) {
+                best = AvailableUpdate(version, build, "$DOWNLOAD_PREFIX$version/$apkName")
+            }
+            at = feed.indexOf(FEED_TAG, end)
         }
         return best
     }
