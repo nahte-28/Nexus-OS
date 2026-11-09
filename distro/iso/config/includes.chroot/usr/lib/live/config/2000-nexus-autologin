@@ -1,0 +1,11 @@
+#!/bin/sh
+# Live system only (live-config runs this at boot): the live user goes straight into the
+# NEXUS session. An installed NEXUS OS shows the login screen instead.
+user="${LIVE_USERNAME:-nexus}"
+grep -q '^\[initial_session\]' /etc/greetd/config.toml && exit 0
+cat >> /etc/greetd/config.toml <<CONF
+
+[initial_session]
+command = "nexus-session"
+user = "$user"
+CONF

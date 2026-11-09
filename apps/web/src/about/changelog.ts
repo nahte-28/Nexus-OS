@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-09',
+    title: 'NEXUS OS als eigen besturingssysteem (ISO)',
+    items: [
+      'Er komt een ISO-bestand van NEXUS OS bij de releases op GitHub: Debian 13 met NEXUS als bureaublad, om uit te proberen in VirtualBox of van een usb-stick, en te installeren.',
+      'In een virtuele machine is de muisaanwijzer nu zichtbaar in de NEXUS-sessie.',
+      'De NEXUS-sessie start een wachtwoordvenster mee, zodat een update van de Linux-app je wachtwoord kan vragen.',
+    ],
+  },
+  {
+    date: '2026-11-09',
     title: 'NEXUS als hele desktop op Linux',
     items: [
       'Kies op het aanmeldscherm van Linux "NEXUS OS": NEXUS vult dan het scherm als bureaublad en andere programma\'s openen als vensters erboven.',

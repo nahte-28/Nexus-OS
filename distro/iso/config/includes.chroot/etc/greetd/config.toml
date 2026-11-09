@@ -1,0 +1,8 @@
+# Login screen of NEXUS OS: tuigreet on the first screen, with NEXUS OS as the session.
+# On the live usb, /usr/lib/live/config/2000-nexus-autologin logs the live user straight in.
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --remember --remember-session --asterisks --sessions /usr/share/wayland-sessions --cmd nexus-session --greeting 'Welkom bij NEXUS OS'"
+user = "_greetd"

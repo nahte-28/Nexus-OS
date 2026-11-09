@@ -7,6 +7,8 @@ export XDG_SESSION_TYPE=wayland
 export MOZ_ENABLE_WAYLAND=1
 # WebKitGTK stays blank on some graphics drivers and in VirtualBox without this.
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
+# In a virtual machine (VirtualBox, QEMU) the mouse pointer stays invisible without this.
+if command -v systemd-detect-virt >/dev/null && systemd-detect-virt -q; then export WLR_NO_HARDWARE_CURSORS=1; fi
 CONFIG=/usr/share/nexus-session/labwc
 # Your own labwc settings in ~/.config/nexus-session win over the NEXUS defaults.
 [ -d "$HOME/.config/nexus-session" ] && CONFIG="$HOME/.config/nexus-session"

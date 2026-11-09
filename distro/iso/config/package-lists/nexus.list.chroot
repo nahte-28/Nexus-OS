@@ -1,0 +1,49 @@
+# The NEXUS session (the NEXUS .deb itself comes from config/packages.chroot)
+labwc
+xwayland
+foot
+greetd
+tuigreet
+xdg-desktop-portal-wlr
+xdg-desktop-portal-gtk
+fonts-noto-core
+fonts-noto-color-emoji
+adwaita-icon-theme
+
+# Sound, brightness, network, power
+pipewire-audio
+wireplumber
+brightnessctl
+network-manager
+polkitd
+pkexec
+mate-polkit
+upower
+
+# Everyday apps that open as windows above NEXUS
+firefox-esr
+firefox-esr-l10n-nl
+thunar
+mousepad
+
+# Hardware: drivers and firmware for wifi, graphics and sound on most laptops
+firmware-linux
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-sof-signed
+intel-microcode
+amd64-microcode
+mesa-vulkan-drivers
+libgl1-mesa-dri
+
+# System
+sudo
+locales
+console-setup
+keyboard-configuration
+ca-certificates
+curl
+apt-transport-https
+live-config
+live-config-systemd
