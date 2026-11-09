@@ -17,6 +17,9 @@ import java.util.concurrent.Executors
  * checks for a newer APK, downloads it and hands it to Android's package installer, which installs
  * it over this version (same signing key).
  */
+/** What the releases feed said: the newer update, or null when this version is the newest. */
+private class FeedAnswer(val update: AvailableUpdate?)
+
 object Updater {
     sealed interface State {
         data object Idle : State
@@ -45,6 +48,26 @@ object Updater {
             if (Build.VERSION.SDK_INT >= 28) it.longVersionCode.toInt() else it.versionCode
         }
 
+    /**
+     * The answer from the releases feed (null inside = already the newest), or null to ask the API
+     * instead: feed unreachable, no companion release in it, or the APK of the newest one missing.
+     */
+    private fun fromFeed(build: Int, apk: String): FeedAnswer? {
+        return try {
+            val feed = Supabase.http.newCall(Request.Builder().url(UpdateCheck.RELEASES_FEED).header("User-Agent", "NEXUS-Companion").build())
+                .execute().use { if (it.isSuccessful) it.body?.string() else null } ?: return null
+            if (!feed.contains("/releases/tag/companion-v")) return null
+            val update = UpdateCheck.newestInFeed(feed, build, apk) ?: return FeedAnswer(null)
+            // github.com answers an existing download with a redirect (not followed) and a missing APK with 404.
+            val probe = Supabase.http.newBuilder().followRedirects(false).build()
+            val exists = probe.newCall(Request.Builder().url(update.url).head().header("User-Agent", "NEXUS-Companion").build())
+                .execute().use { it.code in 200..399 }
+            if (exists) FeedAnswer(update) else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun check(context: Context) {
         if (state is State.Checking || state is State.Downloading) return
         val app = context.applicationContext
@@ -52,12 +75,20 @@ object Updater {
         worker.execute {
             set(
                 try {
-                    val request = Request.Builder().url(UpdateCheck.RELEASES_API).header("User-Agent", "NEXUS-Companion").build()
-                    val body = Supabase.http.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) throw java.io.IOException("GitHub gaf ${response.code}")
-                        response.body?.string().orEmpty()
-                    }
-                    UpdateCheck.newest(body, currentBuild(app), UpdateCheck.apkFor(app.packageName))?.let { State.Available(it) } ?: State.Current
+                    val build = currentBuild(app)
+                    val apk = UpdateCheck.apkFor(app.packageName)
+                    fromFeed(build, apk)?.let { answer -> answer.update?.let { State.Available(it) } ?: State.Current }
+                        ?: run {
+                            val request = Request.Builder().url(UpdateCheck.RELEASES_API).header("User-Agent", "NEXUS-Companion").build()
+                            val body = Supabase.http.newCall(request).execute().use { response ->
+                                if (response.code == 403 || response.code == 429) {
+                                    throw java.io.IOException("GitHub laat even geen opvragingen meer toe vanaf dit netwerk. Probeer het over een uur opnieuw.")
+                                }
+                                if (!response.isSuccessful) throw java.io.IOException("GitHub gaf ${response.code}")
+                                response.body?.string().orEmpty()
+                            }
+                            UpdateCheck.newest(body, build, apk)?.let { State.Available(it) } ?: State.Current
+                        }
                 } catch (e: Exception) {
                     State.Failed("Updates zoeken lukte niet: ${e.message ?: e.javaClass.simpleName}")
                 }

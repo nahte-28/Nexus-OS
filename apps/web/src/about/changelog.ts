@@ -12,6 +12,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-09',
+    title: 'Updates zoeken op gsm en horloge zonder GitHub-limiet',
+    items: ['De gsm-app en het horloge zoeken updates eerst in de releaselijst van GitHub, zoals de Windows-app, zodat een gedeeld netwerk geen "GitHub gaf 403" meer geeft.'],
+  },
+  {
     date: '2026-11-07',
     title: 'Browser in de Windows-app bleef wit',
     items: ['Het NEXUS-browservenster laadt nu de site in plaats van een wit scherm te tonen.'],

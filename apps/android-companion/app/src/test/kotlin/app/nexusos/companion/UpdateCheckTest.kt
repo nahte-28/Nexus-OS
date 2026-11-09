@@ -39,4 +39,17 @@ class UpdateCheckTest {
         assertNull(UpdateCheck.newest(releases, 10, UpdateCheck.WATCH_APK))
         assertEquals(UpdateCheck.COMPANION_APK, UpdateCheck.apkFor("app.nexusos.companion"))
     }
+
+    @Test
+    fun readsTheNewestCompanionFromTheFeed() {
+        val feed = """<feed><entry><link href="https://github.com/nahte-28/Nexus-OS/releases/tag/desktop-v1.0.120"/></entry>
+<entry><link href="https://github.com/nahte-28/Nexus-OS/releases/tag/companion-v1.0.95"/><id>tag:github.com,2008:Repository/1/companion-v1.0.95</id></entry>
+<entry><link href="https://github.com/nahte-28/Nexus-OS/releases/tag/companion-v1.0.9"/></entry></feed>"""
+        val update = UpdateCheck.newestInFeed(feed, 40, UpdateCheck.WATCH_APK)!!
+        assertEquals("1.0.95", update.version)
+        assertEquals(95, update.build)
+        assertEquals("https://github.com/nahte-28/Nexus-OS/releases/download/companion-v1.0.95/nexus-watch.apk", update.url)
+        assertNull(UpdateCheck.newestInFeed(feed, 95))
+        assertNull(UpdateCheck.newestInFeed("<feed></feed>", 1))
+    }
 }
