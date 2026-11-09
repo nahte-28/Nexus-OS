@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { bookmarkGroups, deleteBookmark, hostOf, moveBookmark, resolveInput, saveBookmark, SEARCH_ENGINES, type Bookmark, type BrowserSettings, type SearchEngine } from '@nexus/core'
+import { searchHistory, bookmarkGroups, deleteBookmark, hostOf, moveBookmark, resolveInput, saveBookmark, SEARCH_ENGINES, type Bookmark, type BrowserSettings, type SearchEngine } from '@nexus/core'
 import { openInNexusBrowser } from '../browser/bridge'
+import { browserHistory, useBrowserHistory } from '../browser/history'
 import { isDesktopApp, openWebApp } from '../platform/desktop'
 import { profilesStore, useProfiles } from '../profiles/store'
 
@@ -160,6 +161,8 @@ export function Browser() {
         ))
       )}
 
+      {isDesktopApp && <History />}
+
       <label className="mt-auto flex items-center gap-2 text-nx-muted">
         Zoekmachine
         <select className={`${field} w-auto`} value={browser.engine} onChange={(e) => setBrowser((s) => ({ ...s, engine: e.target.value as SearchEngine }))}>
@@ -171,5 +174,57 @@ export function Browser() {
         </select>
       </label>
     </div>
+  )
+}
+
+const time = (at: number) => new Date(at).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+/** What you visited in the NEXUS Browser window: only on this pc, never synced. */
+function History() {
+  const history = useBrowserHistory()
+  const [query, setQuery] = useState('')
+  const [all, setAll] = useState(false)
+  const found = searchHistory(history, query)
+  const shown = all ? found : found.slice(0, 15)
+  return (
+    <section aria-labelledby="browser-history" className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 id="browser-history" className="font-medium">
+          Geschiedenis
+        </h3>
+        {history.length > 0 && (
+          <>
+            <input aria-label="Geschiedenis doorzoeken" className={`${field} w-40`} value={query} placeholder="Zoeken" onChange={(e) => setQuery(e.target.value)} />
+            <button type="button" className={`${small} ml-auto`} onClick={() => browserHistory.clear()}>
+              Geschiedenis wissen
+            </button>
+          </>
+        )}
+      </div>
+      {history.length === 0 ? (
+        <p className="text-nx-muted">Pagina's die je in het NEXUS-browservenster opent, komen hier. Ze blijven op deze pc.</p>
+      ) : found.length === 0 ? (
+        <p className="text-nx-muted">Niets gevonden.</p>
+      ) : (
+        <ul className="space-y-1">
+          {shown.map((v) => (
+            <li key={`${v.at}-${v.url}`} className="flex items-center gap-2">
+              <button type="button" className="min-w-0 flex-1 truncate text-left hover:underline" title={v.url} onClick={() => openSite(v.url)}>
+                {v.title || hostOf(v.url)} <span className="text-nx-muted">· {hostOf(v.url)}</span>
+              </button>
+              <span className="shrink-0 text-xs text-nx-muted">{time(v.at)}</span>
+              <button type="button" className={small} aria-label={`${v.title || hostOf(v.url)} uit de geschiedenis halen`} onClick={() => browserHistory.forget(v)}>
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {found.length > shown.length && (
+        <button type="button" className={small} onClick={() => setAll(true)}>
+          Alles tonen ({found.length})
+        </button>
+      )}
+    </section>
   )
 }

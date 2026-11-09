@@ -12,6 +12,15 @@ export interface BrowserTab {
   url: string
   title: string
   loading: boolean
+  /** 1 is 100 %. */
+  zoom: number
+}
+
+export interface BrowserDownload {
+  id: number
+  url: string
+  file: string
+  state: 'busy' | 'done' | 'failed'
 }
 
 export interface BrowserTabs {
@@ -41,6 +50,10 @@ export const browserCommands = {
   navigate: (url: string) => invoke<void>('browser_navigate', { url }),
   go: (action: 'back' | 'forward' | 'reload') => invoke<void>('browser_go', { action }),
   bookmark: (url: string, title: string) => invoke<void>('browser_bookmark', { url, title }),
+  zoom: (action: 'in' | 'out' | 'reset') => invoke<number>('browser_zoom', { action }),
+  downloads: () => invoke<BrowserDownload[]>('browser_downloads'),
+  showDownload: (id: number) => invoke<void>('browser_show_download', { id }),
+  clearDownloads: () => invoke<void>('browser_clear_downloads'),
 }
 
 /** In the main window: saves the bookmarks the toolbar sends, so they sync with the account. */

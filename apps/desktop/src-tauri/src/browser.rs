@@ -2,11 +2,14 @@
 //! back/forward, bookmarks) and one webview per tab below it. Sites run in their own webviews
 //! without access to NEXUS: only the toolbar (a NEXUS page) and the main window may call these
 //! commands. Needs Tauri's multi-webview support (feature "unstable").
+//! Per tab it also keeps the zoom level, and it lists what the tabs downloaded (to the usual
+//! Downloads folder) so NEXUS can show them.
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use tauri::webview::{NewWindowResponse, PageLoadEvent};
+use tauri::webview::{DownloadEvent, NewWindowResponse, PageLoadEvent};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Url, Webview, WebviewBuilder, WebviewUrl, WindowBuilder, WindowEvent};
 
 pub const WINDOW: &str = "browser";
@@ -14,6 +17,9 @@ pub const CHROME: &str = "browser-chrome";
 /// Height of the NEXUS toolbar: tabs, address bar and bookmarks.
 const CHROME_HEIGHT: f64 = 108.0;
 const MAX_TABS: usize = 20;
+const MAX_DOWNLOADS: usize = 20;
+const ZOOM_MIN: f64 = 0.3;
+const ZOOM_MAX: f64 = 3.0;
 
 #[derive(Clone, Serialize)]
 pub struct Tab {
@@ -21,6 +27,8 @@ pub struct Tab {
     pub url: String,
     pub title: String,
     pub loading: bool,
+    /// 1.0 is 100 %.
+    pub zoom: f64,
 }
 
 #[derive(Clone, Serialize, Default)]
@@ -33,6 +41,30 @@ pub struct Tabs {
 pub struct BrowserState {
     next_id: Mutex<u32>,
     tabs: Mutex<Tabs>,
+    downloads: Mutex<Vec<Download>>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct Download {
+    pub id: u32,
+    pub url: String,
+    /// The file name only; the folder stays on this pc.
+    pub file: String,
+    /// "busy", "done" or "failed".
+    pub state: &'static str,
+    #[serde(skip)]
+    path: PathBuf,
+}
+
+/// The next zoom step for "in", "out" or "reset", within 30 % and 300 %.
+pub fn zoom_step(current: f64, action: &str) -> Option<f64> {
+    let next = match action {
+        "in" => current + 0.1,
+        "out" => current - 0.1,
+        "reset" => 1.0,
+        _ => return None,
+    };
+    Some(((next * 10.0).round() / 10.0).clamp(ZOOM_MIN, ZOOM_MAX))
 }
 
 fn label(id: u32) -> String {
@@ -128,6 +160,44 @@ fn ensure_window(app: &AppHandle) -> Result<tauri::Window, String> {
     Ok(window)
 }
 
+fn publish_downloads(app: &AppHandle) {
+    let list = app.state::<BrowserState>().downloads.lock().unwrap().clone();
+    let _ = app.emit_to(CHROME, "browser-downloads", list.clone());
+    let _ = app.emit_to("main", "browser-downloads", list);
+}
+
+fn download_started(app: &AppHandle, url: String, file: String, path: PathBuf) {
+    {
+        let state = app.state::<BrowserState>();
+        let id = {
+            let mut next = state.next_id.lock().unwrap();
+            *next += 1;
+            *next
+        };
+        let mut list = state.downloads.lock().unwrap();
+        list.insert(0, Download { id, url, file, state: "busy", path });
+        list.truncate(MAX_DOWNLOADS);
+    }
+    publish_downloads(app);
+}
+
+fn download_finished(app: &AppHandle, url: &str, path: Option<PathBuf>, success: bool) {
+    {
+        let state = app.state::<BrowserState>();
+        let mut list = state.downloads.lock().unwrap();
+        if let Some(d) = list.iter_mut().find(|d| d.url == url && d.state == "busy") {
+            d.state = if success { "done" } else { "failed" };
+            if let Some(path) = path {
+                if let Some(name) = path.file_name() {
+                    d.file = name.to_string_lossy().into_owned();
+                }
+                d.path = path;
+            }
+        }
+    }
+    publish_downloads(app);
+}
+
 fn new_tab(app: &AppHandle, url: Url) -> Result<u32, String> {
     let window = ensure_window(app)?;
     let state = app.state::<BrowserState>();
@@ -143,6 +213,7 @@ fn new_tab(app: &AppHandle, url: Url) -> Result<u32, String> {
     let on_load = app.clone();
     let on_title = app.clone();
     let on_popup = app.clone();
+    let on_download = app.clone();
     let builder = WebviewBuilder::new(label(id), WebviewUrl::External(url.clone()))
         // Only web pages in a tab; mailto:, file: and the like are not followed.
         .on_navigation(|url| matches!(url.scheme(), "https" | "http" | "about" | "blob"))
@@ -155,6 +226,17 @@ fn new_tab(app: &AppHandle, url: Url) -> Result<u32, String> {
             });
         })
         .on_document_title_changed(move |_view, title| update_tab(&on_title, id, |tab| tab.title = title))
+        .on_download(move |_view, event| {
+            match event {
+                DownloadEvent::Requested { url, destination } => {
+                    let file = destination.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_else(|| "download".into());
+                    download_started(&on_download, url.to_string(), file, destination.clone());
+                }
+                DownloadEvent::Finished { url, path, success } => download_finished(&on_download, url.as_str(), path, success),
+                _ => {}
+            }
+            true
+        })
         // A link that opens a new window becomes a new tab.
         .on_new_window(move |url, _features| {
             if matches!(url.scheme(), "https" | "http") {
@@ -170,7 +252,7 @@ fn new_tab(app: &AppHandle, url: Url) -> Result<u32, String> {
         .map_err(|e| format!("Tabblad openen mislukt: {e}"))?;
     {
         let mut tabs = state.tabs.lock().unwrap();
-        tabs.tabs.push(Tab { id, url: url.to_string(), title: String::new(), loading: true });
+        tabs.tabs.push(Tab { id, url: url.to_string(), title: String::new(), loading: true, zoom: 1.0 });
         tabs.active = Some(id);
     }
     layout(app);
@@ -271,6 +353,61 @@ pub async fn browser_go(app: AppHandle, webview: Webview, action: String) -> Res
     }
 }
 
+/// "in", "out" or "reset" for the zoom of the open tab; returns the new zoom (1.0 is 100 %).
+#[tauri::command]
+pub async fn browser_zoom(app: AppHandle, webview: Webview, action: String) -> Result<f64, String> {
+    allowed(&webview)?;
+    let view = active_view(&app)?;
+    let id = app.state::<BrowserState>().tabs.lock().unwrap().active.ok_or("Geen tabblad open")?;
+    let current = app.state::<BrowserState>().tabs.lock().unwrap().tabs.iter().find(|t| t.id == id).map(|t| t.zoom).unwrap_or(1.0);
+    let zoom = zoom_step(current, &action).ok_or("Onbekende actie")?;
+    view.set_zoom(zoom).map_err(|e| e.to_string())?;
+    update_tab(&app, id, |tab| tab.zoom = zoom);
+    Ok(zoom)
+}
+
+#[tauri::command]
+pub async fn browser_downloads(app: AppHandle, webview: Webview) -> Result<Vec<Download>, String> {
+    allowed(&webview)?;
+    Ok(app.state::<BrowserState>().downloads.lock().unwrap().clone())
+}
+
+/// Shows a finished download in its folder. Downloaded files are never started from NEXUS.
+#[tauri::command]
+pub async fn browser_show_download(app: AppHandle, webview: Webview, id: u32) -> Result<(), String> {
+    allowed(&webview)?;
+    let path = app
+        .state::<BrowserState>()
+        .downloads
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|d| d.id == id && d.state == "done")
+        .map(|d| d.path.clone())
+        .ok_or("Download niet gevonden")?;
+    show_in_folder(&path)
+}
+
+#[cfg(windows)]
+fn show_in_folder(path: &std::path::Path) -> Result<(), String> {
+    let mut arg = std::ffi::OsString::from("/select,");
+    arg.push(path.as_os_str());
+    std::process::Command::new("explorer").arg(arg).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn show_in_folder(_path: &std::path::Path) -> Result<(), String> {
+    Err("Alleen in de Windows-app".into())
+}
+
+#[tauri::command]
+pub async fn browser_clear_downloads(app: AppHandle, webview: Webview) -> Result<(), String> {
+    allowed(&webview)?;
+    app.state::<BrowserState>().downloads.lock().unwrap().retain(|d| d.state == "busy");
+    publish_downloads(&app);
+    Ok(())
+}
+
 /// The toolbar asks the main window to save a bookmark there, so it syncs with the account.
 #[tauri::command]
 pub async fn browser_bookmark(app: AppHandle, webview: Webview, url: String, title: String) -> Result<(), String> {
@@ -297,5 +434,15 @@ mod tests {
         assert!(parse("file:///C:/Windows").is_err());
         assert!(parse("javascript:alert(1)").is_err());
         assert!(parse("https://a:b@vrt.be").is_err());
+    }
+
+    #[test]
+    fn zooms_in_steps_within_limits() {
+        assert_eq!(zoom_step(1.0, "in"), Some(1.1));
+        assert_eq!(zoom_step(1.0, "out"), Some(0.9));
+        assert_eq!(zoom_step(2.95, "in"), Some(3.0));
+        assert_eq!(zoom_step(0.3, "out"), Some(0.3));
+        assert_eq!(zoom_step(1.7, "reset"), Some(1.0));
+        assert_eq!(zoom_step(1.0, "sideways"), None);
     }
 }
