@@ -31,7 +31,7 @@ const LEVEL: Record<CheckLevel, { dot: string; label: string }> = {
   info: { dot: 'bg-sky-500', label: 'ter info' },
   ok: { dot: 'bg-emerald-500', label: 'in orde' },
 }
-const PLATFORM: Record<string, string> = { web: 'Browser', desktop: 'Windows-app', android: 'Android' }
+const PLATFORM: Record<string, string> = { web: 'Browser', desktop: 'pc-app', android: 'Android' }
 const day = (t: number) => new Date(t).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' })
 const moment = (t: number) => new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 

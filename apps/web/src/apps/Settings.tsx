@@ -5,7 +5,7 @@ import { ModuleSettings } from '../features/ModuleSettings'
 import { startTour } from '../onboarding/Tour'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
-import { isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
+import { desktopAppName, desktopOsName, isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
 import { checkForUpdate, installUpdate, useUpdate } from '../platform/update'
 import { useTheme } from '../theme/ThemeContext'
 
@@ -63,7 +63,7 @@ function WindowsSettings() {
   }, [])
   return (
     <fieldset className="space-y-2 border-t border-nx-border pt-4">
-      <legend className="mb-2 text-sm font-semibold text-nx-muted">Windows</legend>
+      <legend className="mb-2 text-sm font-semibold text-nx-muted">{desktopOsName}</legend>
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
@@ -75,7 +75,7 @@ function WindowsSettings() {
           }}
           className="accent-[var(--nx-accent)]"
         />
-        Starten met Windows (in het systeemvak)
+        Starten met {desktopOsName} (in het systeemvak)
       </label>
       <p className="text-sm text-nx-muted">
         Sluit je het venster, dan blijft NEXUS in het systeemvak draaien zodat meldingen binnenkomen. Afsluiten doe je via
@@ -91,7 +91,7 @@ function UpdateSettings() {
   return (
     <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
       <span className="flex-1">
-        {update.status === 'idle' && 'Updates voor de Windows-app'}
+        {update.status === 'idle' && `Updates voor de ${desktopAppName}`}
         {update.status === 'checking' && 'Zoeken naar updates…'}
         {update.status === 'current' && 'Je hebt de nieuwste versie.'}
         {update.status === 'available' && `Versie ${update.update.version} is beschikbaar.`}

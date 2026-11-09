@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildErrorReport, type ErrorReport } from '@nexus/core'
-import { isDesktopApp } from '../platform/desktop'
+import { desktopAppName, isDesktopApp } from '../platform/desktop'
 import { getLog, logEvent } from './log'
 
 export const REPORT_MIGRATION = '20261029150000_error_reports.sql'
@@ -28,7 +28,7 @@ export function watchGlobalErrors(): void {
 }
 
 function platform(): string {
-  const where = isDesktopApp ? 'Windows-app' : window.matchMedia?.('(display-mode: standalone)').matches ? 'geïnstalleerde web-app' : 'browser'
+  const where = isDesktopApp ? desktopAppName : window.matchMedia?.('(display-mode: standalone)').matches ? 'geïnstalleerde web-app' : 'browser'
   return `${where}; ${navigator.userAgent}`
 }
 

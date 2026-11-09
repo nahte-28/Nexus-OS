@@ -395,9 +395,28 @@ fn show_in_folder(path: &std::path::Path) -> Result<(), String> {
     std::process::Command::new("explorer").arg(arg).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
+/// Asks the file manager to select the file (freedesktop FileManager1, used by Nautilus,
+/// Dolphin, Thunar and others); without one, opens the folder.
 #[cfg(not(windows))]
-fn show_in_folder(_path: &std::path::Path) -> Result<(), String> {
-    Err("Alleen in de Windows-app".into())
+fn show_in_folder(path: &std::path::Path) -> Result<(), String> {
+    let uri = tauri::Url::from_file_path(path).map_err(|_| "Ongeldig pad")?;
+    let selected = std::process::Command::new("dbus-send")
+        .args([
+            "--session",
+            "--dest=org.freedesktop.FileManager1",
+            "--type=method_call",
+            "/org/freedesktop/FileManager1",
+            "org.freedesktop.FileManager1.ShowItems",
+        ])
+        .arg(format!("array:string:{uri}"))
+        .arg("string:")
+        .status()
+        .is_ok_and(|s| s.success());
+    if selected {
+        return Ok(());
+    }
+    let folder = path.parent().ok_or("Geen map")?;
+    std::process::Command::new("xdg-open").arg(folder).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

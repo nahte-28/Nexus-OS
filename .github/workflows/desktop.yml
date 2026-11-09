@@ -1,4 +1,4 @@
-name: Windows app
+name: Windows- en Linux-app
 
 on:
   push:
@@ -69,3 +69,69 @@ jobs:
             Download `nexus-os-setup.exe` en voer het uit. Een nieuwe versie installeert over de vorige heen.
             Vanaf 0.8 werkt NEXUS zichzelf bij: Instellingen > Windows > Zoeken naar updates, of de knop "Bijwerken" in de taakbalk.
             Windows kan waarschuwen dat de app onbekend is (ze is nog niet digitaal ondertekend): kies "Meer informatie" en dan "Toch uitvoeren".
+
+  # Linux: a .deb (Debian, Ubuntu, Mint, and later the NEXUS distro) and an AppImage that runs
+  # on most other distributions. Published into the same release after the Windows installer,
+  # so a Linux problem never holds back the Windows update. Ubuntu 22.04 keeps the AppImage
+  # working on older systems (glibc 2.35).
+  linux:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Install the Linux build libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev patchelf
+      - run: npm ci
+      - name: Use the Supabase settings of the live NEXUS
+        run: |
+          curl -sfL https://nexus-os-lime.vercel.app/nexus-config.json -o nexus-config.json
+          node -e '
+            const c = require("./nexus-config.json")
+            require("fs").appendFileSync(process.env.GITHUB_ENV, `VITE_SUPABASE_URL=${c.supabaseUrl}\nVITE_SUPABASE_ANON_KEY=${c.anonKey}\n`)
+          '
+      - name: Number this build
+        run: |
+          node -e '
+            const fs = require("fs"), p = "apps/desktop/src-tauri/tauri.conf.json"
+            const conf = JSON.parse(fs.readFileSync(p, "utf8"))
+            conf.version = `1.0.${process.env.GITHUB_RUN_NUMBER}`
+            fs.writeFileSync(p, JSON.stringify(conf, null, 2))
+          '
+      - run: npm run build -w @nexus/desktop -- --bundles deb,appimage
+      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - name: Give the files fixed names
+        run: |
+          cp apps/desktop/src-tauri/target/release/bundle/deb/*.deb nexus-os.deb
+          cp apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage nexus-os.AppImage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nexus-os-linux
+          path: |
+            nexus-os.deb
+            nexus-os.AppImage
+      - name: Add the Linux files to the release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v1.0.${{ github.run_number }}
+          name: NEXUS OS voor Windows en Linux 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            nexus-os.deb
+            nexus-os.AppImage
+          append_body: true
+          body: |
+
+            **Linux:** op Debian, Ubuntu of Mint installeer je `nexus-os.deb` (dubbelklikken, of `sudo apt install ./nexus-os.deb`); updates vragen dan je wachtwoord. Op andere distributies: download `nexus-os.AppImage`, maak het uitvoerbaar (`chmod +x nexus-os.AppImage`) en start het; het werkt zichzelf bij.

@@ -3,7 +3,7 @@ import { assistant } from '../ai/runtime'
 import { forgetAlwaysAllowed } from '../ai/session'
 import { useConnect } from '../connect/ConnectContext'
 import { clearLog, useLog, type LogSource } from '../devtools/log'
-import { apiBase, isDesktopApp } from '../platform/desktop'
+import { apiBase, desktopAppName, isDesktopApp } from '../platform/desktop'
 import { makePushSetup, pushConfigSql, type PushSetup } from '../push/setup'
 import { remindersStore } from '../reminders/store'
 import { useSync } from '../sync/SyncContext'
@@ -57,7 +57,7 @@ function SystemTab() {
   return (
     <dl>
       <Row label="Versie" value={`NEXUS OS ${__APP_VERSION__}`} />
-      <Row label="Omgeving" value={isDesktopApp ? 'Windows-app (Tauri)' : `Browser · ${navigator.userAgent}`} />
+      <Row label="Omgeving" value={isDesktopApp ? `${desktopAppName} (Tauri)` : `Browser · ${navigator.userAgent}`} />
       <Row label="Server" value={apiBase || window.location.origin} />
       <Row label="Online" value={navigator.onLine ? 'ja' : 'nee'} />
       <Row label="Sync" value={`${sync.status}${sync.pending ? ` · ${sync.pending} wachtend` : ''}${sync.error ? ` · ${sync.error}` : ''}`} />
