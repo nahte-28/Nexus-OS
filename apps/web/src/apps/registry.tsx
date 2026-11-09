@@ -1,12 +1,12 @@
 import { use, type ComponentType, type SVGProps } from 'react'
 import { featureOn, profileApps, type AppId, type FeatureId } from '@nexus/core'
 import { useDeveloperMode } from '../devtools/log'
-import { openWebApp } from '../platform/desktop'
+import { isLinuxApp, openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -71,6 +71,7 @@ const Sentinel = load('Sentinel', () => import('./Sentinel'))
 const OfflineCenter = load('OfflineCenter', () => import('./OfflineCenter'))
 const Marketplace = load('Marketplace', () => import('./Marketplace'))
 const Study = load('Study', () => import('./Study'))
+const LinuxApps = load('LinuxApps', () => import('./LinuxApps'))
 
 export interface AppDefinition {
   id: AppId
@@ -84,6 +85,8 @@ export interface AppDefinition {
   beta?: boolean
   /** A blueprint module: shown in every profile while its switch in Nieuwe modules is on. */
   feature?: FeatureId
+  /** Only in the Linux app of NEXUS (the apps on that computer). */
+  linux?: boolean
   /** Opens outside NEXUS's own windows (a website app) instead of showing [component]. */
   launch?: () => void
 }
@@ -140,6 +143,7 @@ export const APPS: AppDefinition[] = [
   { id: 'calculator', title: 'Rekenmachine', icon: CalculatorIcon, component: Calculator, defaultSize: { width: 340, height: 560 }, feature: 'calculator' },
   { id: 'weather', title: 'Weer', icon: WeatherIcon, component: Weather, defaultSize: { width: 560, height: 640 }, feature: 'weather' },
   { id: 'contacts', title: 'Contacten', icon: ContactsIcon, component: Contacts, defaultSize: { width: 600, height: 620 }, feature: 'contacts' },
+  { id: 'linuxapps', title: 'Linux-apps', icon: TerminalIcon, component: LinuxApps, defaultSize: { width: 640, height: 520 }, linux: true },
   { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, feature: 'browser' },
   { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
   { id: 'controlcenter', title: 'Control Center', icon: ControlIcon, component: ControlCenter, defaultSize: { width: 820, height: 640 }, feature: 'controlCenter' },
@@ -175,7 +179,9 @@ export function useVisibleApps(): AppDefinition[] {
   // Modules that are switched on, likewise right before Profielen.
   const modules = APPS.filter((a) => a.feature && featureOn(switches, a.feature) && !ids.includes(a.id)).map((a) => a.id)
   ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, ...modules)
+  // On Linux, the computer's own apps come first.
+  if (isLinuxApp && !ids.includes('linuxapps')) ids.unshift('linuxapps')
   return ids.flatMap((id) =>
-    APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature))),
+    APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (!a.linux || isLinuxApp)),
   )
 }

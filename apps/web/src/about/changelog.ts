@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-09',
+    title: 'NEXUS als hele desktop op Linux',
+    items: [
+      'Kies op het aanmeldscherm van Linux "NEXUS OS": NEXUS vult dan het scherm als bureaublad en andere programma\'s openen als vensters erboven.',
+      'De nieuwe app Linux-apps toont de programma\'s op je computer; in Start vind je ze ook door te typen.',
+      'In die sessie staan afmelden, slaapstand, opnieuw opstarten en uitschakelen onderaan in Start.',
+    ],
+  },
+  {
+    date: '2026-11-09',
     title: 'NEXUS voor Linux',
     items: [
       'NEXUS bestaat nu ook als Linux-app: een .deb voor Debian, Ubuntu en Mint, en een AppImage voor andere distributies. Je vindt ze op /download.',

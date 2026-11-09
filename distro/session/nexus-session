@@ -1,0 +1,13 @@
+#!/bin/sh
+# Starts the NEXUS session: the labwc compositor with NEXUS as the desktop.
+# Chosen on the login screen as "NEXUS OS" (/usr/share/wayland-sessions/nexus.desktop).
+export XDG_CURRENT_DESKTOP=NEXUS:wlroots
+export XDG_SESSION_DESKTOP=NEXUS
+export XDG_SESSION_TYPE=wayland
+export MOZ_ENABLE_WAYLAND=1
+# WebKitGTK stays blank on some graphics drivers and in VirtualBox without this.
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+CONFIG=/usr/share/nexus-session/labwc
+# Your own labwc settings in ~/.config/nexus-session win over the NEXUS defaults.
+[ -d "$HOME/.config/nexus-session" ] && CONFIG="$HOME/.config/nexus-session"
+exec labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus

@@ -252,6 +252,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },
+  linuxapps: {
+    summary: 'Linux-apps: de programma\'s op je Linux-computer, vanuit NEXUS te openen.',
+    tips: [
+      'Tik op een app om ze te openen in een eigen venster. Zoeken kan op naam of beschrijving; in Start verschijnen ze ook als je typt.',
+      'Kies je op het aanmeldscherm NEXUS OS, dan is NEXUS je hele bureaublad. Alt+Tab wisselt van venster, Super+Spatie brengt NEXUS terug, Super+Enter opent een terminal.',
+      'Afmelden, slaapstand, opnieuw opstarten en uitschakelen staan onderaan in Start.',
+      'Een nieuwe app installeer je met apt (bv. sudo apt install firefox-esr) en verschijnt na Vernieuwen.',
+    ],
+  },
   browser: {
     summary: 'Browser: een startpagina met zoekbalk en je bladwijzers.',
     tips: [

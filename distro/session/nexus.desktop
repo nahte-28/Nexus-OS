@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=NEXUS OS
+Comment=NEXUS als volledige desktop, met Linux-apps als vensters erboven
+Exec=/usr/bin/nexus-session
+Type=Application
+DesktopNames=NEXUS
