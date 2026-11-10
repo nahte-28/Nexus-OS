@@ -2,12 +2,22 @@
 # Live system only (live-config runs this at boot): the live user goes straight into the
 # NEXUS session. An installed NEXUS OS shows the login screen instead.
 # The live user is the first normal account (uid 1000), made by live-config just before.
+# Right after boot greetd's first session can stop before NEXUS starts; greetd then starts its
+# default session, so on the live system that is the NEXUS session of the live user too
+# (instead of the login screen). Logging out also comes back to NEXUS.
 user="$(getent passwd 1000 | cut -d: -f1)"
 [ -n "$user" ] || exit 0
 grep -q '^\[initial_session\]' /etc/greetd/config.toml && exit 0
-cat >> /etc/greetd/config.toml <<CONF
+cat > /etc/greetd/config.toml <<CONF
+# Live usb: written by /usr/lib/live/config/2000-nexus-autologin at boot.
+[terminal]
+vt = 1
 
 [initial_session]
+command = "/usr/libexec/nexus-live-session"
+user = "$user"
+
+[default_session]
 command = "/usr/libexec/nexus-live-session"
 user = "$user"
 CONF
