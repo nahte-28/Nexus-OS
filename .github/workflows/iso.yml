@@ -12,7 +12,7 @@ on:
       - .github/workflows/iso.yml
   pull_request:
     paths:
-      - distro/iso/**
+      - distro/**
       - .github/workflows/iso.yml
 
 concurrency:

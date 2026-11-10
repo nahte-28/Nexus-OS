@@ -1,0 +1,19 @@
+#!/bin/sh
+# Live usb only: the session the live user is logged into at boot (see
+# /usr/lib/live/config/2000-nexus-autologin). Right after boot the first start of the NEXUS
+# session can stop at once; then the login screen would appear instead of NEXUS. So try again
+# (at most three times) when it stops within 15 seconds with an error. Logging out stops it
+# without an error and is not retried. Everything the session says goes to the system log
+# (journalctl -t nexus-session), also errors from before labwc starts.
+n=1
+while :; do
+  start=$(date +%s)
+  systemd-cat -t nexus-session nexus-session && exit 0
+  status=$?
+  if [ $(( $(date +%s) - start )) -ge 15 ] || [ "$n" -ge 3 ]; then
+    exit "$status"
+  fi
+  echo "NEXUS-sessie stopte meteen (code $status), poging $((n + 1))" | systemd-cat -t nexus-session
+  n=$((n + 1))
+  sleep 2
+done
