@@ -12,6 +12,16 @@ export WEBKIT_DISABLE_DMABUF_RENDERER=1
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 # In a virtual machine (VirtualBox, QEMU) the mouse pointer stays invisible without this.
 if command -v systemd-detect-virt >/dev/null && systemd-detect-virt -q; then export WLR_NO_HARDWARE_CURSORS=1; fi
+log() { command -v systemd-cat >/dev/null && echo "$*" | systemd-cat -t nexus-session; }
+log "NEXUS-sessie start voor $(id -un)"
+# Right after boot the graphics driver can still be loading; labwc stops at once without a
+# screen, so wait for one (at most 15 seconds).
+i=0
+while ! ls /dev/dri/card* >/dev/null 2>&1 && [ "$i" -lt 30 ]; do
+  sleep 0.5
+  i=$((i + 1))
+done
+ls /dev/dri/card* >/dev/null 2>&1 || log "Geen grafisch apparaat (/dev/dri) gevonden"
 CONFIG=/usr/share/nexus-session/labwc
 # Your own labwc settings in ~/.config/nexus-session win over the NEXUS defaults.
 [ -d "$HOME/.config/nexus-session" ] && CONFIG="$HOME/.config/nexus-session"
