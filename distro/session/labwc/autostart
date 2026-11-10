@@ -1,0 +1,8 @@
+# Started by labwc in the NEXUS session, next to NEXUS itself.
+# A password window for system actions (like installing a NEXUS update), when one is installed.
+for agent in /usr/libexec/polkit-mate-authentication-agent-1 /usr/lib/mate-polkit/polkit-mate-authentication-agent-1 /usr/bin/lxpolkit /usr/bin/lxqt-policykit-agent; do
+  if [ -x "$agent" ]; then
+    "$agent" >/dev/null 2>&1 &
+    break
+  fi
+done

@@ -1,0 +1,91 @@
+name: NEXUS OS ISO
+
+# The live ISO: Debian 13 with the NEXUS session, to try in VirtualBox or from a usb stick and
+# to install. Built by hand (Actions > NEXUS OS ISO > Run workflow) and when the distro files
+# change; takes about half an hour. It uses the newest NEXUS .deb from the releases.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - distro/**
+      - .github/workflows/iso.yml
+  pull_request:
+    paths:
+      - distro/iso/**
+      - .github/workflows/iso.yml
+
+concurrency:
+  group: iso-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to publish the ISO as a release on main
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the newest NEXUS for Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The newest desktop release that already has the Linux files (they arrive a few
+          # minutes after the Windows installer).
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=40" \
+            --jq '[.[] | select(.tag_name | startswith("desktop-v")) | select(.draft | not) | select(.prerelease | not) | select(any(.assets[]; .name == "nexus-os.deb")) | .tag_name] | first')
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern nexus-os.deb --dir .
+          echo "NEXUS_TAG=$tag" >> "$GITHUB_ENV"
+          echo "Met NEXUS ${tag#desktop-v}"
+      - name: Check that every package exists in Debian 13
+        run: |
+          grep -v '^\s*#' distro/iso/config/package-lists/*.list.chroot | grep -v '^\s*$' > packages.txt
+          docker run --rm -v "$PWD:/w" -w /w debian:trixie sh -c '
+            echo "deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware" > /etc/apt/sources.list.d/all.list
+            apt-get update -qq
+            missing=""
+            for p in $(cat packages.txt); do apt-cache show "$p" >/dev/null 2>&1 || missing="$missing $p"; done
+            if [ -n "$missing" ]; then echo "Bestaat niet in Debian 13:$missing"; exit 1; fi
+            echo "Alle pakketten bestaan."'
+      - name: Build the ISO
+        run: |
+          version="1.0.${{ github.run_number }}"
+          echo "ISO_VERSION=$version" >> "$GITHUB_ENV"
+          docker run --rm --privileged -v "$PWD:/w" -w /w debian:trixie sh -c '
+            apt-get update -qq && apt-get install -y -qq live-build >/dev/null
+            distro/iso/build.sh /w/nexus-os.deb '"$version"
+          sudo chown -R "$(id -u)" distro/iso/out
+          ls -lh distro/iso/out
+      - name: Start the ISO in a virtual machine
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 socat imagemagick >/dev/null
+          # KVM makes the test machine fast enough; GitHub's Linux runners allow it.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+          SMOKE_WAIT=300 distro/iso/smoke.sh distro/iso/out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nexus-os-iso-test
+          path: |
+            distro/iso/out/screen.png
+            distro/iso/out/serial.log
+      - name: Publish the ISO
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: iso-v${{ env.ISO_VERSION }}
+          name: NEXUS OS ${{ env.ISO_VERSION }} (ISO)
+          target_commitish: ${{ github.sha }}
+          files: distro/iso/out/nexus-os-${{ env.ISO_VERSION }}-amd64.iso
+          body: |
+            NEXUS OS als eigen besturingssysteem: Debian 13 met NEXUS als bureaublad (met ${{ env.NEXUS_TAG }}).
+
+            **Uitproberen in VirtualBox:** nieuwe machine, type Linux / Debian (64-bit), 4 GB geheugen, 2 processors, grafisch VMSVGA, en kies dit ISO-bestand als opticale schijf. Start ze: NEXUS opent vanzelf.
+
+            **Van een usb-stick:** zet het ISO-bestand op een stick met balenaEtcher of Rufus (dd-modus) of kopieer het naar een Ventoy-stick, en start de pc van de stick (F12, F2 of Esc bij het opstarten). Start hij niet van de stick, zet dan Secure Boot uit in de BIOS.
+
+            **Installeren:** kies in het opstartmenu "Install". Je kiest dan een gebruiker en wachtwoord; daarna meld je je aan op het NEXUS-aanmeldscherm.
+
+            Toetsenbord: Belgisch AZERTY. Wachtwoord van de live-gebruiker `nexus`: `live`.

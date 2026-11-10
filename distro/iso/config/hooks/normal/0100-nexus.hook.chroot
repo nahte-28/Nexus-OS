@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs inside the new system while the image is built.
+set -e
+# Start on the NEXUS login screen instead of a text console.
+systemctl enable greetd.service
+systemctl set-default graphical.target
+# Dutch (Belgium) as the default language, Belgian AZERTY keyboard.
+sed -i 's/^# *nl_BE.UTF-8/nl_BE.UTF-8/' /etc/locale.gen
+locale-gen
+printf 'XKBMODEL="pc105"\nXKBLAYOUT="be"\nXKBVARIANT=""\nXKBOPTIONS=""\nBACKSPACE="guess"\n' > /etc/default/keyboard
+echo nexus > /etc/hostname
