@@ -19,6 +19,30 @@ install -D -m 755 "$session/keep-nexus" "$inc/usr/lib/nexus-session/keep-nexus"
 for f in rc.xml menu.xml environment autostart; do
   install -D -m 644 "$session/labwc/$f" "$inc/usr/share/nexus-session/labwc/$f"
 done
+# NEXUS OS look: images for the boot splash and the installed boot menu, and the version.
+brand="$here/../branding/images"
+install -D -m 644 "$brand/plymouth-logo.png" "$inc/usr/share/nexus-os/logo.png"
+install -D -m 644 "$brand/boot-1920x1080.png" "$inc/usr/share/nexus-os/boot.png"
+echo "$version" > "$inc/usr/share/nexus-os/version"
+# The banner of the graphical installer.
+install -D -m 644 "$brand/installer-banner.png" "$work/config/includes.installer/usr/share/graphics/logo_debian.png"
+install -D -m 644 "$brand/installer-banner-dark.png" "$work/config/includes.installer/usr/share/graphics/logo_debian_dark.png"
+# The boot menus of the usb stick: live-build's own menus, with the NEXUS background and name.
+cp -r /usr/share/live/build/bootloaders "$work/config/bootloaders"
+find "$work/config/bootloaders" -type f | sort
+for f in $(find "$work/config/bootloaders" -name 'splash.png'); do
+  case "$f" in
+    *isolinux*|*syslinux*|*extlinux*|*pxelinux*) cp "$brand/splash-640x480.png" "$f" ;;
+    *) cp "$brand/boot-1920x1080.png" "$f" ;;
+  esac
+done
+for f in $(find "$work/config/bootloaders" -name 'splash.svg*'); do
+  # syslinux menus are drawn from an svg: one that only holds the NEXUS picture.
+  printf '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="480"><image width="640" height="480" xlink:href="data:image/png;base64,%s"/></svg>\n' \
+    "$(base64 -w0 "$brand/splash-640x480.png")" > "$f"
+done
+grep -rlI 'Debian GNU/Linux' "$work/config/bootloaders" | xargs -r sed -i 's|Debian GNU/Linux|NEXUS OS|g'
+grep -rhI -iE 'menuentry|menu label|title' "$work/config/bootloaders" | sort -u | head -40
 cd "$work"
 lb config \
   --distribution trixie \

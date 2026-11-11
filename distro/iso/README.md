@@ -26,3 +26,7 @@ Zelf bouwen kan op Debian 13 als root: `distro/iso/build.sh nexus-os.deb 1.0.0`.
 | `config/includes.chroot/usr/lib/live/config/2000-nexus-autologin` | alleen live: meteen aanmelden |
 | `build.sh` | roept `lb config` en `lb build` aan |
 | `smoke.sh` | start de ISO in QEMU en kijkt of NEXUS op het scherm staat |
+
+## Eigen uiterlijk
+
+De beelden staan in `distro/branding/images` en komen uit `distro/branding/make-images.py` (opnieuw draaien na een nieuw logo). `build.sh` zet ze in het opstartmenu van de usb-stick en in het installatieprogramma; `hooks/normal/0200-nexus-branding.hook.chroot` maakt van het systeem "NEXUS OS" (`/etc/os-release`, `ID_LIKE=debian`), zet het laadscherm (plymouth) en verbergt het opstartmenu van een geïnstalleerd systeem. `bootmenu.sh` controleert in de workflow dat beide opstartmenu's (BIOS en UEFI) het NEXUS-beeld tonen.
