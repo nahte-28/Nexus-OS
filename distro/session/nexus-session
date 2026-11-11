@@ -25,6 +25,10 @@ ls /dev/dri/card* >/dev/null 2>&1 || log "Geen grafisch apparaat (/dev/dri) gevo
 CONFIG=/usr/share/nexus-session/labwc
 # Your own labwc settings in ~/.config/nexus-session win over the NEXUS defaults.
 [ -d "$HOME/.config/nexus-session" ] && CONFIG="$HOME/.config/nexus-session"
+# The live usb asks for the messages in a file too, to show them when NEXUS cannot start.
+if [ -n "$NEXUS_SESSION_LOG" ]; then
+  exec labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus >>"$NEXUS_SESSION_LOG" 2>&1
+fi
 # The session's messages go to the system log (journalctl -t nexus-session).
 if command -v systemd-cat >/dev/null; then
   exec systemd-cat -t nexus-session labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus
