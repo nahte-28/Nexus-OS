@@ -11,7 +11,9 @@ grep -q '^\[initial_session\]' /etc/greetd/config.toml && exit 0
 cat > /etc/greetd/config.toml <<CONF
 # Live usb: written by /usr/lib/live/config/2000-nexus-autologin at boot.
 [terminal]
-vt = 1
+# Screen 7, as Debian expects: screen 1 has a text login (getty) that would fight greetd for
+# the keyboard and the screen (a flashing login screen that loses what you type).
+vt = 7
 
 [initial_session]
 command = "/usr/libexec/nexus-live-session"

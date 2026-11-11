@@ -1,7 +1,9 @@
-# Login screen of NEXUS OS: tuigreet on the first screen, with NEXUS OS as the session.
+# Login screen of NEXUS OS: tuigreet on screen 7, with NEXUS OS as the session.
 # On the live usb, /usr/lib/live/config/2000-nexus-autologin logs the live user straight in.
 [terminal]
-vt = 1
+# Screen 7, as Debian expects: screen 1 has a text login (getty) that would fight greetd for
+# the keyboard and the screen (a flashing login screen that loses what you type).
+vt = 7
 
 [default_session]
 command = "tuigreet --time --remember --remember-session --asterisks --sessions /usr/share/wayland-sessions --cmd nexus-session --greeting 'Welkom bij NEXUS OS'"

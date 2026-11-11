@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-11',
+    title: 'Aanmeldscherm van NEXUS OS flasht niet meer',
+    items: [
+      'Het aanmeldscherm van NEXUS OS flashte en verloor wat je typte: het vocht met een tekstaanmelding om hetzelfde scherm. Het staat nu op een eigen scherm. Wie NEXUS OS al installeerde, installeert opnieuw met de nieuwe ISO.',
+      'Kan NEXUS op een computer niet starten, dan toont de live-usb na drie pogingen het aanmeldscherm met de foutmelding in plaats van te blijven flashen.',
+    ],
+  },
+  {
     date: '2026-11-10',
     title: 'NEXUS-sessie start betrouwbaarder',
     items: ['Vlak na het opstarten wacht de NEXUS-sessie tot het scherm klaar is, zodat je niet op het aanmeldscherm terechtkomt in plaats van in NEXUS.'],
