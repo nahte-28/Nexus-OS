@@ -58,7 +58,6 @@ jobs:
           ls -lh distro/iso/out
       - name: Start the ISO in a virtual machine
         run: |
-          .github/apt-mirror.sh
           sudo apt-get update -qq
           sudo apt-get install -y -qq qemu-system-x86 socat imagemagick ovmf >/dev/null
           # KVM makes the test machine fast enough; GitHub's Linux runners allow it.
