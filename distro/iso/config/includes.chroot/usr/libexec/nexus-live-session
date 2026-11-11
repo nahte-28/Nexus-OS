@@ -1,19 +1,25 @@
 #!/bin/sh
 # Live usb only: the session the live user is logged into at boot (see
-# /usr/lib/live/config/2000-nexus-autologin). Right after boot the first start of the NEXUS
-# session can stop at once; then the login screen would appear instead of NEXUS. So try again
-# (at most three times) when it stops within 15 seconds with an error. Logging out stops it
-# without an error and is not retried. Everything the session says goes to the system log
-# (journalctl -t nexus-session), also errors from before labwc starts.
-n=1
-while :; do
-  start=$(date +%s)
-  systemd-cat -t nexus-session nexus-session && exit 0
-  status=$?
-  if [ $(( $(date +%s) - start )) -ge 15 ] || [ "$n" -ge 3 ]; then
-    exit "$status"
-  fi
+# /usr/lib/live/config/2000-nexus-autologin). greetd starts it again when it stops, so right
+# after boot a first start that stops at once is simply retried. But when NEXUS cannot start on
+# this computer at all, that would flash the screen forever: after three short-lived starts in a
+# row, show the login screen with an explanation instead. Logging in there tries again.
+# Everything the session says goes to the system log (journalctl -b -t nexus-session).
+tries=/tmp/nexus-live-tries
+n=$(cat "$tries" 2>/dev/null || echo 0)
+if [ "$n" -ge 3 ] && [ -n "$GREETD_SOCK" ]; then
+  rm -f "$tries"
+  exec tuigreet --time --asterisks --cmd nexus-session \
+    --greeting 'NEXUS kon niet starten. Meld je aan als nexus (wachtwoord: live) om opnieuw te proberen, of druk Ctrl+Alt+F2 voor een terminal. Uitleg: journalctl -b -t nexus-session'
+fi
+start=$(date +%s)
+systemd-cat -t nexus-session nexus-session
+status=$?
+if [ $(( $(date +%s) - start )) -lt 15 ]; then
+  echo $((n + 1)) > "$tries"
   echo "NEXUS-sessie stopte meteen (code $status), poging $((n + 1))" | systemd-cat -t nexus-session
-  n=$((n + 1))
   sleep 2
-done
+else
+  rm -f "$tries"
+fi
+exit "$status"

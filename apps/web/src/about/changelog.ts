@@ -12,6 +12,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-11',
+    title: 'Live-usb blijft niet flashen',
+    items: ['Kan NEXUS op een computer niet starten, dan toont de live-usb na drie pogingen het aanmeldscherm met uitleg in plaats van een scherm dat blijft flashen.'],
+  },
+  {
     date: '2026-11-10',
     title: 'NEXUS-sessie start betrouwbaarder',
     items: ['Vlak na het opstarten wacht de NEXUS-sessie tot het scherm klaar is, zodat je niet op het aanmeldscherm terechtkomt in plaats van in NEXUS.'],
