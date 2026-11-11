@@ -32,6 +32,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - run: .github/apt-mirror.sh
       - run: npx playwright install --with-deps chromium
         working-directory: apps/web
       - run: npm run e2e -w @nexus/web
