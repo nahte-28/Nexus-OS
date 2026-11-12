@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-12',
+    title: 'NEXUS OS start ook zonder grafische versnelling',
+    items: [
+      'Kan de grafische kaart niet tekenen (VirtualBox zonder 3D-versnelling, sommige oudere pc\'s), dan start de NEXUS-sessie opnieuw met tekenen door de processor, in plaats van te stoppen met "Failed to initialize EGL context".',
+    ],
+  },
+  {
+    date: '2026-11-12',
     title: 'NEXUS OS werkt zichzelf bij',
     items: [
       'NEXUS OS heeft een eigen pakketbron. Een nieuwe versie van NEXUS komt vanzelf binnen, zonder nieuwe ISO en zonder wachtwoord: kort na het opstarten en daarna om de zes uur.',

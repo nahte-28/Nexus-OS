@@ -60,8 +60,11 @@ describe('NEXUS Browser toolbar', () => {
     localStorage.removeItem('nexus.browser.history')
     render(<Toolbar />)
     expect(await screen.findByText('⬇ rooster.pdf')).toBeTruthy()
-    expect(JSON.parse(localStorage.getItem('nexus.browser.history') ?? '[]')[0]).toMatchObject({ url: 'https://ap.be/', title: 'AP' })
-    expect(screen.getByRole('button', { name: 'Zoom terugzetten naar 100%' }).textContent).toBe('120%')
+    // The tab list and the downloads arrive in separate updates; the history follows the tabs.
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem('nexus.browser.history') ?? '[]')[0]).toMatchObject({ url: 'https://ap.be/', title: 'AP' }),
+    )
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Zoom terugzetten naar 100%' }).textContent).toBe('120%'))
     fireEvent.click(screen.getByRole('button', { name: 'Inzoomen' }))
     fireEvent.keyDown(window, { key: '0', ctrlKey: true })
     fireEvent.click(screen.getByRole('button', { name: 'Toon in map' }))

@@ -25,12 +25,38 @@ ls /dev/dri/card* >/dev/null 2>&1 || log "Geen grafisch apparaat (/dev/dri) gevo
 CONFIG=/usr/share/nexus-session/labwc
 # Your own labwc settings in ~/.config/nexus-session win over the NEXUS defaults.
 [ -d "$HOME/.config/nexus-session" ] && CONFIG="$HOME/.config/nexus-session"
-# The live usb asks for the messages in a file too, to show them when NEXUS cannot start.
-if [ -n "$NEXUS_SESSION_LOG" ]; then
-  exec labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus >>"$NEXUS_SESSION_LOG" 2>&1
+# Starts labwc once; the messages go to the live usb's file, or to the system log
+# (journalctl -t nexus-session).
+run_labwc() {
+  if [ -n "$NEXUS_SESSION_LOG" ]; then
+    labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus >>"$NEXUS_SESSION_LOG" 2>&1
+  elif command -v systemd-cat >/dev/null; then
+    systemd-cat -t nexus-session labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus
+  else
+    labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus
+  fi
+}
+start=$(date +%s)
+status=0
+# Test hook (boot option nexus.nogl, used by distro/iso/smoke.sh): the first start cannot make
+# a renderer, like VirtualBox without 3D acceleration, so the fallback below gets exercised.
+if grep -qw nexus.nogl /proc/cmdline 2>/dev/null; then
+  log "Test nexus.nogl: eerste start zonder renderer"
+  # wlroots ignores an unknown WLR_RENDERER, but an explicit Vulkan renderer without any
+  # Vulkan driver fails just like OpenGL does in VirtualBox without 3D.
+  (export WLR_RENDERER=vulkan VK_DRIVER_FILES=/nonexistent VK_ICD_FILENAMES=/nonexistent; run_labwc) || status=$?
+else
+  run_labwc || status=$?
 fi
-# The session's messages go to the system log (journalctl -t nexus-session).
-if command -v systemd-cat >/dev/null; then
-  exec systemd-cat -t nexus-session labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus
+# Graphics that cannot draw with the graphics card (VirtualBox without 3D acceleration, some
+# older pc's: "Failed to initialize EGL context") stop labwc at once. Then start again with
+# drawing done by the processor only: slower, but NEXUS opens.
+if [ $(( $(date +%s) - start )) -lt 10 ] && [ -z "${WLR_RENDERER:-}" ]; then
+  log "labwc stopte meteen (code $status): opnieuw zonder grafische versnelling"
+  export WLR_RENDERER=pixman
+  export LIBGL_ALWAYS_SOFTWARE=1
+  [ -n "$NEXUS_SESSION_LOG" ] && echo "Opnieuw zonder grafische versnelling" >>"$NEXUS_SESSION_LOG"
+  status=0
+  run_labwc || status=$?
 fi
-exec labwc -C "$CONFIG" -s /usr/lib/nexus-session/keep-nexus
+exit "$status"
