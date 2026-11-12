@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-11',
+    title: 'NEXUS OS met een eigen gezicht',
+    items: [
+      'NEXUS OS heet nu overal zo, ook in de systeeminformatie, en draagt de versie van de ISO.',
+      'Het opstartmenu van de usb-stick, het laadscherm en het installatieprogramma tonen het NEXUS-logo.',
+      'Op een geïnstalleerde NEXUS OS is het opstartmenu verborgen (houd Shift of Esc ingedrukt om het te zien).',
+    ],
+  },
+  {
+    date: '2026-11-11',
     title: 'Aanmeldscherm van NEXUS OS flasht niet meer',
     items: [
       'Het aanmeldscherm van NEXUS OS flashte en verloor wat je typte: het vocht met een tekstaanmelding om hetzelfde scherm. Het staat nu op een eigen scherm. Wie NEXUS OS al installeerde, installeert opnieuw met de nieuwe ISO.',

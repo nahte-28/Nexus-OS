@@ -1,0 +1,71 @@
+#!/bin/sh
+# Runs inside the new system while the image is built: NEXUS OS as the name of the system,
+# its own boot splash and a quiet boot menu. Debian stays the base (ID_LIKE=debian).
+set -e
+v="$(cat /usr/share/nexus-os/version)"
+
+# The name of the system (hostnamectl, "about this computer", other programs). The files of
+# Debian's base-files are put aside (dpkg-divert), so a Debian update does not put them back.
+for f in /usr/lib/os-release /etc/issue /etc/issue.net; do
+  dpkg-divert --quiet --local --rename --divert "$f.debian" --add "$f"
+done
+cat > /usr/lib/os-release <<OS
+PRETTY_NAME="NEXUS OS $v"
+NAME="NEXUS OS"
+VERSION="$v"
+VERSION_ID="$v"
+VERSION_CODENAME=trixie
+DEBIAN_CODENAME=trixie
+ID=nexus
+ID_LIKE=debian
+LOGO=nexus-os
+HOME_URL="https://nexus-os-lime.vercel.app/"
+SUPPORT_URL="https://github.com/nahte-28/Nexus-OS"
+BUG_REPORT_URL="https://github.com/nahte-28/Nexus-OS/issues"
+OS
+ln -sf ../usr/lib/os-release /etc/os-release
+printf 'NEXUS OS %s \\n \\l\n\n' "$v" > /etc/issue
+printf 'NEXUS OS %s\n' "$v" > /etc/issue.net
+
+# Boot menu of the installed system: hidden (hold Shift or Esc to see it), with the NEXUS
+# background, and the boot splash. GRUB_DISTRIBUTOR stays Debian on purpose: on newer pc's
+# Debian's signed boot loader only looks in the folder EFI/debian.
+mkdir -p /etc/default/grub.d
+cat > /etc/default/grub.d/nexus-os.cfg <<'GRUB'
+GRUB_DISTRIBUTOR=Debian
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_TIMEOUT=2
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
+GRUB_BACKGROUND=/usr/share/nexus-os/boot.png
+GRUB
+
+# Boot splash: the dark NEXUS screen with the logo and Debian's spinner while starting.
+t=/usr/share/plymouth/themes/nexus
+mkdir -p "$t"
+cp /usr/share/plymouth/themes/spinner/*.png "$t/"
+cp /usr/share/nexus-os/logo.png "$t/watermark.png"
+cat > "$t/nexus.plymouth" <<'PLY'
+[Plymouth Theme]
+Name=NEXUS OS
+Description=NEXUS OS boot splash
+ModuleName=two-step
+
+[two-step]
+Font=Noto Sans 12
+TitleFont=Noto Sans Light 30
+ImageDir=/usr/share/plymouth/themes/nexus
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.382
+TitleHorizontalAlignment=.5
+TitleVerticalAlignment=.382
+HorizontalAlignment=.5
+VerticalAlignment=.75
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.45
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x0b1020
+BackgroundEndColor=0x0b1020
+PLY
+# live-build makes the initrd (with this theme) after the hooks.
+plymouth-set-default-theme nexus
