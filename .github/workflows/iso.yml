@@ -80,11 +80,12 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
           SMOKE_WAIT=300 distro/iso/smoke.sh distro/iso/out
-      - name: Start the ISO with graphics without 3D (like VirtualBox)
+      - name: Start the ISO without OpenGL (like VirtualBox without 3D)
         run: |
-          cp distro/iso/out/screen.png distro/iso/out/screen-virtio.png
-          SMOKE_WAIT=300 SMOKE_VGA=vmware distro/iso/smoke.sh distro/iso/out
-          mv distro/iso/out/screen.png distro/iso/out/screen-vmware.png
+          cp distro/iso/out/screen.png distro/iso/out/screen-gpu.png
+          SMOKE_WAIT=300 SMOKE_APPEND=nexus.nogl distro/iso/smoke.sh distro/iso/out
+          mv distro/iso/out/screen.png distro/iso/out/screen-nogl.png
+          grep -a "zonder grafische versnelling" distro/iso/out/serial.log
       - name: Check the boot menus (older and newer pc's)
         run: distro/iso/bootmenu.sh distro/iso/out
       - uses: actions/upload-artifact@v4

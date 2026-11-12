@@ -38,7 +38,13 @@ run_labwc() {
 }
 start=$(date +%s)
 status=0
-run_labwc || status=$?
+# Test hook (boot option nexus.nogl, used by distro/iso/smoke.sh): the first start finds no
+# OpenGL, like VirtualBox without 3D acceleration, so the fallback below gets exercised.
+if grep -qw nexus.nogl /proc/cmdline 2>/dev/null; then
+  (export __EGL_VENDOR_LIBRARIES_FILENAMES=/nonexistent; run_labwc) || status=$?
+else
+  run_labwc || status=$?
+fi
 # Graphics that cannot draw with the graphics card (VirtualBox without 3D acceleration, some
 # older pc's: "Failed to initialize EGL context") stop labwc at once. Then start again with
 # drawing done by the processor only: slower, but NEXUS opens.
