@@ -189,14 +189,28 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
             if !status.success() {
                 return Err("De installatie werd afgebroken of mislukte.".into());
             }
-            let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-            std::process::Command::new(exe)
-                .spawn()
-                .map_err(|e| format!("NEXUS opnieuw starten mislukt: {e}"))?;
+            // As the desktop of the NEXUS session, keep-nexus starts NEXUS again by itself.
+            if !std::env::args().any(|a| a == "--session") {
+                std::process::Command::new(installed_exe(std::env::current_exe().ok()))
+                    .spawn()
+                    .map_err(|e| format!("NEXUS opnieuw starten mislukt: {e}"))?;
+            }
         }
     }
     app.exit(0);
     Ok(())
+}
+
+/// The program to start after apt replaced it. Linux names the running program
+/// "/usr/bin/nexus-desktop (deleted)" once its file is replaced, which does not exist.
+fn installed_exe(current: Option<std::path::PathBuf>) -> std::path::PathBuf {
+    let fallback = std::path::PathBuf::from("/usr/bin/nexus-desktop");
+    let Some(path) = current else { return fallback };
+    let text = path.to_string_lossy();
+    match text.strip_suffix(" (deleted)") {
+        Some(original) => std::path::PathBuf::from(original),
+        None => path,
+    }
 }
 
 /// Writes the new AppImage next to the old one and swaps them in one step, so a failed
@@ -254,6 +268,14 @@ mod tests {
     }
 
     #[cfg(unix)]
+    #[test]
+    fn restarts_the_replaced_program_by_its_real_path() {
+        use std::path::PathBuf;
+        assert_eq!(installed_exe(Some(PathBuf::from("/usr/bin/nexus-desktop (deleted)"))), PathBuf::from("/usr/bin/nexus-desktop"));
+        assert_eq!(installed_exe(Some(PathBuf::from("/opt/x/nexus-desktop"))), PathBuf::from("/opt/x/nexus-desktop"));
+        assert_eq!(installed_exe(None), PathBuf::from("/usr/bin/nexus-desktop"));
+    }
+
     #[test]
     fn replaces_an_appimage_in_one_step() {
         use std::os::unix::fs::PermissionsExt;
