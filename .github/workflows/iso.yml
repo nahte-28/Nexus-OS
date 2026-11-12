@@ -80,6 +80,11 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
           SMOKE_WAIT=300 distro/iso/smoke.sh distro/iso/out
+      - name: Start the ISO with graphics without 3D (like VirtualBox)
+        run: |
+          cp distro/iso/out/screen.png distro/iso/out/screen-virtio.png
+          SMOKE_WAIT=300 SMOKE_VGA=vmware distro/iso/smoke.sh distro/iso/out
+          mv distro/iso/out/screen.png distro/iso/out/screen-vmware.png
       - name: Check the boot menus (older and newer pc's)
         run: distro/iso/bootmenu.sh distro/iso/out
       - uses: actions/upload-artifact@v4
@@ -87,7 +92,7 @@ jobs:
         with:
           name: nexus-os-iso-test
           path: |
-            distro/iso/out/screen.png
+            distro/iso/out/screen*.png
             distro/iso/out/boot-*.png
             distro/iso/out/serial.log
       - name: Publish the ISO
