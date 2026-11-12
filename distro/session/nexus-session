@@ -42,7 +42,9 @@ status=0
 # a renderer, like VirtualBox without 3D acceleration, so the fallback below gets exercised.
 if grep -qw nexus.nogl /proc/cmdline 2>/dev/null; then
   log "Test nexus.nogl: eerste start zonder renderer"
-  (export WLR_RENDERER=nexus-nogl; run_labwc) || status=$?
+  # wlroots ignores an unknown WLR_RENDERER, but an explicit Vulkan renderer without any
+  # Vulkan driver fails just like OpenGL does in VirtualBox without 3D.
+  (export WLR_RENDERER=vulkan VK_DRIVER_FILES=/nonexistent VK_ICD_FILENAMES=/nonexistent; run_labwc) || status=$?
 else
   run_labwc || status=$?
 fi
