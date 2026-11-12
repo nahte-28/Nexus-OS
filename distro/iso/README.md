@@ -24,7 +24,7 @@ Zelf bouwen kan op Debian 13 als root: `distro/iso/build.sh nexus-os.deb 1.0.0`.
 | `config/hooks/normal/0100-nexus.hook.chroot` | aanmeldscherm aan, Nederlands (België), AZERTY |
 | `config/includes.chroot/etc/greetd/config.toml` | het aanmeldscherm |
 | `config/includes.chroot/usr/lib/live/config/2000-nexus-autologin` | alleen live: meteen aanmelden |
-| `build.sh` | roept `lb config` en `lb build` aan |
+| `build.sh` | roept `lb config` en `lb build` aan; met een derde argument zet het `nexus-os-updates` (de [eigen pakketbron](../apt/README.md)) in de ISO |
 | `smoke.sh` | start de ISO in QEMU en kijkt of NEXUS op het scherm staat |
 
 ## Eigen uiterlijk

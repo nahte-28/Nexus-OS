@@ -12,7 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    date: '2026-11-11',
+    date: '2026-11-12',
+    title: 'NEXUS OS werkt zichzelf bij',
+    items: [
+      'NEXUS OS heeft een eigen pakketbron. Een nieuwe versie van NEXUS komt vanzelf binnen, zonder nieuwe ISO en zonder wachtwoord: kort na het opstarten en daarna om de zes uur.',
+      'Ook op een andere Debian, Ubuntu of Mint kun je die bron toevoegen, zodat NEXUS meekomt met sudo apt upgrade.',
+    ],
+  },
+  {
+    date: '2026-11-12',
     title: 'NEXUS OS met een eigen gezicht',
     items: [
       'NEXUS OS heet nu overal zo, ook in de systeeminformatie, en draagt de versie van de ISO.',

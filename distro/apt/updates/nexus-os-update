@@ -1,0 +1,14 @@
+#!/bin/sh
+# Brengt NEXUS bij uit de eigen pakketbron, zonder wachtwoord (draait als root via
+# nexus-os-update.timer). Alleen de NEXUS-bron wordt opgehaald; de lijsten van Debian blijven
+# staan zoals ze zijn, en alleen NEXUS-pakketten die al geïnstalleerd zijn, worden bijgewerkt.
+set -eu
+src=/etc/apt/sources.list.d/nexus-os.sources
+[ -f "$src" ] || exit 0
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q \
+  -o Dir::Etc::SourceList="$src" -o Dir::Etc::SourceParts=- \
+  -o APT::Get::List-Cleanup=0
+apt-get install -y -q --only-upgrade \
+  -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+  nexus-os nexus-os-updates

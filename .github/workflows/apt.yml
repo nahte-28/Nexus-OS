@@ -1,0 +1,78 @@
+name: Pakketbron
+
+# The own apt package source of NEXUS OS, on GitHub Pages (https://nahte-28.github.io/Nexus-OS/):
+# the three newest nexus-os.deb from the releases plus nexus-os-updates (the source itself and
+# the update timer), signed with the secret APT_SIGNING_KEY. Rebuilt after every Windows- en
+# Linux-app run on main, so a new NEXUS reaches NEXUS OS without a new ISO. See
+# distro/apt/README.md.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Windows- en Linux-app]
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - distro/apt/**
+      - .github/workflows/apt.yml
+  pull_request:
+    paths:
+      - distro/apt/**
+      - .github/workflows/apt.yml
+
+concurrency:
+  group: apt-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the version of nexus-os-updates comes from the history of distro/apt
+      - name: Download the newest NEXUS versions for Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p debs
+          tags=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=40" \
+            --jq '[.[] | select(.tag_name | startswith("desktop-v")) | select(.draft | not) | select(.prerelease | not) | select(any(.assets[]; .name == "nexus-os.deb")) | .tag_name] | .[0:3] | .[]')
+          for tag in $tags; do
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern nexus-os.deb --output "debs/nexus-os_${tag#desktop-v}_amd64.deb"
+          done
+          ls -l debs
+      - name: Build the package source
+        env:
+          # A pull request is signed with a throwaway test key.
+          APT_SIGNING_KEY: ${{ github.event_name != 'pull_request' && secrets.APT_SIGNING_KEY || '' }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] && [ -z "$APT_SIGNING_KEY" ]; then
+            echo "::error::De geheime sleutel APT_SIGNING_KEY ontbreekt (Settings > Secrets and variables > Actions). Zie distro/apt/README.md."
+            exit 1
+          fi
+          v="1.$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d%H%M -- distro/apt)"
+          docker run --rm -e APT_SIGNING_KEY -e UPDATES_VERSION="$v" -v "$PWD:/w" -w /w debian:trixie distro/apt/ci.sh debs site
+          sudo chown -R "$(id -u)" debs site
+      - name: Test on a clean Debian 13
+        run: docker run --rm -v "$PWD:/w" -w /w debian:trixie distro/apt/test-repo.sh site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

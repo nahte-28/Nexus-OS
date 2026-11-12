@@ -26,6 +26,8 @@ jobs:
       contents: write # to publish the ISO as a release on main
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the version of nexus-os-updates comes from the history of distro/apt
       - name: Download the newest NEXUS for Linux
         env:
           GH_TOKEN: ${{ github.token }}
@@ -37,6 +39,20 @@ jobs:
           gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern nexus-os.deb --dir .
           echo "NEXUS_TAG=$tag" >> "$GITHUB_ENV"
           echo "Met NEXUS ${tag#desktop-v}"
+      - name: Add the NEXUS package source (updates without a new ISO)
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          if [ -z "$APT_SIGNING_KEY" ]; then
+            echo "::warning::De geheime sleutel APT_SIGNING_KEY ontbreekt: deze ISO krijgt de eigen pakketbron niet. Zie distro/apt/README.md."
+            exit 0
+          fi
+          export GNUPGHOME="$(mktemp -d)"
+          printf '%s\n' "$APT_SIGNING_KEY" | gpg --batch --quiet --import
+          gpg --armor --export > nexus-os.asc
+          v="1.$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d%H%M -- distro/apt)"
+          distro/apt/make-updates-deb.sh nexus-os.asc "$v" .
+          echo "UPDATES_DEB=/w/nexus-os-updates_${v}_all.deb" >> "$GITHUB_ENV"
       - name: Check that every package exists in Debian 13
         run: |
           grep -v '^\s*#' distro/iso/config/package-lists/*.list.chroot | grep -v '^\s*$' > packages.txt
@@ -53,7 +69,7 @@ jobs:
           echo "ISO_VERSION=$version" >> "$GITHUB_ENV"
           docker run --rm --privileged -v "$PWD:/w" -w /w debian:trixie sh -c '
             apt-get update -qq && apt-get install -y -qq live-build >/dev/null
-            distro/iso/build.sh /w/nexus-os.deb '"$version"
+            distro/iso/build.sh /w/nexus-os.deb '"$version"' '"${UPDATES_DEB:-}"
           sudo chown -R "$(id -u)" distro/iso/out
           ls -lh distro/iso/out
       - name: Start the ISO in a virtual machine
