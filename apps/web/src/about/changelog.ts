@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-12',
+    title: 'Bijwerken op Linux eindigt niet meer met een foutmelding',
+    items: [
+      'Na "Zoeken naar updates" op Linux (en NEXUS OS) werd de nieuwe versie wel geïnstalleerd, maar meldde NEXUS "NEXUS opnieuw starten mislukt". NEXUS start nu gewoon opnieuw in de nieuwe versie.',
+    ],
+  },
+  {
+    date: '2026-11-12',
     title: 'NEXUS OS start ook zonder grafische versnelling',
     items: [
       'Kan de grafische kaart niet tekenen (VirtualBox zonder 3D-versnelling, sommige oudere pc\'s), dan start de NEXUS-sessie opnieuw met tekenen door de processor, in plaats van te stoppen met "Failed to initialize EGL context".',
