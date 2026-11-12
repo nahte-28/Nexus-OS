@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pakketbron NEXUS OS</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f7fb; --fg: #161a26; --muted: #5a6175; --card: #fff; --line: #dde1ea; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0d1018; --fg: #e8ebf3; --muted: #9aa3b8; --card: #161b27; --line: #273042; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif; }
+  main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+  h1 { font-size: 1.7rem; margin: 0 0 .3rem; }
+  p.lead { color: var(--muted); margin-top: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  h2 { font-size: 1.1rem; margin: .2rem 0 .6rem; }
+  pre { overflow-x: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: .7rem .9rem; font-size: .9rem; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pakketbron van NEXUS OS</h1>
+  <p class="lead">Hier haalt NEXUS OS zijn updates. Ondertekend met de sleutel van NEXUS OS.</p>
+  <section>
+    <h2>Op NEXUS OS</h2>
+    <p>Niets te doen: de bron staat er al, en NEXUS werkt zichzelf om de zes uur bij. Meteen bijwerken kan met:</p>
+    <pre>sudo systemctl start nexus-os-update</pre>
+  </section>
+  <section>
+    <h2>Op Debian, Ubuntu of Mint</h2>
+    <p>Voeg de bron toe en installeer NEXUS. Daarna komen updates vanzelf binnen, en ook met <code>sudo apt upgrade</code>.</p>
+    <pre>curl -fsSLo /tmp/nexus-os-updates.deb https://nahte-28.github.io/Nexus-OS/apt/nexus-os-updates.deb
+sudo apt install /tmp/nexus-os-updates.deb
+sudo apt update
+sudo apt install nexus-os</pre>
+  </section>
+  <section>
+    <h2>Voor wie het wil nakijken</h2>
+    <p>Bron: <code>deb [signed-by=/usr/share/keyrings/nexus-os.asc] https://nahte-28.github.io/Nexus-OS/apt stable main</code>.
+    Publieke sleutel: <a href="apt/nexus-os.asc">nexus-os.asc</a>. Broncode: <a href="https://github.com/nahte-28/Nexus-OS">github.com/nahte-28/Nexus-OS</a>.</p>
+  </section>
+</main>
+</body>
+</html>

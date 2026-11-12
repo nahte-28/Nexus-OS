@@ -1,0 +1,11 @@
+[Unit]
+Description=NEXUS bijwerken uit de eigen pakketbron
+Documentation=https://nahte-28.github.io/Nexus-OS/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/nexus-os-update
+Nice=10
+IOSchedulingClass=idle

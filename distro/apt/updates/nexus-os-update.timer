@@ -1,0 +1,11 @@
+[Unit]
+Description=NEXUS geregeld bijwerken uit de eigen pakketbron
+
+[Timer]
+# Kort na het opstarten, en daarna om de zes uur zolang de computer aanstaat.
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

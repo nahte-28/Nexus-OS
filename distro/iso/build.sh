@@ -1,7 +1,9 @@
 #!/bin/sh
 # Builds the NEXUS OS live ISO with Debian live-build. Runs as root on Debian 13 (trixie),
 # for example in a privileged debian:trixie container (see .github/workflows/iso.yml).
-#   distro/iso/build.sh <nexus-os.deb> <version>
+#   distro/iso/build.sh <nexus-os.deb> <version> [nexus-os-updates.deb]
+# With nexus-os-updates (distro/apt) the system gets the own package source of NEXUS OS and
+# keeps NEXUS up to date from it.
 # The ISO lands in distro/iso/out/nexus-os-<version>-amd64.iso.
 set -eu
 deb="$1"
@@ -10,6 +12,12 @@ here="$(cd "$(dirname "$0")" && pwd)"
 work="$(mktemp -d)"
 cp -r "$here/config" "$work/config"
 cp "$deb" "$work/config/packages.chroot/nexus-os_${version}_amd64.deb"
+updates="${3:-}"
+if [ -n "$updates" ]; then
+  cp "$updates" "$work/config/packages.chroot/"
+else
+  echo "Zonder nexus-os-updates: geen eigen pakketbron in deze ISO."
+fi
 # The session files of this commit win over those in the (older) released .deb.
 session="$here/../session"
 inc="$work/config/includes.chroot"

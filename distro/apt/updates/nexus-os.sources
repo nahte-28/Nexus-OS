@@ -1,0 +1,7 @@
+# De eigen pakketbron van NEXUS OS: nieuwe versies van NEXUS (en van deze bron zelf).
+# Debian zelf komt uit /etc/apt/sources.list of debian.sources, zoals altijd.
+Types: deb
+URIs: https://nahte-28.github.io/Nexus-OS/apt
+Suites: stable
+Components: main
+Signed-By: /usr/share/keyrings/nexus-os.asc
