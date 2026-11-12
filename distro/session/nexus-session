@@ -38,10 +38,11 @@ run_labwc() {
 }
 start=$(date +%s)
 status=0
-# Test hook (boot option nexus.nogl, used by distro/iso/smoke.sh): the first start finds no
-# OpenGL, like VirtualBox without 3D acceleration, so the fallback below gets exercised.
+# Test hook (boot option nexus.nogl, used by distro/iso/smoke.sh): the first start cannot make
+# a renderer, like VirtualBox without 3D acceleration, so the fallback below gets exercised.
 if grep -qw nexus.nogl /proc/cmdline 2>/dev/null; then
-  (export __EGL_VENDOR_LIBRARIES_FILENAMES=/nonexistent; run_labwc) || status=$?
+  log "Test nexus.nogl: eerste start zonder renderer"
+  (export WLR_RENDERER=nexus-nogl; run_labwc) || status=$?
 else
   run_labwc || status=$?
 fi
