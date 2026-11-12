@@ -267,7 +267,6 @@ mod tests {
         assert_eq!(newest(&releases, &v, Kind::Deb).unwrap().version, "1.0.121");
     }
 
-    #[cfg(unix)]
     #[test]
     fn restarts_the_replaced_program_by_its_real_path() {
         use std::path::PathBuf;
@@ -276,6 +275,7 @@ mod tests {
         assert_eq!(installed_exe(None), PathBuf::from("/usr/bin/nexus-desktop"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn replaces_an_appimage_in_one_step() {
         use std::os::unix::fs::PermissionsExt;
