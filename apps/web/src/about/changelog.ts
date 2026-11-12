@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-12',
+    title: 'NEXUS OS in een virtuele machine blijft goed in beeld',
+    items: [
+      'In VirtualBox en andere virtuele machines bleven er resten van vorige schermen staan, of werd NEXUS na een tijdje donker of zwart. NEXUS tekent daar nu op een eenvoudigere manier, zodat het scherm blijft kloppen.',
+    ],
+  },
+  {
+    date: '2026-11-12',
     title: 'Bijwerken op Linux eindigt niet meer met een foutmelding',
     items: [
       'Na "Zoeken naar updates" op Linux (en NEXUS OS) werd de nieuwe versie wel geïnstalleerd, maar meldde NEXUS "NEXUS opnieuw starten mislukt". NEXUS start nu gewoon opnieuw in de nieuwe versie.',
