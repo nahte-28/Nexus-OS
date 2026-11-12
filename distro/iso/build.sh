@@ -52,6 +52,9 @@ done
 grep -rlI 'Debian GNU/Linux' "$work/config/bootloaders" | xargs -r sed -i 's|Debian GNU/Linux|NEXUS OS|g'
 grep -rhI -iE 'menuentry|menu label|title' "$work/config/bootloaders" | sort -u | head -40
 cd "$work"
+# The NEXUS package source (nexus-os-updates) is already active while the image is built and may
+# hold newer NEXUS versions than this ISO; the packages of this build win (--allow-downgrades),
+# and the installed system updates itself afterwards.
 lb config \
   --distribution trixie \
   --architectures amd64 \
@@ -60,6 +63,7 @@ lb config \
   --debian-installer live \
   --debian-installer-gui true \
   --apt-recommends false \
+  --apt-options "--yes --allow-downgrades -o Acquire::Retries=5" \
   --iso-application "NEXUS OS" \
   --iso-publisher "NEXUS OS; https://github.com/nahte-28/Nexus-OS" \
   --iso-volume "NEXUS OS $version" \
