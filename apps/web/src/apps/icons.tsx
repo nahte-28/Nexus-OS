@@ -426,3 +426,10 @@ export const FriendsIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M19 8v6M16 11h6" />
   </svg>
 )
+
+export const AdminIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
+    <path d="M9 12h6M12 9v6" />
+  </svg>
+)

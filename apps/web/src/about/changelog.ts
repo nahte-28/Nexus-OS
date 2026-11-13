@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Beheer',
+    items: [
+      'Voor de beheerder van NEXUS staat er nu Beheer in de zijbalk: hoeveel accounts er zijn, wie nu online is, de teams, wat er deze week gebeurde en de laatste foutmeldingen.',
+      'Beheer toont alleen tellingen en namen, nooit wat iemand schreef. Wie Onzichtbaar koos, telt niet mee als online.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Wie is er online',
     items: [
       'In Vrienden en bij Teams › Leden zie je wie nu online is, wie bezet is en wanneer iemand laatst online was.',

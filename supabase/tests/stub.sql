@@ -6,7 +6,7 @@ do $$ begin create role service_role nologin bypassrls; exception when duplicate
 grant usage on schema public to anon, authenticated, service_role;
 
 create schema if not exists auth;
-create table if not exists auth.users (id uuid primary key, email text);
+create table if not exists auth.users (id uuid primary key, email text, created_at timestamptz default now(), last_sign_in_at timestamptz);
 -- The tests pick the signed-in user with: set test.uid = '<uuid>'.
 create or replace function auth.uid() returns uuid language sql stable as
   $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
