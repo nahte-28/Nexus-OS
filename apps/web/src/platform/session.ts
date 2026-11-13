@@ -77,3 +77,20 @@ export function filterLinuxApps(apps: LinuxApp[], query: string): LinuxApp[] {
   if (!q) return apps
   return apps.filter((a) => a.name.toLowerCase().includes(q) || a.comment.toLowerCase().includes(q))
 }
+
+/** An app from Flathub (apps/desktop/src-tauri/src/store.rs). */
+export interface StoreApp {
+  id: string
+  name: string
+  summary: string
+  version: string
+  installed: boolean
+}
+
+export const store = {
+  installed: () => invoke<StoreApp[]>('store_installed'),
+  search: (query: string) => invoke<StoreApp[]>('store_search', { query }),
+  install: (id: string) => invoke<void>('store_install', { id }),
+  remove: (id: string) => invoke<void>('store_remove', { id }),
+  updateAll: () => invoke<number>('store_update_all'),
+}
