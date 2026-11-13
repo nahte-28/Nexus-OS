@@ -4,6 +4,7 @@ use tauri::{AppHandle, Manager, WindowEvent};
 
 mod browser;
 mod session;
+mod system;
 mod update;
 mod web;
 
@@ -47,7 +48,22 @@ pub fn run() {
             session::session_info,
             session::linux_apps,
             session::linux_app_open,
-            session::session_power
+            session::session_power,
+            system::system_wifi,
+            system::system_wifi_power,
+            system::system_wifi_connect,
+            system::system_wifi_disconnect,
+            system::system_wifi_forget,
+            system::system_sound,
+            system::system_volume,
+            system::system_mute,
+            system::system_audio_default,
+            system::system_display,
+            system::system_screen_set,
+            system::system_brightness,
+            system::system_bluetooth,
+            system::system_bluetooth_power,
+            system::system_bluetooth_device
         ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
@@ -77,6 +93,8 @@ pub fn run() {
 
             // The window starts hidden (see tauri.conf.json) to avoid a flash when starting minimized.
             if session::is_session() {
+                // The screen resolutions chosen in Systeem, set again at every login.
+                tauri::async_runtime::spawn(system::restore_screens());
                 // NEXUS is the desktop: it fills the screen without a title bar, and Linux apps
                 // open on top of it. Maximized rather than fullscreen, so those apps stay visible.
                 if let Some(window) = app.get_webview_window("main") {

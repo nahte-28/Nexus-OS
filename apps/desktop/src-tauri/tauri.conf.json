@@ -41,7 +41,7 @@
     },
     "linux": {
       "deb": {
-        "recommends": ["labwc", "foot", "wireplumber", "brightnessctl", "mate-polkit"],
+        "recommends": ["labwc", "foot", "wireplumber", "brightnessctl", "mate-polkit", "network-manager", "bluez", "rfkill", "wlr-randr"],
         "files": {
           "/usr/share/wayland-sessions/nexus.desktop": "../../../distro/session/nexus.desktop",
           "/usr/bin/nexus-session": "../../../distro/session/nexus-session",

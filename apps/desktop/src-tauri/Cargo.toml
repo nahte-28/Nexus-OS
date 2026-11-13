@@ -20,4 +20,5 @@ tauri-plugin-single-instance = "2"
 # Self-update: finds the newest installer on GitHub releases and downloads it (Windows TLS via schannel, OpenSSL on Linux).
 reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json"] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 semver = "1"
