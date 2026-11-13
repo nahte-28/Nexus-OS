@@ -48,6 +48,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261103150000_push_actions.sql', label: 'Meldingsknoppen: Klaar en Later op je gsm en horloge', needs: [{ fn: 'push_action' }] },
   { file: '20261105090000_darts.sql', label: 'Darts syncen', needs: [{ settingsKey: 'darts' }] },
   { file: '20261106090000_contacts.sql', label: 'Contacten syncen', needs: [{ settingsKey: 'contacts' }] },
+  { file: '20261113090000_team_chat.sql', label: 'Teamchat', needs: [{ table: 'team_messages' }] },
 ]
 
 /** What nexus_schema_status() returns. */

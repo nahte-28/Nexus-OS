@@ -21,6 +21,7 @@ psql -f "$here/teams.sql"
 psql -f "$here/class_teams.sql"
 psql -f "$here/team_gaming.sql"
 psql -f "$here/push_actions.sql"
+psql -f "$here/team_chat.sql"
 # Every migration may run again (Database-check pastes them all at once), also with the test data above.
 for file in "$here"/../migrations/*.sql; do
   sed -E '/create extension if not exists (pg_net|pg_cron)/d' "$file" | psql -f - >/dev/null 2>&1 || {

@@ -12,7 +12,7 @@ export const TEAM_ROLE_HELP: Record<TeamRole, string> = {
   owner: 'Alles, ook het team overdragen of verwijderen.',
   admin: 'Uitnodigen, leden en kijkers beheren, het team hernoemen.',
   member: 'Delen, groepsdeadlines, projecten en taken.',
-  viewer: 'Leest mee, verandert niets.',
+  viewer: 'Leest mee en chat, verandert niets.',
 }
 
 export interface TeamMember extends GroupMember {
