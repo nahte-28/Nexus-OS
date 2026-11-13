@@ -139,6 +139,13 @@ fn app_dirs() -> Vec<PathBuf> {
     }
     let system = std::env::var("XDG_DATA_DIRS").ok().filter(|s| !s.is_empty()).unwrap_or("/usr/local/share:/usr/share".into());
     dirs.extend(system.split(':').map(PathBuf::from));
+    // Apps from Flathub (the Linux-apps store installs them for this user). Flatpak adds these
+    // folders to XDG_DATA_DIRS only in a login shell, which the NEXUS session is not.
+    if let Some(home) = std::env::var_os("HOME") {
+        dirs.push(PathBuf::from(home).join(".local/share/flatpak/exports/share"));
+    }
+    dirs.push(PathBuf::from("/var/lib/flatpak/exports/share"));
+    dirs.dedup();
     dirs.into_iter().map(|d| d.join("applications")).collect()
 }
 

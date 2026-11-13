@@ -4,6 +4,7 @@ use tauri::{AppHandle, Manager, WindowEvent};
 
 mod browser;
 mod session;
+mod store;
 mod system;
 mod update;
 mod web;
@@ -63,7 +64,12 @@ pub fn run() {
             system::system_brightness,
             system::system_bluetooth,
             system::system_bluetooth_power,
-            system::system_bluetooth_device
+            system::system_bluetooth_device,
+            store::store_installed,
+            store::store_search,
+            store::store_install,
+            store::store_remove,
+            store::store_update_all
         ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;

@@ -23,7 +23,8 @@ pkexec
 mate-polkit
 upower
 
-# Everyday apps that open as windows above NEXUS
+# Everyday apps that open as windows above NEXUS (more from Flathub in Linux-apps)
+flatpak
 firefox-esr
 firefox-esr-l10n-nl
 thunar

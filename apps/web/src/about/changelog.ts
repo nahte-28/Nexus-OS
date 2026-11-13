@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Apps installeren uit Flathub',
+    items: [
+      'Linux-apps heeft een tabblad Apps installeren: zoek in Flathub, installeer of verwijder apps zoals Spotify, VLC en Discord, en werk ze allemaal in één keer bij. Zonder terminal en zonder wachtwoord.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Systeeminstellingen in NEXUS OS',
     items: [
       'Nieuwe app Systeem in de Linux-app: verbind met wifi, regel het volume van luidspreker en microfoon, kies resolutie, grootte en helderheid van je scherm, en koppel Bluetooth-apparaten. Allemaal zonder terminal.',

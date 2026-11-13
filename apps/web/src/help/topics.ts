@@ -258,7 +258,8 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Tik op een app om ze te openen in een eigen venster. Zoeken kan op naam of beschrijving; in Start verschijnen ze ook als je typt.',
       'Kies je op het aanmeldscherm NEXUS OS, dan is NEXUS je hele bureaublad. Alt+Tab wisselt van venster, Super+Spatie brengt NEXUS terug, Super+Enter opent een terminal.',
       'Afmelden, slaapstand, opnieuw opstarten en uitschakelen staan onderaan in Start.',
-      'Een nieuwe app installeer je met apt (bv. sudo apt install firefox-esr) en verschijnt na Vernieuwen.',
+      'Nieuwe apps installeer je in het tabblad Apps installeren: zoek in Flathub (bv. Spotify, VLC, Discord) en tik op Installeren. Er is geen wachtwoord nodig; Alles bijwerken haalt nieuwe versies.',
+      'Ook met apt geïnstalleerde apps (bv. sudo apt install gimp) verschijnen na Vernieuwen.',
     ],
   },
   system: {
