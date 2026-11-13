@@ -15,6 +15,7 @@ install -D -m 644 "$here/updates/nexus-os.sources" "$pkg/etc/apt/sources.list.d/
 install -D -m 755 "$here/updates/nexus-os-update" "$pkg/usr/libexec/nexus-os-update"
 install -D -m 644 "$here/updates/nexus-os-update.service" "$pkg/usr/lib/systemd/system/nexus-os-update.service"
 install -D -m 644 "$here/updates/nexus-os-update.timer" "$pkg/usr/lib/systemd/system/nexus-os-update.timer"
+install -D -m 644 "$here/updates/20nexus-auto-upgrades" "$pkg/etc/apt/apt.conf.d/20nexus-auto-upgrades"
 mkdir -p "$pkg/DEBIAN"
 cat > "$pkg/DEBIAN/control" <<CONTROL
 Package: nexus-os-updates
@@ -22,14 +23,17 @@ Version: $version
 Architecture: all
 Maintainer: NEXUS OS <https://github.com/nahte-28/Nexus-OS>
 Depends: apt, systemd
+Recommends: unattended-upgrades
 Priority: optional
 Section: admin
 Homepage: https://nahte-28.github.io/Nexus-OS/
 Description: Eigen pakketbron en automatische updates van NEXUS OS
  Voegt de pakketbron van NEXUS OS toe (met haar publieke sleutel) en werkt NEXUS
- om de zes uur bij, zonder wachtwoord. Debian zelf wordt hierdoor niet bijgewerkt.
+ om de zes uur bij, zonder wachtwoord. Zet ook de dagelijkse beveiligingsupdates van
+ Debian aan (unattended-upgrades); de andere Debian-updates installeer je in NEXUS
+ via Systeem › Updates.
 CONTROL
-echo /etc/apt/sources.list.d/nexus-os.sources > "$pkg/DEBIAN/conffiles"
+printf '%s\n' /etc/apt/sources.list.d/nexus-os.sources /etc/apt/apt.conf.d/20nexus-auto-upgrades > "$pkg/DEBIAN/conffiles"
 cat > "$pkg/DEBIAN/postinst" <<'SCRIPT'
 #!/bin/sh
 set -e

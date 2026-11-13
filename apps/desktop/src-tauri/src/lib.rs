@@ -65,6 +65,8 @@ pub fn run() {
             system::system_bluetooth,
             system::system_bluetooth_power,
             system::system_bluetooth_device,
+            system::system_updates,
+            system::system_updates_install,
             store::store_installed,
             store::store_search,
             store::store_install,

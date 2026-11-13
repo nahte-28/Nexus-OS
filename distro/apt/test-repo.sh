@@ -14,6 +14,7 @@ apt-get update -qq
 apt-get install -y -qq "$repo/nexus-os-updates.deb" >/dev/null
 test -f /usr/share/keyrings/nexus-os.asc
 test -L /etc/systemd/system/timers.target.wants/nexus-os-update.timer
+test -f /etc/apt/apt.conf.d/20nexus-auto-upgrades
 # Hier wijst de bron naar de map in plaats van naar GitHub Pages.
 sed -i "s|^URIs:.*|URIs: file:$repo|" /etc/apt/sources.list.d/nexus-os.sources
 apt-get update 2>&1 | tee /tmp/update.log

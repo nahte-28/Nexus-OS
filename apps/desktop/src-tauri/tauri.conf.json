@@ -41,11 +41,12 @@
     },
     "linux": {
       "deb": {
-        "recommends": ["labwc", "foot", "wireplumber", "brightnessctl", "mate-polkit", "network-manager", "bluez", "rfkill", "wlr-randr", "flatpak"],
+        "recommends": ["labwc", "foot", "wireplumber", "brightnessctl", "mate-polkit", "network-manager", "bluez", "rfkill", "wlr-randr", "flatpak", "unattended-upgrades"],
         "files": {
           "/usr/share/wayland-sessions/nexus.desktop": "../../../distro/session/nexus.desktop",
           "/usr/bin/nexus-session": "../../../distro/session/nexus-session",
           "/usr/lib/nexus-session/keep-nexus": "../../../distro/session/keep-nexus",
+          "/usr/libexec/nexus-system-upgrade": "../../../distro/session/nexus-system-upgrade",
           "/usr/share/nexus-session/labwc/rc.xml": "../../../distro/session/labwc/rc.xml",
           "/usr/share/nexus-session/labwc/menu.xml": "../../../distro/session/labwc/menu.xml",
           "/usr/share/nexus-session/labwc/environment": "../../../distro/session/labwc/environment",

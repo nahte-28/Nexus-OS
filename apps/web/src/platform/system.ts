@@ -84,6 +84,19 @@ export interface BluetoothState {
   devices: BtDevice[]
 }
 
+export interface PendingUpdate {
+  package: string
+  version: string
+  from: string
+  security: boolean
+}
+
+export interface UpdatesState {
+  pending: PendingUpdate[]
+  reboot_required: boolean
+  checked_at: number | null
+}
+
 async function invoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke } = await import('@tauri-apps/api/core')
   return invoke<T>(command, args)
@@ -104,6 +117,8 @@ export const system = {
   brightness: (percent: number) => invoke<void>('system_brightness', { percent: Math.round(percent) }),
   bluetooth: (scan = false) => invoke<BluetoothState>('system_bluetooth', { scan }),
   bluetoothPower: (on: boolean) => invoke<void>('system_bluetooth_power', { on }),
+  updates: () => invoke<UpdatesState>('system_updates'),
+  updatesInstall: () => invoke<void>('system_updates_install'),
   bluetoothDevice: (address: string, action: 'connect' | 'disconnect' | 'forget') => invoke<void>('system_bluetooth_device', { address, action }),
 }
 
