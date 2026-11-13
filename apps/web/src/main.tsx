@@ -46,6 +46,7 @@ import { startMentionNotices } from './teams/comments'
 import { openFriendFromUrl, startFriendNotices } from './friends/friends'
 import { startDmNotices } from './friends/dm'
 import { startPresence } from './presence/presence'
+import { startAdminCheck } from './admin/admin'
 import { startSentinel } from './sentinel/store'
 import { startNotificationLinks } from './integration/notificationLinks'
 import { startTimeMachine } from './timemachine/store'
@@ -146,6 +147,8 @@ startFriendNotices(supabase, () => isFeatureOn('friends'))
 startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 // Wie is er online: friends and teammates see that NEXUS is open here.
 startPresence(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
+// Beheer: shows in the sidebar for an admin of this NEXUS.
+startAdminCheck(supabase)
 // Sentinel: new devices and sign-ins go in the activity log on this device.
 startSentinel(supabase, defaultEngine)
 startNotificationLinks(() => isFeatureOn('integration'))

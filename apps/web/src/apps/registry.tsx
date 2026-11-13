@@ -4,9 +4,10 @@ import { useDeveloperMode } from '../devtools/log'
 import { isLinuxApp, openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
+import { useIsAdmin } from '../admin/admin'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon, SlidersIcon, FriendsIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon, SlidersIcon, FriendsIcon, AdminIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -74,6 +75,7 @@ const Marketplace = load('Marketplace', () => import('./Marketplace'))
 const Study = load('Study', () => import('./Study'))
 const LinuxApps = load('LinuxApps', () => import('./LinuxApps'))
 const System = load('System', () => import('./System'))
+const Admin = load('Admin', () => import('./Admin'))
 
 export interface AppDefinition {
   id: AppId
@@ -89,6 +91,8 @@ export interface AppDefinition {
   feature?: FeatureId
   /** Only in the Linux app of NEXUS (the apps on that computer). */
   linux?: boolean
+  /** Only listed for an admin of this NEXUS (Beheer). */
+  admin?: boolean
   /** Opens outside NEXUS's own windows (a website app) instead of showing [component]. */
   launch?: () => void
 }
@@ -150,6 +154,7 @@ export const APPS: AppDefinition[] = [
   { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, feature: 'browser' },
   { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
   { id: 'friends', title: 'Vrienden', icon: FriendsIcon, component: Friends, defaultSize: { width: 560, height: 620 }, feature: 'friends' },
+  { id: 'admin', title: 'Beheer', icon: AdminIcon, component: Admin, defaultSize: { width: 760, height: 640 }, admin: true },
   { id: 'controlcenter', title: 'Control Center', icon: ControlIcon, component: ControlCenter, defaultSize: { width: 820, height: 640 }, feature: 'controlCenter' },
   { id: 'sentinel', title: 'Sentinel', icon: ShieldIcon, component: Sentinel, defaultSize: { width: 760, height: 620 }, feature: 'sentinel' },
   { id: 'offline', title: 'Offline-centrum', icon: OfflineIcon, component: OfflineCenter, defaultSize: { width: 720, height: 600 }, feature: 'offline' },
@@ -173,6 +178,7 @@ export function getApp(id: AppId): AppDefinition {
  */
 export function useVisibleApps(): AppDefinition[] {
   const developerMode = useDeveloperMode()
+  const admin = useIsAdmin()
   const flowStudio = useFlowStudioEnabled()
   const switches = useFeatureSwitches()
   const { active } = useProfiles()
@@ -187,7 +193,9 @@ export function useVisibleApps(): AppDefinition[] {
   if (isLinuxApp && !ids.includes('linuxapps')) ids.unshift('linuxapps')
   // ...and the computer's own settings sit right before the NEXUS settings.
   if (isLinuxApp && !ids.includes('system')) ids.splice(Math.max(ids.indexOf('settings'), 0), 0, 'system')
+  // Beheer, for an admin of this NEXUS, right before the settings.
+  if (admin && !ids.includes('admin')) ids.splice(Math.max(ids.indexOf('settings'), 0), 0, 'admin')
   return ids.flatMap((id) =>
-    APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (!a.linux || isLinuxApp)),
+    APPS.filter((a) => a.id === id && (!a.admin || admin) && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (!a.linux || isLinuxApp)),
   )
 }

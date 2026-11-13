@@ -53,6 +53,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261113150000_friends.sql', label: 'Vrienden toevoegen met een code of link', needs: [{ table: 'friend_profiles' }, { table: 'friendships' }] },
   { file: '20261113180000_direct_messages.sql', label: 'Privéberichten tussen vrienden', needs: [{ table: 'dm_messages' }] },
   { file: '20261113210000_presence.sql', label: 'Wie is er online bij vrienden en teams', needs: [{ table: 'user_presence' }] },
+  { file: '20261113240000_admin.sql', label: 'Beheeroverzicht voor de beheerder', needs: [{ table: 'nexus_admins' }] },
 ]
 
 /** What nexus_schema_status() returns. */
