@@ -15,6 +15,9 @@ pipewire-audio
 wireplumber
 brightnessctl
 network-manager
+bluez
+rfkill
+wlr-randr
 polkitd
 pkexec
 mate-polkit

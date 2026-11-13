@@ -6,7 +6,7 @@ import { useFlowStudioEnabled } from '../flows/store'
 import { useFeatureSwitches } from '../features/store'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
-  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon } from './icons'
+  CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon, SlidersIcon } from './icons'
 
 /** Each app's code loads the first time it opens, so NEXUS itself starts faster. */
 const preloads: Array<() => Promise<void>> = []
@@ -72,6 +72,7 @@ const OfflineCenter = load('OfflineCenter', () => import('./OfflineCenter'))
 const Marketplace = load('Marketplace', () => import('./Marketplace'))
 const Study = load('Study', () => import('./Study'))
 const LinuxApps = load('LinuxApps', () => import('./LinuxApps'))
+const System = load('System', () => import('./System'))
 
 export interface AppDefinition {
   id: AppId
@@ -144,6 +145,7 @@ export const APPS: AppDefinition[] = [
   { id: 'weather', title: 'Weer', icon: WeatherIcon, component: Weather, defaultSize: { width: 560, height: 640 }, feature: 'weather' },
   { id: 'contacts', title: 'Contacten', icon: ContactsIcon, component: Contacts, defaultSize: { width: 600, height: 620 }, feature: 'contacts' },
   { id: 'linuxapps', title: 'Linux-apps', icon: TerminalIcon, component: LinuxApps, defaultSize: { width: 640, height: 520 }, linux: true },
+  { id: 'system', title: 'Systeem', icon: SlidersIcon, component: System, defaultSize: { width: 560, height: 620 }, linux: true },
   { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, feature: 'browser' },
   { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
   { id: 'controlcenter', title: 'Control Center', icon: ControlIcon, component: ControlCenter, defaultSize: { width: 820, height: 640 }, feature: 'controlCenter' },
@@ -181,6 +183,8 @@ export function useVisibleApps(): AppDefinition[] {
   ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, ...modules)
   // On Linux, the computer's own apps come first.
   if (isLinuxApp && !ids.includes('linuxapps')) ids.unshift('linuxapps')
+  // ...and the computer's own settings sit right before the NEXUS settings.
+  if (isLinuxApp && !ids.includes('system')) ids.splice(Math.max(ids.indexOf('settings'), 0), 0, 'system')
   return ids.flatMap((id) =>
     APPS.filter((a) => a.id === id && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (!a.linux || isLinuxApp)),
   )

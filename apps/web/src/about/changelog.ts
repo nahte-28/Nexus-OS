@@ -12,6 +12,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-13',
+    title: 'Systeeminstellingen in NEXUS OS',
+    items: [
+      'Nieuwe app Systeem in de Linux-app: verbind met wifi, regel het volume van luidspreker en microfoon, kies resolutie, grootte en helderheid van je scherm, en koppel Bluetooth-apparaten. Allemaal zonder terminal.',
+    ],
+  },
+  {
     date: '2026-11-12',
     title: 'NEXUS OS in een virtuele machine blijft goed in beeld',
     items: [
