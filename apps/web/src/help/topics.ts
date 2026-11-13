@@ -285,6 +285,16 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Browser is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
     ],
   },
+  friends: {
+    summary: 'Vrienden: voeg mensen toe met je eigen code of link.',
+    tips: [
+      'Kies eerst je naam voor vrienden. Je vrienden zien alleen die naam, nooit je e-mailadres.',
+      'Deel je vriendencode of de link (Link kopiëren of Delen). Wie hem opent of de code invult, stuurt je een verzoek dat jij aanvaardt of weigert.',
+      'Stuurt iemand jou een verzoek terwijl jij hem ook al vroeg, dan zijn jullie meteen vrienden.',
+      'Lekte je code uit? Tik op Nieuwe code: de oude code en link werken dan niet meer, je vrienden blijven.',
+      'Bij een nieuw verzoek of als iemand je verzoek aanvaardt, krijg je een melding zolang NEXUS openstaat.',
+    ],
+  },
   contacts: {
     summary: 'Contacten: je adresboek met verjaardagen.',
     tips: [
