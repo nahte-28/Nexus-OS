@@ -43,6 +43,7 @@ import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
 import { startTeamChatNotices } from './teams/chat'
 import { startMentionNotices } from './teams/comments'
+import { openFriendFromUrl, startFriendNotices } from './friends/friends'
 import { startSentinel } from './sentinel/store'
 import { startNotificationLinks } from './integration/notificationLinks'
 import { startTimeMachine } from './timemachine/store'
@@ -137,6 +138,8 @@ startFriendsSharing(supabase, () => isFeatureOn('gaming'))
 startTeamChatNotices(supabase, () => isFeatureOn('teams'))
 // Opmerkingen: a notice when a teammate mentions you with @ on a task.
 startMentionNotices(supabase, () => isFeatureOn('teams'))
+// Vrienden: a notice for a new friend request, or when someone accepts yours.
+startFriendNotices(supabase, () => isFeatureOn('friends'))
 // Sentinel: new devices and sign-ins go in the activity log on this device.
 startSentinel(supabase, defaultEngine)
 startNotificationLinks(() => isFeatureOn('integration'))
@@ -168,6 +171,8 @@ startEventSources()
 openCaptureFromUrl()
 // An invitation link (/join/<code>) opens Teams with the code filled in.
 openJoinFromUrl()
+// A friend link (/vriend/<code>) opens Vrienden with the code filled in.
+openFriendFromUrl()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

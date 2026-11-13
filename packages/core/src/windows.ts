@@ -1,6 +1,6 @@
 /** Pure window-manager state, shared by every runtime (web, Tauri). */
 
-export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'flows' | 'agenda' | 'files' | 'study' | 'grades' | 'habits' | 'flashcards' | 'insights' | 'finance' | 'journal' | 'about' | 'help' | 'spaces' | 'inbox' | 'timemachine' | 'bridge' | 'intelligence' | 'devhub' | 'capture' | 'briefing' | 'projecthub' | 'knowledge' | 'studylab' | 'gaming' | 'teams' | 'controlcenter' | 'sentinel' | 'offline' | 'marketplace' | 'darts' | 'clock' | 'calculator' | 'weather' | 'contacts' | 'browser' | 'linuxapps' | 'system'
+export type AppId = 'notes' | 'notifications' | 'devices' | 'assistant' | 'reminders' | 'account' | 'settings' | 'developer' | 'profiles' | 'klashub' | 'flows' | 'agenda' | 'files' | 'study' | 'grades' | 'habits' | 'flashcards' | 'insights' | 'finance' | 'journal' | 'about' | 'help' | 'spaces' | 'inbox' | 'timemachine' | 'bridge' | 'intelligence' | 'devhub' | 'capture' | 'briefing' | 'projecthub' | 'knowledge' | 'studylab' | 'gaming' | 'teams' | 'controlcenter' | 'sentinel' | 'offline' | 'marketplace' | 'darts' | 'clock' | 'calculator' | 'weather' | 'contacts' | 'browser' | 'linuxapps' | 'system' | 'friends'
 
 export interface Rect {
   x: number

@@ -50,6 +50,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261106090000_contacts.sql', label: 'Contacten syncen', needs: [{ settingsKey: 'contacts' }] },
   { file: '20261113090000_team_chat.sql', label: 'Teamchat', needs: [{ table: 'team_messages' }] },
   { file: '20261113120000_task_comments.sql', label: 'Opmerkingen en @vermeldingen op taken', needs: [{ table: 'team_task_comments' }] },
+  { file: '20261113150000_friends.sql', label: 'Vrienden toevoegen met een code of link', needs: [{ table: 'friend_profiles' }, { table: 'friendships' }] },
 ]
 
 /** What nexus_schema_status() returns. */

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Vrienden',
+    items: [
+      'Nieuwe app Vrienden: je krijgt een eigen vriendencode en link. Wie hem opent, stuurt je een verzoek dat jij aanvaardt of weigert.',
+      'Je vrienden zien alleen de naam die je kiest, nooit je e-mailadres. Met Nieuwe code maak je je oude code en link ongeldig.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Opmerkingen en @vermeldingen',
     items: [
       'Onder elke taak van een teamproject en elke groepsdeadline staat 💬: schrijf er een opmerking bij, live voor het hele team.',

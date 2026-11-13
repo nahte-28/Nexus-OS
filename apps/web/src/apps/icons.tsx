@@ -418,3 +418,11 @@ export const PowerIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M6.3 7.3a8 8 0 1 0 11.4 0" />
   </svg>
 )
+
+export const FriendsIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+    <path d="M19 8v6M16 11h6" />
+  </svg>
+)
