@@ -42,6 +42,7 @@ import { startVault } from './vault/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
 import { startTeamChatNotices } from './teams/chat'
+import { startMentionNotices } from './teams/comments'
 import { startSentinel } from './sentinel/store'
 import { startNotificationLinks } from './integration/notificationLinks'
 import { startTimeMachine } from './timemachine/store'
@@ -134,6 +135,8 @@ startSleepGuard(defaultEngine)
 startFriendsSharing(supabase, () => isFeatureOn('gaming'))
 // Teamchat: a notice for new messages in your teams while NEXUS runs.
 startTeamChatNotices(supabase, () => isFeatureOn('teams'))
+// Opmerkingen: a notice when a teammate mentions you with @ on a task.
+startMentionNotices(supabase, () => isFeatureOn('teams'))
 // Sentinel: new devices and sign-ins go in the activity log on this device.
 startSentinel(supabase, defaultEngine)
 startNotificationLinks(() => isFeatureOn('integration'))

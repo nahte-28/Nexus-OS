@@ -26,6 +26,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Focus start een pomodoro van 25 minuten; je horloge kan er ook een starten.',
       'De planner verdeelt je deadlines over vrije momenten rond je lessen en afspraken.',
       'Groep: maak een studiegroep en deel de uitnodigingscode, dan zien jullie elkaars deadlines, examens en studietijd, en delen jullie groepsdeadlines.',
+      'Bij een groepsdeadline zet je met 💬 een opmerking; typ @ om iemand van de groep te vermelden.',
     ],
   },
   grades: {
@@ -307,6 +308,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
       'Bij Chat praat het hele team samen, ook kijkers. Enter verstuurt, Shift+Enter begint een nieuwe regel. Je verwijdert je eigen berichten; de eigenaar en beheerders kunnen elk bericht weghalen.',
       'Een nieuw bericht geeft een melding op elk toestel waar NEXUS openstaat, en komt in de Universal Inbox. Wie het team verlaat, neemt zijn berichten mee. Een team bewaart de laatste 500 berichten.',
+      'Onder elke taak van een project staat 💬: schrijf er een opmerking. Typ @ en kies iemand van het team om die persoon te vermelden; die krijgt een melding. Bij de groepsdeadlines in Studie › Groep werkt het net zo.',
     ],
   },
   marketplace: {

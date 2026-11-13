@@ -34,6 +34,8 @@ import { classAgendaFor, classAgendaStore, useClassAgenda } from '../study/class
 import { Teams as TeamsApi } from '../teams/teams'
 import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
 import { TeamChat } from '../teams/chat'
+import { TaskComments } from '../teams/comments'
+import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
 import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
 import { profilesStore, useProfiles } from '../profiles/store'
 
@@ -52,6 +54,7 @@ const USES = [null, 1, 5, 10, 30] as const
 
 const defaultApi = supabase ? new TeamsApi(supabase) : null
 const defaultChat = supabase ? new TeamChat(supabase) : null
+const defaultComments = supabase ? new TaskComments(supabase) : null
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 /** A datetime-local value for a moment, in local time. */
@@ -79,7 +82,7 @@ interface TeamData {
 const EMPTY: TeamData = { members: [], invites: [], projects: [], tasks: [] }
 
 /** Teams: your study groups with roles, invitations that expire and projects you work on together. */
-export function Teams({ api = defaultApi, chat = defaultChat }: { api?: TeamsApi | null; chat?: TeamChat | null }) {
+export function Teams({ api = defaultApi, chat = defaultChat, comments = defaultComments }: { api?: TeamsApi | null; chat?: TeamChat | null; comments?: TaskComments | null }) {
   const [me, setMe] = useState<{ id: string; email: string | undefined } | null | undefined>(undefined)
   const [list, setList] = useState<StudyGroup[] | null>(null)
   const [picked, setPicked] = useState<string | null>(() => readStorage(PICKED_KEY))
@@ -270,7 +273,7 @@ export function Teams({ api = defaultApi, chat = defaultChat }: { api?: TeamsApi
         {list?.length === 0 && !mode && (
           <p className="text-nx-muted">Je zit nog in geen team. Een team is een studiegroep met rollen en gedeelde projecten: maak er een, of sluit aan met de code die je kreeg.</p>
         )}
-        {team && shown === 'Projecten' && <Projects api={api} team={team} data={data} me={me.id} role={myRole} busy={busy} run={run} />}
+        {team && shown === 'Projecten' && <Projects api={api} comments={comments} team={team} data={data} me={me.id} role={myRole} busy={busy} run={run} />}
         {team && shown === 'Chat' && <TeamChatPanel team={team} members={data.members} me={me.id} role={myRole} state={chatState} />}
         {team && shown === 'Leden' && <Members api={api} team={team} data={data} me={me.id} role={myRole} busy={busy} run={run} />}
         {team && shown === 'Uitnodigingen' && <Invites api={api} team={team} data={data} role={myRole} busy={busy} run={run} />}
@@ -303,7 +306,9 @@ function AssigneeSelect({ members, value, onChange, label, disabled }: { members
   )
 }
 
-function Projects({ api, team, data, me, role, busy, run }: PartProps & { data: TeamData; me: string }) {
+function Projects({ api, comments, team, data, me, role, busy, run }: PartProps & { data: TeamData; me: string; comments: TaskComments | null }) {
+  const [talk, setTalk] = useState<string | null>(null)
+  const { counts, refresh: refreshCounts } = useCommentCounts(comments, team.id)
   const [projectId, setProjectId] = useState<string | null>(null)
   const [projectName, setProjectName] = useState('')
   const [title, setTitle] = useState('')
@@ -446,6 +451,8 @@ function Projects({ api, team, data, me, role, busy, run }: PartProps & { data: 
                     ) : (
                       <p className="text-xs text-nx-muted">Voor {memberName(data.members, t.assignee, me)}</p>
                     )}
+                    {comments && <CommentsButton count={counts.get(t.id) ?? 0} open={talk === t.id} title={t.title} onClick={() => setTalk(talk === t.id ? null : t.id)} />}
+                    {comments && talk === t.id && <TaskCommentThread api={comments} groupId={team.id} target={{ kind: 'project', taskId: t.id }} members={data.members} me={me} role={role} onChange={refreshCounts} />}
                   </div>
                 ))}
               </div>

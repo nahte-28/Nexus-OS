@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Opmerkingen en @vermeldingen',
+    items: [
+      'Onder elke taak van een teamproject en elke groepsdeadline staat 💬: schrijf er een opmerking bij, live voor het hele team.',
+      'Typ @ om iemand van het team te vermelden. Die krijgt een melding en een item in de Universal Inbox.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Teamchat',
     items: [
       'Elk team heeft nu een tabblad Chat: praat met je team, live op al je toestellen. Op het tabblad staat hoeveel berichten je nog niet las.',

@@ -17,6 +17,8 @@ import { lifeStore } from '../life/store'
 import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
 import { StudyGroups, suggestedName } from '../study/group'
+import { TaskComments } from '../teams/comments'
+import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -26,6 +28,7 @@ const PICKED_KEY = 'nexus.studygroup.picked'
 const REFRESH_MS = 60_000
 
 const defaultGroups = supabase ? new StudyGroups(supabase) : null
+const defaultComments = supabase ? new TaskComments(supabase) : null
 const clock = (t: number) => new Date(t).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
 const dayTitle = (t: number) => {
   const word = new Date(t).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -42,7 +45,7 @@ function SetupHint({ problem }: { problem: string }) {
 }
 
 /** Studiegroep: share deadlines, exams and study time with friends, and see theirs. */
-export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups | null }) {
+export function StudyGroupTab({ groups = defaultGroups, comments = defaultComments }: { groups?: StudyGroups | null; comments?: TaskComments | null }) {
   const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
   const [me, setMe] = useState<{ id: string; email: string | undefined } | null | undefined>(undefined)
   const [list, setList] = useState<StudyGroup[] | null>(null)
@@ -63,6 +66,8 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
   const now = Date.now()
 
   const group = list?.find((g) => g.id === picked) ?? list?.[0] ?? null
+  const [talk, setTalk] = useState<string | null>(null)
+  const { counts, refresh: refreshCounts } = useCommentCounts(comments, group?.id ?? null)
 
   const refreshList = useCallback(async () => {
     if (!groups) return
@@ -290,6 +295,12 @@ export function StudyGroupTab({ groups = defaultGroups }: { groups?: StudyGroups
                       >
                         Verwijderen
                       </button>
+                    )}
+                    {comments && <CommentsButton count={counts.get(t.id) ?? 0} open={talk === t.id} title={t.title} onClick={() => setTalk(talk === t.id ? null : t.id)} />}
+                    {comments && group && talk === t.id && (
+                      <div className="w-full">
+                        <TaskCommentThread api={comments} groupId={group.id} target={{ kind: 'group', taskId: t.id }} members={members} me={me.id} role={null} onChange={refreshCounts} />
+                      </div>
                     )}
                   </li>
                 )
