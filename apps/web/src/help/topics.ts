@@ -293,6 +293,8 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Stuurt iemand jou een verzoek terwijl jij hem ook al vroeg, dan zijn jullie meteen vrienden.',
       'Lekte je code uit? Tik op Nieuwe code: de oude code en link werken dan niet meer, je vrienden blijven.',
       'Bij een nieuw verzoek of als iemand je verzoek aanvaardt, krijg je een melding zolang NEXUS openstaat.',
+      'Bij Berichten stuur je een vriend een privébericht. Het wordt op je toestel versleuteld voor elk toestel van jullie twee (pc, browser en de Windows- of Linux-app); NEXUS zelf kan het niet lezen.',
+      'Een toestel dat je later koppelt, kan oudere berichten niet lezen: die waren niet voor dat toestel versleuteld. Op de gsm-app en het horloge staan geen privéberichten.',
     ],
   },
   contacts: {

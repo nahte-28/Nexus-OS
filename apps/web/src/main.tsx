@@ -44,6 +44,7 @@ import { startFriendsSharing } from './gaming/friends'
 import { startTeamChatNotices } from './teams/chat'
 import { startMentionNotices } from './teams/comments'
 import { openFriendFromUrl, startFriendNotices } from './friends/friends'
+import { startDmNotices } from './friends/dm'
 import { startSentinel } from './sentinel/store'
 import { startNotificationLinks } from './integration/notificationLinks'
 import { startTimeMachine } from './timemachine/store'
@@ -140,6 +141,8 @@ startTeamChatNotices(supabase, () => isFeatureOn('teams'))
 startMentionNotices(supabase, () => isFeatureOn('teams'))
 // Vrienden: a notice for a new friend request, or when someone accepts yours.
 startFriendNotices(supabase, () => isFeatureOn('friends'))
+// Privéberichten: a notice for a new message, opened with this device's Connect key.
+startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 // Sentinel: new devices and sign-ins go in the activity log on this device.
 startSentinel(supabase, defaultEngine)
 startNotificationLinks(() => isFeatureOn('integration'))
