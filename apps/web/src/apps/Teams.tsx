@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import {
+  byPresence,
+  onlineCount,
   canRemove,
   formatTeamCode,
   INVITE_DURATIONS,
@@ -37,6 +39,7 @@ import { TeamChat } from '../teams/chat'
 import { TaskComments } from '../teams/comments'
 import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
 import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
+import { PresenceDot, usePresence } from '../presence/PresenceDot'
 import { profilesStore, useProfiles } from '../profiles/store'
 
 const TABS = ['Projecten', 'Chat', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
@@ -466,17 +469,23 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
 
 function Members({ api, team, data, me, role, busy, run }: PartProps & { data: TeamData; me: string }) {
   const [handOver, setHandOver] = useState<string | null>(null)
+  const { presence, now } = usePresence()
+  const others = data.members.filter((m) => m.userId !== me).map((m) => m.userId)
   return (
     <>
+      {others.length > 0 && <p className="text-xs text-nx-muted">{onlineCount(others, presence, now)} van {others.length} andere leden online</p>}
       <ul className="space-y-1">
-        {sortMembers(data.members).map((m) => {
+        {byPresence(sortMembers(data.members), presence, now).map((m) => {
           const self = m.userId === me
           const choices = roleChoices(role, m.role, self)
           return (
             <li key={m.userId} className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border px-3 py-2">
-              <span className="min-w-0 flex-1">
-                {m.displayName}
-                {self && ' (jij)'}
+              <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+                <span>
+                  {m.displayName}
+                  {self && ' (jij)'}
+                </span>
+                {!self && <PresenceDot entry={presence.get(m.userId)} now={now} />}
               </span>
               {choices.length > 0 ? (
                 <select aria-label={`Rol van ${m.displayName}`} value={m.role} disabled={busy} onChange={(e) => void run(() => api.setRole(team.id, m.userId, e.target.value as TeamRole))} className={`${field} w-auto`}>

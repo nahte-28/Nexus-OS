@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { formatFriendCode, FRIEND_NAME_MAX, requestResult, sortFriends, type FriendEntry } from '@nexus/core'
+import { formatFriendCode, FRIEND_NAME_MAX, onlineCount, requestResult, sortFriends, type FriendEntry } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { suggestedName } from '../study/group'
 import { clearPendingFriend, Friends as FriendsApi, myFriendLink, pendingFriend, type FriendProfile } from '../friends/friends'
@@ -7,6 +7,9 @@ import { DirectMessages } from '../friends/dm'
 import { Messages } from '../friends/Messages'
 import { defaultEngine, useConnect } from '../connect/ConnectContext'
 import { readStorage, writeStorage } from '../state/storage'
+import { MyStatus } from '../presence/MyStatus'
+import { defaultPresence, PresenceDot, usePresence } from '../presence/PresenceDot'
+import type { Presence } from '../presence/presence'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -19,7 +22,8 @@ const TAB_KEY = 'nexus.friends.tab'
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** Vrienden: add people with your code or link, answer requests and see who your friends are. */
-export function Friends({ api = defaultApi, dms = defaultDms }: { api?: FriendsApi | null; dms?: DirectMessages | null }) {
+export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defaultPresence }: { api?: FriendsApi | null; dms?: DirectMessages | null; presenceApi?: Presence | null }) {
+  const { presence, now } = usePresence(presenceApi)
   const { state: connect } = useConnect()
   const sealed = connect.status === 'ready'
   const [tab, setTabState] = useState<'Vrienden' | 'Berichten'>(() => (readStorage(TAB_KEY) === 'Berichten' ? 'Berichten' : 'Vrienden'))
@@ -105,6 +109,7 @@ export function Friends({ api = defaultApi, dms = defaultDms }: { api?: FriendsA
   }
 
   const sorted = sortFriends(list)
+  const friendIds = list.filter((f) => f.kind === 'friend').map((f) => f.userId)
   const setup = problem?.startsWith('setup:')
 
   return (
@@ -219,14 +224,22 @@ export function Friends({ api = defaultApi, dms = defaultDms }: { api?: FriendsA
               </div>
             </form>
 
+            {presenceApi && <MyStatus api={presenceApi} />}
+
             <section className="space-y-2">
-              <h3 className="font-medium">Vrienden</h3>
+              <h3 className="font-medium">
+                Vrienden
+                {friendIds.length > 0 && <span className="ml-2 text-xs font-normal text-nx-muted">{onlineCount(friendIds, presence, now)} online</span>}
+              </h3>
               {sorted.length === 0 && <p className="text-nx-muted">Nog geen vrienden. Deel je code of link, of vul de code van iemand anders in.</p>}
               <ul className="space-y-1">
                 {sorted.map((f) => (
                   <li key={f.userId} className="flex flex-wrap items-center gap-2 rounded-lg border border-nx-border px-3 py-2">
                     <span className="min-w-0 flex-1">
-                      <span className="block">{f.displayName}</span>
+                      <span className="flex items-center gap-2">
+                        {f.displayName}
+                        {f.kind === 'friend' && <PresenceDot entry={presence.get(f.userId)} now={now} />}
+                      </span>
                       <span className="block text-xs text-nx-muted">
                         {f.kind === 'incoming' ? 'Wil je vriend worden' : f.kind === 'outgoing' ? 'Verzoek gestuurd, wacht op antwoord' : `Vrienden sinds ${new Date(f.since).toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })}`}
                       </span>

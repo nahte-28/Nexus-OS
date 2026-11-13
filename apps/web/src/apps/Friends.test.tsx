@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { FriendEntry } from '@nexus/core'
 import type { Friends as FriendsApi } from '../friends/friends'
+import type { Presence } from '../presence/presence'
 
 const { Friends } = await import('./Friends')
 const { friendError, openFriendFromUrl, pendingFriend } = await import('../friends/friends')
@@ -30,6 +31,21 @@ describe('Vrienden', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+  })
+
+  it('shows who is online and sets your own status', async () => {
+    const presence = {
+      list: vi.fn(async () => new Map([['z', { userId: 'z', state: 'busy' as const, note: 'Examen', lastSeen: Date.now() }]])),
+      mine: vi.fn(async () => ({ state: 'available' as const, note: null })),
+      set: vi.fn(async (state: 'available' | 'busy' | 'invisible', note: string) => ({ state, note: note.trim() || null })),
+      ping: vi.fn(async () => {}),
+    } as unknown as Presence & { set: ReturnType<typeof vi.fn> }
+    render(<Friends api={fake()} presenceApi={presence} />)
+    expect(await screen.findByText('Bezet · Examen')).toBeTruthy()
+    expect(screen.getByText('1 online')).toBeTruthy()
+    fireEvent.click(await screen.findByRole('radio', { name: 'Onzichtbaar' }))
+    await waitFor(() => expect(presence.set).toHaveBeenCalledWith('invisible', ''))
+    expect(await screen.findByText(/Je staat voor iedereen offline/)).toBeTruthy()
   })
 
   it('asks for a name first, suggested from the e-mail address', async () => {
