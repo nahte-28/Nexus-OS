@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Privéberichten',
+    items: [
+      'In Vrienden staat nu Berichten: stuur een vriend een privébericht, end-to-end versleuteld. Alleen jullie toestellen kunnen het lezen, NEXUS zelf niet.',
+      'Een nieuw bericht geeft een melding zolang NEXUS openstaat; je ziet ook wanneer je bericht gelezen is.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Vrienden',
     items: [
       'Nieuwe app Vrienden: je krijgt een eigen vriendencode en link. Wie hem opent, stuurt je een verzoek dat jij aanvaardt of weigert.',

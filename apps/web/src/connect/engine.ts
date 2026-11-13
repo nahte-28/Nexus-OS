@@ -19,6 +19,7 @@ import {
   type ConnectPayload,
   type PlanPayload,
   type Device,
+  type Envelope,
   type InboxItem,
 } from '@nexus/core'
 import { getAll, getValue, update } from '../state/db'
@@ -506,6 +507,23 @@ export class ConnectEngine {
   private requireIdentity(): Identity {
     if (!this.identity || !this.remote) throw new Error('Dit apparaat is nog niet gekoppeld.')
     return this.identity
+  }
+
+  /** This device's id once Connect is ready; privéberichten are encrypted for each device. */
+  get deviceId(): string | null {
+    return this.identity?.deviceId ?? null
+  }
+
+  /** Opens what was sealed for this device among [envelopes]; null when none is for this device. */
+  async openSealed(envelopes: Record<string, Envelope>): Promise<string | null> {
+    const identity = this.identity
+    const envelope = identity ? envelopes[identity.deviceId] : undefined
+    if (!identity || !envelope) return null
+    try {
+      return await decryptWith(identity.privateKey, identity.publicKey, identity.deviceId, envelope)
+    } catch {
+      return null
+    }
   }
 
   subscribe = (listener: () => void): (() => void) => {
