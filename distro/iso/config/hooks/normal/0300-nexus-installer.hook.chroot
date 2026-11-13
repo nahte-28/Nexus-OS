@@ -1,0 +1,32 @@
+#!/bin/sh
+# NEXUS OS installeren met Calamares (calamares-settings-debian), in het uitzicht en de taal
+# van NEXUS. Draait in het nieuwe systeem terwijl de ISO gebouwd wordt.
+set -e
+conf=/etc/calamares
+[ -f "$conf/settings.conf" ] || exit 0
+# Het uitzicht van NEXUS (map branding/nexus, gekopieerd door distro/iso/build.sh).
+sed -i 's/^branding: .*/branding: nexus/' "$conf/settings.conf"
+# Het aanmeldscherm (greetd met tuigreet) staat al goed in de image; Calamares kent greetd
+# alleen voor automatisch aanmelden en mag het niet aanpassen.
+sed -i '/^ *- displaymanager$/d' "$conf/settings.conf"
+# België als standaard: tijdzone Brussel, Nederlands.
+cat > "$conf/modules/locale.conf" <<'CONF'
+---
+region: "Europe"
+zone: "Brussels"
+localeGenPath: /etc/locale.gen
+geoip:
+    style: "none"
+CONF
+# Ook calamares zelf hoort niet in het geïnstalleerde systeem.
+grep -q "'calamares'" "$conf/modules/packages.conf" || \
+  sed -i "s/^      - 'calamares-settings-debian'$/      - 'calamares-settings-debian'\n      - 'calamares'/" "$conf/modules/packages.conf"
+# De snelkoppeling heet NEXUS OS installeren (Linux-apps en Start tonen ze ook).
+desktop=/usr/share/applications/calamares-install-debian.desktop
+if [ -f "$desktop" ]; then
+  sed -i -e 's/^Name=.*/Name=NEXUS OS installeren/' \
+    -e 's/^Comment=.*/Comment=NEXUS OS op deze computer installeren/' \
+    -e 's/^Icon=.*/Icon=\/etc\/calamares\/branding\/nexus\/logo.png/' "$desktop"
+fi
+# Geen icoon op een bureaublad: NEXUS is het bureaublad.
+rm -f /etc/xdg/autostart/calamares-desktop-icon.desktop

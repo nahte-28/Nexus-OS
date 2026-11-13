@@ -55,6 +55,11 @@ live-config-systemd
 # Creates the live user (a recommendation of live-config, which this build does not install by itself)
 user-setup
 
+# NEXUS OS installeren from the live usb (Calamares, with xhost for its window as root)
+calamares
+calamares-settings-debian
+x11-xserver-utils
+
 # Boot splash with the NEXUS logo (theme made in hooks/normal/0200-nexus-branding)
 plymouth
 plymouth-themes

@@ -1,0 +1,35 @@
+# NEXUS OS installeren: uitzicht van Calamares. Komt in /etc/calamares/branding/nexus
+# (distro/iso/build.sh); /etc/calamares/settings.conf kiest het in de hook 0300-nexus-installer.
+---
+componentName:  nexus
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 860px,600px
+windowPlacement: center
+strings:
+    productName:         NEXUS OS
+    shortProductName:    NEXUS OS
+    version:             1.0
+    shortVersion:        1.0
+    versionedName:       NEXUS OS 1.0
+    shortVersionedName:  NEXUS OS 1.0
+    bootloaderEntryName: NEXUS OS
+    productUrl:          https://nahte-28.github.io/Nexus-OS/
+    supportUrl:          https://github.com/nahte-28/Nexus-OS/issues
+    knownIssuesUrl:      https://github.com/nahte-28/Nexus-OS/issues
+    releaseNotesUrl:     https://github.com/nahte-28/Nexus-OS/releases
+    donateUrl:           https://github.com/nahte-28/Nexus-OS
+sidebar: widget
+navigation: widget
+images:
+    productLogo:         "logo.png"
+    productIcon:         "logo.png"
+    productWelcome:      "welcome.png"
+slideshow:               "show.qml"
+slideshowAPI: 2
+style:
+   SidebarBackground:        "#0b1020"
+   SidebarText:              "#e6ecff"
+   SidebarTextCurrent:       "#ffffff"
+   SidebarBackgroundCurrent: "#2f5bd3"

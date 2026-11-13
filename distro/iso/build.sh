@@ -28,6 +28,12 @@ install -D -m 755 "$session/nexus-system-upgrade" "$inc/usr/libexec/nexus-system
 for f in rc.xml menu.xml environment autostart; do
   install -D -m 644 "$session/labwc/$f" "$inc/usr/share/nexus-session/labwc/$f"
 done
+# NEXUS OS installeren (Calamares): the NEXUS look; the hook 0300-nexus-installer chooses it.
+cal="$inc/etc/calamares/branding/nexus"
+install -D -m 644 "$here/calamares/branding/nexus/branding.desc" "$cal/branding.desc"
+install -D -m 644 "$here/calamares/branding/nexus/show.qml" "$cal/show.qml"
+install -D -m 644 "$here/../branding/images/calamares-logo.png" "$cal/logo.png"
+install -D -m 644 "$here/../branding/images/calamares-welcome.png" "$cal/welcome.png"
 # NEXUS OS look: images for the boot splash and the installed boot menu, and the version.
 brand="$here/../branding/images"
 install -D -m 644 "$brand/plymouth-logo.png" "$inc/usr/share/nexus-os/logo.png"

@@ -19,12 +19,42 @@ async function invoke<T>(command: string, args?: Record<string, unknown>): Promi
   return invoke<T>(command, args)
 }
 
-let session: Promise<boolean> | undefined
+interface SessionInfo {
+  session: boolean
+  live: boolean
+}
+
+let info: Promise<SessionInfo> | undefined
+
+function sessionInfo(): Promise<SessionInfo> {
+  if (!isLinuxApp) return Promise.resolve({ session: false, live: false })
+  return (info ??= invoke<SessionInfo>('session_info').then(
+    (i) => ({ session: !!i.session, live: !!i.live }),
+    () => ({ session: false, live: false }),
+  ))
+}
 
 /** True when NEXUS is the whole desktop (chosen as "NEXUS OS" on the login screen). */
 export function isNexusSession(): Promise<boolean> {
-  if (!isLinuxApp) return Promise.resolve(false)
-  return (session ??= invoke<{ session: boolean }>('session_info').then((i) => i.session, () => false))
+  return sessionInfo().then((i) => i.session)
+}
+
+/** True when running from the NEXUS OS usb stick, where NEXUS OS can be installed. */
+export function useLiveSystem(): boolean {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    let live = true
+    void sessionInfo().then((i) => live && setOn(i.live))
+    return () => {
+      live = false
+    }
+  }, [])
+  return on
+}
+
+/** Starts the installer on the usb stick; it asks for the password (live) itself. */
+export function installNexusOs(): Promise<void> {
+  return invoke('session_install_os')
 }
 
 export function useNexusSession(): boolean {

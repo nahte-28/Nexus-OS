@@ -2,8 +2,10 @@
 
 Een live-ISO van NEXUS OS: Debian 13 (trixie) met de [NEXUS-sessie](../session/README.md) als
 bureaublad. Start je ze, dan meldt de live-gebruiker `nexus` (wachtwoord `live`) zich meteen aan
-in NEXUS. Kies je in het opstartmenu "Install", dan zet het Debian-installatieprogramma hetzelfde
-systeem op de schijf; daarna meld je je aan op het aanmeldscherm (greetd met tuigreet) met de
+in NEXUS. Met "NEXUS OS installeren" in Start (of Linux-apps) zet het eigen installatieprogramma
+(Calamares, met het uitzicht uit `calamares/` en `hooks/normal/0300-nexus-installer.hook.chroot`)
+hetzelfde systeem op de schijf. "Install" in het opstartmenu (het Debian-installatieprogramma)
+blijft als reserve; daarna meld je je aan op het aanmeldscherm (greetd met tuigreet) met de
 sessie NEXUS OS.
 
 ## Bouwen
