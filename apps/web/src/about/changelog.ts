@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Wie is er online',
+    items: [
+      'In Vrienden en bij Teams › Leden zie je wie nu online is, wie bezet is en wanneer iemand laatst online was.',
+      'Kies in Vrienden je eigen status: Beschikbaar, Bezet of Onzichtbaar, met een korte zin zoals "Aan het studeren". Onzichtbaar toont je voor iedereen offline.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Privéberichten',
     items: [
       'In Vrienden staat nu Berichten: stuur een vriend een privébericht, end-to-end versleuteld. Alleen jullie toestellen kunnen het lezen, NEXUS zelf niet.',

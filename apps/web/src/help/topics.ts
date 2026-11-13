@@ -295,6 +295,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij een nieuw verzoek of als iemand je verzoek aanvaardt, krijg je een melding zolang NEXUS openstaat.',
       'Bij Berichten stuur je een vriend een privébericht. Het wordt op je toestel versleuteld voor elk toestel van jullie twee (pc, browser en de Windows- of Linux-app); NEXUS zelf kan het niet lezen.',
       'Een toestel dat je later koppelt, kan oudere berichten niet lezen: die waren niet voor dat toestel versleuteld. Op de gsm-app en het horloge staan geen privéberichten.',
+      'Een groen bolletje betekent dat NEXUS bij je vriend openstaat, oranje dat die bezet is. Bij Jouw status kies je Beschikbaar, Bezet of Onzichtbaar en een korte status. Onzichtbaar toont je voor iedereen offline.',
     ],
   },
   contacts: {
@@ -311,6 +312,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   teams: {
     summary: 'Teams: je studiegroepen met rollen, uitnodigingen en gedeelde projecten.',
     tips: [
+      'Bij Leden zie je wie van je team nu online is. Je eigen status kies je in Vrienden › Jouw status.',
       'Een team is dezelfde groep als in Studie › Groep: wat leden delen en de groepsdeadlines staan daar.',
       'Eigenaar, beheerder, lid of kijker: bij Leden staat wat elke rol mag. Kijkers lezen alleen mee.',
       'Bij Uitnodigingen kopieer of deel je een uitnodiging als link; wie ze opent, heeft de code al ingevuld.',
