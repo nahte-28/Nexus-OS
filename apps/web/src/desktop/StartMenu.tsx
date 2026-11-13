@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { useVisibleApps } from '../apps/registry'
 import { PowerIcon, TerminalIcon } from '../apps/icons'
-import { filterLinuxApps, openLinuxApp, sessionPower, useLinuxApps, useNexusSession, type PowerAction } from '../platform/session'
+import { filterLinuxApps, installNexusOs, openLinuxApp, sessionPower, useLinuxApps, useLiveSystem, useNexusSession, type PowerAction } from '../platform/session'
 
 interface Props {
   onClose: () => void
@@ -17,6 +17,7 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
   // Linux apps only show while searching, so the menu stays NEXUS's own.
   const linuxResults = query.trim() ? filterLinuxApps(linux.apps, query).slice(0, 6) : []
   const session = useNexusSession()
+  const live = useLiveSystem()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -90,6 +91,17 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
         </>
       )}
       {error && <p role="alert" className="mt-2 text-sm text-red-500">{error}</p>}
+      {live && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => installNexusOs().then(onClose, (err) => setError(String(err)))}
+          className="mt-3 w-full rounded-lg bg-nx-accent px-3 py-2 text-left text-sm font-medium text-nx-accent-text"
+        >
+          NEXUS OS installeren
+          <span className="block text-xs font-normal opacity-80">Je draait nu vanaf de usb-stick. Wachtwoord: live</span>
+        </button>
+      )}
       {session && <PowerRow onError={setError} />}
     </div>
   )

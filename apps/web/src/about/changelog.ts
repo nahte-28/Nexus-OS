@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'NEXUS OS installeren vanuit NEXUS',
+    items: [
+      'Op de usb-stick van NEXUS OS staat in Start de knop NEXUS OS installeren. Die opent een eigen installatieprogramma in het Nederlands, met het uitzicht van NEXUS: taal, toetsenbord, schijf en je account in een paar stappen.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Systeemupdates van Debian',
     items: [
       'NEXUS OS installeert de beveiligingsupdates van Debian nu elke dag vanzelf.',

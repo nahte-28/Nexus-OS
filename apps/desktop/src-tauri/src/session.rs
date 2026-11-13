@@ -28,11 +28,18 @@ pub struct SessionInfo {
     /// True when NEXUS is the desktop (the NEXUS session), not an app in another desktop.
     session: bool,
     linux: bool,
+    /// Started from the NEXUS OS usb stick (live), where NEXUS OS can be installed.
+    live: bool,
+}
+
+/// live-boot mounts the usb stick here; an installed system has no such folder.
+fn is_live() -> bool {
+    std::path::Path::new("/run/live/medium").is_dir()
 }
 
 #[tauri::command]
 pub async fn session_info() -> SessionInfo {
-    SessionInfo { session: is_session(), linux: cfg!(target_os = "linux") }
+    SessionInfo { session: is_session(), linux: cfg!(target_os = "linux"), live: cfg!(target_os = "linux") && is_live() }
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
@@ -204,6 +211,22 @@ pub async fn linux_app_open(webview: Webview, id: String) -> Result<(), String> 
         .spawn()
         .map(|_| ())
         .map_err(|e| format!("{} starten mislukt: {e}", entry.name))
+}
+
+/// Starts the installer (Calamares) on the live usb stick; it asks for the password itself.
+#[tauri::command]
+pub async fn session_install_os(webview: Webview) -> Result<(), String> {
+    allowed(&webview)?;
+    if !is_live() {
+        return Err("NEXUS OS is al geïnstalleerd op deze computer".into());
+    }
+    std::process::Command::new("calamares-install-debian")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Installatieprogramma starten mislukt: {e}"))
 }
 
 /// Logs out of the NEXUS session, or locks, sleeps, restarts or shuts down the computer.

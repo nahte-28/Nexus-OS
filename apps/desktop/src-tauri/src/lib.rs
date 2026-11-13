@@ -50,6 +50,7 @@ pub fn run() {
             session::linux_apps,
             session::linux_app_open,
             session::session_power,
+            session::session_install_os,
             system::system_wifi,
             system::system_wifi_power,
             system::system_wifi_connect,

@@ -87,4 +87,7 @@ logo(192).save(OUT / "plymouth-logo.png")
 # Banner of the graphical installer (800x75, light and dark).
 banner(800, 75, dark=False).save(OUT / "installer-banner.png")
 banner(800, 75, dark=True).save(OUT / "installer-banner-dark.png")
+# NEXUS OS installeren (Calamares): the logo in its side bar and the welcome picture.
+logo(128).save(OUT / "calamares-logo.png")
+screen(600, 300, "Installeren op deze computer").save(OUT / "calamares-welcome.png")
 print("Klaar:", ", ".join(sorted(p.name for p in OUT.iterdir())))
