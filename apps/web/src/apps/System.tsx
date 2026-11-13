@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { logEvent } from '../devtools/log'
 import { isLinuxApp } from '../platform/desktop'
+import { sessionPower } from '../platform/session'
 import {
   SCALES,
   modeLabel,
@@ -10,11 +11,12 @@ import {
   type DisplayState,
   type Screen,
   type SoundState,
+  type UpdatesState,
   type WifiNetwork,
   type WifiState,
 } from '../platform/system'
 
-const TABS = ['Wifi', 'Geluid', 'Beeld', 'Bluetooth'] as const
+const TABS = ['Wifi', 'Geluid', 'Beeld', 'Bluetooth', 'Updates'] as const
 type Tab = (typeof TABS)[number]
 
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 hover:bg-nx-surface-2 disabled:opacity-50'
@@ -409,7 +411,67 @@ function BluetoothPanel() {
   )
 }
 
-/** Wifi, sound, screens and Bluetooth of this Linux computer. */
+function UpdatesPanel() {
+  const load = useCallback(() => system.updates(), [])
+  const { state, busy, error, act } = useSystemState<UpdatesState>(load)
+  const [installing, setInstalling] = useState(false)
+  if (!state) return <>{error ? <Problem text={error} /> : <p className="text-nx-muted">Even kijken…</p>}</>
+  const security = state.pending.filter((u) => u.security).length
+  const checked = state.checked_at ? new Date(state.checked_at * 1000).toLocaleString('nl-BE', { dateStyle: 'medium', timeStyle: 'short' }) : null
+  return (
+    <div className="flex flex-col gap-3">
+      <div className={`${card} flex flex-col gap-2`}>
+        <p className="font-medium">
+          {state.pending.length === 0 ? 'Alles is bijgewerkt' : `${state.pending.length} ${state.pending.length === 1 ? 'update' : 'updates'} klaar`}
+          {security > 0 && <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-500">{security} voor beveiliging</span>}
+        </p>
+        <p className="text-xs text-nx-muted">
+          Beveiligingsupdates van Debian installeren elke dag vanzelf. De rest installeer je hier, met je wachtwoord.
+          {checked ? ` Laatst nagekeken: ${checked}.` : ''}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {state.pending.length > 0 && (
+            <button
+              type="button"
+              className={primary}
+              disabled={busy}
+              onClick={() => {
+                setInstalling(true)
+                void act(() => system.updatesInstall(), `${state.pending.length} systeemupdates geïnstalleerd`).finally(() => setInstalling(false))
+              }}
+            >
+              {installing ? 'Installeren… (dit kan even duren)' : 'Alles installeren'}
+            </button>
+          )}
+          {state.reboot_required && (
+            <button type="button" className={button} onClick={() => void sessionPower('reboot')}>
+              Opnieuw opstarten
+            </button>
+          )}
+        </div>
+        {state.reboot_required && <p className="text-xs">Herstart de computer om de laatste updates te gebruiken.</p>}
+      </div>
+      <Problem text={error} />
+      {state.pending.length > 0 && (
+        <ul aria-label="Klaarstaande updates" className="flex flex-col gap-0.5">
+          {state.pending.map((u) => (
+            <li key={u.package} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1 hover:bg-nx-surface-2">
+              <span className="truncate">
+                {u.package}
+                {u.security && <span className="ml-2 text-xs text-red-500">beveiliging</span>}
+              </span>
+              <span className="shrink-0 text-xs text-nx-muted">
+                {u.from} → {u.version}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/** Wifi, sound, screens, Bluetooth and updates of this Linux computer. */
 export function System() {
   const [tab, setTab] = useState<Tab>('Wifi')
   if (!isLinuxApp) return <p className="p-4 text-sm text-nx-muted">Systeeminstellingen zie je alleen in de Linux-app van NEXUS.</p>
@@ -434,6 +496,7 @@ export function System() {
         {tab === 'Geluid' && <SoundPanel />}
         {tab === 'Beeld' && <DisplayPanel />}
         {tab === 'Bluetooth' && <BluetoothPanel />}
+        {tab === 'Updates' && <UpdatesPanel />}
       </div>
     </div>
   )

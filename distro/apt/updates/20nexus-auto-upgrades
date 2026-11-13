@@ -1,0 +1,4 @@
+// NEXUS OS: Debian's beveiligingsupdates dagelijks vanzelf installeren (unattended-upgrades,
+// standaard alleen de bron Debian-Security). Uitzetten: zet beide waarden op "0".
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";

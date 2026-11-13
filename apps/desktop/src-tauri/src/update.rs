@@ -203,7 +203,7 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
 
 /// The program to start after apt replaced it. Linux names the running program
 /// "/usr/bin/nexus-desktop (deleted)" once its file is replaced, which does not exist.
-fn installed_exe(current: Option<std::path::PathBuf>) -> std::path::PathBuf {
+pub(crate) fn installed_exe(current: Option<std::path::PathBuf>) -> std::path::PathBuf {
     let fallback = std::path::PathBuf::from("/usr/bin/nexus-desktop");
     let Some(path) = current else { return fallback };
     let text = path.to_string_lossy();

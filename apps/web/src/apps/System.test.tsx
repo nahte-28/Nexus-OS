@@ -45,6 +45,15 @@ vi.mock('../platform/desktop', () => ({ isDesktopApp: true, isLinuxApp: true, de
           },
         ],
       }
+    if (command === 'system_updates')
+      return {
+        pending: [
+          { package: 'firefox-esr', version: '140.5', from: '140.4', security: false },
+          { package: 'openssl', version: '3.5.1-1+deb13u1', from: '3.5.1-1', security: true },
+        ],
+        reboot_required: true,
+        checked_at: 1763020800,
+      }
     if (command === 'system_bluetooth') return { available: true, powered: true, devices: [{ address: 'AA:BB:CC:DD:EE:FF', name: 'Koptelefoon', paired: false, connected: false }] }
     return null
   },
@@ -107,5 +116,16 @@ describe('Systeem', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Bluetooth' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Koppelen' }))
     await waitFor(() => expect(calls).toContainEqual(['system_bluetooth_device', { address: 'AA:BB:CC:DD:EE:FF', action: 'connect' }]))
+  })
+
+  it('shows waiting system updates and installs them', async () => {
+    render(<System />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Updates' }))
+    expect(await screen.findByText('2 updates klaar')).toBeTruthy()
+    expect(screen.getByText('1 voor beveiliging')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Alles installeren' }))
+    await waitFor(() => expect(calls.some(([c]) => c === 'system_updates_install')).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Opnieuw opstarten' }))
+    await waitFor(() => expect(calls).toContainEqual(['session_power', { action: 'reboot' }]))
   })
 })

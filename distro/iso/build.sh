@@ -24,6 +24,7 @@ inc="$work/config/includes.chroot"
 install -D -m 644 "$session/nexus.desktop" "$inc/usr/share/wayland-sessions/nexus.desktop"
 install -D -m 755 "$session/nexus-session" "$inc/usr/bin/nexus-session"
 install -D -m 755 "$session/keep-nexus" "$inc/usr/lib/nexus-session/keep-nexus"
+install -D -m 755 "$session/nexus-system-upgrade" "$inc/usr/libexec/nexus-system-upgrade"
 for f in rc.xml menu.xml environment autostart; do
   install -D -m 644 "$session/labwc/$f" "$inc/usr/share/nexus-session/labwc/$f"
 done

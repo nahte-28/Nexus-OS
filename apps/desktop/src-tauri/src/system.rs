@@ -558,6 +558,86 @@ pub async fn system_bluetooth_device(webview: Webview, address: String, action: 
     }
 }
 
+// ---------------------------------------------------------------- updates
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct PendingUpdate {
+    package: String,
+    version: String,
+    from: String,
+    /// From Debian's security source.
+    security: bool,
+}
+
+/// Parses `apt list --upgradable`:
+/// "openssl/stable-security 3.5.1-1+deb13u1 amd64 [upgradable from: 3.5.1-1]".
+fn parse_upgradable(text: &str) -> Vec<PendingUpdate> {
+    text.lines()
+        .filter(|l| l.contains("[upgradable from:"))
+        .filter_map(|l| {
+            let (name, rest) = l.split_once('/')?;
+            let mut parts = rest.split_whitespace();
+            let suites = parts.next()?;
+            let version = parts.next()?.to_string();
+            let from = l.rsplit_once("[upgradable from: ")?.1.trim_end_matches(']').trim().to_string();
+            Some(PendingUpdate { package: name.to_string(), version, from, security: suites.contains("security") })
+        })
+        .collect()
+}
+
+#[derive(Serialize)]
+pub struct UpdatesState {
+    pending: Vec<PendingUpdate>,
+    /// A kernel or system library was updated: restart to use it.
+    reboot_required: bool,
+    /// When the list of updates was last refreshed (seconds since 1970), if known.
+    checked_at: Option<u64>,
+}
+
+fn modified_secs(path: &str) -> Option<u64> {
+    let time = std::fs::metadata(path).ok()?.modified().ok()?;
+    time.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs())
+}
+
+/// The Debian and NEXUS updates waiting, from the lists apt refreshes every day by itself.
+#[tauri::command]
+pub async fn system_updates(webview: Webview) -> Result<UpdatesState, String> {
+    allowed(&webview)?;
+    let text = run("apt", &["list", "--upgradable"]).await?;
+    let mut pending = parse_upgradable(&text);
+    pending.sort_by(|a, b| b.security.cmp(&a.security).then(a.package.cmp(&b.package)));
+    Ok(UpdatesState {
+        pending,
+        reboot_required: std::path::Path::new("/run/reboot-required").exists(),
+        checked_at: modified_secs("/var/lib/apt/periodic/update-success-stamp").or_else(|| modified_secs("/var/lib/apt/lists")),
+    })
+}
+
+/// Installs every update after one password (pkexec). When NEXUS itself was among them, NEXUS
+/// starts again in the new version, like after a NEXUS update.
+#[tauri::command]
+pub async fn system_updates_install(app: tauri::AppHandle, webview: Webview) -> Result<(), String> {
+    allowed(&webview)?;
+    let before = run("dpkg-query", &["-W", "-f=${Version}", "nexus-os"]).await.unwrap_or_default();
+    run("pkexec", &["/usr/libexec/nexus-system-upgrade"]).await.map_err(|e| {
+        if e.contains("dismissed") || e.contains("Not authorized") || e.contains("126") {
+            "Geannuleerd: zonder wachtwoord kan NEXUS geen updates installeren.".to_string()
+        } else {
+            format!("Updates installeren mislukt: {e}")
+        }
+    })?;
+    let after = run("dpkg-query", &["-W", "-f=${Version}", "nexus-os"]).await.unwrap_or_default();
+    if !before.is_empty() && before != after {
+        if !crate::session::is_session() {
+            std::process::Command::new(crate::update::installed_exe(std::env::current_exe().ok()))
+                .spawn()
+                .map_err(|e| format!("NEXUS opnieuw starten mislukt: {e}"))?;
+        }
+        app.exit(0);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -631,6 +711,15 @@ mod tests {
         assert_eq!(list[0], ("AA:BB:CC:DD:EE:FF".into(), "Koptelefoon X".into()));
         assert!(valid_address("aa:bb:cc:dd:ee:ff"));
         assert!(!valid_address("AA:BB:CC:DD:EE:FF; rm"));
+    }
+
+    #[test]
+    fn reads_waiting_updates() {
+        let text = "Listing...\nopenssl/stable-security 3.5.1-1+deb13u1 amd64 [upgradable from: 3.5.1-1]\nnexus-os/stable 1.0.150 amd64 [upgradable from: 1.0.148]\n";
+        let list = parse_upgradable(text);
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0], PendingUpdate { package: "openssl".into(), version: "3.5.1-1+deb13u1".into(), from: "3.5.1-1".into(), security: true });
+        assert!(!list[1].security);
     }
 
     #[test]

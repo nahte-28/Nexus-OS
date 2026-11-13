@@ -263,12 +263,13 @@ export const HELP: Record<AppId, HelpTopic> = {
     ],
   },
   system: {
-    summary: 'Systeem: wifi, geluid, beeld en Bluetooth van je Linux-computer.',
+    summary: 'Systeem: wifi, geluid, beeld, Bluetooth en updates van je Linux-computer.',
     tips: [
       'Wifi: tik op Verbinden en typ het wachtwoord. Een bewaard netwerk verbindt daarna vanzelf; met Vergeten vraagt NEXUS het wachtwoord opnieuw.',
       'Geluid: schuif het volume van je luidspreker en microfoon, of kies waar het geluid naartoe gaat (bv. je koptelefoon of HDMI-scherm).',
       'Beeld: kies de resolutie en hoe groot tekst en vensters zijn. NEXUS zet je keuze terug bij het aanmelden. Op een laptop regel je hier ook de helderheid.',
       'Bluetooth: zet je apparaat in koppelmodus, tik op Apparaten zoeken en dan op Koppelen.',
+      'Updates: beveiligingsupdates van Debian installeren elke dag vanzelf. De andere updates zie je hier en installeer je met Alles installeren en je wachtwoord.',
       'Systeem zie je alleen in de Linux-app van NEXUS.',
     ],
   },

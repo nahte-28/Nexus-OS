@@ -1,0 +1,9 @@
+#!/bin/sh
+# Installeert alle updates van Debian en NEXUS in één keer. Gestart door NEXUS (Systeem ›
+# Updates) met pkexec, dus als root na één wachtwoord. Behoudt je eigen instellingen in /etc.
+set -eu
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q
+apt-get full-upgrade -y -q \
+  -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold
+apt-get autoremove -y -q

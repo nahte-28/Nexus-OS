@@ -41,7 +41,8 @@ amd64-microcode
 mesa-vulkan-drivers
 libgl1-mesa-dri
 
-# System
+# System (unattended-upgrades: Debian's security updates install by themselves every day)
+unattended-upgrades
 sudo
 locales
 console-setup

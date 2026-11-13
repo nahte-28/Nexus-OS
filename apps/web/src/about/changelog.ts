@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Systeemupdates van Debian',
+    items: [
+      'NEXUS OS installeert de beveiligingsupdates van Debian nu elke dag vanzelf.',
+      'In Systeem › Updates zie je welke andere updates klaarstaan en installeer je ze allemaal met één wachtwoord. Is een herstart nodig, dan zegt NEXUS het, met een knop om meteen opnieuw op te starten.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Apps installeren uit Flathub',
     items: [
       'Linux-apps heeft een tabblad Apps installeren: zoek in Flathub, installeer of verwijder apps zoals Spotify, VLC en Discord, en werk ze allemaal in één keer bij. Zonder terminal en zonder wachtwoord.',
