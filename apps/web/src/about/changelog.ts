@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Teamchat',
+    items: [
+      'Elk team heeft nu een tabblad Chat: praat met je team, live op al je toestellen. Op het tabblad staat hoeveel berichten je nog niet las.',
+      'Een nieuw bericht geeft een melding zolang NEXUS openstaat, en komt in de Universal Inbox. Je verwijdert je eigen berichten; de eigenaar en beheerders kunnen elk bericht weghalen.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'NEXUS OS installeren vanuit NEXUS',
     items: [
       'Op de usb-stick van NEXUS OS staat in Start de knop NEXUS OS installeren. Die opent een eigen installatieprogramma in het Nederlands, met het uitzicht van NEXUS: taal, toetsenbord, schijf en je account in een paar stappen.',

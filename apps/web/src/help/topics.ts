@@ -305,6 +305,8 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Klasagenda: de groepsdeadlines van een klasteam komen vanzelf in je Agenda, met herinneringen. Bij Instellingen zet je dat per team aan of uit.',
       'Een uitnodiging heeft een rol, vervalt na een uur tot 30 dagen en kan maar een aantal keer werken.',
       'Bij Projecten werkt het hele team op één bord; Mijn taken toont wat aan jou is toegewezen.',
+      'Bij Chat praat het hele team samen, ook kijkers. Enter verstuurt, Shift+Enter begint een nieuwe regel. Je verwijdert je eigen berichten; de eigenaar en beheerders kunnen elk bericht weghalen.',
+      'Een nieuw bericht geeft een melding op elk toestel waar NEXUS openstaat, en komt in de Universal Inbox. Wie het team verlaat, neemt zijn berichten mee. Een team bewaart de laatste 500 berichten.',
     ],
   },
   marketplace: {

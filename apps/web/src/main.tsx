@@ -41,6 +41,7 @@ import { startBrowserBookmarks } from './browser/bridge'
 import { startVault } from './vault/store'
 import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
+import { startTeamChatNotices } from './teams/chat'
 import { startSentinel } from './sentinel/store'
 import { startNotificationLinks } from './integration/notificationLinks'
 import { startTimeMachine } from './timemachine/store'
@@ -131,6 +132,8 @@ startVault(supabase, () => isFeatureOn('vault'), onFeaturesChange)
 startSleepGuard(defaultEngine)
 // Gamevrienden: your "speelt nu" in the teams you chose, from the Gaming timer.
 startFriendsSharing(supabase, () => isFeatureOn('gaming'))
+// Teamchat: a notice for new messages in your teams while NEXUS runs.
+startTeamChatNotices(supabase, () => isFeatureOn('teams'))
 // Sentinel: new devices and sign-ins go in the activity log on this device.
 startSentinel(supabase, defaultEngine)
 startNotificationLinks(() => isFeatureOn('integration'))

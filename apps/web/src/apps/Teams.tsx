@@ -33,9 +33,11 @@ import { suggestedName } from '../study/group'
 import { classAgendaFor, classAgendaStore, useClassAgenda } from '../study/classAgenda'
 import { Teams as TeamsApi } from '../teams/teams'
 import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
+import { TeamChat } from '../teams/chat'
+import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
 import { profilesStore, useProfiles } from '../profiles/store'
 
-const TABS = ['Projecten', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
+const TABS = ['Projecten', 'Chat', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const TAB_KEY = 'nexus.teams.tab'
 const PICKED_KEY = 'nexus.teams.picked'
@@ -49,6 +51,7 @@ const pill = 'rounded-full border border-nx-border px-2 py-0.5 text-xs text-nx-m
 const USES = [null, 1, 5, 10, 30] as const
 
 const defaultApi = supabase ? new TeamsApi(supabase) : null
+const defaultChat = supabase ? new TeamChat(supabase) : null
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 /** A datetime-local value for a moment, in local time. */
@@ -76,7 +79,7 @@ interface TeamData {
 const EMPTY: TeamData = { members: [], invites: [], projects: [], tasks: [] }
 
 /** Teams: your study groups with roles, invitations that expire and projects you work on together. */
-export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
+export function Teams({ api = defaultApi, chat = defaultChat }: { api?: TeamsApi | null; chat?: TeamChat | null }) {
   const [me, setMe] = useState<{ id: string; email: string | undefined } | null | undefined>(undefined)
   const [list, setList] = useState<StudyGroup[] | null>(null)
   const [picked, setPicked] = useState<string | null>(() => readStorage(PICKED_KEY))
@@ -100,6 +103,7 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
 
   const team = list?.find((g) => g.id === picked) ?? list?.[0] ?? null
   const myRole: TeamRole | null = data.members.find((m) => m.userId === me?.id && m.groupId === team?.id)?.role ?? null
+  const chatState = useTeamChat(chat, team, me?.id)
 
   const refreshList = useCallback(async () => {
     if (!api) return
@@ -252,6 +256,11 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
           {tabs.map((t) => (
             <button key={t} type="button" role="tab" aria-selected={shown === t} onClick={() => setTab(t)} className={`shrink-0 rounded-md px-3 py-1 ${shown === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
               {t}
+              {t === 'Chat' && shown !== 'Chat' && chatState.unread > 0 && (
+                <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${chatState.unread} ongelezen`}>
+                  {chatState.unread > 99 ? '99+' : chatState.unread}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -262,6 +271,7 @@ export function Teams({ api = defaultApi }: { api?: TeamsApi | null }) {
           <p className="text-nx-muted">Je zit nog in geen team. Een team is een studiegroep met rollen en gedeelde projecten: maak er een, of sluit aan met de code die je kreeg.</p>
         )}
         {team && shown === 'Projecten' && <Projects api={api} team={team} data={data} me={me.id} role={myRole} busy={busy} run={run} />}
+        {team && shown === 'Chat' && <TeamChatPanel team={team} members={data.members} me={me.id} role={myRole} state={chatState} />}
         {team && shown === 'Leden' && <Members api={api} team={team} data={data} me={me.id} role={myRole} busy={busy} run={run} />}
         {team && shown === 'Uitnodigingen' && <Invites api={api} team={team} data={data} role={myRole} busy={busy} run={run} />}
         {team && shown === 'Instellingen' && <Settings api={api} team={team} role={myRole} busy={busy} run={run} onGone={() => setData(EMPTY)} />}
