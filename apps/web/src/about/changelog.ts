@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-14',
+    title: 'Samen studeren',
+    items: [
+      'In Studie staat de nieuwe tab Samen: start een focussessie of doe mee met die van een vriend of iemand uit je teams. Iedereen ziet dezelfde timer en wie er meestudeert.',
+      'Elk focusblok dat je samen afmaakt, komt in je focuslog en telt mee in Studie en Inzichten. Stopt wie de sessie startte, dan stopt ze voor iedereen.',
+    ],
+  },
+  {
+    date: '2026-11-14',
     title: 'Darts: Cricket',
     items: [
       'Bij Darts › Spelen kies je nu ook Cricket: gooi 20 tot 15 en de bull dicht, scoor punten op wat de ander nog open heeft, met 1 tot 4 spelers en best of legs.',
