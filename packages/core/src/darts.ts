@@ -3,6 +3,7 @@
  * from your own matches (3-dart average, first 9, 180s, highest checkout). You type the total of
  * each visit, as on a scoreboard. One document per account (user_settings key 'darts'). Pure logic.
  */
+import { MAX_CRICKET, mergeCricket, parseCricket, type CricketMatch } from './dartsCricket'
 import { MAX_PRACTICE, mergePractice, parsePractice, type DartsPractice } from './dartsPractice'
 
 /** The score each player starts a leg on: 501, 301, 701 or any own number from 2 to 1001 (e.g. 170). */
@@ -92,11 +93,13 @@ export interface DartsState {
   matches: DartsMatch[]
   /** Practice rounds (Around the Clock, checkout training). */
   practice: DartsPractice[]
+  /** Cricket matches. */
+  cricket: CricketMatch[]
   settings: DartsSettings
   revision: number
 }
 
-export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, setsToWin: 1, doubleOut: true, askDoubles: true, updatedAt: 0 }, revision: 0 })
+export const emptyDarts = (): DartsState => ({ matches: [], practice: [], cricket: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, setsToWin: 1, doubleOut: true, askDoubles: true, updatedAt: 0 }, revision: 0 })
 
 // Parsing and merging -------------------------------------------------------------------------------
 
@@ -199,6 +202,7 @@ export function parseDarts(raw: unknown): DartsState {
   return {
     matches: (Array.isArray(v.matches) ? v.matches : []).map(parseMatch).filter((m): m is DartsMatch => m !== null).slice(0, MAX_MATCHES),
     practice: (Array.isArray(v.practice) ? v.practice : []).map(parsePractice).filter((p): p is DartsPractice => p !== null).slice(0, MAX_PRACTICE),
+    cricket: (Array.isArray(v.cricket) ? v.cricket : []).map(parseCricket).filter((m): m is CricketMatch => m !== null).slice(0, MAX_CRICKET),
     settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), setsToWin: sets(s.setsToWin), doubleOut: s.doubleOut !== false, askDoubles: s.askDoubles !== false, updatedAt: num(s.updatedAt) ?? 0 },
     revision: num(v.revision) ?? 0,
   }
@@ -213,6 +217,7 @@ export function mergeDarts(a: DartsState, b: DartsState): DartsState {
   return {
     matches: [...byId.values()].sort((x, y) => y.startedAt - x.startedAt).slice(0, MAX_MATCHES),
     practice: mergePractice(a.practice, b.practice),
+    cricket: mergeCricket(a.cricket, b.cricket),
     settings: b.settings.updatedAt > a.settings.updatedAt ? b.settings : a.settings,
     revision: Math.max(a.revision, b.revision),
   }
@@ -263,6 +268,7 @@ export function knownPlayers(state: DartsState): string[] {
   add(state.settings.me)
   state.settings.roster.forEach((p) => add(p.name))
   liveMatches(state).forEach((m) => m.members.flat().forEach(add))
+  state.cricket.filter((m) => m.deletedAt === null).forEach((m) => m.players.forEach(add))
   return out
 }
 

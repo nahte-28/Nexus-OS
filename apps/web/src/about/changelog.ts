@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-14',
+    title: 'Darts: Cricket',
+    items: [
+      'Bij Darts › Spelen kies je nu ook Cricket: gooi 20 tot 15 en de bull dicht, scoor punten op wat de ander nog open heeft, met 1 tot 4 spelers en best of legs.',
+      'Tik per pijl Single, Double of Triple en het nummer. Na de wedstrijd zie je een samenvatting met MPR, triples en bull-treffers, en je Cricket-statistieken staan bij Statistieken.',
+    ],
+  },
+  {
+    date: '2026-11-14',
     title: 'Darts: samenvatting en training op je horloge',
     items: [
       'Na elke wedstrijd krijg je een samenvatting: gemiddelde, first 9, checkout %, hoogste finish, beste en slechtste leg, 180\'s, 140+, 100+ en 60+ per speler, en elke leg apart. Ook later te openen in Geschiedenis, en de uitslag kopieer je met één tik.',

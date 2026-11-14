@@ -18,6 +18,9 @@ import {
   toThrow,
   undoVisit,
   type DartsMatch,
+  type CricketMatch,
+  cricketLegsWon,
+  marksPerRound,
   type DartsMode,
   type DartsSettings,
   MAX_LEGS_TO_WIN,
@@ -63,6 +66,7 @@ import {
   scoringVisit,
 } from '@nexus/core'
 import { dartsStore, dartsSyncProblem, useDarts } from '../darts/store'
+import { CricketScoreboard, CricketSummary, NewCricket, cricketRunning, saveCricket } from '../darts/Cricket'
 import { useProfiles } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
 
@@ -426,12 +430,37 @@ function Upcoming() {
   )
 }
 
+const GAME_KEY = 'nexus.darts.game'
+type Game = 'x01' | 'cricket'
+
+/** What is on screen: the newest match while it runs, or for 30 minutes after it was won. */
+function onScreen<T extends { id: string; winner: number | null; finishedAt: number | null }>(m: T | undefined, dismissed: string | null): T | null {
+  if (!m) return null
+  if (m.winner === null && m.finishedAt === null) return m
+  return m.winner !== null && dismissed !== m.id && Date.now() - (m.finishedAt ?? 0) < 30 * 60_000 ? m : null
+}
+
+/** Cricket matches that were not removed, newest first. */
+const liveCricket = (s: { cricket: CricketMatch[] }) => s.cricket.filter((m) => m.deletedAt === null).sort((a, b) => b.startedAt - a.startedAt)
+
 function Play() {
   const state = useDarts()
   const [dismissed, setDismissed] = useState<string | null>(null)
-  const latest = liveMatches(state)[0]
-  // A match that just ended stays on screen for its result, until you set up the next one.
-  const show = latest && (running(latest) || (latest.winner !== null && dismissed !== latest.id && Date.now() - (latest.finishedAt ?? 0) < 30 * 60_000)) ? latest : null
+  const [game, setGameState] = useState<Game>(() => (readStorage(GAME_KEY) === 'cricket' ? 'cricket' : 'x01'))
+  const setGame = (g: Game) => {
+    setGameState(g)
+    writeStorage(GAME_KEY, g)
+  }
+  const x01 = onScreen(liveMatches(state)[0], dismissed)
+  const cricket = onScreen(liveCricket(state)[0], dismissed)
+  // When both kinds are on screen, the newest one wins.
+  const show = x01 && cricket ? (x01.startedAt >= cricket.startedAt ? x01 : null) : x01
+  const showCricket = show ? null : cricket
+  const again = (
+    <button type="button" className={small} onClick={() => setDismissed((show ?? showCricket)?.id ?? null)}>
+      Nieuwe wedstrijd instellen
+    </button>
+  )
   return (
     <div className="space-y-4">
       <Upcoming />
@@ -439,14 +468,25 @@ function Play() {
         <>
           <Scoreboard match={show} />
           {!running(show) && <Summary match={show} />}
-          {!running(show) && (
-            <button type="button" className={small} onClick={() => setDismissed(show.id)}>
-              Nieuwe wedstrijd instellen
-            </button>
-          )}
+          {!running(show) && again}
+        </>
+      ) : showCricket ? (
+        <>
+          <CricketScoreboard match={showCricket} />
+          {!cricketRunning(showCricket) && <CricketSummary match={showCricket} />}
+          {!cricketRunning(showCricket) && again}
         </>
       ) : (
-        <NewMatch />
+        <>
+          <div role="radiogroup" aria-label="Spelvorm" className="flex flex-wrap gap-1">
+            {(['x01', 'cricket'] as const).map((g) => (
+              <button key={g} type="button" role="radio" aria-checked={game === g} className={`${small} ${game === g ? 'bg-nx-surface-2 font-medium' : ''}`} onClick={() => setGame(g)}>
+                {g === 'x01' ? '501, 301 …' : 'Cricket'}
+              </button>
+            ))}
+          </div>
+          {game === 'x01' ? <NewMatch /> : <NewCricket />}
+        </>
       )}
     </div>
   )
@@ -455,38 +495,62 @@ function Play() {
 function History() {
   const state = useDarts()
   const [open, setOpen] = useState<string | null>(null)
-  const matches = liveMatches(state)
   const label = (p: string) => playerLabel(state.settings, p)
-  if (matches.length === 0) return <p className="text-nx-muted">Nog geen wedstrijden.</p>
+  const all = [...liveMatches(state).map((m) => ({ kind: 'x01' as const, m })), ...liveCricket(state).map((m) => ({ kind: 'cricket' as const, m }))].sort((a, b) => b.m.startedAt - a.m.startedAt)
+  if (all.length === 0) return <p className="text-nx-muted">Nog geen wedstrijden.</p>
+  const toggle = (id: string) => (
+    <button type="button" className={`${small} ml-auto`} aria-expanded={open === id} onClick={() => setOpen(open === id ? null : id)}>
+      Samenvatting
+    </button>
+  )
   return (
     <ul className="space-y-1">
-      {matches.map((m) => (
-        <li key={m.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
-          <span className="font-medium">
-            {m.members.map((side) => side.map(label).join(' & ')).join(' – ')}: {matchScore(m)}
-          </span>
-          <span className="text-nx-muted">gem. {m.players.map((p, i) => `${p} ${avg(playerAverage(m, i))}`).join(' · ')}</span>
-          <span className="text-nx-muted">
-            {m.mode} · {formatLabel(m)} · {when(m.startedAt)} · {m.winner !== null ? `${m.members[m.winner].map(label).join(' & ')} won` : running(m) ? 'bezig' : 'gestopt'}
-          </span>
-          <button type="button" className={`${small} ml-auto`} aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
-            Samenvatting
-          </button>
-          <button
-            type="button"
-            className={small}
-            aria-label={`Wedstrijd van ${when(m.startedAt)} verwijderen`}
-            onClick={() => saveMatch({ ...m, deletedAt: Date.now(), updatedAt: Date.now() })}
-          >
-            Verwijderen
-          </button>
-          {open === m.id && (
-            <div className="w-full pt-1">
-              <Summary match={m} />
-            </div>
-          )}
-        </li>
-      ))}
+      {all.map((item) => {
+        if (item.kind === 'cricket') {
+          const c = item.m
+          return (
+            <li key={c.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
+              <span className="font-medium">
+                {c.players.map(label).join(' – ')}: {c.players.map((_, i) => cricketLegsWon(c, i)).join('–')}
+              </span>
+              <span className="text-nx-muted">MPR {c.players.map((p, i) => `${p} ${avg(marksPerRound(c, i))}`).join(' · ')}</span>
+              <span className="text-nx-muted">
+                Cricket · {when(c.startedAt)} · {c.winner !== null ? `${label(c.players[c.winner])} won` : cricketRunning(c) ? 'bezig' : 'gestopt'}
+              </span>
+              {toggle(c.id)}
+              <button type="button" className={small} aria-label={`Wedstrijd van ${when(c.startedAt)} verwijderen`} onClick={() => saveCricket({ ...c, deletedAt: Date.now(), updatedAt: Date.now() })}>
+                Verwijderen
+              </button>
+              {open === c.id && (
+                <div className="w-full pt-1">
+                  <CricketSummary match={c} />
+                </div>
+              )}
+            </li>
+          )
+        }
+        const m = item.m
+        return (
+          <li key={m.id} className="flex flex-wrap items-center gap-2 rounded border border-nx-border px-2 py-1">
+            <span className="font-medium">
+              {m.members.map((side) => side.map(label).join(' & ')).join(' – ')}: {matchScore(m)}
+            </span>
+            <span className="text-nx-muted">gem. {m.players.map((p, i) => `${p} ${avg(playerAverage(m, i))}`).join(' · ')}</span>
+            <span className="text-nx-muted">
+              {m.mode} · {formatLabel(m)} · {when(m.startedAt)} · {m.winner !== null ? `${m.members[m.winner].map(label).join(' & ')} won` : running(m) ? 'bezig' : 'gestopt'}
+            </span>
+            {toggle(m.id)}
+            <button type="button" className={small} aria-label={`Wedstrijd van ${when(m.startedAt)} verwijderen`} onClick={() => saveMatch({ ...m, deletedAt: Date.now(), updatedAt: Date.now() })}>
+              Verwijderen
+            </button>
+            {open === m.id && (
+              <div className="w-full pt-1">
+                <Summary match={m} />
+              </div>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -607,6 +671,19 @@ function Stats() {
     ['Legs gewonnen', `${s.legsWon} van ${s.legs}`],
     ['Wedstrijden gewonnen', `${s.matchesWon} van ${s.matches}`],
   ]
+  const mine = liveCricket(state).flatMap((c) => {
+    const i = c.players.findIndex((x) => x.trim().toLowerCase() === who.trim().toLowerCase())
+    return i < 0 ? [] : [{ c, i }]
+  })
+  const visits = mine.flatMap(({ c, i }) => c.legs.flatMap((l) => l.visits.filter((v) => v.player === i)))
+  const marks = visits.reduce((n, v) => n + v.darts.reduce((k, d) => k + (d.target === 0 ? 0 : d.mult), 0), 0)
+  const cricketRows: Array<[string, string | number]> =
+    mine.length > 0
+      ? [
+          ['Wedstrijden gewonnen', `${mine.filter(({ c, i }) => c.winner === i).length} van ${mine.length}`],
+          ['MPR (treffers per beurt)', visits.length > 0 ? (marks / visits.length).toFixed(2) : '–'],
+        ]
+      : []
   const p = practiceStats(state.practice)
   const practiceRows: Array<[string, string | number]> = [
     ...(p.clockRounds > 0
@@ -661,9 +738,15 @@ function Stats() {
         </label>
       )}
       {s.matches === 0 ? (
-        <p className="text-nx-muted">Nog geen wedstrijden met {who}. Je naam pas je aan bij Instellingen.</p>
+        mine.length === 0 && <p className="text-nx-muted">Nog geen wedstrijden met {who}. Je naam pas je aan bij Instellingen.</p>
       ) : (
         <StatList label={`Statistieken van ${who}`} rows={rows} />
+      )}
+      {cricketRows.length > 0 && (
+        <section className="space-y-1">
+          <h3 className="font-medium">Cricket</h3>
+          <StatList label={`Cricket-statistieken van ${who}`} rows={cricketRows} />
+        </section>
       )}
       {practiceRows.length > 0 && who === state.settings.me && (
         <section className="space-y-1">
