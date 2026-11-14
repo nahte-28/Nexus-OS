@@ -129,7 +129,7 @@ export function Finance() {
   }
   const money = (value: number, sign = false) => (hidden ? '€ •••' : formatMoney(value, sign))
   const opens = (action: FinanceActionId) => (intent?.action === action ? intent.at : 0)
-  // The payment calendar comes with Integratie in Nieuwe modules.
+  // The payment calendar comes with Integratie in Apps aan/uit.
   const calendar = useFeature('integration')
   const tabs = TABS.filter((t) => t !== 'Kalender' || calendar)
 

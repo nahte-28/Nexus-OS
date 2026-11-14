@@ -1,9 +1,9 @@
 import { use, type ComponentType, type SVGProps } from 'react'
-import { featureOn, profileApps, type AppId, type FeatureId } from '@nexus/core'
+import { appOn, featureOn, profileApps, type AppId, type FeatureId } from '@nexus/core'
 import { useDeveloperMode } from '../devtools/log'
 import { isLinuxApp, openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
-import { useFeatureSwitches } from '../features/store'
+import { useAppSwitches, useFeatureSwitches } from '../features/store'
 import { useIsAdmin } from '../admin/admin'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
@@ -87,7 +87,7 @@ export interface AppDefinition {
   developer?: boolean
   /** A beta behind its own switch in Instellingen. */
   beta?: boolean
-  /** A blueprint module: shown in every profile while its switch in Nieuwe modules is on. */
+  /** A blueprint module: shown in every profile while its switch in Apps aan/uit is on. */
   feature?: FeatureId
   /** Only in the Linux app of NEXUS (the apps on that computer). */
   linux?: boolean
@@ -181,6 +181,7 @@ export function useVisibleApps(): AppDefinition[] {
   const admin = useIsAdmin()
   const flowStudio = useFlowStudioEnabled()
   const switches = useFeatureSwitches()
+  const appSwitches = useAppSwitches()
   const { active } = useProfiles()
   const ids = profileApps(active)
   if (developerMode && !ids.includes('developer')) ids.unshift('developer')
@@ -196,6 +197,6 @@ export function useVisibleApps(): AppDefinition[] {
   // Beheer, for an admin of this NEXUS, right before the settings.
   if (admin && !ids.includes('admin')) ids.splice(Math.max(ids.indexOf('settings'), 0), 0, 'admin')
   return ids.flatMap((id) =>
-    APPS.filter((a) => a.id === id && (!a.admin || admin) && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (!a.linux || isLinuxApp)),
+    APPS.filter((a) => a.id === id && (!a.admin || admin) && (!a.developer || developerMode || active.id === 'developer') && (!a.beta || flowStudio) && (!a.feature || featureOn(switches, a.feature)) && (a.feature !== undefined || appOn(appSwitches, a.id)) && (!a.linux || isLinuxApp)),
   )
 }

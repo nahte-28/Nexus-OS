@@ -12,12 +12,12 @@ import {
   type WidgetLayout,
   type WidgetSize,
 } from '@nexus/core'
-import { alive, budgetStatus, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, needsAbout, type AppId, type WidgetId } from '@nexus/core'
+import { WIDGET_APP, alive, appOn, budgetStatus, widgetsOn, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, needsAbout, type AppId, type WidgetId } from '@nexus/core'
 import { assistant } from '../ai/runtime'
 import { LinkIcon, SparkIcon } from '../apps/icons'
 import { useConnect } from '../connect/ConnectContext'
 import { ExtensionWidgets } from '../devhub/ExtensionWidgets'
-import { setFeature, useFeature } from '../features/store'
+import { setFeature, useAppSwitches, useFeature } from '../features/store'
 import { financeStore } from '../finance/store'
 import { useGaming } from '../gaming/store'
 import { currentSleepPlan, startGaming, stopGaming } from '../gaming/timer'
@@ -222,12 +222,14 @@ function WidgetGrid({ compact, onOpenApp }: { compact: boolean; onOpenApp: OpenA
   const [editing, setEditing] = useState(false)
   const [preview, setPreview] = useState<'pc' | 'gsm'>('pc')
   const [dragging, setDragging] = useState<WidgetId | null>(null)
-  const shown = inGrid(active.widgets)
+  const appSwitches = useAppSwitches()
+  // A widget goes with its app: switched off in Apps aan/uit, it is not on the dashboard either.
+  const shown = widgetsOn(inGrid(active.widgets), appSwitches)
   const layout = active.layout ?? {}
   const cols = editing && preview === 'gsm' ? 1 : compact ? 1 : screenCols
   const save = (patch: { widgets?: WidgetId[]; layout?: WidgetLayout }) => profilesStore.updateProfile(active.id, patch)
   const move = (id: WidgetId, to: number) => save({ widgets: moveWidget(active.widgets, shown, id, to) })
-  const hidden = WIDGET_IDS.filter((w) => !active.widgets.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')))
+  const hidden = WIDGET_IDS.filter((w) => !active.widgets.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')) && appOn(appSwitches, WIDGET_APP[w] ?? 'settings'))
 
   const grid = (
     <ul

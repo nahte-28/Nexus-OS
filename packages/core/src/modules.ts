@@ -1,6 +1,6 @@
 /**
  * Moduleregister (Next Frontier, Integratieronde): one manifest per module behind a switch in
- * Nieuwe modules, saying which app it opens, where its data lives, which events it reports and
+ * Apps aan/uit, saying which app it opens, where its data lives, which events it reports and
  * which other modules it builds on. Platform Health in the Developer Hub reads it; a test keeps it
  * in step with FEATURES and the apps. Pure logic.
  */

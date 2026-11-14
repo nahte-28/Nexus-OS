@@ -73,7 +73,7 @@ export function togglePin(s: LauncherState, r: LauncherRef | SearchResult): Laun
 export const SETTING_PAGES: Array<{ id: string; title: string; detail: string; app: AppId; words: string }> = [
   { id: 'settings', title: 'Instellingen', detail: 'Thema, back-up, nieuwe modules, rondleiding', app: 'settings', words: 'thema donker licht kleur' },
   { id: 'settings-backup', title: 'Back-up maken of terugzetten', detail: 'Instellingen › Back-up', app: 'settings', words: 'export import json' },
-  { id: 'settings-modules', title: 'Nieuwe modules aan- of uitzetten', detail: 'Instellingen › Nieuwe modules', app: 'settings', words: 'feature flags beta launcher' },
+  { id: 'settings-modules', title: 'Apps aan- of uitzetten', detail: 'Instellingen › Apps aan/uit', app: 'settings', words: 'apps modules uitzetten verbergen feature flags beta launcher' },
   { id: 'account', title: 'Account en wachtwoord', detail: 'Account', app: 'account', words: 'aanmelden afmelden inloggen wachtwoord e-mail' },
   { id: 'account-database', title: 'Database-check', detail: 'Account › Database-check', app: 'account', words: 'sql supabase migratie' },
   { id: 'profiles', title: 'Profielen en lesrooster', detail: 'Profielen', app: 'profiles', words: 'school gaming persoonlijk developer rooster kalender' },
