@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { AppId } from '@nexus/core'
+import { groupApps, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
@@ -13,6 +13,7 @@ import { Tour } from '../onboarding/Tour'
 import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
+import { toggleGroup, useFoldedGroups } from './sidebarGroups'
 
 export const SIDEBAR_WIDTH = 224
 
@@ -66,32 +67,53 @@ export function Desktop() {
   )
 }
 
-/** Brand, the active profile and its apps. Switching profiles happens in the Profielen app. */
+/** Brand, the active profile and its apps in groups you can fold away. Switching profiles happens in the Profielen app. */
 function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
   const { active } = useProfiles()
+  const folded = useFoldedGroups()
   return (
     <aside style={{ width: SIDEBAR_WIDTH }} className="nx-glass flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border p-3">
       <div className="px-2 pt-1">
         <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>
         <p className="text-xs text-nx-muted">{active.name} Mode</p>
       </div>
-      <nav aria-label="Apps">
-        <ul className="space-y-0.5">
-          {apps.map((app) => (
-            <li key={app.id}>
+      <nav aria-label="Apps" className="space-y-2">
+        {groupApps(apps).map((group) => {
+          const open = !folded.includes(group.id)
+          return (
+            <section key={group.id} aria-label={group.title}>
               <button
                 type="button"
-                onClick={() => onOpenApp(app.id)}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-nx-surface-2"
+                aria-expanded={open}
+                onClick={() => toggleGroup(group.id)}
+                className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-nx-muted hover:bg-nx-surface-2"
               >
-                <span className="text-nx-accent [&>svg]:size-5">
-                  <app.icon />
+                {group.title}
+                <span aria-hidden="true" className={`transition ${open ? 'rotate-90' : ''}`}>
+                  ›
                 </span>
-                {app.title}
               </button>
-            </li>
-          ))}
-        </ul>
+              {open && (
+                <ul className="mt-0.5 space-y-0.5">
+                  {group.apps.map((app) => (
+                    <li key={app.id}>
+                      <button
+                        type="button"
+                        onClick={() => onOpenApp(app.id)}
+                        className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
+                      >
+                        <span className="text-nx-accent [&>svg]:size-5">
+                          <app.icon />
+                        </span>
+                        {app.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )
+        })}
       </nav>
     </aside>
   )

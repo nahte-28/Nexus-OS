@@ -17,8 +17,9 @@ export async function startWithEverything(page: Page): Promise<void> {
 export const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1000) < 768
 
 /** The app buttons of the shell that is showing: the sidebar on a computer, the grid on a phone. */
+/** The buttons that open an app; on the desktop the group headings (which fold) are left out. */
 export function appButtons(page: Page) {
-  return isMobile(page) ? page.getByRole('list', { name: 'Apps' }).getByRole('button') : page.getByRole('navigation', { name: 'Apps' }).getByRole('button')
+  return isMobile(page) ? page.getByRole('group', { name: 'Apps' }).getByRole('button') : page.getByRole('navigation', { name: 'Apps' }).locator('button:not([aria-expanded])')
 }
 
 /** Collects errors that escape to the page; console noise (a missing API in preview) is not one. */

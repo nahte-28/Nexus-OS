@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-13',
+    title: 'Zijbalk in groepen',
+    items: [
+      'De zijbalk is nu ingedeeld in School, Planning, Samen, Persoonlijk en Systeem. Klap een groep in die je weinig gebruikt; NEXUS onthoudt dat op dit apparaat.',
+      'Op je gsm staan de apps onder dezelfde koppen.',
+    ],
+  },
+  {
+    date: '2026-11-13',
     title: 'Beheer',
     items: [
       'Voor de beheerder van NEXUS staat er nu Beheer in de zijbalk: hoeveel accounts er zijn, wie nu online is, de teams, wat er deze week gebeurde en de laatste foutmeldingen.',
