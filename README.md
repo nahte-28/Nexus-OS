@@ -109,11 +109,14 @@ Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/p
 
 ## NEXUS AI
 
-De app **NEXUS AI** praat met Claude via de serverfunctie `api/ai.ts` op Vercel. De sleutel blijft op de server; de app stuurt je login mee en de server laat alleen de accounts in `NEXUS_AI_ALLOWED_EMAILS` toe.
+De app **NEXUS AI** praat met Claude via de serverfunctie `api/ai.ts` op Vercel. De app stuurt je login mee. Er zijn twee manieren om te betalen:
+
+- **Eigen sleutel** (NEXUS AI › Eigen sleutel): elke gebruiker zet zijn eigen Anthropic-sleutel. Die blijft versleuteld op het apparaat (een AES-GCM-sleutel die de browser niet afgeeft, in IndexedDB) en gaat met elke vraag mee in de kop `x-nexus-ai-key`; de server gebruikt hem voor die ene vraag en bewaart of logt hem niet. Elk aangemeld account mag zo NEXUS AI gebruiken.
+- **Gedeelde sleutel**: zonder eigen sleutel gebruikt de server `ANTHROPIC_API_KEY`, alleen voor de accounts in `NEXUS_AI_ALLOWED_EMAILS`.
 
 Claude kan acties voorstellen: notities zoeken of maken, herinneringen plannen of verwijderen, een melding naar je gsm sturen en het thema wisselen. Elke actie verschijnt als kaart en loopt pas als je op **Toestaan** tikt (of als je die actie eerder "altijd" toestond; dat kun je in de Ontwikkelaar-app weer vergeten). De acties zelf draaien in NEXUS op je apparaat, niet op de server.
 
-Instellen (eenmalig), in Vercel bij Settings > Environment Variables:
+De gedeelde sleutel instellen (optioneel), in Vercel bij Settings > Environment Variables:
 
 - `ANTHROPIC_API_KEY`: een API-sleutel van [console.anthropic.com](https://console.anthropic.com). Zet daar ook een maandlimiet, want de aanvragen kosten geld.
 - `NEXUS_AI_ALLOWED_EMAILS`: je eigen e-mailadres (meerdere gescheiden door komma's).
@@ -247,7 +250,7 @@ Flow Studio kan starten op een budget dat opraakt, een abonnement dat betaald wo
 
 ## Weekoverzicht
 
-Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een plan voor volgende week: wat goed ging en wat bleef liggen, wat eraan komt en per dag één of twee concrete acties rond je lessen. Het komt in **Notities** als "Weekoverzicht week N", en je gsm krijgt een melding als het klaar is. Stond NEXUS zondag nergens open, dan gebeurt het maandagochtend nog. In de **Agenda**, op het tabblad **Week**, zie je welke feiten de AI krijgt (lessen, deadlines, afspraken, focustijd van de Studie-timer, gewoontes en cijfers; geen notities of bestanden), maak je het overzicht met de hand, met een wens erbij, en zet je de zondag uit. Het gebruikt dezelfde toegang als NEXUS AI (`ANTHROPIC_API_KEY` en `NEXUS_AI_ALLOWED_EMAILS`); er is geen SQL nodig.
+Op zondagavond (vanaf 19:00) kijkt NEXUS AI terug op je week en maakt het een plan voor volgende week: wat goed ging en wat bleef liggen, wat eraan komt en per dag één of twee concrete acties rond je lessen. Het komt in **Notities** als "Weekoverzicht week N", en je gsm krijgt een melding als het klaar is. Stond NEXUS zondag nergens open, dan gebeurt het maandagochtend nog. In de **Agenda**, op het tabblad **Week**, zie je welke feiten de AI krijgt (lessen, deadlines, afspraken, focustijd van de Studie-timer, gewoontes en cijfers; geen notities of bestanden), maak je het overzicht met de hand, met een wens erbij, en zet je de zondag uit. Het gebruikt dezelfde toegang als NEXUS AI (je eigen sleutel, of `ANTHROPIC_API_KEY` met `NEXUS_AI_ALLOWED_EMAILS`); er is geen SQL nodig.
 
 ## Snelle notitie
 

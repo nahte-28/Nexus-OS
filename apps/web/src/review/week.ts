@@ -14,6 +14,7 @@ import { notesStore } from '../state/notesStore'
 import { readStorage, writeStorage } from '../state/storage'
 import { focusStore } from '../study/timer'
 import { supabase } from '../sync/supabase'
+import { aiHeaders } from '../ai/ownKey'
 
 const AUTO_KEY = 'nexus.review.auto'
 const DONE_KEY = 'nexus.review.week'
@@ -52,7 +53,7 @@ export async function streamReview(facts: string, wish: string, onText: (soFar: 
   if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
   const response = await fetch(`${base}/api/review`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+    headers: await aiHeaders(access),
     body: JSON.stringify({ facts, wish }),
   })
   return readAiStream(response, onText, 'Je week heeft te veel gegevens voor NEXUS AI.')

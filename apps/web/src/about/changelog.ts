@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-14',
+    title: 'Eigen AI-sleutel',
+    items: [
+      'In NEXUS AI staat nu Eigen sleutel: zet je eigen sleutel van Anthropic en gebruik NEXUS AI, de studiesamenvattingen, leerkaarten en het weekoverzicht op je eigen account.',
+      'Je sleutel blijft versleuteld op dit apparaat, gaat niet mee met syncen of een back-up, en verdwijnt als je je afmeldt.',
+    ],
+  },
+  {
     date: '2026-11-13',
     title: 'Zijbalk in groepen',
     items: [

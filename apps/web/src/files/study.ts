@@ -4,6 +4,7 @@ import { apiBase } from '../platform/desktop'
 import { notesStore } from '../state/notesStore'
 import { supabase } from '../sync/supabase'
 import { docxText } from './docx'
+import { aiHeaders } from '../ai/ownKey'
 
 export type StudyPayload = { kind: 'pdf' | 'text'; data: string }
 
@@ -72,7 +73,7 @@ export async function studyFile(
   if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
   const response = await fetch(`${base}/api/study`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+    headers: await aiHeaders(access),
     body: JSON.stringify({ name, ...payload, ...options }),
   })
   const text = await readAiStream(response, onText, 'Dit bestand is te groot voor NEXUS AI.')

@@ -3,6 +3,7 @@ import { allowedTools, fullAiContext, hiddenModules, toolModule, type AiContext,
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from '../state/storage'
 import { TOOL_SPECS, type ToolContext } from './tools'
+import { aiHeaders } from './ownKey'
 
 type MessageParam = Anthropic.Beta.BetaMessageParam
 type ContentBlock = Anthropic.Beta.BetaContentBlock
@@ -354,7 +355,7 @@ export function httpTransport(base: string, token: () => Promise<string | null>)
     if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
     const response = await fetch(`${base}/api/ai`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+      headers: await aiHeaders(access),
       body: JSON.stringify({ messages, tools }),
     })
     if (!response.ok || !response.body) {

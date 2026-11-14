@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aiAccess, cors, DEFAULT_MODEL, env, json } from './_shared.js'
+import { aiAccess, aiErrorText, aiKey, cors, DEFAULT_MODEL, env, json } from './_shared.js'
 
 /**
  * NEXUS AI study help: reads a file the user chose (a PDF, or the text of a Word or text file)
@@ -90,7 +90,7 @@ export async function POST(request: Request): Promise<Response> {
       ? { type: 'document', title: study.name, source: { type: 'base64', media_type: 'application/pdf', data: study.data } }
       : { type: 'document', title: study.name, source: { type: 'text', media_type: 'text/plain', data: study.data } }
 
-  const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') })
+  const client = new Anthropic({ apiKey: aiKey(request) })
   const encoder = new TextEncoder()
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -109,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
         const message = await stream.finalMessage()
         send({ type: 'done', stop_reason: message.stop_reason, usage: { input_tokens: message.usage.input_tokens, output_tokens: message.usage.output_tokens } })
       } catch (err) {
-        send({ type: 'error', message: err instanceof Anthropic.APIError ? `De AI-dienst gaf een fout (${err.status ?? 'netwerk'}).` : 'De AI is niet bereikbaar.' })
+        send({ type: 'error', message: aiErrorText(err, request) })
       } finally {
         controller.close()
       }

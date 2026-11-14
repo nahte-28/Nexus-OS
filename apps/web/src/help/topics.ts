@@ -73,6 +73,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   assistant: {
     summary: 'NEXUS AI: vraag iets, laat een samenvatting maken of laat een deadline of herinnering plannen.',
     tips: [
+      'Bij Eigen sleutel zet je je eigen sleutel van Anthropic (console.anthropic.com). Dan gebruik je NEXUS AI op je eigen account en betaal je je eigen gebruik; de sleutel blijft versleuteld op dit apparaat en gaat niet mee met syncen.',
       'Elke actie vraagt eerst je toestemming voor ze gebeurt.',
       'NEXUS AI werkt alleen als je aangemeld bent met een toegelaten account.',
       'Met Wat NEXUS AI mag zien zet je per module uit wat de AI mag lezen of veranderen, en zie je elke goedkeuring terug.',
