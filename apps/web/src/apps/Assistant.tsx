@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { AiContextSettings, ApprovalHistory } from '../ai/AiPrivacy'
+import { OwnKeySettings } from '../ai/OwnKeySettings'
 import { assistant, bindTheme } from '../ai/runtime'
 import type { ChatItem, ToolRequest } from '../ai/session'
 import { useSync } from '../sync/SyncContext'
@@ -20,7 +21,7 @@ export function Assistant() {
   const { setTheme } = useTheme()
   const { state: sync } = useSync()
   const [draft, setDraft] = useState('')
-  const [privacy, setPrivacy] = useState(false)
+  const [view, setView] = useState<'chat' | 'privacy' | 'key'>('chat')
   const end = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,18 +45,33 @@ export function Assistant() {
       <div className="flex items-center justify-between gap-2 border-b border-nx-border px-3 py-2">
         <h2 className="font-semibold">NEXUS AI</h2>
         <div className="flex flex-wrap gap-2">
-          {!privacy && state.items.length > 0 && (
+          {view === 'chat' && state.items.length > 0 && (
             <button type="button" className={button} disabled={state.busy} onClick={() => assistant.reset()}>
               Nieuw gesprek
             </button>
           )}
-          <button type="button" className={button} aria-expanded={privacy} onClick={() => setPrivacy(!privacy)}>
-            {privacy ? 'Terug naar het gesprek' : 'Wat NEXUS AI mag zien'}
-          </button>
+          {view === 'chat' ? (
+            <>
+              <button type="button" className={button} onClick={() => setView('privacy')}>
+                Wat NEXUS AI mag zien
+              </button>
+              <button type="button" className={button} onClick={() => setView('key')}>
+                Eigen sleutel
+              </button>
+            </>
+          ) : (
+            <button type="button" className={button} onClick={() => setView('chat')}>
+              Terug naar het gesprek
+            </button>
+          )}
         </div>
       </div>
 
-      {privacy ? (
+      {view === 'key' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <OwnKeySettings />
+        </div>
+      ) : view === 'privacy' ? (
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-3">
           <AiContextSettings />
           <section className="space-y-2">

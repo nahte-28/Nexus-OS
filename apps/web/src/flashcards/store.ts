@@ -5,6 +5,7 @@ import { readAiStream, type StudyPayload } from '../files/study'
 import { apiBase } from '../platform/desktop'
 import { createProblem, DocStore, startDocSync } from '../state/docStore'
 import { supabase } from '../sync/supabase'
+import { aiHeaders } from '../ai/ownKey'
 
 export const FLASHCARDS_MIGRATION = 'supabase/migrations/20261027160000_flashcards.sql'
 
@@ -68,7 +69,7 @@ export async function makeCards(
   if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
   const response = await fetch(`${base}/api/cards`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+    headers: await aiHeaders(access),
     body: JSON.stringify({ name, ...payload, ...options }),
   })
   const text = await readAiStream(response, (soFar) => onCount(parseAiCards(soFar).length), 'Dit bestand is te groot voor NEXUS AI.')

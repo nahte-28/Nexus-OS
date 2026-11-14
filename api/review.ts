@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aiAccess, cors, DEFAULT_MODEL, env, json } from './_shared.js'
+import { aiAccess, aiErrorText, aiKey, cors, DEFAULT_MODEL, env, json } from './_shared.js'
 
 /**
  * NEXUS AI's Weekoverzicht, and with kind "finance" advice about a month in Financiën: gets the facts of the student's week (built on the device: lessons,
@@ -66,7 +66,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.ok) return json(request, 400, parsed.error)
   const text = `Feiten van NEXUS:\n\n${parsed.facts}${parsed.wish ? `\n\nWens van de student: ${parsed.wish}` : ''}`
 
-  const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') })
+  const client = new Anthropic({ apiKey: aiKey(request) })
   const encoder = new TextEncoder()
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
         const message = await stream.finalMessage()
         send({ type: 'done', stop_reason: message.stop_reason })
       } catch (err) {
-        send({ type: 'error', message: err instanceof Anthropic.APIError ? `De AI-dienst gaf een fout (${err.status ?? 'netwerk'}).` : 'De AI is niet bereikbaar.' })
+        send({ type: 'error', message: aiErrorText(err, request) })
       } finally {
         controller.close()
       }

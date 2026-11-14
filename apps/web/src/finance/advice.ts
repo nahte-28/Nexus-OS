@@ -6,6 +6,7 @@ import { apiBase } from '../platform/desktop'
 import { notesStore } from '../state/notesStore'
 import { supabase } from '../sync/supabase'
 import { financeStore } from './store'
+import { aiHeaders } from '../ai/ownKey'
 
 type Token = () => Promise<string | null>
 const sessionToken: Token = async () => (await supabase?.auth.getSession())?.data.session?.access_token ?? null
@@ -20,7 +21,7 @@ export async function streamFinanceAdvice(month: string, wish: string, onText: (
   if (!access) throw new Error('Meld je aan in de Account-app om NEXUS AI te gebruiken.')
   const response = await fetch(`${base}/api/review`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${access}` },
+    headers: await aiHeaders(access),
     body: JSON.stringify({ kind: 'finance', facts: financeFacts(financeStore.getSnapshot(), now, month), wish }),
   })
   const text = await readAiStream(response, onText, 'Je maand heeft te veel gegevens voor NEXUS AI.')

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { aiAccess, allowedEmails, cors, DEFAULT_MODEL, env, json } from './_shared.js'
+import { aiAccess, aiErrorText, aiKey, allowedEmails, cors, DEFAULT_MODEL, env, json } from './_shared.js'
 
 export { allowedEmails, DEFAULT_MODEL }
 
@@ -7,9 +7,12 @@ export { allowedEmails, DEFAULT_MODEL }
  * NEXUS AI: a thin, authenticated proxy to Claude. The model only proposes actions;
  * the NEXUS client runs a tool after the user allowed it, then sends the result back.
  *
+ * Whoever sets their own Anthropic key in NEXUS AI sends it along (header x-nexus-ai-key) and
+ * pays for their own requests; it is used for that request only, never stored here.
+ *
  * Vercel environment variables:
- *   ANTHROPIC_API_KEY         required, the key that pays for the requests
- *   NEXUS_AI_ALLOWED_EMAILS   required, comma-separated accounts that may use the assistant
+ *   ANTHROPIC_API_KEY         optional, the shared key for the accounts below
+ *   NEXUS_AI_ALLOWED_EMAILS   optional, comma-separated accounts that may use the shared key
  *   VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY   already set for the web app; used to check logins
  *   NEXUS_AI_MODEL            optional, defaults to claude-opus-5-5
  */
@@ -222,7 +225,7 @@ export async function POST(request: Request): Promise<Response> {
   const problem = checkMessages(messages)
   if (problem) return json(request, 400, problem)
 
-  const client = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') })
+  const client = new Anthropic({ apiKey: aiKey(request) })
   const encoder = new TextEncoder()
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -253,7 +256,7 @@ export async function POST(request: Request): Promise<Response> {
           },
         })
       } catch (err) {
-        send({ type: 'error', message: errorText(err) })
+        send({ type: 'error', message: aiErrorText(err, request) })
       } finally {
         controller.close()
       }
@@ -262,12 +265,4 @@ export async function POST(request: Request): Promise<Response> {
   return new Response(body, {
     headers: { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', ...cors(request) },
   })
-}
-
-function errorText(err: unknown): string {
-  if (err instanceof Anthropic.AuthenticationError) return 'De Anthropic-sleutel op de server is ongeldig.'
-  if (err instanceof Anthropic.RateLimitError) return 'Even te veel aanvragen. Probeer het zo opnieuw.'
-  if (err instanceof Anthropic.BadRequestError) return `De AI weigerde de aanvraag: ${err.message}`
-  if (err instanceof Anthropic.APIError) return `De AI-dienst gaf een fout (${err.status ?? 'netwerk'}).`
-  return 'De AI is niet bereikbaar.'
 }

@@ -14,7 +14,7 @@ describe('NEXUS AI endpoint', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', '')
     const response = await POST(request())
     expect(response.status).toBe(503)
-    expect((await response.json()).error).toContain('ANTHROPIC_API_KEY')
+    expect((await response.json()).error).toContain('eigen AI-sleutel')
   })
 
   it('only serves logged-in accounts on the allow list', async () => {
@@ -35,6 +35,20 @@ describe('NEXUS AI endpoint', () => {
     expect((await POST(request({ authorization: 'Bearer other' }))).status).toBe(403)
     expect(fetchMock.mock.calls[0][0]).toBe('https://abc.supabase.co/auth/v1/user')
     expect((await POST(request({ authorization: 'Bearer good' }, { messages: [] } as never))).status).toBe(400)
+  })
+
+  it('lets any signed-in account use its own key, without the shared key', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    vi.stubEnv('NEXUS_AI_ALLOWED_EMAILS', '')
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://abc.supabase.co')
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon')
+    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => ((init.headers as Record<string, string>).Authorization === 'Bearer good' ? new Response(JSON.stringify({ email: 'bram@example.com' })) : new Response('{}', { status: 401 }))))
+    const own = 'sk-ant-api03-' + 'a'.repeat(40)
+    expect((await POST(request({ 'x-nexus-ai-key': 'geen-sleutel', authorization: 'Bearer good' }))).status).toBe(400)
+    expect((await POST(request({ 'x-nexus-ai-key': own }))).status).toBe(401)
+    expect((await POST(request({ 'x-nexus-ai-key': own, authorization: 'Bearer expired' }))).status).toBe(401)
+    // Past the access check: an empty conversation is refused for its shape, not for the account.
+    expect((await POST(request({ 'x-nexus-ai-key': own, authorization: 'Bearer good' }, { messages: [] } as never))).status).toBe(400)
   })
 
   it('checks the conversation shape', () => {
