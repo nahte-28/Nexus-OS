@@ -69,12 +69,19 @@ export interface PlanGaming {
  * the one of the notice it came from (deadline:<id>@... or habit:<id>@<date>). "focus": a focus round
  * finished on the watch, for the focus log of Studie and Inzichten. "gaming": the Gaming timer started or
  * stopped on the watch. "darts": a solo leg scored on the watch, for the history and stats of Darts.
+ * "darts_practice": a practice round played on the watch (Around the Clock, Doubles rond, Bob's 27
+ * or Scoring), for Darts › Oefenen; NEXUS replays it with its own rules.
  */
 export type ActionPayload =
   | { v: 1; kind: 'action'; action: 'done'; ref: string; at: number }
   | { v: 1; kind: 'action'; action: 'focus'; minutes: number; task: string; at: number }
   | { v: 1; kind: 'action'; action: 'gaming'; op: 'start' | 'stop'; at: number }
   | { v: 1; kind: 'action'; action: 'darts'; id: string; mode: 301 | 501; startedAt: number; visits: Array<{ score: number; darts: number }>; at: number }
+  | { v: 1; kind: 'action'; action: 'darts_practice'; id: string; game: WatchPracticeGame; startedAt: number; throws: boolean[]; hits: number[]; visits: number[]; at: number }
+
+/** The practice games the watch can play. */
+export type WatchPracticeGame = 'clock' | 'doubles' | 'bobs27' | 'scoring'
+export const WATCH_PRACTICE_GAMES: WatchPracticeGame[] = ['clock', 'doubles', 'bobs27', 'scoring']
 
 export type ActionTarget = { kind: 'deadline'; id: string } | { kind: 'habit'; id: string; date: string }
 
@@ -102,6 +109,17 @@ export function parseAction(value: unknown): ActionPayload | null {
         : []
     })
     return id && visits.length > 0 ? { v: 1, kind: 'action', action: 'darts', id, mode: p.mode, startedAt, visits, at: p.at } : null
+  }
+  if (p.action === 'darts_practice' && WATCH_PRACTICE_GAMES.includes(p.game as WatchPracticeGame)) {
+    const id = str(p.id, 80)
+    const startedAt = typeof p.startedAt === 'number' && Number.isFinite(p.startedAt) ? p.startedAt : p.at
+    const ints = (raw: unknown, max: number, top: number) =>
+      (Array.isArray(raw) ? raw : []).slice(0, max).filter((x): x is number => typeof x === 'number' && Number.isInteger(x) && x >= 0 && x <= top)
+    const throws = (Array.isArray(p.throws) ? p.throws : []).slice(0, 500).map((t) => t === true)
+    const hits = ints(p.hits, 21, 3)
+    const visits = ints(p.visits, 10, 180)
+    const any = throws.length + hits.length + visits.length > 0
+    return id && any ? { v: 1, kind: 'action', action: 'darts_practice', id, game: p.game as WatchPracticeGame, startedAt, throws, hits, visits, at: p.at } : null
   }
   return null
 }

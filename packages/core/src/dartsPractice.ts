@@ -265,3 +265,24 @@ export function practiceStats(sessions: DartsPractice[]): PracticeStats {
     scoringAverage: scoringVisits.length > 0 ? round1(scoringVisits.reduce<number>((s, n) => s + n, 0) / scoringVisits.length) : null,
   }
 }
+
+/** The id a practice round from the watch gets in NEXUS, so a second delivery changes nothing. */
+export const watchPracticeId = (id: string) => `watch-${id}`
+
+/**
+ * A practice round played on the watch, replayed with these rules so the watch cannot add what
+ * Oefenen would refuse. It counts as done when it arrives, also when it was stopped halfway.
+ */
+export function watchPractice(round: { id: string; game: 'clock' | 'doubles' | 'bobs27' | 'scoring'; startedAt: number; throws: boolean[]; hits: number[]; visits: number[] }, at: number): DartsPractice | null {
+  let p = newPractice(watchPracticeId(round.id), round.game, round.startedAt)
+  if (round.game === 'clock' || round.game === 'doubles') for (const t of round.throws) p = clockThrow(p, t, at)
+  if (round.game === 'bobs27') for (const h of round.hits) p = bobsRound(p, h, at)
+  if (round.game === 'scoring') {
+    for (const v of round.visits) {
+      const next = scoringVisit(p, v, at)
+      if (!('error' in next)) p = next
+    }
+  }
+  if (p.throws.length + p.hits.length + p.visits.length === 0) return null
+  return { ...p, finishedAt: p.finishedAt ?? at, updatedAt: at }
+}

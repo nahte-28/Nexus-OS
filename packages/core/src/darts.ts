@@ -40,6 +40,8 @@ export interface DartsVisit {
   bust: boolean
   /** In a pairs match: which member of the side threw (0 or 1). */
   by?: number
+  /** Darts thrown at a double in this visit (0 to 3), when it was asked: for the checkout percentage. */
+  doubles?: number
 }
 
 export interface DartsLeg {
@@ -81,6 +83,8 @@ export interface DartsSettings {
   legsToWin: number
   setsToWin: number
   doubleOut: boolean
+  /** Ask how many darts went at a double when a finish was on, for the checkout percentage. */
+  askDoubles: boolean
   updatedAt: number
 }
 
@@ -92,7 +96,7 @@ export interface DartsState {
   revision: number
 }
 
-export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, setsToWin: 1, doubleOut: true, updatedAt: 0 }, revision: 0 })
+export const emptyDarts = (): DartsState => ({ matches: [], practice: [], settings: { me: 'Ik', nickname: '', roster: [], mode: 501, legsToWin: 3, setsToWin: 1, doubleOut: true, askDoubles: true, updatedAt: 0 }, revision: 0 })
 
 // Parsing and merging -------------------------------------------------------------------------------
 
@@ -141,7 +145,17 @@ function parseMatch(raw: unknown): DartsMatch | null {
       const darts = num(v.darts)
       const by = num(v.by)
       const member = by !== null && by >= 0 && by < members[player].length ? Math.round(by) : 0
-      return [{ player, score: Math.round(score), darts: darts !== null && darts >= 1 && darts <= 3 ? Math.round(darts) : 3, bust: v.bust === true, ...(members[player].length > 1 ? { by: member } : {}) }]
+      const doubles = num(v.doubles)
+      return [
+        {
+          player,
+          score: Math.round(score),
+          darts: darts !== null && darts >= 1 && darts <= 3 ? Math.round(darts) : 3,
+          bust: v.bust === true,
+          ...(members[player].length > 1 ? { by: member } : {}),
+          ...(doubles !== null && doubles >= 0 && doubles <= 3 ? { doubles: Math.round(doubles) } : {}),
+        },
+      ]
     })
     const set = num(leg.set)
     return [{ set: set !== null && set >= 0 ? Math.round(set) : 0, starter: who(leg.starter) ?? 0, visits, winner: who(leg.winner) }]
@@ -185,7 +199,7 @@ export function parseDarts(raw: unknown): DartsState {
   return {
     matches: (Array.isArray(v.matches) ? v.matches : []).map(parseMatch).filter((m): m is DartsMatch => m !== null).slice(0, MAX_MATCHES),
     practice: (Array.isArray(v.practice) ? v.practice : []).map(parsePractice).filter((p): p is DartsPractice => p !== null).slice(0, MAX_PRACTICE),
-    settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), setsToWin: sets(s.setsToWin), doubleOut: s.doubleOut !== false, updatedAt: num(s.updatedAt) ?? 0 },
+    settings: { me: str(s.me, MAX_NAME).trim() || base.me, nickname: str(s.nickname, MAX_NICKNAME).trim(), roster: parseRoster(s.roster), mode: mode(s.mode), legsToWin: legs(s.legsToWin), setsToWin: sets(s.setsToWin), doubleOut: s.doubleOut !== false, askDoubles: s.askDoubles !== false, updatedAt: num(s.updatedAt) ?? 0 },
     revision: num(v.revision) ?? 0,
   }
 }
@@ -320,7 +334,7 @@ export function throwerName(m: DartsMatch): string | null {
  * double-out or finishes on a score no double can end is a bust: it counts as thrown but scores
  * nothing. Finishing wins the leg; enough legs win the match and the next leg starts with the next player.
  */
-export function addVisit(m: DartsMatch, score: number, now: number, darts = 3): DartsMatch | { error: string } {
+export function addVisit(m: DartsMatch, score: number, now: number, darts = 3, doubles?: number): DartsMatch | { error: string } {
   const player = toThrow(m)
   if (player === null) return { error: 'Deze wedstrijd is al gedaan.' }
   if (!Number.isInteger(score) || score < 0 || score > 180) return { error: 'Een beurt is 0 tot 180.' }
@@ -330,7 +344,10 @@ export function addVisit(m: DartsMatch, score: number, now: number, darts = 3): 
   const bust = left < 0 || (m.doubleOut && left === 1) || (left === 0 && !finishable)
   const leg = currentLeg(m)
   const pairs = (m.members[player]?.length ?? 1) > 1
-  const visit: DartsVisit = { player, score, darts: left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3, bust, ...(pairs ? { by: memberToThrow(m, player, leg) } : {}) }
+  const used = left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3
+  const won = left === 0 && !bust
+  const atDouble = doubles === undefined || !Number.isFinite(doubles) ? undefined : Math.min(used, Math.max(won ? 1 : 0, Math.round(doubles)))
+  const visit: DartsVisit = { player, score, darts: used, bust, ...(pairs ? { by: memberToThrow(m, player, leg) } : {}), ...(atDouble !== undefined ? { doubles: atDouble } : {}) }
   const done: DartsLeg = { ...leg, visits: [...leg.visits, visit], winner: left === 0 && !bust ? player : null }
   let next: DartsMatch = { ...m, legs: [...m.legs.slice(0, -1), done], updatedAt: now }
   if (done.winner !== null) {
@@ -340,6 +357,17 @@ export function addVisit(m: DartsMatch, score: number, now: number, darts = 3): 
     else next = { ...next, legs: [...next.legs, { set: leg.set + 1, starter, visits: [], winner: null }] }
   }
   return next
+}
+
+/**
+ * Whether the player to throw can finish this visit (double-out, 170 or less and not a bogey
+ * number), so the scorer asks how many darts went at a double, like the checkout percentage needs.
+ */
+export function checkoutChance(m: DartsMatch): boolean {
+  const player = toThrow(m)
+  if (player === null || !m.doubleOut) return false
+  const rest = remaining(m, player)
+  return rest <= 170 && checkoutRoute(rest, true, 3) !== null
 }
 
 /** The id a leg from the watch gets in NEXUS, so a second delivery changes nothing. */
@@ -470,11 +498,15 @@ export interface DartsStats {
   highestCheckout: number
   /** Fewest darts in a leg you won, or null. */
   bestLeg: number | null
+  /** Legs you threw out per dart at a double, 0 to 100, over the visits where that was noted; null without. */
+  checkoutPct: number | null
 }
 
 /** Your stats over finished and running matches, for the player named [name]. */
 export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
-  const stats: DartsStats = { matches: 0, matchesWon: 0, legs: 0, legsWon: 0, average: 0, first9: 0, oneEighties: 0, tonForty: 0, tons: 0, highestCheckout: 0, bestLeg: null }
+  const stats: DartsStats = { matches: 0, matchesWon: 0, legs: 0, legsWon: 0, average: 0, first9: 0, oneEighties: 0, tonForty: 0, tons: 0, highestCheckout: 0, bestLeg: null, checkoutPct: null }
+  let doubleDarts = 0
+  let noted = 0
   let points = 0
   let darts = 0
   let points9 = 0
@@ -502,6 +534,7 @@ export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
           points9 += scored
           darts9 += v.darts
         }
+        if (v.doubles !== undefined) doubleDarts += v.doubles
         if (!v.bust && v.score === 180) stats.oneEighties++
         else if (!v.bust && v.score >= 140) stats.tonForty++
         else if (!v.bust && v.score >= 100) stats.tons++
@@ -510,7 +543,10 @@ export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
         stats.legsWon++
         // In pairs only your own finish counts, and a leg is not yours alone.
         const finish = leg.visits[leg.visits.length - 1]
-        if (!pair || (finish.by ?? 0) === member) stats.highestCheckout = Math.max(stats.highestCheckout, finish.score)
+        if (!pair || (finish.by ?? 0) === member) {
+          stats.highestCheckout = Math.max(stats.highestCheckout, finish.score)
+          if (finish.doubles !== undefined) noted++
+        }
         if (!pair) stats.bestLeg = stats.bestLeg === null ? legDarts : Math.min(stats.bestLeg, legDarts)
       }
     }
@@ -518,6 +554,7 @@ export function dartsStats(matches: DartsMatch[], name: string): DartsStats {
   const round = (x: number) => Math.round(x * 100) / 100
   stats.average = darts > 0 ? round((points / darts) * 3) : 0
   stats.first9 = darts9 > 0 ? round((points9 / darts9) * 3) : 0
+  stats.checkoutPct = doubleDarts > 0 ? Math.round((noted / doubleDarts) * 1000) / 10 : null
   return stats
 }
 

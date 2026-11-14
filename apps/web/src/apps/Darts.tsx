@@ -1,7 +1,10 @@
 import { useState, useSyncExternalStore } from 'react'
 import {
   addVisit,
+  checkoutChance,
   checkoutRoute,
+  matchSummary,
+  summaryLine,
   currentLeg,
   DARTS_MODES,
   dartsEvents,
@@ -261,7 +264,10 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const { settings } = useDarts()
   const [score, setScore] = useState('')
   const [darts, setDarts] = useState(3)
+  const [doubles, setDoubles] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  // With a finish on, ask how many darts went at a double, for the checkout percentage.
+  const ask = settings.askDoubles && checkoutChance(match)
   const turn = toThrow(match)
   const leg = currentLeg(match)
   const left = turn === null ? 0 : remaining(match, turn)
@@ -269,11 +275,13 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const typed = Number(score)
   const finishing = score !== '' && typed === left
   const submit = (value: number) => {
-    const next = addVisit(match, value, Date.now(), value === left ? darts : 3)
+    const out = value === left
+    const next = addVisit(match, value, Date.now(), out ? darts : 3, ask ? (out ? Math.max(1, doubles) : doubles) : undefined)
     if ('error' in next) return setError(next.error)
     setError(null)
     setScore('')
     setDarts(3)
+    setDoubles(0)
     saveMatch(next)
   }
   return (
@@ -339,10 +347,21 @@ function Scoreboard({ match }: { match: DartsMatch }) {
               Uitgegooid met
               {[1, 2, 3].map((n) => (
                 <label key={n} className="flex items-center gap-1">
-                  <input type="radio" name="darts" checked={darts === n} onChange={() => setDarts(n)} /> {n}
+                  <input type="radio" name="darts" aria-label={`Uit in ${n}`} checked={darts === n} onChange={() => setDarts(n)} /> {n}
                 </label>
               ))}
               {n(darts)}
+            </fieldset>
+          )}
+          {ask && (
+            <fieldset className="flex flex-wrap items-center gap-3">
+              <legend className="sr-only">Pijlen op een dubbel</legend>
+              Pijlen op een dubbel
+              {[0, 1, 2, 3].map((k) => (
+                <label key={k} className="flex items-center gap-1">
+                  <input type="radio" name="doubles" aria-label={`${k} op een dubbel`} checked={doubles === k} onChange={() => setDoubles(k)} /> {k}
+                </label>
+              ))}
             </fieldset>
           )}
           <div className="flex flex-wrap gap-1">
@@ -419,6 +438,7 @@ function Play() {
       {show ? (
         <>
           <Scoreboard match={show} />
+          {!running(show) && <Summary match={show} />}
           {!running(show) && (
             <button type="button" className={small} onClick={() => setDismissed(show.id)}>
               Nieuwe wedstrijd instellen
@@ -434,6 +454,7 @@ function Play() {
 
 function History() {
   const state = useDarts()
+  const [open, setOpen] = useState<string | null>(null)
   const matches = liveMatches(state)
   const label = (p: string) => playerLabel(state.settings, p)
   if (matches.length === 0) return <p className="text-nx-muted">Nog geen wedstrijden.</p>
@@ -448,17 +469,123 @@ function History() {
           <span className="text-nx-muted">
             {m.mode} · {formatLabel(m)} · {when(m.startedAt)} · {m.winner !== null ? `${m.members[m.winner].map(label).join(' & ')} won` : running(m) ? 'bezig' : 'gestopt'}
           </span>
+          <button type="button" className={`${small} ml-auto`} aria-expanded={open === m.id} onClick={() => setOpen(open === m.id ? null : m.id)}>
+            Samenvatting
+          </button>
           <button
             type="button"
-            className={`${small} ml-auto`}
+            className={small}
             aria-label={`Wedstrijd van ${when(m.startedAt)} verwijderen`}
             onClick={() => saveMatch({ ...m, deletedAt: Date.now(), updatedAt: Date.now() })}
           >
             Verwijderen
           </button>
+          {open === m.id && (
+            <div className="w-full pt-1">
+              <Summary match={m} />
+            </div>
+          )}
         </li>
       ))}
     </ul>
+  )
+}
+
+const one = (x: number | null) => (x === null ? '–' : x.toLocaleString('nl-BE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
+
+/** The summary of a match: per player the numbers that matter, then every leg. */
+function Summary({ match }: { match: DartsMatch }) {
+  const { settings } = useDarts()
+  const [copied, setCopied] = useState(false)
+  const s = matchSummary(match)
+  if (s.legsPlayed === 0) return null
+  const rows: Array<[string, (x: (typeof s.sides)[number]) => string | number]> = [
+    ...(match.setsToWin > 1 ? ([['Sets', (x) => x.setsWon]] as Array<[string, (x: (typeof s.sides)[number]) => string | number]>) : []),
+    ['Legs', (x) => x.legsWon],
+    ['Gemiddelde', (x) => one(x.average)],
+    ['First 9', (x) => one(x.first9)],
+    ['Checkout %', (x) => (x.checkoutPct === null ? (x.checkouts > 0 ? `${x.checkouts} uit` : '–') : `${one(x.checkoutPct)}% (${x.checkouts}/${x.doubleDarts})`)],
+    ['Hoogste finish', (x) => x.highestFinish || '–'],
+    ['Hoogste beurt', (x) => x.highestScore || '–'],
+    ['Beste leg', (x) => (x.bestLeg === null ? '–' : `${x.bestLeg} pijlen`)],
+    ['Slechtste leg', (x) => (x.worstLeg === null ? '–' : `${x.worstLeg} pijlen`)],
+    ['180', (x) => x.oneEighties],
+    ['140+', (x) => x.tonForty],
+    ['100+', (x) => x.tons],
+    ['60+', (x) => x.sixtyPlus],
+    ['Pijlen gegooid', (x) => x.dartsThrown],
+  ]
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(summaryLine(match, s))
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+  return (
+    <section aria-label="Samenvatting van de wedstrijd" className="space-y-3 rounded-lg border border-nx-border p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="font-medium">Samenvatting</h3>
+        <span className="text-nx-muted">
+          {match.mode} · {formatLabel(match)} · {s.legsPlayed} {s.legsPlayed === 1 ? 'leg' : 'legs'}
+          {s.minutes !== null && ` · ${s.minutes} min`}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left tabular-nums">
+          <thead>
+            <tr>
+              <th className="py-1 pr-3 font-normal text-nx-muted" scope="col">
+                <span className="sr-only">Cijfer</span>
+              </th>
+              {s.sides.map((x) => (
+                <th key={x.side} scope="col" className={`py-1 pr-3 ${match.winner === x.side ? 'text-nx-accent' : ''}`}>
+                  {sideLabel(settings, match, x.side)}
+                  {match.winner === x.side && <span className="ml-1 text-xs font-normal">wint</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([label, value]) => (
+              <tr key={label} className="border-t border-nx-border">
+                <th scope="row" className="py-1 pr-3 font-normal text-nx-muted">
+                  {label}
+                </th>
+                {s.sides.map((x) => (
+                  <td key={x.side} className={`py-1 pr-3 ${label === 'Gemiddelde' && s.bestAverage === x.side ? 'font-semibold' : ''}`}>
+                    {value(x)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary className="cursor-pointer text-nx-muted">Per leg</summary>
+        <ol className="mt-2 space-y-1">
+          {s.legs.map((l) => (
+            <li key={l.number}>
+              {match.setsToWin > 1 && `Set ${l.set}, `}Leg {l.number}:{' '}
+              {l.winner !== null ? (
+                <>
+                  <b>{sideLabel(settings, match, l.winner)}</b> in {l.darts} pijlen, uit met {l.finish}
+                </>
+              ) : (
+                'niet uitgespeeld'
+              )}
+              <span className="text-nx-muted"> · gem. {l.averages.map(one).join(' – ')}</span>
+            </li>
+          ))}
+        </ol>
+      </details>
+      {!settings.askDoubles && <p className="text-xs text-nx-muted">Checkout % staat uit: zet "Pijlen op een dubbel vragen" aan bij Instellingen.</p>}
+      <button type="button" className={small} onClick={copy}>
+        {copied ? 'Gekopieerd' : 'Uitslag kopiëren'}
+      </button>
+    </section>
   )
 }
 
@@ -475,6 +602,7 @@ function Stats() {
     ['140+', s.tonForty],
     ['100+', s.tons],
     ['Hoogste finish', s.highestCheckout || '–'],
+    ['Checkout %', s.checkoutPct === null ? '–' : `${s.checkoutPct}%`],
     ['Beste leg', s.bestLeg ? `${s.bestLeg} pijlen` : '–'],
     ['Legs gewonnen', `${s.legsWon} van ${s.legs}`],
     ['Wedstrijden gewonnen', `${s.matchesWon} van ${s.matches}`],
@@ -892,6 +1020,13 @@ function Settings() {
         <h3 className="font-medium">Standaard wedstrijd</h3>
         <FormatFields value={{ mode: settings.mode, legsToWin: settings.legsToWin, setsToWin: settings.setsToWin, doubleOut: settings.doubleOut }} onChange={(f) => set(f)} />
       </section>
+      <label className="flex items-start gap-2">
+        <input type="checkbox" className="mt-1 accent-[var(--nx-accent)]" checked={settings.askDoubles} onChange={(e) => set({ askDoubles: e.target.checked })} />
+        <span>
+          Pijlen op een dubbel vragen
+          <span className="block text-nx-muted">Als je kunt uitgooien, vraagt het scorebord hoeveel pijlen op een dubbel gingen. Zo krijg je een checkout-percentage in de samenvatting en je statistieken.</span>
+        </span>
+      </label>
       <Players />
       <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Apps aan/uit, dan verdwijnt de app overal.</p>
     </div>

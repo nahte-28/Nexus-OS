@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-14',
+    title: 'Darts: samenvatting en training op je horloge',
+    items: [
+      'Na elke wedstrijd krijg je een samenvatting: gemiddelde, first 9, checkout %, hoogste finish, beste en slechtste leg, 180\'s, 140+, 100+ en 60+ per speler, en elke leg apart. Ook later te openen in Geschiedenis, en de uitslag kopieer je met één tik.',
+      'Kun je uitgooien, dan vraagt het scorebord hoeveel pijlen op een dubbel gingen. Zo zie je je checkout-percentage in de samenvatting en bij Statistieken.',
+      'Op je horloge kun je nu trainen: Around the Clock, Doubles rond, Bob\'s 27 en Scoring op T20. De rondes komen in Darts › Oefenen.',
+    ],
+  },
+  {
+    date: '2026-11-14',
     title: 'Apps aan/uit',
     items: [
       'In Instellingen staat nu Apps aan/uit: één lijst met al je apps en modules, in dezelfde groepen als de zijbalk.',
