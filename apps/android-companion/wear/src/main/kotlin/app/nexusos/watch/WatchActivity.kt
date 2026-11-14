@@ -33,6 +33,8 @@ import app.nexusos.companion.Protocol
 import app.nexusos.companion.Store
 import app.nexusos.companion.Updater
 import app.nexusos.companion.WatchDarts
+import app.nexusos.companion.WatchPractice
+import app.nexusos.companion.PracticeRound
 import kotlin.math.roundToInt
 
 /** Production address of the NEXUS web app; editable on the login screen. */
@@ -307,6 +309,11 @@ class WatchActivity : Activity() {
 
     private fun darts() {
         heading("Darts", 15f)
+        val round = WatchPractice.decode(dartsPrefs().getString("practice", null))
+        if (round != null && !(round.over && round.sent && practiceShowDone != round.id)) {
+            practice(round)
+            return
+        }
         val leg = WatchDarts.decode(dartsPrefs().getString("leg", null))
         if (leg == null || (leg.over && leg.sent && dartsFinish == null && dartsShowDone != leg.id)) {
             text("Tel een leg bij: tik na elke beurt het totaal van je drie pijlen in. Daarna staat ze in je Darts-statistieken in NEXUS.", muted = true, size = 12f)
@@ -314,6 +321,16 @@ class WatchActivity : Activity() {
                 button("$mode starten", primary = mode == WatchDarts.MODES.first()) {
                     saveLeg(DartsLeg(java.util.UUID.randomUUID().toString(), mode, System.currentTimeMillis()))
                     dartsFinish = null
+                    render()
+                }
+            }
+            space(8)
+            text("Training", bold = true)
+            text("Oefen op je horloge; de ronde komt in Darts › Oefenen in NEXUS.", muted = true, size = 12f)
+            for (game in WatchPractice.GAMES) {
+                button(WatchPractice.LABELS.getValue(game)) {
+                    savePractice(PracticeRound(java.util.UUID.randomUUID().toString(), game, System.currentTimeMillis()))
+                    practiceShowDone = null
                     render()
                 }
             }
@@ -367,6 +384,115 @@ class WatchActivity : Activity() {
     }
 
     private var dartsShowDone: String? = null
+
+    /**
+     * A practice round on the watch (Around the Clock, Doubles rond, Bob's 27, Scoring). When it
+     * ends, or you stop it, it goes to NEXUS, into Darts › Oefenen.
+     */
+    private var practiceShowDone: String? = null
+
+    private fun practice(r: PracticeRound) {
+        text(WatchPractice.LABELS.getValue(r.game), bold = true)
+        if (r.over) {
+            text(WatchPractice.summary(r), bold = true, size = 16f)
+            if (!r.sent) {
+                button(if (dartsBusy) "Bezig…" else "Naar NEXUS sturen", primary = true) { sendPractice(r) }
+                button("Ongedaan maken") { savePractice(WatchPractice.undo(r)); render() }
+            } else {
+                text("Staat in NEXUS.", muted = true, size = 12f)
+            }
+            button("Nog een ronde") {
+                practiceShowDone = null
+                savePractice(PracticeRound(java.util.UUID.randomUUID().toString(), r.game, System.currentTimeMillis()))
+                render()
+            }
+            if (r.sent) {
+                button("Klaar") {
+                    dartsPrefs().edit().remove("practice").apply()
+                    practiceShowDone = null
+                    render()
+                }
+            }
+            return
+        }
+        text(WatchPractice.HELP.getValue(r.game), muted = true, size = 12f)
+        val target = WatchPractice.target(r) ?: ""
+        when (r.game) {
+            "clock", "doubles" -> {
+                text("Mik op $target", bold = true, size = 22f)
+                text("${WatchPractice.clockHits(r)} van ${WatchPractice.TARGETS} · ${r.throws.size} pijlen", muted = true, size = 12f)
+                row(listOf("Raak" to { practiceStep(WatchPractice.dart(r, true)) }, "Mis" to { practiceStep(WatchPractice.dart(r, false)) }))
+            }
+            "bobs27" -> {
+                text("Mik op $target", bold = true, size = 22f)
+                text("Score ${WatchPractice.bobsScore(r)}", muted = true, size = 12f)
+                text("Hoeveel van je drie pijlen waren raak?", size = 12f)
+                row((0..3).map { n -> "$n" to { practiceStep(WatchPractice.bobs(r, n)) } })
+            }
+            else -> {
+                text("Beurt ${r.visits.size + 1} van ${WatchPractice.SCORING_VISITS}", bold = true, size = 18f)
+                if (r.visits.isNotEmpty()) text(WatchPractice.summary(r), muted = true, size = 12f)
+                val score = input("Score van je beurt", 0).apply { inputType = InputType.TYPE_CLASS_NUMBER }
+                button("Invoeren", primary = true) { practiceScore(r, score.text.toString()) }
+                row(listOf(26, 41, 45).map { n -> "$n" to { practiceScore(r, "$n") } })
+                row(listOf(60, 81, 85).map { n -> "$n" to { practiceScore(r, "$n") } })
+                row(listOf(100, 140, 180).map { n -> "$n" to { practiceScore(r, "$n") } })
+            }
+        }
+        row(listOf("↶" to { savePractice(WatchPractice.undo(r)); render() }))
+        button("Stoppen") {
+            if (r.empty) {
+                dartsPrefs().edit().remove("practice").apply()
+                render()
+            } else {
+                val stopped = r.copy(stoppedAt = System.currentTimeMillis())
+                savePractice(stopped)
+                sendPractice(stopped)
+            }
+        }
+    }
+
+    private fun practiceScore(r: PracticeRound, raw: String) {
+        val score = raw.trim().toIntOrNull()
+        val (next, error) = if (score == null) null to "Tik een score van 0 tot 180." else WatchPractice.scoring(r, score)
+        if (next == null) {
+            status = error
+            render()
+            return
+        }
+        practiceStep(next)
+    }
+
+    private fun practiceStep(next: PracticeRound) {
+        status = null
+        savePractice(next)
+        if (next.over) {
+            sendPractice(next)
+            return
+        }
+        render()
+    }
+
+    private fun sendPractice(r: PracticeRound) {
+        if (dartsBusy) return
+        dartsBusy = true
+        practiceShowDone = r.id
+        Connect.sendToNexus(this, WatchPractice.payload(r, System.currentTimeMillis())) { error ->
+            dartsBusy = false
+            if (error == null) {
+                WatchPractice.decode(dartsPrefs().getString("practice", null))?.takeIf { it.id == r.id }?.let { savePractice(it.copy(sent = true)) }
+                status = "De ronde staat in NEXUS zodra het op je pc of gsm openstaat."
+            } else {
+                status = error
+            }
+            render()
+        }
+        render()
+    }
+
+    private fun savePractice(r: PracticeRound) {
+        dartsPrefs().edit().putString("practice", WatchPractice.encode(r)).apply()
+    }
 
     private fun enterScore(leg: DartsLeg, raw: String) {
         val score = raw.trim().toIntOrNull()

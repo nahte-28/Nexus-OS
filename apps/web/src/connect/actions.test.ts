@@ -33,4 +33,14 @@ describe('actions from the watch', () => {
     expect(matches[0]).toMatchObject({ id: 'watch-w1', players: ['Ethan'], finishedAt: 2 })
     expect(matches[0].legs[0].visits[0].score).toBe(100)
   })
+
+  it('puts a practice round from the watch in Oefenen, once', async () => {
+    dartsStore.adopt(emptyDarts())
+    const action = { v: 1 as const, kind: 'action' as const, action: 'darts_practice' as const, id: 'p1', game: 'clock' as const, startedAt: 1, throws: [true, false, true], hits: [], visits: [], at: 3 }
+    await applyAction(action)
+    await applyAction({ ...action, throws: [false] })
+    const practice = dartsStore.getSnapshot().practice
+    expect(practice).toHaveLength(1)
+    expect(practice[0]).toMatchObject({ id: 'watch-p1', game: 'clock', throws: [true, false, true], finishedAt: 3 })
+  })
 })

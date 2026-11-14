@@ -36,15 +36,30 @@ describe('Darts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ongedaan maken' }))
     expect(screen.getByText('T20 T15 D18')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Score van deze beurt' }), { target: { value: '141' } })
-    fireEvent.click(screen.getByRole('radio', { name: '3' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Uit in 3' }))
+    fireEvent.click(screen.getByRole('radio', { name: '2 op een dubbel' }))
     fireEvent.click(screen.getByRole('button', { name: 'Invoeren' }))
     expect(screen.getByRole('status').textContent).toMatch(/Ethan wint met 1–0/)
+
+    // The summary of the match shows right away.
+    const summary = screen.getByRole('region', { name: 'Samenvatting van de wedstrijd' })
+    const row = (label: string) => within(summary).getByRole('row', { name: new RegExp(`^${label}`) })
+    expect(row('Gemiddelde').textContent).toContain('167,0')
+    expect(row('Checkout %').textContent).toContain('50,0% (1/2)')
+    expect(row('Hoogste finish').textContent).toContain('141')
+    expect(row('Beste leg').textContent).toContain('9 pijlen')
+    expect(row('180').textContent).toContain('2')
 
     fireEvent.click(screen.getByRole('tab', { name: 'Statistieken' }))
     const stats = screen.getByLabelText('Statistieken van Ethan')
     expect(within(stats).getAllByText('167.00')).toHaveLength(2) // average and first 9
     expect(within(stats).getByText('141')).toBeTruthy()
     expect(within(stats).getByText('9 pijlen')).toBeTruthy()
+    expect(within(stats).getByText('50%')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Geschiedenis' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Samenvatting' }))
+    expect(screen.getByRole('region', { name: 'Samenvatting van de wedstrijd' })).toBeTruthy()
   })
 
   it('practises Around the Clock and checkouts, with stats', () => {

@@ -1,4 +1,4 @@
-import { actionTarget, deadlinesOf, markDone, watchMatch, watchMatchId, type ActionPayload } from '@nexus/core'
+import { actionTarget, deadlinesOf, markDone, PRACTICE_LABELS, watchMatch, watchMatchId, watchPractice, watchPracticeId, type ActionPayload } from '@nexus/core'
 import { habitsStore } from '../habits/store'
 import { lifeStore } from '../life/store'
 import { logEvent } from '../devtools/log'
@@ -10,7 +10,7 @@ import { dartsStore } from '../darts/store'
  * Carries out what was done on another device: a deadline or habit ticked off on the watch (marking
  * done twice changes nothing, so it does not matter which open NEXUS gets it first), or a focus round
  * from the watch, which goes in the focus log of this device like its own rounds, or the Gaming timer
- * started or stopped on the watch, or a darts leg scored on the watch.
+ * started or stopped on the watch, or a darts leg or practice round from the watch.
  */
 export async function applyAction(action: ActionPayload): Promise<void> {
   if (action.action === 'gaming') return applyWatchGaming(action.op, action.at)
@@ -21,6 +21,15 @@ export async function applyAction(action: ActionPayload): Promise<void> {
     if (!match) return
     dartsStore.update((s) => ({ ...s, matches: [match, ...s.matches.filter((m) => m.id !== match.id)] }))
     logEvent('connect', `Darts-leg van het horloge bijgeteld (${match.mode})`)
+    return
+  }
+  if (action.action === 'darts_practice') {
+    const state = dartsStore.getSnapshot()
+    if (state.practice.some((p) => p.id === watchPracticeId(action.id))) return
+    const round = watchPractice(action, action.at)
+    if (!round) return
+    dartsStore.update((s) => ({ ...s, practice: [round, ...s.practice.filter((p) => p.id !== round.id)] }))
+    logEvent('connect', `${PRACTICE_LABELS[round.game]} van het horloge bijgeteld`)
     return
   }
   if (action.action === 'focus') {
