@@ -112,6 +112,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'School Mode zet het profiel School vanzelf aan tijdens je lesuren. Onder Automatisch kan het ook volgens je lesrooster: het profiel wisselt wanneer een les begint.',
       'Overzicht zegt waarom een profiel actief is, en Geschiedenis toont elke wissel met de reden.',
+      'De zijbalk staat in groepen: School, Planning, Samen, Persoonlijk en Systeem. Tik op een groep om ze in of uit te klappen; dat onthoudt dit apparaat. De volgorde die je bij Apps & widgets kiest, geldt binnen elke groep.',
       'Je profielen zijn op al je apparaten dezelfde.',
       'Met Indeling aanpassen op het dashboard sleep en vergroot je de widgets van je profiel, met een voorbeeld op de gsm.',
     ],

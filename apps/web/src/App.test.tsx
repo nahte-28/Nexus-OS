@@ -192,11 +192,24 @@ describe('App shell', () => {
   it('shows the app grid on phones and opens apps full screen', () => {
     mockViewport(true)
     renderApp()
-    const grid = screen.getByRole('list', { name: 'Apps' })
-    expect(grid).toBeTruthy()
+    const grid = screen.getByRole('group', { name: 'Apps' })
+    expect(within(grid).getByRole('region', { name: 'Planning' })).toBeTruthy()
     fireEvent.click(screen.getAllByRole('button', { name: 'Over NEXUS' })[0])
     expect(screen.getByRole('button', { name: 'Terug' })).toBeTruthy()
     expect(screen.getByText(/^NEXUS OS v\d+\.\d+$/)).toBeTruthy()
+  })
+
+  it('folds a group of the sidebar away and keeps it folded', () => {
+    mockViewport(false)
+    renderApp()
+    const nav = screen.getByRole('navigation', { name: 'Apps' })
+    const header = within(nav).getByRole('button', { name: /^Planning/ })
+    expect(header.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(header)
+    expect(within(nav).queryByRole('button', { name: 'Agenda' })).toBeNull()
+    expect(localStorage.getItem('nexus.sidebar.folded')).toBe('["planning"]')
+    fireEvent.click(header)
+    expect(within(nav).getByRole('button', { name: 'Agenda' })).toBeTruthy()
   })
 
   it('switches profile, which changes the apps and the theme', () => {
@@ -256,11 +269,15 @@ describe('App shell', () => {
     openProfiles()
     fireEvent.click(screen.getByRole('tab', { name: 'Apps & widgets' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Apps' })).getByRole('button', { name: 'Meldingen omhoog' }))
-    const sidebar = within(screen.getByRole('navigation', { name: 'Apps' }))
-      .getAllByRole('button')
-      .map((b) => b.textContent)
+    const nav = screen.getByRole('navigation', { name: 'Apps' })
+    const names = (group: string) => within(within(nav).getByRole('region', { name: group })).getAllByRole('button').map((b) => b.textContent)
+    // The sidebar is in groups; the profile's order stays inside each group.
+    expect(profilesStore.getSnapshot().state.profiles.personal.apps.slice(8, 11)).toEqual(['insights', 'notifications', 'finance'])
+    expect(names('School').slice(1, 4)).toEqual(['Studie', 'Cijfers', 'Leerkaarten'])
+    expect(names('Planning').slice(1, 4)).toEqual(['Agenda', 'Notities', 'Bestanden'])
+    expect(names('Persoonlijk').slice(1, 5)).toEqual(['Gewoontes', 'Dagboek', 'Inzichten', 'Financiën'])
     // (Ontwikkelaar may still show from the developer-mode test above.)
-    expect(sidebar.filter((t) => t !== 'Ontwikkelaar').slice(0, 10)).toEqual(['Agenda', 'Notities', 'Bestanden', 'Studie', 'Cijfers', 'Gewoontes', 'Dagboek', 'Leerkaarten', 'Inzichten', 'Meldingen'])
+    expect(names('Systeem').filter((t) => t !== 'Ontwikkelaar').slice(1, 3)).toEqual(['Meldingen', 'Apparaten'])
 
     fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))

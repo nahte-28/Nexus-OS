@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import type { AppId } from '@nexus/core'
+import { groupApps, type AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
@@ -82,18 +82,25 @@ export function MobileShell() {
         ) : (
           <>
             <Dashboard compact onOpenApp={open} />
-            <ul className="grid grid-cols-4 gap-y-6 p-5" aria-label="Apps">
-              {apps.map((a) => (
-                <li key={a.id}>
-                  <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
-                    <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
-                      <a.icon />
-                    </span>
-                    {a.title}
-                  </button>
-                </li>
+            <div className="space-y-4 p-5" aria-label="Apps" role="group">
+              {groupApps(apps).map((group) => (
+                <section key={group.id} aria-label={group.title}>
+                  <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-nx-muted">{group.title}</h2>
+                  <ul className="grid grid-cols-4 gap-y-5">
+                    {group.apps.map((a) => (
+                      <li key={a.id}>
+                        <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
+                          <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
+                            <a.icon />
+                          </span>
+                          {a.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           </>
         )}
       </main>
