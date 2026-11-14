@@ -44,7 +44,7 @@ export function DeveloperHub() {
     writeStorage(TAB_KEY, t)
   }
   const { projects } = useDevHub()
-  // Platform Health comes with Integratie in Nieuwe modules.
+  // Platform Health comes with Integratie in Apps aan/uit.
   const health = useFeature('integration')
   const tabs = TABS.filter((t) => t !== 'Platform Health' || health)
   const shown: Tab = tab === 'Platform Health' && !health ? 'Projecten' : tab

@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-14',
+    title: 'Apps aan/uit',
+    items: [
+      'In Instellingen staat nu Apps aan/uit: één lijst met al je apps en modules, in dezelfde groepen als de zijbalk.',
+      'Zet je een app uit, dan verdwijnt ze uit de zijbalk, het zoeken en het dashboard, in elk profiel. Je gegevens blijven bewaard en zijn terug zodra je de app weer aanzet.',
+      'Je keuze geldt op al je toestellen. Profielen, Instellingen, Help en Account blijven altijd.',
+    ],
+  },
+  {
+    date: '2026-11-14',
     title: 'Eigen AI-sleutel',
     items: [
       'In NEXUS AI staat nu Eigen sleutel: zet je eigen sleutel van Anthropic en gebruik NEXUS AI, de studiesamenvattingen, leerkaarten en het weekoverzicht op je eigen account.',

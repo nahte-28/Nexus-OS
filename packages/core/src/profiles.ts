@@ -6,6 +6,7 @@ import { parseLayout, type WidgetLayout } from './dashboardLayout'
 import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, SCHOOL_TIME_ZONE, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
+import { parseAppSwitches, type AppSwitches } from './appSwitches'
 import { parseSwitches, type FeatureSwitches } from './features'
 import { emptyBrowser, mergeBookmarks, parseBrowser, type BrowserSettings } from './browser'
 
@@ -165,8 +166,10 @@ export interface ProfilesState {
   agenda: AgendaRule
   /** Your class, e.g. 1IT3; Teams shows the teams open to it. Empty when not set. */
   klas: string
-  /** Instellingen › Nieuwe modules: your switches, the same on every device. */
+  /** Instellingen › Apps aan/uit: your switches, the same on every device. */
   features: FeatureSwitches
+  /** Instellingen › Apps aan/uit: the apps you switched off (false) or back on, the same on every device. */
+  appSwitches: AppSwitches
   /** Klasagenda: your choice per team (on or off); a team without a choice follows its class. */
   classAgenda: Record<string, boolean>
   /** Account › Over jou: who uses NEXUS; the role decides whether the first profile is School or Werk. */
@@ -279,6 +282,7 @@ export function defaultProfilesState(): ProfilesState {
     agenda: { ...DEFAULT_AGENDA },
     klas: '',
     features: {},
+    appSwitches: {},
     classAgenda: {},
     about: { ...EMPTY_ABOUT },
     browser: emptyBrowser(),
@@ -529,6 +533,8 @@ export function mergeFirstSync(local: ProfilesState, remote: ProfilesState): Pro
   // Switches set on only one of the two devices so far are kept; where both chose, the newer copy wins.
   const features = { ...other.features, ...base.features }
   if (Object.keys(features).length !== Object.keys(base.features).length) merged = { ...merged, features }
+  const appSwitches = { ...other.appSwitches, ...base.appSwitches }
+  if (Object.keys(appSwitches).length !== Object.keys(base.appSwitches).length) merged = { ...merged, appSwitches }
   const classAgenda = { ...other.classAgenda, ...base.classAgenda }
   if (Object.keys(classAgenda).length !== Object.keys(base.classAgenda).length) merged = { ...merged, classAgenda }
   // Bookmarks saved on only one of the two devices so far are kept.
@@ -831,6 +837,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     agenda: parseAgendaRule(r.agenda),
     klas: typeof r.klas === 'string' ? (normalizeKlas(r.klas) ?? '') : '',
     features: parseSwitches(r.features),
+    appSwitches: parseAppSwitches(r.appSwitches),
     classAgenda: parseChoices(r.classAgenda),
     about: parseAbout(r.about),
     browser: parseBrowser(r.browser),

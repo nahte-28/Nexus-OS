@@ -893,7 +893,7 @@ function Settings() {
         <FormatFields value={{ mode: settings.mode, legsToWin: settings.legsToWin, setsToWin: settings.setsToWin, doubleOut: settings.doubleOut }} onChange={(f) => set(f)} />
       </section>
       <Players />
-      <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Nieuwe modules, dan verdwijnt de app overal.</p>
+      <p className="text-sm text-nx-muted">Speel je geen darts? Zet Darts uit bij Instellingen › Apps aan/uit, dan verdwijnt de app overal.</p>
     </div>
   )
 }

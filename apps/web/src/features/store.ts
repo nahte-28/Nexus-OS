@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react'
-import { featureOn, parseSwitches, type FeatureId, type FeatureSwitches } from '@nexus/core'
+import { featureOn, parseSwitches, type AppId, type AppSwitches, type FeatureId, type FeatureSwitches } from '@nexus/core'
 import { profilesStore } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
 
 /**
- * The module switches in Instellingen > Nieuwe modules. They travel with your profiles, so they are
+ * The module switches in Instellingen > Apps aan/uit. They travel with your profiles, so they are
  * the same on every device with your account; this key is the copy from before that, taken over once.
  */
 const KEY = 'nexus.features'
@@ -57,4 +57,13 @@ export function useFeatureSwitches(): FeatureSwitches {
 
 export function useFeature(id: FeatureId): boolean {
   return featureOn(useFeatureSwitches(), id)
+}
+
+/** Instellingen › Apps aan/uit: the other apps, which also travel with your profiles. */
+export function setAppOn(id: AppId, on: boolean): void {
+  profilesStore.update((s) => ({ ...s, appSwitches: { ...s.appSwitches, [id]: on } }))
+}
+
+export function useAppSwitches(): AppSwitches {
+  return useSyncExternalStore(profilesStore.subscribe, () => profilesStore.getSnapshot().state.appSwitches)
 }

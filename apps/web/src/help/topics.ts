@@ -12,7 +12,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   agenda: {
     summary: 'Je deadlines, projecten en afspraken op één plek, met een overzicht van wat eraan komt.',
     tips: [
-      'Met Integratie (Nieuwe modules) zie je onder een deadline of project wat erbij hoort, en opent een aangetikte melding meteen de juiste deadline.',
+      'Met Integratie (Instellingen › Apps aan/uit) zie je onder een deadline of project wat erbij hoort, en opent een aangetikte melding meteen de juiste deadline.',
       'Overzicht toont wat vandaag en deze week op je wacht, als lijst of als rooster per week met elke agenda in haar kleur.',
       'Een deadline kan een melding sturen naar je gsm en horloge, ook als je pc uit staat.',
       'Een afspraak kan elke dag, week, maand of jaar terugkomen; één keer overslaan kan in Overzicht.',
@@ -52,7 +52,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   finance: {
     summary: 'Je inkomsten, uitgaven, budgetten, spaardoelen en abonnementen.',
     tips: [
-      'Met Integratie (Nieuwe modules) toont het tabblad Kalender je abonnementen en vaste bedragen per dag van de maand.',
+      'Met Integratie (Instellingen › Apps aan/uit) toont het tabblad Kalender je abonnementen en vaste bedragen per dag van de maand.',
       'Importeer een CSV van je bank om uitgaven niet met de hand te moeten typen.',
       'Vaste bedragen worden elke maand vanzelf geboekt.',
       'Delen houdt bij wat je met vrienden deelt en wie nog moet betalen.',
@@ -119,8 +119,8 @@ export const HELP: Record<AppId, HelpTopic> = {
     ],
   },
   settings: {
-    summary: 'Thema, meldingen, back-up en de rondleiding.',
-    tips: ['Back-up maakt één bestand met al je gegevens, dat je later terugzet.', 'Rondleiding starten toont de uitleg van het begin opnieuw.'],
+    summary: 'Thema, meldingen, back-up, de rondleiding en welke apps je ziet.',
+    tips: ['Apps aan/uit: zet uit wat je niet gebruikt. De app verdwijnt dan overal, maar je gegevens blijven bewaard.', 'Back-up maakt één bestand met al je gegevens, dat je later terugzet.', 'Rondleiding starten toont de uitleg van het begin opnieuw.'],
   },
   developer: {
     summary: 'Logboek en technische informatie, alleen zichtbaar in ontwikkelaarsmodus.',
@@ -232,7 +232,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Een wekker is een herinnering die elke dag of elke week afgaat, ook op je gsm en horloge. Je ziet en wist hem ook in Herinneringen.',
       'De timer en de stopwatch lopen door als je Klok sluit. Is de timer om, dan krijg je een melding zolang NEXUS openstaat.',
       'In Wereldklok zet je tot 8 steden, met het tijdsverschil met hier en of het daar al morgen is.',
-      'Klok is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+      'Klok is een module: je zet ze aan of uit in Instellingen › Apps aan/uit.',
     ],
   },
   calculator: {
@@ -241,7 +241,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Tik of typ een berekening, bv. (12,5 + 7) × 3, en druk op Enter of =.',
       'Procenten werken zoals op een zakrekenmachine: 200 + 10% is 220, 80 × 25% is 20.',
       'Je laatste 20 berekeningen staan onder Geschiedenis, alleen op dit toestel. Tik erop om verder te rekenen.',
-      'Rekenmachine is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+      'Rekenmachine is een module: je zet ze aan of uit in Instellingen › Apps aan/uit.',
     ],
   },
   weather: {
@@ -252,7 +252,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Zonder internet zie je het laatst opgehaalde weer, met het uur waarop het binnenkwam.',
       'Het weer van je eerste plaats staat ook in je Dagstart en bovenaan de Dagbriefing, met een tip als je een paraplu nodig hebt. Uitzetten kan met het vinkje in Weer.',
       'Met de NEXUS-app op je horloge zie je het weer van vandaag bovenaan de tegel en de app. Daarvoor moet NEXUS ergens openstaan; ouder dan 12 uur wordt het niet getoond.',
-      'Weer is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+      'Weer is een module: je zet ze aan of uit in Instellingen › Apps aan/uit.',
     ],
   },
   linuxapps: {
@@ -284,7 +284,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Voeg bladwijzers toe met + Bladwijzer, eventueel in een map zoals School. Ze staan in je account, dus op elk toestel dezelfde.',
       'Met Bewerken verplaats, wijzig of verwijder je een bladwijzer.',
       'In de webversie en op je gsm opent een site in je gewone browser: de meeste sites laten niet toe dat ze binnen een andere site draaien.',
-      'Browser is een module: je zet ze aan of uit in Instellingen › Nieuwe modules.',
+      'Browser is een module: je zet ze aan of uit in Instellingen › Apps aan/uit.',
     ],
   },
   admin: {
@@ -403,7 +403,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   devhub: {
     summary: 'Developer Hub: je eigen widgets bouwen, testen in een sandbox en na een review op je dashboard zetten.',
     tips: [
-      'Met Integratie (Nieuwe modules) toont Platform Health hoe NEXUS er op dit apparaat voor staat: sync, modules, opslag en gebeurtenissen.',
+      'Met Integratie (Instellingen › Apps aan/uit) toont Platform Health hoe NEXUS er op dit apparaat voor staat: sync, modules, opslag en gebeurtenissen.',
       'Begin met het voorbeeldproject in Projecten: een manifest (naam, versie, permissies) en de code van de widget.',
       'In Sandbox draait je code afgeschermd: zonder netwerk, opslag of toegang tot je account. Gegevens vraag je met nexus.call, en alleen met een toegestane permissie.',
       'Reviews kijkt je code na. Pas als alles klopt, publiceer je een versie; installeren vraagt eerst je toestemming voor de permissies.',
@@ -415,7 +415,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Zoek bovenaan op een app of een woord.',
       'Loopt er iets mis, gebruik dan "Probleem melden".',
-      'Met de module Launcher (Instellingen › Nieuwe modules) toont Ctrl+K ook Recent, Vastgezet (Alt+P) en opdrachten zoals "Herinnering zetten", die vooraf zeggen wat ze doen.',
+      'Met de module Launcher (Instellingen › Apps aan/uit) toont Ctrl+K ook Recent, Vastgezet (Alt+P) en opdrachten zoals "Herinnering zetten", die vooraf zeggen wat ze doen.',
     ],
   },
 }
