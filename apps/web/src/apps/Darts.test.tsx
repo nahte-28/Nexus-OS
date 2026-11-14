@@ -174,4 +174,40 @@ describe('Darts', () => {
     expect(screen.getByText(/best of 3 sets, 1 leg per set/)).toBeTruthy()
     expect(dartsStore.getSnapshot().matches[0].setsToWin).toBe(2)
   })
+
+  it('plays Cricket: marks, points, a win with its summary, and the history', () => {
+    render(<Darts />)
+    fireEvent.click(screen.getByRole('radio', { name: 'Cricket' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Speler 2' }), { target: { value: 'Remo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+    const board = () => screen.getByRole('region', { name: 'Cricket-scorebord' })
+    const dart = (mult: 'Single' | 'Double' | 'Triple', target: string) => {
+      fireEvent.click(within(board()).getByRole('radio', { name: mult }))
+      fireEvent.click(within(board()).getByRole('button', { name: target }))
+    }
+    const visit = () => fireEvent.click(within(board()).getByRole('button', { name: /^Beurt invoeren/ }))
+    // Ethan: T20 T20, then Remo misses.
+    dart('Triple', '20')
+    dart('Triple', '20')
+    visit()
+    expect(screen.getByLabelText('Punten van Ethan').textContent).toBe('60')
+    expect(screen.getByLabelText('Ethan op 20: dicht')).toBeTruthy()
+    visit()
+    for (const set of [['19', '18', '17'], ['16', '15']]) {
+      for (const t of set) dart('Triple', t)
+      visit()
+      visit()
+    }
+    dart('Double', 'Bull')
+    dart('Single', 'Bull')
+    visit()
+    expect(screen.getByRole('status').textContent).toMatch(/Ethan wint met 1–0/)
+    const summary = screen.getByRole('region', { name: 'Samenvatting van de wedstrijd' })
+    expect(within(summary).getByRole('row', { name: /^Triples/ }).textContent).toContain('7')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Geschiedenis' }))
+    expect(screen.getByText(/Cricket ·/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: 'Statistieken' }))
+    expect(within(screen.getByLabelText('Cricket-statistieken van Ethan')).getByText('1 van 1')).toBeTruthy()
+  })
 })
