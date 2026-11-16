@@ -57,6 +57,7 @@ import { useFeature } from '../features/store'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
 import { Related } from '../integration/Related'
+import { InviteFriends, InvitedBy, InviteInbox } from '../agenda/Invites'
 import { onReveal, takeReveal } from '../search/reveal'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
@@ -217,6 +218,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
           + Deadline
         </button>
       </div>
+      <InviteInbox />
       {overdue.length > 0 && (
         <section aria-label="Te laat" className="space-y-1 rounded-lg border border-red-500/40 p-3">
           <h3 className="font-medium text-red-500">Te laat</h3>
@@ -676,6 +678,7 @@ function Appointments() {
   const past = all.filter((a) => !next.get(a.id)).reverse()
   return (
     <>
+      <InviteInbox />
       <AppointmentForm key={editing?.id ?? 'new'} editing={editing} onDone={() => setEditing(null)} />
       {coming.length === 0 ? (
         <p className="text-nx-muted">Geen afspraken gepland.</p>
@@ -729,6 +732,8 @@ function AppointmentRow({ appointment: a, next, onEdit }: { appointment: Appoint
           </p>
         )}
         {a.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{a.notes}</p>}
+        <InvitedBy appointmentId={a.id} />
+        <InviteFriends appointment={a} />
         <Related itemId={a.id} />
       </div>
       {a.repeat && next && (

@@ -88,8 +88,9 @@ export class LifeStore implements LocalStore<LifeItem> {
     if (item?.kind === 'deadline') await this.save({ ...item, ...patch, updatedAt: now })
   }
 
-  async addAppointment(draft: AppointmentDraft, now = Date.now()): Promise<string> {
-    const id = crypto.randomUUID()
+  /** [id] is for copies made by NEXUS itself (an accepted invite from a friend). */
+  async addAppointment(draft: AppointmentDraft, now = Date.now(), extra: { id?: string } = {}): Promise<string> {
+    const id = extra.id ?? crypto.randomUUID()
     await this.save({ repeat: null, ...draft, kind: 'appointment', id, updatedAt: now, deletedAt: null })
     return id
   }

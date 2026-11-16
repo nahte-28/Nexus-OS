@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Afspraak met vrienden',
+    items: [
+      'Nodig vrienden uit voor een afspraak: tik in de Agenda bij een afspraak op Vrienden uitnodigen. Je ziet wie komt en wie niet.',
+      'Een uitnodiging die je krijgt, staat bovenaan in de Agenda. Aanvaard je ze, dan komt de afspraak in je eigen Agenda met meldingen, en ze verandert mee als je vriend ze verzet of afzegt.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Automatische back-up',
     items: [
       'NEXUS maakt nu elke week zelf een back-up van al je gegevens en bewaart die in Bestanden. Met een account staat ze zo ook in je account, en ben je niets kwijt als een toestel stuk gaat.',
