@@ -213,6 +213,15 @@ export const HELP: Record<AppId, HelpTopic> = {
       'In Vrienden zie je wie uit je teams aan het gamen is en plan je samen een sessie; kies per team of het jou ziet gamen.',
     ],
   },
+  goals: {
+    summary: 'Doelen: doelen voor je semester die zichzelf bijhouden met je cijfers, focustijd en gewoontes.',
+    tips: [
+      'Kies wat je wilt halen: een gemiddelde of een cijfer voor één vak (uit Cijfers), een aantal studiepunten, focusuren per week (uit Studie) of hoe vaak je een gewoonte doet (uit Gewoontes).',
+      'Een doel loopt standaard tot het einde van het semester: 31 januari of 30 juni. Bij Aanpassen verander je het doel of de einddatum.',
+      'Op schema betekent: als het zo doorgaat, haal je het. Bij focustijd telt het deel van de week dat al voorbij is; bij een vak zie je hoeveel je nog nodig hebt op de rest.',
+      'Focustijd telt wat je met de focustimer op dit toestel studeerde, ook samen met vrienden en op je horloge.',
+    ],
+  },
   darts: {
     summary: 'Darts: een scorebord voor 301, 501 en 701 met uitgooi-tips en je statistieken.',
     tips: [

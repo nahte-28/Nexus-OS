@@ -34,6 +34,7 @@ import { startKnowledgeSync } from './knowledge/store'
 import { startStudyLabSync } from './studylab/store'
 import { startGamingSync } from './gaming/store'
 import { startDartsSync } from './darts/store'
+import { startGoalsSync } from './goals/store'
 import { startContactsSync } from './contacts/store'
 import { startBirthdayAlerts } from './contacts/alerts'
 import { startWeatherRefresh } from './weather/store'
@@ -126,6 +127,7 @@ startKnowledgeSync(supabase, () => isFeatureOn('knowledge'), onFeaturesChange)
 startStudyLabSync(supabase, () => isFeatureOn('studyLab'), onFeaturesChange)
 startGamingSync(supabase, () => isFeatureOn('gaming'), onFeaturesChange)
 startDartsSync(supabase, () => isFeatureOn('darts'), onFeaturesChange)
+startGoalsSync(supabase, () => isFeatureOn('goals'), onFeaturesChange)
 // Contacten: the address book, and a notice on someone's birthday.
 startContactsSync(supabase, () => isFeatureOn('contacts'), onFeaturesChange)
 startBirthdayAlerts(defaultEngine, () => isFeatureOn('contacts'))
