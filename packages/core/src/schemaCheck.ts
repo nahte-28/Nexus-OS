@@ -58,6 +58,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261116090000_message_push.sql', label: 'Berichten op je gsm en horloge, met snel antwoorden', needs: [{ table: 'message_push' }] },
   { file: '20261116120000_goals.sql', label: 'Doelen syncen', needs: [{ settingsKey: 'goals' }] },
   { file: '20261116150000_darts_online.sql', label: 'Darts online tegen je vrienden', needs: [{ table: 'darts_online' }] },
+  { file: '20261116180000_appointment_invites.sql', label: 'Vrienden uitnodigen voor een afspraak', needs: [{ table: 'appointment_invites' }] },
 ]
 
 /** What nexus_schema_status() returns. */

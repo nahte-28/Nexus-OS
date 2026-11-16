@@ -17,6 +17,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Een deadline kan een melding sturen naar je gsm en horloge, ook als je pc uit staat.',
       'Een afspraak kan elke dag, week, maand of jaar terugkomen; één keer overslaan kan in Overzicht.',
       'Overlapt een afspraak met een les of een andere afspraak, dan zie je dat meteen.',
+      'Bij een afspraak tik je op Vrienden uitnodigen. Wie aanvaardt, krijgt ze in zijn eigen Agenda, en verander of verwijder je de afspraak, dan verandert ze bij hem mee. Een herhaalde afspraak kan je niet delen.',
       'Dagstart stuurt elke ochtend een kort overzicht; Week maakt op zondag een terugblik.',
     ],
   },
