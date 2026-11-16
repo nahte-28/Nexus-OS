@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { examsStore } from '../study/exams'
+import { addExam, examsStore } from '../study/exams'
 import { focusStore } from '../study/timer'
 
 const { Study } = await import('./Study')
@@ -66,5 +66,25 @@ describe('Studie', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Examen Elektronica 1 verwijderen' }))
     await waitFor(() => expect(lifeStore.getSnapshot().find((i) => i.id === exam.appointmentId)?.deletedAt).not.toBeNull())
     expect(screen.getByText('Nog geen examens.')).toBeTruthy()
+  })
+
+  it('makes a blok schedule with herhaling the day before the exam and puts it in the Agenda', async () => {
+    const day = new Date()
+    day.setDate(day.getDate() + 4)
+    day.setHours(9, 0, 0, 0)
+    await addExam({ course: 'Digitale technieken', at: day.getTime(), minutes: 120, location: '', studyHours: 3, deckId: null })
+    render(<Study />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Blok' }))
+    fireEvent.click(screen.getByRole('button', { name: 'za' }))
+    expect(examsStore.getSnapshot().block?.restDays).toEqual([6])
+    fireEvent.click(screen.getByRole('button', { name: 'Blokschema maken' }))
+    const plan = screen.getByRole('region', { name: 'Blokschema' })
+    expect(within(plan).getAllByText(/Herhaling: Digitale technieken/).length).toBeGreaterThanOrEqual(1)
+    expect(within(plan).getByText(/Examen Digitale technieken/)).toBeTruthy()
+    fireEvent.click(within(plan).getByRole('button', { name: 'In Agenda zetten' }))
+    await screen.findByText(/blokken staan in je Agenda/)
+    const blocks = lifeStore.getSnapshot().filter((i) => i.kind === 'appointment' && i.notes === 'Gepland door het Examenblok.')
+    expect(blocks.length).toBeGreaterThanOrEqual(2)
+    expect(blocks.every((b) => b.kind === 'appointment' && b.endAt <= day.getTime() && /^(Blok|Herhaling): Digitale technieken$/.test(b.title))).toBe(true)
   })
 })

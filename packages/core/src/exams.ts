@@ -2,6 +2,7 @@
  * Examenplanner: your exams with how much study time each still needs. The Studieplanner spreads
  * that time over the days before each exam, and a linked deck of Leerkaarten shows what to repeat.
  */
+import { parseBlockSettings, type BlockSettings } from './examBlock'
 import type { PlanTask } from './study'
 
 export interface Exam {
@@ -26,6 +27,8 @@ export interface Exam {
 export interface ExamsState {
   exams: Exam[]
   revision: number
+  /** Settings of the Examenblok, when you changed them. */
+  block?: BlockSettings
 }
 
 export const emptyExams = (): ExamsState => ({ exams: [], revision: 0 })
@@ -59,10 +62,12 @@ export function parseExam(raw: unknown): Exam | null {
 export function parseExamsState(raw: unknown): ExamsState {
   if (typeof raw !== 'object' || raw === null) return emptyExams()
   const r = raw as Partial<ExamsState>
-  return {
+  const state: ExamsState = {
     exams: Array.isArray(r.exams) ? r.exams.map(parseExam).filter((e): e is Exam => e !== null).slice(-MAX_EXAMS * 2) : [],
     revision: isNumber(r.revision) ? r.revision : 0,
   }
+  if (r.block !== undefined && r.block !== null) state.block = parseBlockSettings(r.block)
+  return state
 }
 
 /** Two copies exam by exam: the newer change wins, deletions included. */
@@ -72,7 +77,10 @@ export function mergeExams(a: ExamsState, b: ExamsState): ExamsState {
     const mine = byId.get(e.id)
     if (!mine || e.updatedAt > mine.updatedAt) byId.set(e.id, e)
   }
-  return { exams: [...byId.values()], revision: Math.max(a.revision, b.revision) }
+  const merged: ExamsState = { exams: [...byId.values()], revision: Math.max(a.revision, b.revision) }
+  const block = !a.block ? b.block : !b.block ? a.block : b.block.updatedAt > a.block.updatedAt ? b.block : a.block
+  if (block) merged.block = block
+  return merged
 }
 
 /** Exams that have not ended yet, soonest first. */

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Examenblok',
+    items: [
+      'Nieuw tabblad Blok in Studie: NEXUS maakt een blokschema tot je laatste examen, dag per dag, met studieblokken, pauzes en een middagpauze.',
+      'De dag voor elk examen is herhaling van dat vak. Je kiest zelf wanneer je blok begint, hoe lang je per dag studeert en welke dagen je rust, en zet het schema met één knop in je Agenda.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Doelen',
     items: [
       'Nieuwe app Doelen: zet doelen voor je semester, zoals 14/20 gemiddeld, een cijfer voor een vak, 30 studiepunten, 10 uur focus per week of een gewoonte 80 % van de dagen.',

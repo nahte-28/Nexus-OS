@@ -30,11 +30,12 @@ import { addExam, examsStore, examsSyncProblem, removeExam, updateExam, type Exa
 import { focusMinutes, focusStore } from '../study/timer'
 import { StudyGroupTab } from './StudyGroup'
 import { Together } from '../study/Together'
+import { ExamBlock } from '../study/ExamBlock'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const TABS = ['Focus', 'Examens', 'Planning', 'Groep', 'Samen'] as const
+const TABS = ['Focus', 'Examens', 'Blok', 'Planning', 'Groep', 'Samen'] as const
 const DAY = 24 * 60 * 60_000
 const HORIZON_DAYS = 21
 
@@ -86,7 +87,7 @@ export function Study() {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : tab === 'Planning' ? <Planning /> : tab === 'Groep' ? <StudyGroupTab /> : <Together />}</div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : tab === 'Blok' ? <ExamBlock /> : tab === 'Planning' ? <Planning /> : tab === 'Groep' ? <StudyGroupTab /> : <Together />}</div>
     </div>
   )
 }
