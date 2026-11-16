@@ -1,4 +1,4 @@
-import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, type PlanWeather, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanGaming, type PlanWeather, type PlanToday, buildPlanToday, emptyGoals, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -16,6 +16,9 @@ import { lifeStore } from '../life/store'
 import { profilesStore } from '../profiles/store'
 import { remindersStore } from '../reminders/store'
 import { readStorage, writeStorage } from '../state/storage'
+import { goalsStore } from '../goals/store'
+import { gradesStore } from '../grades/store'
+import { focusStore } from '../study/timer'
 
 const CHECK_MS = 60_000
 /** Sent again at least this often, so the phone always looks a few days ahead. */
@@ -37,6 +40,12 @@ export function currentPlan(now = Date.now()): PlannedNotice[] {
       })
     : []
   return safetyPlan([...plannedReminders(reminders, now), ...plannedDeadlineNotices(life, now), ...plannedDagstart(dagstartInput(), dagstartSettings(), now, undefined, dagstartExtra()), ...plannedHabitNotices(habitsStore.getSnapshot(), now), ...plannedSubscriptionNotices(financeStore.getSnapshot(), now), ...plannedSleepNotices(currentSleepPlan(now), gamingNow(), now), ...plannedCalendarNotices(profilesStore.getSnapshot().state, now), ...(isFeatureOn('contacts') ? plannedBirthdayNotices(contactsStore.getSnapshot(), now) : []), ...flowNotices])
+}
+
+/** Vandaag for the watch: today's agenda, the habits due today and your goals (when Doelen is on). */
+export function todayForWatch(now = Date.now()): PlanToday | null {
+  const facts = { grades: gradesStore.getSnapshot(), habits: habitsStore.getSnapshot(), focusLog: focusStore.getSnapshot().log }
+  return buildPlanToday({ agenda: dagstartInput(), goals: isFeatureOn('goals') ? goalsStore.getSnapshot() : emptyGoals(), facts }, now)
 }
 
 interface Sent {
@@ -64,21 +73,28 @@ export async function sendPlanIfChanged(
   now = Date.now(),
   gaming: PlanGaming | null = null,
   weather: PlanWeather | null = null,
+  today: PlanToday | null = null,
 ): Promise<number> {
   const state = connect.getSnapshot()
   if (state.status !== 'ready') return 0
   // The fetch time alone does not make it worth sending again.
   const shownWeather = weather ? { ...weather, at: 0 } : null
-  const key = JSON.stringify(gaming || shownWeather ? { plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}) } : plan)
+  const pushKey = JSON.stringify(gaming || shownWeather ? { plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}) } : plan)
+  // Vandaag only goes to the companion and the watch; a ticked habit does not replan web pushes.
+  const watchKey = today ? JSON.stringify({ plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}), today }) : pushKey
   let sent = 0
   for (const phone of phonesOf(state)) {
     const last = readSent(phone.id)
+    const android = phone.platform === 'android'
+    const key = android ? watchKey : pushKey
     // Nothing planned and nothing sent before: the phone has nothing to forget either.
-    if (!last && plan.length === 0 && !gaming) continue
+    if (!last && plan.length === 0 && !gaming && !(android && today)) continue
     if (last && last.key === key && now - last.at < REFRESH_MS) continue
     try {
-      if (phone.platform === 'android') await (weather ? connect.sendPlan(phone.id, plan, gaming, weather) : connect.sendPlan(phone.id, plan, gaming))
-      else await connect.sendPushPlan(phone.id, plan)
+      if (!android) await connect.sendPushPlan(phone.id, plan)
+      else if (today) await connect.sendPlan(phone.id, plan, gaming, weather ?? undefined, today)
+      else if (weather) await connect.sendPlan(phone.id, plan, gaming, weather)
+      else await connect.sendPlan(phone.id, plan, gaming)
       writeStorage(sentKey(phone.id), JSON.stringify({ key, at: now }))
       sent++
     } catch (err) {
@@ -102,7 +118,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const check = () => {
     if (busy || stopped) return
     busy = true
-    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming(), isFeatureOn('weather') ? weatherForWatch() : null).finally(() => (busy = false))
+    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming(), isFeatureOn('weather') ? weatherForWatch() : null, todayForWatch()).finally(() => (busy = false))
   }
   const soon = () => {
     clearTimeout(debounce)
@@ -111,7 +127,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), weatherStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), weatherStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), goalsStore.subscribe(soon), gradesStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

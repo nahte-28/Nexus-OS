@@ -89,6 +89,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'NEXUS Connect: koppel je gsm, horloge en pc.',
     tips: [
       'Koppelen gaat met een code die je op het andere toestel invult.',
+      'Op je horloge staat bovenaan Vandaag: je lessen en afspraken van vandaag, je gewoontes om af te vinken en hoe je doelen ervoor staan.',
       'Zonder gsm-app kan je in Chrome op je gsm webmeldingen aanzetten.',
       'Een webmelding van een deadline heeft de knoppen Klaar en Later: Klaar vinkt de deadline af, Later toont de melding over een uur opnieuw.',
       'Met webmeldingen aan komen ook privéberichten en de teamchat op je gsm en horloge, met de snelle antwoorden Oké 👍 en Ik reageer straks. Onder Berichten kies je welke.',

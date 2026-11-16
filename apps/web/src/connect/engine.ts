@@ -369,8 +369,8 @@ export class ConnectEngine {
   }
 
   /** Sends the phone its safety net: the notifications it should show itself if NEXUS cannot. */
-  async sendPlan(deviceId: string, items: PlanPayload['items'], gaming: PlanPayload['gaming'] = null, weather?: PlanPayload['weather']): Promise<void> {
-    await this.send(deviceId, { v: 1, kind: 'plan', items, sentAt: Date.now(), gaming, ...(weather ? { weather } : {}) })
+  async sendPlan(deviceId: string, items: PlanPayload['items'], gaming: PlanPayload['gaming'] = null, weather?: PlanPayload['weather'], today?: PlanPayload['today']): Promise<void> {
+    await this.send(deviceId, { v: 1, kind: 'plan', items, sentAt: Date.now(), gaming, ...(weather ? { weather } : {}), ...(today ? { today } : {}) })
   }
 
   /**

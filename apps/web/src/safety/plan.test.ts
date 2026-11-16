@@ -46,6 +46,15 @@ describe('safety net sending', () => {
     expect(await sendPlanIfChanged(c, plan, 2000, null, { ...weather, temp: 13 })).toBe(1)
   })
 
+  it('sends Vandaag to the watch, and again when a habit is ticked off', async () => {
+    const c = connect()
+    const today = { day: '2026-11-17', agenda: [], habits: [{ id: 'h1', name: 'Lezen', done: false }], goals: [] }
+    expect(await sendPlanIfChanged(c, [], 0, null, null, today)).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null, undefined, today)
+    expect(await sendPlanIfChanged(c, [], 1000, null, null, today)).toBe(0)
+    expect(await sendPlanIfChanged(c, [], 2000, null, null, { ...today, habits: [{ id: 'h1', name: 'Lezen', done: true }] })).toBe(1)
+  })
+
   it('sends nothing while there is nothing to plan or no phone', async () => {
     const c = connect()
     expect(await sendPlanIfChanged(c, [], 0)).toBe(0)

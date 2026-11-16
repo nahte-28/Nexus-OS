@@ -26,6 +26,7 @@ import app.nexusos.companion.DartsLeg
 import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.GamingTimer
 import app.nexusos.companion.WatchWeather
+import app.nexusos.companion.WatchToday
 import app.nexusos.companion.PlanGaming
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
@@ -149,6 +150,7 @@ class WatchActivity : Activity() {
             text(w.label, muted = true, size = 12f)
             space(12)
         }
+        today(now)
         heading("Komt eraan", 15f)
         if (coming.isEmpty()) {
             text("Niets gepland. Deadlines, herinneringen en afspraken die naar je gsm gaan, komen hier vanzelf bij zodra NEXUS openstaat.", muted = true)
@@ -213,6 +215,50 @@ class WatchActivity : Activity() {
             Inbox.stop()
             Connect.signOut(this) { status = null; render() }
         }
+    }
+
+    /** Vandaag: today's lessons and appointments, the habits still to tick off and how your goals go. */
+    private fun today(now: Long) {
+        val today = WatchToday.load(this, now) ?: return
+        heading("Vandaag", 15f)
+        for (e in today.agenda) {
+            space(4)
+            val past = e.end in 1 until now
+            text("${WatchFormat.at(e.at, now)}–${WatchFormat.at(e.end, now)}", muted = true, size = 12f)
+            text(e.title, bold = !past, muted = past)
+        }
+        if (today.habits.isNotEmpty()) {
+            space(8)
+            WatchToday.habitsLine(today)?.let { text(it, muted = true, size = 12f) }
+            for (h in today.habits) {
+                val ref = h.ref(today.day)
+                if (h.done) {
+                    text("✓ ${h.name}", muted = true)
+                } else {
+                    button(if (ticking == ref) "Bezig…" else "○ ${h.name}") {
+                        if (ticking != null) return@button
+                        ticking = ref
+                        Connect.tickOff(this, ref) { error ->
+                            ticking = null
+                            if (error == null) WatchToday.ticked(this, ref)
+                            status = error
+                            Glance.refresh(this)
+                            render()
+                        }
+                        render()
+                    }
+                }
+            }
+        }
+        if (today.goals.isNotEmpty()) {
+            space(8)
+            text("Doelen", bold = true)
+            for (g in today.goals) {
+                text(g.title, size = 13f)
+                text(listOf(WatchToday.STATUS[g.status], g.line).filterNot { it.isNullOrEmpty() }.joinToString(" · "), muted = true, size = 12f)
+            }
+        }
+        space(12)
     }
 
     /**
