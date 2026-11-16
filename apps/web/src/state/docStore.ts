@@ -55,12 +55,54 @@ export interface DocRemote<T> {
   push(state: T): Promise<boolean>
 }
 
+interface Row {
+  value: unknown
+  revision: number
+}
+interface Waiter {
+  resolve: (row: Row | null) => void
+  reject: (err: unknown) => void
+}
+/** Waits this long for other documents, so syncing at start or on return to the app is one request. */
+export const PULL_BATCH_MS = 20
+const batches = new WeakMap<SupabaseClient, Map<string, Waiter[]>>()
+
+/**
+ * Reads one row of user_settings. Rows asked for within [PULL_BATCH_MS] go in one request: at
+ * startup and when you come back to NEXUS every document syncs at once, which on a phone saves
+ * some twenty round trips.
+ */
+export function pullSetting(client: SupabaseClient, key: string): Promise<Row | null> {
+  return new Promise((resolve, reject) => {
+    let waiting = batches.get(client)
+    if (!waiting) {
+      waiting = new Map()
+      batches.set(client, waiting)
+      setTimeout(() => void flushPulls(client), PULL_BATCH_MS)
+    }
+    waiting.set(key, [...(waiting.get(key) ?? []), { resolve, reject }])
+  })
+}
+
+async function flushPulls(client: SupabaseClient): Promise<void> {
+  const waiting = batches.get(client)
+  batches.delete(client)
+  if (!waiting) return
+  try {
+    const { data, error } = await client.from('user_settings').select('key,value,revision').in('key', [...waiting.keys()])
+    if (error) throw error
+    const rows = new Map(((data ?? []) as Array<{ key: string; value: unknown; revision: unknown }>).map((r) => [r.key, { value: r.value, revision: Number(r.revision) }]))
+    for (const [key, list] of waiting) for (const w of list) w.resolve(rows.get(key) ?? null)
+  } catch (err) {
+    for (const list of waiting.values()) for (const w of list) w.reject(err)
+  }
+}
+
 export function createDocRemote<T extends { revision: number }>(client: SupabaseClient, key: string, parse: (raw: unknown) => T): DocRemote<T> {
   return {
     async pull() {
-      const { data, error } = await client.from('user_settings').select('value,revision').eq('key', key).maybeSingle()
-      if (error) throw error
-      return data ? { ...parse(data.value), revision: Number(data.revision) } : null
+      const row = await pullSetting(client, key)
+      return row ? { ...parse(row.value), revision: row.revision } : null
     },
     async push(state) {
       const { data, error } = await client.from('user_settings').upsert({ key, value: state, revision: state.revision }, { onConflict: 'user_id,key' }).select('revision')
@@ -169,8 +211,11 @@ export function startDocSync<T extends { revision: number }>(
     }
   }
   const setSession = (session: Session | null) => {
+    // getSession and the first auth event both report the same session: sync once, not twice,
+    // and not again on every token refresh.
+    const was = signedIn
     signedIn = !!session
-    if (signedIn) void run()
+    if (signedIn && !was) void run()
   }
   void client.auth.getSession().then(({ data }) => setSession(data.session))
   const { data } = client.auth.onAuthStateChange((_event, session) => setSession(session))

@@ -49,6 +49,8 @@ Zonder Supabase werkt de app volledig lokaal. Voor synchronisatie zet je in Verc
 
 Elk apparaat bewaart al je notities in een lokale database (IndexedDB) en werkt dus volledig offline. Wijzigingen komen in een wachtrij en gaan naar Supabase zodra je online bent, bij het openen van de app, elke minuut en meteen wanneer een ander apparaat iets wijzigt. Bij een conflict wint de laatste wijziging; verwijderde notities worden als "tombstone" bewaard zodat de verwijdering ook andere apparaten bereikt. Row-level security zorgt dat elk account alleen zijn eigen data kan lezen of wijzigen.
 
+**Documenten syncen**: de apps die één document in `user_settings` bewaren (`DocStore` en `startDocSync` in `apps/web/src/state/docStore.ts`) lezen hun rij via `pullSetting`. Wat binnen 20 ms gevraagd wordt (bij het opstarten, bij terugkeren naar NEXUS en bij de poll om de 5 minuten), gaat samen in één `select … in (keys)`. Elk document synct één keer per aanmelding, niet opnieuw bij elke token-vernieuwing. `@nexus/core` staat op `sideEffects: false`, zodat de bundel bij het opstarten alleen de core-code bevat die het opstarten nodig heeft.
+
 ## NEXUS Connect
 
 Elk apparaat (een browser, later de Windows-app, de Android companion) maakt bij het koppelen een eigen sleutelpaar. De private sleutel verlaat het apparaat nooit: in de browser staat hij niet-exporteerbaar in IndexedDB, op Android in de keystore. Een melding wordt per ontvanger versleuteld (ECDH P-256, HKDF-SHA256, AES-256-GCM; zie `packages/core/src/connectCrypto.ts`). Supabase ziet dus alleen publieke sleutels en onleesbare gegevens. De ontvanger haalt een melding op, bewaart ze lokaal en verwijdert ze van de server; wat niet wordt opgehaald, verdwijnt na een dag.
