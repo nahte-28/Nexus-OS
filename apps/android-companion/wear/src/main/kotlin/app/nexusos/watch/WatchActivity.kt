@@ -27,6 +27,8 @@ import app.nexusos.companion.DeviceKey
 import app.nexusos.companion.GamingTimer
 import app.nexusos.companion.WatchWeather
 import app.nexusos.companion.WatchToday
+import app.nexusos.companion.WatchDartsOnline
+import app.nexusos.companion.PlanDartsGame
 import app.nexusos.companion.PlanGaming
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
@@ -181,6 +183,8 @@ class WatchActivity : Activity() {
 
         space(12)
         gaming(now)
+
+        dartsOnline()
 
         space(12)
         darts()
@@ -430,6 +434,87 @@ class WatchActivity : Activity() {
     }
 
     private var dartsShowDone: String? = null
+
+    /**
+     * Darts online: your matches against friends, as NEXUS sent them. When it is your turn you type
+     * your visit here; it goes to NEXUS on your pc or gsm, which adds it to the match.
+     */
+    private var onlineFinish: Pair<String, Int>? = null
+    private var onlineBusy: String? = null
+
+    private fun dartsOnline() {
+        val games = WatchDartsOnline.load(this)
+        if (games.isEmpty()) return
+        space(12)
+        heading("Darts online", 15f)
+        for (g in games) {
+            space(6)
+            text("Tegen ${g.opponent} · ${g.score}", bold = true)
+            text("Jij nog ${g.me} · ${g.opponent} nog ${g.them}", muted = true, size = 12f)
+            val sent = WatchDartsOnline.sentScore(this, g)
+            if (!g.myTurn) {
+                text(g.line, muted = true, size = 12f)
+                continue
+            }
+            if (sent != null) {
+                text("Je gooide $sent. Wacht tot NEXUS het bijwerkt.", muted = true, size = 12f)
+                button("Opnieuw ingeven") { WatchDartsOnline.forget(this, g); render() }
+                continue
+            }
+            if (onlineBusy == g.id) {
+                text("Bezig…", muted = true, size = 12f)
+                continue
+            }
+            WatchDarts.checkout(g.me)?.takeIf { g.doubleOut }?.let { text("Tip: ${it.joinToString(" ")}", size = 13f) }
+            val finish = onlineFinish?.takeIf { it.first == g.id }?.second
+            if (finish != null) {
+                text("$finish uit! In hoeveel pijlen?", bold = true)
+                val fewest = if (g.doubleOut) WatchDarts.checkout(finish)?.size ?: 3 else 1
+                row((fewest..3).map { n -> "$n" to { sendOnline(g, finish, n) } })
+                button("Terug") { onlineFinish = null; render() }
+                continue
+            }
+            val score = input("Jouw beurt", 0).apply { inputType = InputType.TYPE_CLASS_NUMBER }
+            button("Invoeren", primary = true) { enterOnline(g, score.text.toString()) }
+            row(listOf(26, 41, 45).map { n -> "$n" to { enterOnline(g, "$n") } })
+            row(listOf(60, 81, 100).map { n -> "$n" to { enterOnline(g, "$n") } })
+            row(listOf(0, 140, 180).map { n -> "$n" to { enterOnline(g, "$n") } })
+        }
+    }
+
+    private fun enterOnline(g: PlanDartsGame, raw: String) {
+        val score = raw.trim().toIntOrNull()
+        val error = if (score == null) "Tik een score van 0 tot 180." else WatchDarts.scoreError(score)
+        if (score == null || error != null) {
+            status = error
+            render()
+            return
+        }
+        if (WatchDarts.finishes(g.me, score, g.doubleOut)) {
+            onlineFinish = g.id to score
+            render()
+            return
+        }
+        sendOnline(g, score, 3)
+    }
+
+    private fun sendOnline(g: PlanDartsGame, score: Int, darts: Int) {
+        if (onlineBusy != null) return
+        onlineBusy = g.id
+        onlineFinish = null
+        status = null
+        Connect.sendToNexus(this, Protocol.dartsOnlinePayload(g.id, g.seq, score, darts, System.currentTimeMillis())) { error ->
+            onlineBusy = null
+            if (error == null) {
+                WatchDartsOnline.sent(this, g, score)
+                status = "Verstuurd. De stand komt terug zodra NEXUS op je pc of gsm openstaat."
+            } else {
+                status = error
+            }
+            render()
+        }
+        render()
+    }
 
     /**
      * A practice round on the watch (Around the Clock, Doubles rond, Bob's 27, Scoring). When it

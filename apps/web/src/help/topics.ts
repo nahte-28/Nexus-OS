@@ -242,6 +242,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Oefenen: Around the Clock (1 tot 20 en de bull), Doubles rond (D1 tot D20 en de bull), Bob\'s 27 (start op 27, per double drie pijlen), Scoring op T20 (tien beurten, je gemiddelde) en Checkout-training (een finish uitgooien in hoogstens 9 pijlen). Je resultaten staan bij Statistieken.',
       'Bijnamen: zet je eigen bijnaam en je vaste spelers bij Instellingen. Bij een nieuwe wedstrijd tik je een vaste speler aan, en de bijnamen staan op het scorebord en in de geschiedenis.',
       'Op je horloge (NEXUS-app, onderdeel Darts) tel je een leg van 501 of 301 bij met uitgooi-tip. Als ze uit is of je stopt, komt ze bij Geschiedenis en Statistieken.',
+      'Een online match tegen een vriend staat ook op je horloge, onder Darts online. Ben jij aan de beurt, dan tik je daar je score in. NEXUS moet daarvoor open en aangemeld zijn op je pc of gsm.',
       'Statistieken tellen voor jouw naam (Instellingen), en met de keuzelijst Speler zie je die van een medespeler: gemiddelde per drie pijlen, first 9, 180\'s, 140+, hoogste finish en beste leg.',
       'Heb je een dartskalender gekoppeld (Profielen › Andere agenda\'s), dan staan je volgende dartsafspraken bovenaan.',
     ],

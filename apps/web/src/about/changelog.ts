@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Darts online op je horloge',
+    items: [
+      'Speel je een online match tegen een vriend, dan staat ze ook op je horloge onder Darts online: de stand, wie gooit en een uitgooi-tip.',
+      'Ben jij aan de beurt, tik dan je score in op je horloge. Je gsm hoeft niet in je hand.',
+      'NEXUS moet daarvoor open en aangemeld zijn op je pc of gsm. Werk ook de horloge-app bij.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Notities delen',
     items: [
       'Deel een notitie met een vriend of een heel team: tik in Notities op Delen en kies of ze mogen meebewerken of alleen lezen.',

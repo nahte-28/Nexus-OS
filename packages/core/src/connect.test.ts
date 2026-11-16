@@ -69,6 +69,11 @@ describe('connect payloads', () => {
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 25, at: 9 })).toEqual({ v: 1, kind: 'action', action: 'focus', minutes: 25, task: '', at: 9 })
     expect(parseAction({ v: 1, kind: 'action', action: 'focus', minutes: 900, at: 9 })).toBeNull()
     expect(parseAction({ v: 1, kind: 'notification', title: 'x' })).toBeNull()
+    const visit = { v: 1, kind: 'action', action: 'darts_online', id: 'g1', seq: 4, score: 60, darts: 3, at: 7 }
+    expect(parseAction(visit)).toEqual(visit)
+    expect(parseAction({ ...visit, darts: 9 })).toEqual(visit)
+    expect(parseAction({ ...visit, score: 181 })).toBeNull()
+    expect(parseAction({ ...visit, seq: -1 })).toBeNull()
     expect(actionTarget('deadline:d1@1767225600000-1440')).toEqual({ kind: 'deadline', id: 'd1' })
     expect(actionTarget('habit:h1@2026-11-03')).toEqual({ kind: 'habit', id: 'h1', date: '2026-11-03' })
     expect(actionTarget('reminder:r1@5')).toBeNull()

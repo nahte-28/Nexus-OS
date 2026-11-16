@@ -14,6 +14,7 @@ import { startFilesSync } from './files/sync'
 import { startAutoBackup } from './backup/auto'
 import { startAppointmentInvites } from './agenda/invites'
 import { startNoteShares } from './notes/shares'
+import { startDartsForWatch } from './darts/watch'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
@@ -155,6 +156,8 @@ startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 startAppointmentInvites(supabase, () => isFeatureOn('friends'))
 // Notities delen: notes you share with friends or teams, and the ones shared with you.
 startNoteShares(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
+// Darts online op je horloge: your matches against friends go to the watch with the plan.
+startDartsForWatch(supabase, () => isFeatureOn('darts'))
 // Wie is er online: friends and teammates see that NEXUS is open here.
 startPresence(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Beheer: shows in the sidebar for an admin of this NEXUS.
