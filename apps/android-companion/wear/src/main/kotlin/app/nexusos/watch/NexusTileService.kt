@@ -13,6 +13,7 @@ import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import app.nexusos.companion.WatchWeather
+import app.nexusos.companion.WatchToday
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
@@ -32,6 +33,7 @@ class NexusTileService : TileService() {
             .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER)
             .addContent(text("NEXUS", 14f, ACCENT, bold = true))
         WatchWeather.load(this, now)?.let { column.addContent(text(WatchWeather.line(it), 12f, MUTED)) }
+        WatchToday.load(this, now)?.let(WatchToday::habitsLine)?.let { column.addContent(text(it, 12f, MUTED)) }
         column.addContent(space(6f))
         if (coming.isEmpty()) {
             column.addContent(text("Niets gepland", 15f, WHITE))

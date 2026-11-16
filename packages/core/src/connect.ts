@@ -1,4 +1,5 @@
 /** NEXUS Connect: devices and the notifications they forward to each other. */
+import type { PlanToday } from './watchToday'
 
 export type DevicePlatform = 'web' | 'android' | 'desktop'
 
@@ -43,6 +44,8 @@ export interface PlanPayload {
   gaming?: PlanGaming | null
   /** Today's weather of your first place in Weer, for the watch tile; absent when Weer is off. */
   weather?: PlanWeather | null
+  /** Vandaag on the watch: agenda, habits and goals of today; absent when there is nothing. */
+  today?: PlanToday | null
 }
 
 export interface PlanWeather {

@@ -104,6 +104,26 @@ class ProtocolTest {
     }
 
     @Test
+    fun readsVandaagFromAPlan() {
+        val json = "{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"today\":{\"day\":\"2026-11-17\"," +
+            "\"agenda\":[{\"at\":10,\"end\":20,\"title\":\"Elektronica\"},{\"at\":0,\"title\":\"x\"}]," +
+            "\"habits\":[{\"id\":\"h1\",\"name\":\"Lezen\",\"done\":false},{\"id\":\"a@b\",\"name\":\"Vals\"},{\"id\":\"h2\",\"name\":\"Sporten\",\"done\":true}]," +
+            "\"goals\":[{\"title\":\"14/20 gemiddeld\",\"status\":\"on_track\",\"line\":\"14,2/20\"},{\"title\":\"Raar\",\"status\":\"x\"}]}}"
+        val today = Protocol.parsePlanToday(json)!!
+        assertEquals(listOf(TodayEntry(10, 20, "Elektronica")), today.agenda)
+        assertEquals(listOf(TodayHabit("h1", "Lezen", false), TodayHabit("h2", "Sporten", true)), today.habits)
+        assertEquals(listOf(TodayGoal("14/20 gemiddeld", "on_track", "14,2/20")), today.goals)
+        assertEquals("habit:h1@2026-11-17", today.habits[0].ref(today.day))
+        assertEquals(true, Protocol.canTickOff(today.habits[0].ref(today.day)))
+        // A habit ticked off on the watch counts at once; another day shows nothing.
+        val ticked = WatchToday.withTicks(today, setOf("habit:h1@2026-11-17"), "2026-11-17")!!
+        assertEquals("2 van 2 gewoontes gedaan", WatchToday.habitsLine(ticked))
+        assertNull(WatchToday.withTicks(today, emptySet(), "2026-11-18"))
+        assertNull(Protocol.parsePlanToday("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50}"))
+        assertNull(Protocol.parsePlanToday("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"today\":{\"day\":\"morgen\"}}"))
+    }
+
+    @Test
     fun readsTheGamingTimerFromAPlan() {
         val on = Protocol.parsePlanGaming("{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"gaming\":{\"game\":\"Zelda\",\"startedAt\":40}}")!!
         assertEquals(PlanGamingField(true, PlanGaming("Zelda", 40), 50), on)

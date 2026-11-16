@@ -37,6 +37,18 @@ data class PlanWeather(
 )
 
 /** Text or a link sent with NEXUS Bridge; mirrors BridgePayload in packages/core/src/bridge.ts. */
+/** Vandaag in a "plan" payload (PlanToday in packages/core/src/watchToday.ts). */
+data class PlanToday(val day: String, val agenda: List<TodayEntry>, val habits: List<TodayHabit>, val goals: List<TodayGoal>)
+
+data class TodayEntry(val at: Long, val end: Long, val title: String)
+
+data class TodayHabit(val id: String, val name: String, val done: Boolean) {
+    /** The ref NEXUS ticks it off with (see actionTarget in connect.ts). */
+    fun ref(day: String) = "habit:$id@$day"
+}
+
+data class TodayGoal(val title: String, val status: String, val line: String)
+
 data class BridgeTransfer(
     val transferId: String,
     val content: String,
@@ -163,6 +175,38 @@ object Protocol {
             place, deg("temp"), deg("min"), deg("max"), w.optInt("rainChance").coerceIn(0, 100),
             w.optString("label").trim().take(40).ifEmpty { "Weer" }, w.optString("icon").take(8), at,
         )
+    }
+
+    private val DAY = Regex("^\\d{4}-\\d{2}-\\d{2}$")
+    private val GOAL_STATUSES = setOf("reached", "on_track", "behind", "missed", "empty")
+
+    /** Vandaag in a "plan" payload: null when [json] is no plan or carries none. */
+    fun parsePlanToday(json: String): PlanToday? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val t = o.optJSONObject("today") ?: return null
+        val day = t.optString("day")
+        if (!DAY.matches(day)) return null
+        fun objects(key: String, max: Int): List<JSONObject> {
+            val a = t.optJSONArray(key) ?: return emptyList()
+            return (0 until minOf(a.length(), max)).mapNotNull { a.optJSONObject(it) }
+        }
+        val agenda = objects("agenda", 12).mapNotNull { e ->
+            val title = e.optString("title").trim().take(80)
+            val at = e.optLong("at", 0L)
+            if (title.isEmpty() || at <= 0) null else TodayEntry(at, maxOf(at, e.optLong("end", at)), title)
+        }
+        val habits = objects("habits", 12).mapNotNull { h ->
+            val id = h.optString("id")
+            val name = h.optString("name").trim().take(80)
+            if (id.isEmpty() || id.length > 100 || id.contains('@') || name.isEmpty()) null else TodayHabit(id, name, h.optBoolean("done"))
+        }
+        val goals = objects("goals", 6).mapNotNull { g ->
+            val title = g.optString("title").trim().take(80)
+            val status = g.optString("status")
+            if (title.isEmpty() || status !in GOAL_STATUSES) null else TodayGoal(title, status, g.optString("line").trim().take(80))
+        }
+        return PlanToday(day, agenda, habits, goals)
     }
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.

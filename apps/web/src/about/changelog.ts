@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Vandaag op je horloge',
+    items: [
+      'Bovenaan de horloge-app staat nu Vandaag: je lessen en afspraken van vandaag, je gewoontes en hoe je doelen ervoor staan.',
+      'Vink een gewoonte af met één tik op je horloge. De tegel toont hoeveel gewoontes je vandaag al deed. Werk de horloge-app bij via Bijwerken.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Examenblok',
     items: [
       'Nieuw tabblad Blok in Studie: NEXUS maakt een blokschema tot je laatste examen, dag per dag, met studieblokken, pauzes en een middagpauze.',
