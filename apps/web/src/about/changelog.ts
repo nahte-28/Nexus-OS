@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Notities delen',
+    items: [
+      'Deel een notitie met een vriend of een heel team: tik in Notities op Delen en kies of ze mogen meebewerken of alleen lezen.',
+      'Wat anderen met jou delen, staat in Notities onder Gedeeld met mij. Past iemand een gedeelde notitie aan, dan zie je dat meteen.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Afspraak met vrienden',
     items: [
       'Nodig vrienden uit voor een afspraak: tik in de Agenda bij een afspraak op Vrienden uitnodigen. Je ziet wie komt en wie niet.',

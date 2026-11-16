@@ -13,6 +13,7 @@ import { startFlowsSync } from './flows/sync'
 import { startFilesSync } from './files/sync'
 import { startAutoBackup } from './backup/auto'
 import { startAppointmentInvites } from './agenda/invites'
+import { startNoteShares } from './notes/shares'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
@@ -152,6 +153,8 @@ startFriendNotices(supabase, () => isFeatureOn('friends'))
 startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 // Afspraak met vrienden: invites to your appointments, and your copies of the ones you accepted.
 startAppointmentInvites(supabase, () => isFeatureOn('friends'))
+// Notities delen: notes you share with friends or teams, and the ones shared with you.
+startNoteShares(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Wie is er online: friends and teammates see that NEXUS is open here.
 startPresence(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Beheer: shows in the sidebar for an admin of this NEXUS.

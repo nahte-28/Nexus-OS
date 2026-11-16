@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { noteTitle } from '@nexus/core'
+import { noteTitle, shareOfNote, sharedWithMe } from '@nexus/core'
 import { useNotes } from '../state/useNotes'
 import { onReveal, takeReveal } from '../search/reveal'
+import { useShares } from '../notes/shares'
+import { SharedList, SharedNote, SharePanel, useSharingOn } from '../notes/Sharing'
 
 export function Notes() {
   const { notes, add, update, remove } = useNotes()
@@ -15,7 +17,18 @@ export function Notes() {
       }),
     [],
   )
-  const selected = notes.find((n) => n.id === selectedId) ?? null
+  const sharingOn = useSharingOn()
+  const { shares } = useShares()
+  const withMe = sharingOn && shares ? sharedWithMe(shares) : []
+  const [sharedId, setSharedId] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const openShared = withMe.find((s) => s.id === sharedId) ?? null
+  const selected = openShared ? null : (notes.find((n) => n.id === selectedId) ?? null)
+  const pickNote = (id: string | null) => {
+    setSharedId(null)
+    setSharing(false)
+    setSelectedId(id)
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col sm:flex-row">
@@ -24,7 +37,7 @@ export function Notes() {
           <h2 className="text-sm font-semibold text-nx-muted">Notities</h2>
           <button
             type="button"
-            onClick={() => setSelectedId(add())}
+            onClick={() => pickNote(add())}
             className="rounded-md bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text"
           >
             Nieuw
@@ -36,21 +49,34 @@ export function Notes() {
             <li key={note.id}>
               <button
                 type="button"
-                onClick={() => setSelectedId(note.id)}
-                aria-current={note.id === selectedId}
+                onClick={() => pickNote(note.id)}
+                aria-current={!openShared && note.id === selectedId}
                 className={`w-full truncate rounded-md px-2 py-2 text-left text-sm ${
-                  note.id === selectedId ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'
+                  !openShared && note.id === selectedId ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'
                 }`}
               >
                 {noteTitle(note)}
+                {sharingOn && shares && shareOfNote(shares, note.id) && <span className="ml-1" aria-label="gedeeld">👥</span>}
               </button>
             </li>
           ))}
         </ul>
+        {withMe.length > 0 && (
+          <SharedList
+            shares={withMe}
+            selected={sharedId}
+            onSelect={(id) => {
+              setSharing(false)
+              setSharedId(id)
+            }}
+          />
+        )}
       </aside>
 
       <section className="flex min-h-0 flex-1 flex-col p-3">
-        {selected ? (
+        {openShared ? (
+          <SharedNote key={openShared.id} share={openShared} />
+        ) : selected ? (
           <>
             <div className="flex items-center gap-2">
               <input
@@ -60,6 +86,11 @@ export function Notes() {
                 aria-label="Titel"
                 className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none placeholder:text-nx-muted"
               />
+              {sharingOn && (
+                <button type="button" aria-expanded={sharing} onClick={() => setSharing((v) => !v)} className="rounded-md px-2 py-1 text-sm text-nx-muted hover:bg-nx-surface-2">
+                  Delen
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -71,6 +102,11 @@ export function Notes() {
                 Verwijderen
               </button>
             </div>
+            {sharing && sharingOn && (
+              <div className="mt-2">
+                <SharePanel note={selected} />
+              </div>
+            )}
             <textarea
               value={selected.body}
               onChange={(e) => update(selected.id, { body: e.target.value })}

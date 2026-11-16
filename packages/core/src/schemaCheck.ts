@@ -59,6 +59,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261116120000_goals.sql', label: 'Doelen syncen', needs: [{ settingsKey: 'goals' }] },
   { file: '20261116150000_darts_online.sql', label: 'Darts online tegen je vrienden', needs: [{ table: 'darts_online' }] },
   { file: '20261116180000_appointment_invites.sql', label: 'Vrienden uitnodigen voor een afspraak', needs: [{ table: 'appointment_invites' }] },
+  { file: '20261116210000_note_shares.sql', label: 'Notities delen met vrienden en teams', needs: [{ table: 'note_shares' }] },
 ]
 
 /** What nexus_schema_status() returns. */
