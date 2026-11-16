@@ -30,3 +30,10 @@ export async function actionTokenHash(token: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
+
+/**
+ * Snel antwoorden: the two buttons on a web-push notice for a privébericht or a teamchat message.
+ * public/push-sw.js uses the same texts; the database sends them once with the one-time token
+ * (supabase/migrations/20261116090000_message_push.sql).
+ */
+export const QUICK_REPLIES: Record<'reply-ok' | 'reply-later', string> = { 'reply-ok': 'Oké 👍', 'reply-later': 'Ik reageer straks.' }

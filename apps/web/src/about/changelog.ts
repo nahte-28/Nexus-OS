@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-16',
+    title: 'Berichten op je gsm en horloge',
+    items: [
+      'Een nieuw privébericht of teambericht komt nu ook op je gsm en horloge, ook als NEXUS daar dicht is. Zet daarvoor in Apparaten de meldingen op je gsm aan.',
+      'Antwoord meteen vanuit de melding met Oké 👍 of Ik reageer straks. Tik je op de melding zelf, dan opent NEXUS bij Vrienden of Teams.',
+      'Een privébericht blijft versleuteld tot op je gsm. In Apparaten kies je of privéberichten en de teamchat je gsm wekken.',
+    ],
+  },
+  {
     date: '2026-11-14',
     title: 'Samen studeren',
     items: [

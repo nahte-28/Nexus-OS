@@ -226,6 +226,10 @@ export function refLink(ref: string): { app: AppId; id?: string } | null {
       return { app: 'agenda' }
     case 'sleep':
       return { app: 'gaming' }
+    case 'dm':
+      return { app: 'friends' }
+    case 'team-chat':
+      return { app: 'teams' }
     default:
       return null
   }

@@ -7,7 +7,7 @@ import { ModuleSettings } from './ModuleSettings'
 describe('ModuleSettings', () => {
   afterEach(() => {
     cleanup()
-    profilesStore.update((s) => ({ ...s, appSwitches: {} }))
+    profilesStore.update((s) => ({ ...s, appSwitches: {}, override: null }))
   })
 
   it('lists every app and module in groups, all on, except the Developer Hub', () => {
@@ -26,6 +26,8 @@ describe('ModuleSettings', () => {
   })
 
   it('hides a switched-off app everywhere and brings it back', () => {
+    // Persoonlijk: during school hours the School profile hides Financiën by itself.
+    profilesStore.update((s) => ({ ...s, override: { profile: 'personal', mode: 'until-manual', windowOpenAtStart: true, setAt: Date.now() } }))
     render(<ModuleSettings />)
     const visible = renderHook(() => useVisibleApps().map((a) => a.id))
     expect(visible.result.current).toContain('finance')
