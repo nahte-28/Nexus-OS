@@ -67,7 +67,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   notes: {
     summary: 'Notities die offline werken en synchroniseren zodra je online bent.',
-    tips: ['Snelle notitie: Alt+N, of de knop op je gsm, ook met inspreken.', 'Zoek in al je notities met Ctrl+K.'],
+    tips: ['Snelle notitie: Alt+N, of de knop op je gsm, ook met inspreken.', 'Zoek in al je notities met Ctrl+K.', 'Met Delen geef je een vriend of een team toegang tot een notitie, om te lezen of om mee te bewerken. Wat anderen met jou deelden, staat onder Gedeeld met mij en werkt alleen met internet.'],
   },
   notifications: {
     summary: 'De meldingen van je gsm op je pc, en omgekeerd.',
