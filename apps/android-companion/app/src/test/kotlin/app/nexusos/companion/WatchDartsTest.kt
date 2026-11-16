@@ -51,4 +51,15 @@ class WatchDartsTest {
         assertEquals(100, p.getJSONArray("visits").getJSONObject(1).getInt("score"))
         assertEquals(DartsLeg("l3", 501, 10, listOf(DartsVisit(60, 3, false))), WatchDarts.undo(leg))
     }
+
+    @Test
+    fun checksAnOnlineVisit() {
+        assertEquals("179 kan niet met drie pijlen.", WatchDarts.scoreError(179))
+        assertEquals("Een beurt is 0 tot 180.", WatchDarts.scoreError(181))
+        assertNull(WatchDarts.scoreError(60))
+        assertTrue(WatchDarts.finishes(40, 40))
+        assertFalse(WatchDarts.finishes(169, 169))
+        assertTrue(WatchDarts.finishes(169, 169, doubleOut = false))
+        assertFalse(WatchDarts.finishes(100, 60))
+    }
 }

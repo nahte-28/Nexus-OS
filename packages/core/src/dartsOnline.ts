@@ -3,7 +3,8 @@
  * visits in order, each with the side that threw it; both devices replay them with the rules of the
  * scorer (addVisit), so the score is the same everywhere and a visit out of turn does not count.
  */
-import { addVisit, newMatch, remaining, toThrow, type DartsMatch } from './darts'
+import type { PlanDartsGame } from './connect'
+import { addVisit, legsWon, newMatch, remaining, setsWon, toThrow, type DartsMatch } from './darts'
 
 export type OnlineStatus = 'invited' | 'playing' | 'done' | 'declined' | 'stopped'
 export const ONLINE_STATUSES: OnlineStatus[] = ['invited', 'playing', 'done', 'declined', 'stopped']
@@ -116,3 +117,31 @@ export function onlineLine(g: OnlineGame): string {
 
 /** Whether the replayed match has a winner, so it can be closed as done. */
 export const onlineWon = (g: OnlineGame) => replayOnline(g).winner !== null
+
+/** Your matches that are being played, for the watch: whose turn, what is left and the score. At most 5. */
+export function dartsForWatch(games: OnlineGame[]): PlanDartsGame[] {
+  return games
+    .filter((g) => g.status === 'playing')
+    .flatMap((g): PlanDartsGame[] => {
+      const m = replayOnline(g)
+      if (m.winner !== null) return []
+      const other = g.side === 0 ? 1 : 0
+      const count = m.setsToWin > 1 ? (i: number) => setsWon(m, i) : (i: number) => legsWon(m, i)
+      return [
+        {
+          id: g.id,
+          opponent: opponentOf(g),
+          mode: g.mode,
+          doubleOut: g.doubleOut,
+          me: remaining(m, g.side),
+          them: remaining(m, other),
+          myTurn: toThrow(m) === g.side,
+          seq: g.visits.length,
+          score: `${count(g.side)}–${count(other)}${m.setsToWin > 1 ? ' sets' : ''}`,
+          line: onlineLine(g),
+        },
+      ]
+    })
+    .sort((a, b) => Number(b.myTurn) - Number(a.myTurn))
+    .slice(0, 5)
+}

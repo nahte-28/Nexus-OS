@@ -49,6 +49,23 @@ data class TodayHabit(val id: String, val name: String, val done: Boolean) {
 
 data class TodayGoal(val title: String, val status: String, val line: String)
 
+/** An online darts match against a friend, as NEXUS sent it with the plan (PlanDartsGame in packages/core/src/connect.ts). */
+data class PlanDartsGame(
+    val id: String,
+    val opponent: String,
+    val mode: Int,
+    val doubleOut: Boolean,
+    /** What you still need in this leg, and what the other one still needs. */
+    val me: Int,
+    val them: Int,
+    val myTurn: Boolean,
+    /** The number of visits so far; sent back with your visit, so it counts once. */
+    val seq: Int,
+    /** Legs (or sets) won, yours first, like "1–0". */
+    val score: String,
+    val line: String,
+)
+
 data class BridgeTransfer(
     val transferId: String,
     val content: String,
@@ -208,6 +225,31 @@ object Protocol {
         }
         return PlanToday(day, agenda, habits, goals)
     }
+
+    /** Darts online in a "plan" payload: null when [json] is no plan, empty when no match is being played. */
+    fun parsePlanDarts(json: String): List<PlanDartsGame>? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val a = o.optJSONArray("darts") ?: return emptyList()
+        return (0 until minOf(a.length(), 5)).mapNotNull { i ->
+            val g = a.optJSONObject(i) ?: return@mapNotNull null
+            val id = g.optString("id").trim()
+            val opponent = g.optString("opponent").trim().take(40)
+            val mode = g.optInt("mode")
+            val seq = g.optInt("seq", -1)
+            if (id.isEmpty() || id.length > 80 || opponent.isEmpty() || mode !in 2..1001 || seq < 0) return@mapNotNull null
+            PlanDartsGame(
+                id, opponent, mode, g.optBoolean("doubleOut", true),
+                g.optInt("me", mode).coerceIn(0, mode), g.optInt("them", mode).coerceIn(0, mode), g.optBoolean("myTurn"), seq,
+                g.optString("score").trim().take(20), g.optString("line").trim().take(80),
+            )
+        }
+    }
+
+    /** Your visit in an online match (ActionPayload "darts_online"); [seq] is the number of visits the watch saw. */
+    fun dartsOnlinePayload(id: String, seq: Int, score: Int, darts: Int, at: Long): String =
+        JSONObject().put("v", 1).put("kind", "action").put("action", "darts_online").put("id", id).put("seq", seq)
+            .put("score", score).put("darts", darts.coerceIn(1, 3)).put("at", at).toString()
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.
 

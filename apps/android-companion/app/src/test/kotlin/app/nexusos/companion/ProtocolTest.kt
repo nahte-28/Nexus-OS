@@ -135,4 +135,25 @@ class ProtocolTest {
         assertEquals("start", start.getString("op"))
         assertEquals("stop", org.json.JSONObject(Protocol.gamingPayload(false, 7)).getString("op"))
     }
+
+    @Test
+    fun readsDartsOnlineAndKeepsAVisitOnItsWay() {
+        val json = "{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"darts\":[" +
+            "{\"id\":\"g1\",\"opponent\":\"Remo\",\"mode\":501,\"doubleOut\":true,\"me\":441,\"them\":501,\"myTurn\":true,\"seq\":2,\"score\":\"0–0\",\"line\":\"Jij gooit, nog 441.\"}," +
+            "{\"id\":\"\",\"opponent\":\"Vals\",\"mode\":501,\"seq\":0}]}"
+        val games = Protocol.parsePlanDarts(json)!!
+        assertEquals(listOf(PlanDartsGame("g1", "Remo", 501, true, 441, 501, true, 2, "0–0", "Jij gooit, nog 441.")), games)
+        assertEquals(emptyList<PlanDartsGame>(), Protocol.parsePlanDarts("{\"v\":1,\"kind\":\"plan\",\"items\":[]}"))
+        assertNull(Protocol.parsePlanDarts("{\"v\":1,\"kind\":\"notification\",\"title\":\"Hoi\"}"))
+        val p = JSONObject(Protocol.dartsOnlinePayload("g1", 2, 60, 5, 70))
+        assertEquals("darts_online", p.getString("action"))
+        assertEquals(2, p.getInt("seq"))
+        assertEquals(3, p.getInt("darts"))
+        // A visit stays on its way until the match moves on.
+        val g = games[0]
+        assertEquals(60, WatchDartsOnline.sentScore(setOf("g1@2=60"), g))
+        assertNull(WatchDartsOnline.sentScore(setOf("g1@1=60"), g))
+        assertEquals(setOf("g1@2=60"), WatchDartsOnline.stillWaiting(games, setOf("g1@2=60", "g9@0=20")))
+        assertEquals(emptySet<String>(), WatchDartsOnline.stillWaiting(listOf(g.copy(seq = 3)), setOf("g1@2=60")))
+    }
 }

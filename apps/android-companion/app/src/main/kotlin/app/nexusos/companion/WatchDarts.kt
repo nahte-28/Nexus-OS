@@ -45,6 +45,17 @@ object WatchDarts {
         data class Error(val message: String) : Result()
     }
 
+    /** Why [score] cannot be one visit, or null when it can. */
+    fun scoreError(score: Int): String? = when {
+        score !in 0..180 -> "Een beurt is 0 tot 180."
+        score in IMPOSSIBLE -> "$score kan niet met drie pijlen."
+        else -> null
+    }
+
+    /** Whether [score] throws out [rest] (with a double when [doubleOut]); then the watch asks in how many darts. */
+    fun finishes(rest: Int, score: Int, doubleOut: Boolean = true): Boolean =
+        rest > 0 && score == rest && (!doubleOut || (score <= 170 && score !in BOGEY))
+
     /** Whether [score] would throw the leg out (then the watch asks in how many darts). */
     fun wouldFinish(leg: DartsLeg, score: Int): Boolean = !leg.over && score == leg.remaining && score <= 170 && score !in BOGEY
 

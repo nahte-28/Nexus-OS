@@ -143,6 +143,7 @@ object Connect {
                     // Weather and Gaming first: replacing the plan redraws the watch tile.
                     Protocol.parsePlanWeather(plaintext)?.let { WatchWeather.save(app, it) }
                     WatchToday.save(app, plaintext)
+                    WatchDartsOnline.save(app, plaintext)
                     Protocol.parsePlanGaming(plaintext)?.let { GamingTimer.fromPlan(app, it) }
                     Safety.replacePlan(app, message.senderDeviceId, plan)
                     continue

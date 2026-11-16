@@ -55,6 +55,18 @@ describe('safety net sending', () => {
     expect(await sendPlanIfChanged(c, [], 2000, null, null, { ...today, habits: [{ id: 'h1', name: 'Lezen', done: true }] })).toBe(1)
   })
 
+  it('sends Darts online to the watch, and the plan without it once the match is over', async () => {
+    const c = connect([phone, browserPhone])
+    const game = { id: 'g1', opponent: 'Remo', mode: 501, doubleOut: true, me: 501, them: 441, myTurn: true, seq: 1, score: '0–0', line: 'Jij gooit, nog 501.' }
+    expect(await sendPlanIfChanged(c, [], 0, null, null, null, [game])).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null, undefined, undefined, [game])
+    expect(c.sendPushPlan).not.toHaveBeenCalled()
+    expect(await sendPlanIfChanged(c, [], 1000, null, null, null, [game])).toBe(0)
+    expect(await sendPlanIfChanged(c, [], 2000, null, null, null, [{ ...game, myTurn: false, seq: 2 }])).toBe(1)
+    expect(await sendPlanIfChanged(c, [], 3000)).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null)
+  })
+
   it('sends nothing while there is nothing to plan or no phone', async () => {
     const c = connect()
     expect(await sendPlanIfChanged(c, [], 0)).toBe(0)

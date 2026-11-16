@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { remaining } from './darts'
-import { canUndoOnline, myTurn, onlineLine, onlineMatchId, onlineWon, parseOnlineGames, replayOnline, type OnlineGame } from './dartsOnline'
+import { canUndoOnline, dartsForWatch, myTurn, onlineLine, onlineMatchId, onlineWon, parseOnlineGames, replayOnline, type OnlineGame } from './dartsOnline'
 
 const game = (patch: Partial<OnlineGame> = {}): OnlineGame => ({ id: 'g1', side: 0, players: ['Ethan', 'Remo'], mode: 101, legsToWin: 1, setsToWin: 1, doubleOut: true, status: 'playing', visits: [], createdAt: 1, updatedAt: 2, ...patch })
 
@@ -42,5 +42,15 @@ describe('dartsOnline', () => {
     expect(list[0].visits).toEqual([{ side: 1, score: 60, darts: 3 }])
     expect(list[0].createdAt).toBe(Date.parse('2026-11-16T10:00:00Z'))
     expect(onlineLine(list[0])).toBe('Ethan daagt je uit.')
+  })
+
+  it('gives the watch the matches being played, yours to throw first', () => {
+    const playing = game({ id: 'p', side: 1, visits: [{ side: 0, score: 60, darts: 3 }] })
+    const waiting = game({ id: 'w', visits: [{ side: 0, score: 60, darts: 3 }] })
+    const won = game({ id: 'x', visits: [{ side: 0, score: 60, darts: 3 }, { side: 1, score: 45, darts: 3 }, { side: 0, score: 41, darts: 2 }] })
+    const list = dartsForWatch([waiting, game({ id: 'i', status: 'invited' }), won, playing])
+    expect(list.map((g) => g.id)).toEqual(['p', 'w'])
+    expect(list[0]).toEqual({ id: 'p', opponent: 'Ethan', mode: 101, doubleOut: true, me: 101, them: 41, myTurn: true, seq: 1, score: '0–0', line: 'Jij gooit, nog 101.' })
+    expect(list[1].myTurn).toBe(false)
   })
 })
