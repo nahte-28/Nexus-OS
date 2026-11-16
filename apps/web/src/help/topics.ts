@@ -18,6 +18,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Een afspraak kan elke dag, week, maand of jaar terugkomen; één keer overslaan kan in Overzicht.',
       'Overlapt een afspraak met een les of een andere afspraak, dan zie je dat meteen.',
       'Bij een afspraak tik je op Vrienden uitnodigen. Wie aanvaardt, krijgt ze in zijn eigen Agenda, en verander of verwijder je de afspraak, dan verandert ze bij hem mee. Een herhaalde afspraak kan je niet delen.',
+      'Zoek een vrij moment (bij Vrienden uitnodigen): kies een of meer vrienden, en NEXUS toont momenten in de komende week waarop jullie allemaal vrij zijn, tussen 9 en 22 uur. Tik er een aan om je afspraak daarheen te verzetten. Vrienden zien alleen wanneer je bezet bent (lessen, afspraken en gekoppelde agenda\'s), nooit wat. Zet het vinkje uit als je dat niet wil.',
       'Dagstart stuurt elke ochtend een kort overzicht; Week maakt op zondag een terugblik.',
     ],
   },

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { canInvite, INVITE_MAX_FRIENDS, INVITE_STATUS_LABELS, invitesFor, openInvites, type Appointment, type AppointmentInvite, type FriendEntry } from '@nexus/core'
+import { canInvite, type FreeSlot, INVITE_MAX_FRIENDS, INVITE_STATUS_LABELS, invitesFor, openInvites, type Appointment, type AppointmentInvite, type FriendEntry } from '@nexus/core'
 import { useFeature } from '../features/store'
 import { Friends } from '../friends/friends'
 import { supabase } from '../sync/supabase'
 import { invitesApi, useInvites } from './invites'
+import { findFreeMoments, setFreeBusyShares, useFreeBusy } from '../friends/freeBusy'
+import { lifeStore } from '../life/store'
 
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
@@ -185,10 +187,80 @@ export function InviteFriends({ appointment: a, friendsApi = defaultFriends }: {
               </button>
             </>
           )}
+          {friends !== null && friends.length > 0 && <FreeMoment appointment={a} friends={chosen.length > 0 ? chosen : sent.map((i) => i.other)} />}
           <p className="text-xs text-nx-muted">Wie aanvaardt, krijgt de afspraak in zijn eigen Agenda. Je herinneringen gaan niet mee, je notities wel.</p>
           {(error ?? syncError) && <Problem text={(error ?? syncError)!} />}
         </div>
       </details>
+    </div>
+  )
+}
+
+/**
+ * Samen vrij moment zoeken: moments in the coming week when you and the chosen (or invited) friends
+ * are all free; picking one moves the appointment there. Also where you choose whether you share.
+ */
+function FreeMoment({ appointment: a, friends }: { appointment: Appointment; friends: string[] }) {
+  const { shares, error: shareError } = useFreeBusy()
+  const [found, setFound] = useState<{ slots: FreeSlot[]; hidden: string[] } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const work = async (job: () => Promise<void>) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await job()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const minutes = Math.max(15, Math.round((a.endAt - a.startAt) / 60_000))
+  const search = () => work(async () => setFound(await findFreeMoments(friends, minutes, a.id)))
+  const move = (slot: FreeSlot) =>
+    work(async () => {
+      await lifeStore.updateAppointment(a.id, { startAt: slot.start, endAt: slot.end })
+      setFound(null)
+    })
+  const series = Boolean(a.repeat)
+
+  return (
+    <div className="space-y-1 border-t border-nx-border pt-2">
+      {!series && (
+        <>
+          <button type="button" className={button} disabled={busy || friends.length === 0} onClick={() => void search()}>
+            Zoek een vrij moment
+          </button>
+          {friends.length === 0 && <p className="text-xs text-nx-muted">Kies eerst een of meer vrienden.</p>}
+        </>
+      )}
+      {found && (
+        <div className="space-y-1" aria-label="Vrije momenten">
+          {found.slots.length === 0 ? (
+            <p className="text-xs text-nx-muted">Geen moment van {minutes} minuten gevonden waarop jullie allemaal vrij zijn in de komende week.</p>
+          ) : (
+            <>
+              <p className="text-xs text-nx-muted">Jullie zijn allemaal vrij op deze momenten. Tik er een aan om je afspraak daarheen te verzetten.</p>
+              <div className="flex flex-wrap gap-1">
+                {found.slots.map((slot) => (
+                  <button key={slot.start} type="button" className={button} disabled={busy} onClick={() => void move(slot)}>
+                    {when(slot.start)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {found.hidden.length > 0 && <p className="text-xs text-nx-muted">{found.hidden.join(', ')} deelt nog niet wanneer {found.hidden.length === 1 ? 'hij of zij' : 'ze'} bezet {found.hidden.length === 1 ? 'is' : 'zijn'}, dus daar kon NEXUS geen rekening mee houden.</p>}
+        </div>
+      )}
+      {shares !== null && (
+        <label className="flex items-center gap-2 text-xs text-nx-muted">
+          <input type="checkbox" checked={shares} disabled={busy} onChange={(e) => void work(() => setFreeBusyShares(e.target.checked))} className="accent-[var(--nx-accent)]" />
+          Vrienden zien wanneer ik bezet ben (niet wat)
+        </label>
+      )}
+      {(error ?? shareError) && <Problem text={(error ?? shareError)!} />}
     </div>
   )
 }
