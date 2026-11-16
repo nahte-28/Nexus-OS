@@ -55,6 +55,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261113210000_presence.sql', label: 'Wie is er online bij vrienden en teams', needs: [{ table: 'user_presence' }] },
   { file: '20261113240000_admin.sql', label: 'Beheeroverzicht voor de beheerder', needs: [{ table: 'nexus_admins' }] },
   { file: '20261114090000_study_together.sql', label: 'Samen studeren met vrienden en teams', needs: [{ table: 'study_sessions' }, { table: 'study_session_members' }] },
+  { file: '20261116090000_message_push.sql', label: 'Berichten op je gsm en horloge, met snel antwoorden', needs: [{ table: 'message_push' }] },
 ]
 
 /** What nexus_schema_status() returns. */

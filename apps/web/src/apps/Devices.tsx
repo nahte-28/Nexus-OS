@@ -4,6 +4,7 @@ import { useConnect } from '../connect/ConnectContext'
 import { isDesktopApp } from '../platform/desktop'
 import { phonesOf, type DeviceView } from '../connect/engine'
 import { disableWebPush, enableWebPush, pushOnHere, pushSupported } from '../push/subscribe'
+import { MessagePushSettings } from '../push/MessagePushSettings'
 
 const RELEASES_URL = 'https://github.com/nahte-28/Nexus-OS/releases'
 
@@ -144,6 +145,7 @@ export function Devices() {
           >
             {busy === 'push' ? 'Bezig…' : pushHere ? 'Uitzetten' : 'Meldingen aanzetten'}
           </button>
+          {pushHere && <MessagePushSettings />}
         </div>
       )}
 

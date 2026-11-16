@@ -144,6 +144,8 @@ describe('refLink', () => {
     expect(refLink('flow:f1|e1|0')).toEqual({ app: 'flows', id: 'f1' })
     expect(refLink('subscription:s1@2026-11-05')).toEqual({ app: 'finance' })
     expect(refLink('dagstart:2026-11-03')).toEqual({ app: 'agenda' })
+    expect(refLink('dm:u1')).toEqual({ app: 'friends' })
+    expect(refLink('team-chat:g1')).toEqual({ app: 'teams' })
     expect(refLink('nexus-push')).toBeNull()
     expect(refLink('reminder-123')).toBeNull()
   })
