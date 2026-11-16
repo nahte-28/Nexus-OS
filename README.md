@@ -187,6 +187,10 @@ De app **Agenda** zet je lessen, deadlines, afspraken en projecten samen. **Over
 
 Deadlines werken offline (IndexedDB) en syncen met een account zoals notities, in de tabel `life_items` met RLS. Voer daarvoor eenmalig `supabase/migrations/20261027090000_life.sql` en `20261027120000_life_appointments.sql` uit in de SQL Editor van Supabase. De meldingen gaan via hetzelfde vangnet als herinneringen: elk apparaat met NEXUS open stuurt ze, en de gsm krijgt ze vooraf (companion of web-push), zodat ze ook komen als de pc uit staat. Dezelfde `ref` zorgt dat je ze maar één keer ziet. Flow Studio en het Dashboard zien je deadlines ook.
 
+## Doelen
+
+De app **Doelen** (module `goals`, standaard aan) houdt doelen voor je semester bij zonder dat je iets afvinkt: een gemiddelde of het cijfer van één vak (uit Cijfers, met hoeveel je nog nodig hebt op de rest), studiepunten, focusuren per week (het focuslog van Studie op dit toestel, ook samen studeren en het horloge) en hoe vaak je een gewoonte deed (uit Gewoontes). Een doel loopt standaard tot het einde van het semester (31 januari of 30 juni). De logica staat in `packages/core/src/goals.ts` (`goalProgress`, `goalsSummary`); de doelen syncen als `user_settings`-sleutel `goals` (migratie `20261116120000_goals.sql`) en gaan mee in de back-up.
+
 ## Studieplanner
 
 De app **Studie** heeft een **focustimer** (pomodoro: standaard 25 minuten focus, 5 minuten pauze, na 4 rondes 15 minuten). De timer loopt door als je het venster sluit, toont hoeveel je vandaag en deze week gefocust hebt, en stuurt aan het einde van elke ronde een melding, als je wilt ook op gsm en horloge. **Planning** verdeelt de tijd die je nog nodig hebt voor je open deadlines over je vrije uren (standaard weekdagen 17–21 u en het weekend 10–17 u), buiten je lessen en afspraken en altijd voor de deadline. Met "In Agenda zetten" komen de blokken als afspraken in de Agenda; opnieuw plannen vervangt de vorige blokken. De timer, schattingen en uren blijven op het apparaat.

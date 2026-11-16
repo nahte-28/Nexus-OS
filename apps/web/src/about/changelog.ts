@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Doelen',
+    items: [
+      'Nieuwe app Doelen: zet doelen voor je semester, zoals 14/20 gemiddeld, een cijfer voor een vak, 30 studiepunten, 10 uur focus per week of een gewoonte 80 % van de dagen.',
+      'Je doelen houden zichzelf bij met je cijfers uit Cijfers, je focustijd uit Studie en je gewoontes uit Gewoontes. Je ziet meteen of je op schema zit en wat je nog nodig hebt.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Apps per profiel',
     items: [
       'In Profielen › Apps & widgets kies je nu uit al je apps welke een profiel toont en in welke volgorde, ook Darts, Teams, Vrienden en de andere extra apps.',

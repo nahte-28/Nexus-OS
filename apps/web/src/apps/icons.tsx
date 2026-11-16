@@ -433,3 +433,11 @@ export const AdminIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M9 12h6M12 9v6" />
   </svg>
 )
+
+export const GoalIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </svg>
+)

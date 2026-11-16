@@ -19,6 +19,7 @@ export const APP_GROUP: Record<AppId, AppGroupId> = {
   grades: 'school',
   flashcards: 'school',
   studylab: 'school',
+  goals: 'school',
   klashub: 'school',
   agenda: 'planning',
   reminders: 'planning',
