@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Apps per profiel',
+    items: [
+      'In Profielen › Apps & widgets kies je nu uit al je apps welke een profiel toont en in welke volgorde, ook Darts, Teams, Vrienden en de andere extra apps.',
+      'Zo verberg je bijvoorbeeld Gaming en Darts in School, terwijl ze in je andere profielen blijven staan. Een app die je in Instellingen uitzet, is in elk profiel weg.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Berichten op je gsm en horloge',
     items: [
       'Een nieuw privébericht of teambericht komt nu ook op je gsm en horloge, ook als NEXUS daar dicht is. Zet daarvoor in Apparaten de meldingen op je gsm aan.',
