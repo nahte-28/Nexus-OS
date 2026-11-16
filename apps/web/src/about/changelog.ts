@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Darts online',
+    items: [
+      'Nieuw tabblad Online in Darts: daag een vriend uit voor een match van 501 (of een ander spel). Jullie gooien elk op je eigen toestel en zien de stand live.',
+      'Een afgewerkte online match komt in je Geschiedenis en Statistieken. Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Vandaag op je horloge',
     items: [
       'Bovenaan de horloge-app staat nu Vandaag: je lessen en afspraken van vandaag, je gewoontes en hoe je doelen ervoor staan.',

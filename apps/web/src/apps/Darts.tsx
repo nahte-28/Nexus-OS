@@ -68,9 +68,10 @@ import {
 import { dartsStore, dartsSyncProblem, useDarts } from '../darts/store'
 import { CricketScoreboard, CricketSummary, NewCricket, cricketRunning, saveCricket } from '../darts/Cricket'
 import { useProfiles } from '../profiles/store'
+import { Online } from '../darts/Online'
 import { readStorage, writeStorage } from '../state/storage'
 
-const TABS = ['Spelen', 'Oefenen', 'Geschiedenis', 'Statistieken', 'Instellingen'] as const
+const TABS = ['Spelen', 'Online', 'Oefenen', 'Geschiedenis', 'Statistieken', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
 const TAB_KEY = 'nexus.darts.tab'
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -1143,6 +1144,7 @@ export function Darts() {
       </div>
       {problem && <p role="alert">{problem}</p>}
       {tab === 'Spelen' && <Play />}
+      {tab === 'Online' && <Online />}
       {tab === 'Oefenen' && <Practice />}
       {tab === 'Geschiedenis' && <History />}
       {tab === 'Statistieken' && <Stats />}
