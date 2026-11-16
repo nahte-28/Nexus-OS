@@ -46,3 +46,34 @@ describe('Back-up', () => {
     expect(await screen.findByRole('alert')).toBeTruthy()
   })
 })
+
+describe('Automatische back-up', () => {
+  afterEach(cleanup)
+
+  it('keeps a back-up in Bestanden and only the newest ones', async () => {
+    const { makeAutoBackup } = await import('./auto')
+    const { filesStore } = await import('../files/store')
+    await lifeStore.addDeadline({ title: 'Automatisch bewaard', dueAt: Date.now() + 86_400_000, projectId: null, notes: '', remind: [], target: 'this_device' })
+    const start = new Date(2026, 10, 1, 10, 0).getTime()
+    for (let i = 0; i < 4; i++) expect((await makeAutoBackup({ enabled: true, every: 'weekly', keep: 2, withFiles: false }, start + i * 7 * 86_400_000)).ok).toBe(true)
+    const kept = filesStore.getSnapshot().filter((f) => f.name.startsWith('nexus-auto-backup-'))
+    expect(kept.map((f) => f.name)).toEqual(['nexus-auto-backup-2026-11-22-1000.json', 'nexus-auto-backup-2026-11-15-1000.json'])
+    const parsed = parseBackup(await (await filesStore.blob(kept[0].id)).text())
+    expect(parsed.ok && parsed.value.life.some((i) => 'title' in i && i.title === 'Automatisch bewaard')).toBe(true)
+  })
+
+  it('shows the automatic back-ups and puts one back after asking', async () => {
+    const restore = vi.fn(async () => ({ notes: 0, life: 1, reminders: 0, files: 0, flows: 0, focus: 0 }))
+    render(<BackupSection restore={restore} />)
+    expect(screen.getByRole('checkbox', { name: 'Automatische back-up in Bestanden' })).toHaveProperty('checked', true)
+    const list = await screen.findByRole('list', { name: 'Automatische back-ups' })
+    fireEvent.click(list.querySelectorAll('button')[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Terugzetten' }))
+    await waitFor(() => expect(restore).toHaveBeenCalled())
+    expect(await screen.findByText(/Teruggezet: 1 deadlines/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Automatische back-up in Bestanden' }))
+    const { profilesStore } = await import('../profiles/store')
+    expect(profilesStore.getSnapshot().state.autoBackup.enabled).toBe(false)
+  })
+})

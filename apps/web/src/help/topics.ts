@@ -125,7 +125,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   settings: {
     summary: 'Thema, meldingen, back-up, de rondleiding en welke apps je ziet.',
-    tips: ['Apps aan/uit: zet uit wat je niet gebruikt. De app verdwijnt dan overal, maar je gegevens blijven bewaard.', 'Back-up maakt één bestand met al je gegevens, dat je later terugzet.', 'Rondleiding starten toont de uitleg van het begin opnieuw.'],
+    tips: ['Apps aan/uit: zet uit wat je niet gebruikt. De app verdwijnt dan overal, maar je gegevens blijven bewaard.', 'Back-up maakt één bestand met al je gegevens, dat je later terugzet. De automatische back-up doet dat elke week zelf en bewaart het in Bestanden.', 'Rondleiding starten toont de uitleg van het begin opnieuw.'],
   },
   developer: {
     summary: 'Logboek en technische informatie, alleen zichtbaar in ontwikkelaarsmodus.',
