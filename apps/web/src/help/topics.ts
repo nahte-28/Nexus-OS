@@ -25,6 +25,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Focus start een pomodoro van 25 minuten; je horloge kan er ook een starten.',
       'De planner verdeelt je deadlines over vrije momenten rond je lessen en afspraken.',
+      'Blok: maak een blokschema tot je laatste examen. Kies wanneer je blok begint, hoe lang je per dag studeert en je rustdagen; de dag voor elk examen is herhaling van dat vak.',
       'Groep: maak een studiegroep en deel de uitnodigingscode, dan zien jullie elkaars deadlines, examens en studietijd, en delen jullie groepsdeadlines.',
       'Samen: start een focussessie of doe mee met die van je vrienden en teams. Iedereen ziet dezelfde timer en wie meedoet; elk blok dat je afmaakt, komt in je focuslog.',
       'Bij een groepsdeadline zet je met 💬 een opmerking; typ @ om iemand van de groep te vermelden.',
