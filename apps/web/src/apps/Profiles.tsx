@@ -1,6 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   ACCENT_IDS,
+  ALWAYS_VISIBLE_APPS,
+  appOn,
+  chooseProfileApps,
+  featureOn,
+  profileAppsWithModules,
   AGENDA_BRIDGE_CHOICES,
   AGENDA_LEAD_CHOICES,
   agendaPhase,
@@ -13,7 +18,6 @@ import {
   profileOutsideSchedule,
   THEMES,
   type ActiveReason,
-  type AppId,
   type Lesson,
   type Profile,
   type ProfileId,
@@ -22,6 +26,8 @@ import {
   WIDGET_TITLES,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
+import { APPS } from './registry'
+import { useAppSwitches, useFeatureSwitches } from '../features/store'
 import { fetchProfilesServerView, type ProfilesServerView } from '../flows/sync'
 import { removeExtra, syncCalendar, syncExtra, syncGoogle } from '../profiles/calendar'
 import { chooseFor, profilesStore, useProfileHistory, useProfiles, type ChoiceDuration } from '../profiles/store'
@@ -34,20 +40,6 @@ const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
 
 const DAYS = ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag']
-
-/** Apps a profile can show or hide; Profielen and Instellingen always stay. */
-const APP_CHOICES: Array<{ id: AppId; title: string }> = [
-  { id: 'klashub', title: 'KlasHub' },
-  { id: 'notes', title: 'Notities' },
-  { id: 'finance', title: 'Financiën' },
-  { id: 'notifications', title: 'Meldingen' },
-  { id: 'assistant', title: 'NEXUS AI' },
-  { id: 'reminders', title: 'Herinneringen' },
-  { id: 'devices', title: 'Apparaten' },
-  { id: 'account', title: 'Account' },
-  { id: 'developer', title: 'Ontwikkelaar' },
-  { id: 'about', title: 'Over NEXUS' },
-]
 
 const WIDGET_CHOICES: Array<{ id: WidgetId; title: string }> = WIDGET_IDS.map((id) => ({ id, title: WIDGET_TITLES[id] }))
 
@@ -585,11 +577,17 @@ function AppsAndWidgets({ id, onPick }: EditorProps) {
   const { state } = useProfiles()
   const p = state.profiles[id]
   const set = setProfile(id)
+  const features = useFeatureSwitches()
+  const switches = useAppSwitches()
+  // Every app that is on (Instellingen › Apps aan/uit), modules included; not the ones that always show.
+  const usable = APPS.filter((a) => !ALWAYS_VISIBLE_APPS.includes(a.id) && !a.admin && !a.linux && !a.beta && (a.feature ? featureOn(features, a.feature) : appOn(switches, a.id)))
+  const choices = usable.map((a) => ({ id: a.id, title: a.title }))
+  const modules = usable.filter((a) => a.feature).map((a) => a.id)
   return (
     <div className="space-y-4">
       <ProfilePicker id={id} onPick={onPick} />
-      <OrderedChoices label="Apps" choices={APP_CHOICES} chosen={p.apps} onChange={(apps) => set({ apps })} />
-      <p className="text-nx-muted">Profielen en Instellingen blijven altijd zichtbaar, onderaan de lijst.</p>
+      <OrderedChoices label="Apps" choices={choices} chosen={profileAppsWithModules(p, modules)} onChange={(next) => set(chooseProfileApps(p, next, modules))} />
+      <p className="text-nx-muted">Kies welke apps dit profiel toont en in welke volgorde. Een app die in Instellingen › Apps aan/uit uitstaat, staat hier niet. Profielen, Instellingen en Help blijven altijd zichtbaar, onderaan de lijst.</p>
       <OrderedChoices label="Dashboard" choices={WIDGET_CHOICES} chosen={p.widgets} onChange={(widgets) => set({ widgets })} />
     </div>
   )

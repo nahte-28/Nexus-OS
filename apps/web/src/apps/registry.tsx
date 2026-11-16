@@ -188,7 +188,9 @@ export function useVisibleApps(): AppDefinition[] {
   // Flow Studio sits with the apps every profile shows, right before Profielen.
   if (flowStudio && !ids.includes('flows')) ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, 'flows')
   // Modules that are switched on, likewise right before Profielen.
-  const modules = APPS.filter((a) => a.feature && featureOn(switches, a.feature) && !ids.includes(a.id)).map((a) => a.id)
+  // A profile can hide a module (Profielen › Apps & widgets).
+  const hidden = active.hidden ?? []
+  const modules = APPS.filter((a) => a.feature && featureOn(switches, a.feature) && !ids.includes(a.id) && !hidden.includes(a.id)).map((a) => a.id)
   ids.splice(Math.max(ids.indexOf('profiles'), 0), 0, ...modules)
   // On Linux, the computer's own apps come first.
   if (isLinuxApp && !ids.includes('linuxapps')) ids.unshift('linuxapps')

@@ -21,6 +21,8 @@ import {
   nextLesson,
   parseProfilesState,
   profileApps,
+  profileAppsWithModules,
+  chooseProfileApps,
   type ProfilesState,
 } from './profiles'
 
@@ -112,6 +114,28 @@ describe('sync and storage', () => {
   it('always shows Profiles, Settings and Help', () => {
     const apps = profileApps({ ...state().profiles.gaming, apps: [] })
     expect(apps).toEqual(['profiles', 'settings', 'help'])
+  })
+})
+
+describe('apps per profiel', () => {
+  it('shows modules in every profile until one hides them', () => {
+    const gaming = { ...state().profiles.gaming, apps: ['notes', 'assistant'] as const }
+    expect(profileAppsWithModules({ ...gaming, apps: [...gaming.apps] }, ['darts', 'teams'])).toEqual(['notes', 'assistant', 'darts', 'teams'])
+    expect(profileAppsWithModules({ ...gaming, apps: ['darts', 'notes'], hidden: ['teams'] }, ['darts', 'teams'])).toEqual(['darts', 'notes'])
+  })
+
+  it('hides a module you untick here only, and keeps hidden modules that are off now', () => {
+    const school = { ...state().profiles.school, hidden: ['gaming' as const] }
+    const next = chooseProfileApps(school, ['agenda', 'teams', 'settings'], ['darts', 'teams'])
+    expect(next).toEqual({ apps: ['agenda', 'teams'], hidden: ['gaming', 'darts'] })
+    expect(chooseProfileApps({ ...school, hidden: ['darts'] }, ['agenda', 'darts'], ['darts']).hidden).toEqual([])
+  })
+
+  it('keeps the hidden modules when the profiles come back from sync', () => {
+    const s = state()
+    s.profiles.gaming = { ...s.profiles.gaming, hidden: ['darts', 'darts', 7 as never] }
+    expect(parseProfilesState(JSON.parse(JSON.stringify(s))).profiles.gaming.hidden).toEqual(['darts'])
+    expect(parseProfilesState(JSON.parse(JSON.stringify(defaultProfilesState()))).profiles.school.hidden).toEqual([])
   })
 })
 

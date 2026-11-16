@@ -24,6 +24,11 @@ export interface Profile {
   theme: ThemeId
   /** Apps shown in the sidebar, menus and app grid, in this order. Settings and Profiles always show. */
   apps: AppId[]
+  /**
+   * Apps per profiel: modules (apps with a switch under Extra functies) this profile hides. A module
+   * that is on shows in every profile unless it is listed here.
+   */
+  hidden?: AppId[]
   widgets: WidgetId[]
   /** Workspace Studio 2.0: width and height of each dashboard widget; missing means 1 by 1. */
   layout?: WidgetLayout
@@ -688,6 +693,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         allowApps: Array.isArray(merged.allowApps) ? merged.allowApps.filter((a) => typeof a === 'string').slice(0, 50) : [],
         accent: ACCENT_IDS.includes(merged.accent as AccentId) ? merged.accent : null,
         layout: parseLayout(merged.layout),
+        hidden: Array.isArray(merged.hidden) ? [...new Set(merged.hidden.filter((a): a is AppId => typeof a === 'string'))].slice(0, 100) : [],
       }
     }
   }
@@ -881,6 +887,26 @@ export function moveItem<T>(list: T[], item: T, by: -1 | 1): T[] {
 /** The apps a profile shows, always including the ones you need to switch back. */
 export function profileApps(profile: Profile): AppId[] {
   return [...profile.apps.filter((a) => !ALWAYS_VISIBLE_APPS.includes(a)), ...ALWAYS_VISIBLE_APPS]
+}
+
+/**
+ * Apps per profiel: the apps this profile shows, in order, with the [modules] that are on and not
+ * hidden here after its own apps (a module the profile put in its list keeps that place).
+ */
+export function profileAppsWithModules(profile: Profile, modules: AppId[]): AppId[] {
+  const hidden = profile.hidden ?? []
+  const own = profile.apps.filter((a) => !ALWAYS_VISIBLE_APPS.includes(a))
+  return [...own, ...modules.filter((m) => !own.includes(m) && !hidden.includes(m) && !ALWAYS_VISIBLE_APPS.includes(m))]
+}
+
+/**
+ * After you change the list in Profielen: [next] becomes the order, every module that is on but
+ * not in it is hidden here, and modules that are off now stay hidden as they were.
+ */
+export function chooseProfileApps(profile: Profile, next: AppId[], modules: AppId[]): Pick<Profile, 'apps' | 'hidden'> {
+  const apps = [...new Set(next)].filter((a) => !ALWAYS_VISIBLE_APPS.includes(a))
+  const hidden = [...new Set([...(profile.hidden ?? []).filter((h) => !modules.includes(h) && !apps.includes(h)), ...modules.filter((m) => !apps.includes(m))])]
+  return { apps, hidden }
 }
 
 // About you ------------------------------------------------------------------------------------------
