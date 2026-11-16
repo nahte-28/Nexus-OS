@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Sneller opstarten',
+    items: [
+      'NEXUS start sneller, vooral op je gsm: al je apps halen hun gegevens nu samen op in één keer in plaats van elk apart, en dat ook maar één keer bij het opstarten.',
+      'Het deel van NEXUS dat bij het openen geladen wordt, is kleiner.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Darts online',
     items: [
       'Nieuw tabblad Online in Darts: daag een vriend uit voor een match van 501 (of een ander spel). Jullie gooien elk op je eigen toestel en zien de stand live.',
