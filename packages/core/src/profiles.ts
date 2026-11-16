@@ -7,6 +7,7 @@ import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, SCHOOL_TI
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
 import { parseAppSwitches, type AppSwitches } from './appSwitches'
+import { DEFAULT_AUTO_BACKUP, parseAutoBackup, type AutoBackupSettings } from './autoBackup'
 import { parseSwitches, type FeatureSwitches } from './features'
 import { emptyBrowser, mergeBookmarks, parseBrowser, type BrowserSettings } from './browser'
 
@@ -181,6 +182,8 @@ export interface ProfilesState {
   about: AboutMe
   /** Browser: your bookmarks and search engine, the same on every device. */
   browser: BrowserSettings
+  /** Instellingen › Back-up: the automatic back-up in Bestanden, the same on every device. */
+  autoBackup: AutoBackupSettings
   /** Version of the stored shape, so older copies can be upgraded. */
   schema: number
   /** Bumped on every change, so another device's older copy never wins. */
@@ -291,6 +294,7 @@ export function defaultProfilesState(): ProfilesState {
     classAgenda: {},
     about: { ...EMPTY_ABOUT },
     browser: emptyBrowser(),
+    autoBackup: { ...DEFAULT_AUTO_BACKUP },
     schema: PROFILES_SCHEMA,
     revision: 0,
   }
@@ -847,6 +851,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     classAgenda: parseChoices(r.classAgenda),
     about: parseAbout(r.about),
     browser: parseBrowser(r.browser),
+    autoBackup: parseAutoBackup(r.autoBackup),
     schema: PROFILES_SCHEMA,
     revision: typeof r.revision === 'number' ? r.revision : 0,
   }

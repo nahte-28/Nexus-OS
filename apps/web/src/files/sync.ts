@@ -83,6 +83,9 @@ export async function syncFiles(store: FilesStore, remote: FilesRemote): Promise
   return { uploaded: uploaded.length, removed: deleted.length, received: added.length }
 }
 
+/** When this device last finished a round with your account (0: not yet since NEXUS opened). */
+export const filesSynced = { at: 0 }
+
 /** Shown in Bestanden when the account's storage is not set up yet, or another problem. */
 export const filesSyncProblem = {
   value: null as string | null,
@@ -123,6 +126,7 @@ export function startFilesSync(client: SupabaseClient | null, store: FilesStore 
     running = (async () => {
       try {
         const report = await syncFiles(store, current)
+        filesSynced.at = Date.now()
         filesSyncProblem.set(null)
         reportSync('files', 'Bestanden', 'ok', `${report.uploaded} geüpload, ${report.removed} verwijderd, ${report.received} binnengehaald`, Date.now(), !report.uploaded && !report.removed && !report.received)
         if (report.uploaded || report.removed || report.received) {

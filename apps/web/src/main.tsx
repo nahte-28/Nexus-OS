@@ -11,6 +11,7 @@ import { ErrorBoundary } from './devtools/ErrorBoundary'
 import { startFlowRunner } from './flows/runner'
 import { startFlowsSync } from './flows/sync'
 import { startFilesSync } from './files/sync'
+import { startAutoBackup } from './backup/auto'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
@@ -175,6 +176,8 @@ startHabitAlerts(defaultEngine)
 startWeekReview(defaultEngine)
 // Bestanden: your own files, also in your private storage when signed in.
 startFilesSync(supabase)
+// Automatische back-up: now and then everything in one file in Bestanden, so it is in your account too.
+startAutoBackup(supabase)
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)
 

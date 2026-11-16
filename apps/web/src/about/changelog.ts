@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Automatische back-up',
+    items: [
+      'NEXUS maakt nu elke week zelf een back-up van al je gegevens en bewaart die in Bestanden. Met een account staat ze zo ook in je account, en ben je niets kwijt als een toestel stuk gaat.',
+      'In Instellingen › Back-up kies je elke dag of elke week, hoeveel back-ups er blijven staan en of je bestanden mee moeten. Daar zet je een automatische back-up ook met één knop terug.',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Sneller opstarten',
     items: [
       'NEXUS start sneller, vooral op je gsm: al je apps halen hun gegevens nu samen op in één keer in plaats van elk apart, en dat ook maar één keer bij het opstarten.',
