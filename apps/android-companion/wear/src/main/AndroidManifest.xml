@@ -66,6 +66,7 @@
         <receiver android:name="app.nexusos.companion.UpdateReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.RefreshReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.FocusReceiver" android:exported="false" />
+        <receiver android:name="app.nexusos.watch.TogetherReceiver" android:exported="false" />
         <receiver android:name="app.nexusos.watch.WatchBootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

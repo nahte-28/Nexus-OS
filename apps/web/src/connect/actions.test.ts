@@ -5,7 +5,8 @@ import { dartsStore } from '../darts/store'
 import { emptyDarts } from '@nexus/core'
 import { applyAction } from './actions'
 import { dartsWatchStore, setDartsWatchApi } from '../darts/watch'
-import type { OnlineGame } from '@nexus/core'
+import type { OnlineGame, TogetherSession } from '@nexus/core'
+import { setTogetherWatchApi, togetherWatchStore } from '../study/watch'
 
 describe('actions from the watch', () => {
   it('ticks a habit off for that day, once', async () => {
@@ -64,5 +65,27 @@ describe('actions from the watch', () => {
     expect(game.visits).toEqual([{ side: 0, score: 60, darts: 3 }])
     expect(dartsWatchStore.getSnapshot()).toMatchObject([{ id: 'g1', me: 41, them: 101, myTurn: false, seq: 1 }])
     setDartsWatchApi(null)
+  })
+  it('joins and leaves a Samen studeren session from the watch', async () => {
+    const session: TogetherSession = { id: 's1', title: 'Wiskunde', focus: 25, break: 5, startedAt: 1, host: 'Remo', mine: false, joined: false, members: [{ name: 'Remo', me: false }] }
+    const api = {
+      list: vi.fn(async () => [session]),
+      join: vi.fn(async () => {
+        session.joined = true
+        session.members = [...session.members, { name: 'Ethan', me: true }]
+      }),
+      leave: vi.fn(async () => {
+        session.joined = false
+        session.members = session.members.filter((m) => !m.me)
+      }),
+    }
+    setTogetherWatchApi(api)
+    await applyAction({ v: 1, kind: 'action', action: 'together', id: 's1', op: 'join', at: 5 })
+    expect(api.join).toHaveBeenCalledWith('s1')
+    expect(togetherWatchStore.getSnapshot()).toMatchObject([{ id: 's1', joined: true, members: ['Remo'] }])
+    await applyAction({ v: 1, kind: 'action', action: 'together', id: 's1', op: 'leave', at: 6 })
+    expect(api.leave).toHaveBeenCalledWith('s1')
+    expect(togetherWatchStore.getSnapshot()).toMatchObject([{ id: 's1', joined: false }])
+    setTogetherWatchApi(null)
   })
 })

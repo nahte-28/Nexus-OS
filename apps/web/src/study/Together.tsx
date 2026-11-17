@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { TOGETHER_BREAK, TOGETHER_FOCUS, TOGETHER_POLL_MS, TOGETHER_TITLE_MAX, togetherClock, togetherPhase, type TogetherSession } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { logTogether, markJoined, StudyTogether } from './together'
+import { showTogetherOnWatch } from './watch'
 
 const defaultApi = supabase ? new StudyTogether(supabase) : null
 const field = 'rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -36,7 +37,9 @@ export function Together({ api = defaultApi }: { api?: StudyTogether | null }) {
       const ok = await api.signedIn()
       setUser(ok)
       if (!ok) return
-      setSessions(await api.list())
+      const list = await api.list()
+      setSessions(list)
+      showTogetherOnWatch(list)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

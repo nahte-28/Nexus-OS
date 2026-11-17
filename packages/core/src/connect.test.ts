@@ -74,6 +74,11 @@ describe('connect payloads', () => {
     expect(parseAction({ ...visit, darts: 9 })).toEqual(visit)
     expect(parseAction({ ...visit, score: 181 })).toBeNull()
     expect(parseAction({ ...visit, seq: -1 })).toBeNull()
+    const join = { v: 1, kind: 'action', action: 'together', id: 's1', op: 'join', at: 8 }
+    expect(parseAction(join)).toEqual(join)
+    expect(parseAction({ ...join, op: 'leave' })).toEqual({ ...join, op: 'leave' })
+    expect(parseAction({ ...join, op: 'start' })).toBeNull()
+    expect(parseAction({ ...join, id: '' })).toBeNull()
     expect(actionTarget('deadline:d1@1767225600000-1440')).toEqual({ kind: 'deadline', id: 'd1' })
     expect(actionTarget('habit:h1@2026-11-03')).toEqual({ kind: 'habit', id: 'h1', date: '2026-11-03' })
     expect(actionTarget('reminder:r1@5')).toBeNull()

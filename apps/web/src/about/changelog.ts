@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-17',
+    title: 'Samen studeren op je horloge',
+    items: [
+      'De open Samen studeren-sessies van je vrienden en teams staan nu op je horloge, met de timer, wie meedoet en een knop om mee te doen of te verlaten.',
+      'Zit je in een sessie, dan trilt je horloge bij elke wissel tussen focus en pauze, op hetzelfde moment als bij de anderen.',
+      'Hiervoor is de nieuwe versie van de horloge-app nodig. Er is geen SQL-stap voor nodig.',
+    ],
+  },
+  {
+    date: '2026-11-17',
     title: 'Darts-ranglijst met vrienden',
     items: [
       'In Darts › Online staat nu een ranglijst van je afgewerkte online matchen: jij en elke vriend tegen wie je speelde, met gewonnen matchen, gemiddelde en hoogste finish.',

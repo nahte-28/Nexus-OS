@@ -6,6 +6,7 @@ import { focusStore } from '../study/timer'
 import { applyWatchGaming } from '../gaming/timer'
 import { dartsStore } from '../darts/store'
 import { applyWatchOnlineVisit } from '../darts/watch'
+import { applyWatchTogether } from '../study/watch'
 
 /**
  * Carries out what was done on another device: a deadline or habit ticked off on the watch (marking
@@ -35,6 +36,7 @@ export async function applyAction(action: ActionPayload): Promise<void> {
     return
   }
   if (action.action === 'darts_online') return applyWatchOnlineVisit(action)
+  if (action.action === 'together') return applyWatchTogether(action)
   if (action.action === 'focus') {
     focusStore.addLog({ at: action.at, minutes: action.minutes, task: action.task || 'Focus op het horloge' })
     logEvent('connect', `Focusronde van ${action.minutes} min op het horloge bijgeteld`)

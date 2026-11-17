@@ -15,6 +15,7 @@ import { startAutoBackup } from './backup/auto'
 import { startAppointmentInvites } from './agenda/invites'
 import { startNoteShares } from './notes/shares'
 import { startDartsForWatch } from './darts/watch'
+import { startTogetherForWatch } from './study/watch'
 import { startFreeBusy } from './friends/freeBusy'
 import { startCardDuels } from './flashcards/duel'
 import { startFocusTicker } from './study/timer'
@@ -164,6 +165,8 @@ startCardDuels(supabase, () => isFeatureOn('friends'))
 startNoteShares(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Darts online op je horloge: your matches against friends go to the watch with the plan.
 startDartsForWatch(supabase, () => isFeatureOn('darts'))
+// Samen studeren on the watch: the open sessions of friends and teammates go with the plan.
+startTogetherForWatch(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Wie is er online: friends and teammates see that NEXUS is open here.
 startPresence(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Beheer: shows in the sidebar for an admin of this NEXUS.
