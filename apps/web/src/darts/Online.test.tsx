@@ -55,4 +55,14 @@ describe('Darts online', () => {
     await waitFor(() => expect(dartsStore.getSnapshot().matches.find((m) => m.id === 'online-g1')?.winner).toBe(1))
     expect(dartsStore.getSnapshot().matches.find((m) => m.id === 'online-g1')?.players[1]).toBe(dartsStore.getSnapshot().settings.me)
   })
+  it('shows the ranking after a finished match', async () => {
+    const { api, friends } = fake([game({ id: 'g2', status: 'done', visits: [{ side: 0, score: 60, darts: 3 }, { side: 1, score: 101, darts: 3 }] })])
+    render(<Online apis={{ online: api as unknown as DartsOnline, friends }} />)
+    const ranking = await screen.findByRole('region', { name: 'Ranglijst' })
+    const me = dartsStore.getSnapshot().settings.me
+    await waitFor(() => expect(within(ranking).getByText(`${me} (jij)`)).toBeTruthy())
+    expect(within(ranking).getByText('Remo')).toBeTruthy()
+    // You won this one and the one from the test before.
+    expect(within(ranking).getByText('Onderling 2–0')).toBeTruthy()
+  })
 })
