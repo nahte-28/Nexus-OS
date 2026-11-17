@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-17',
+    title: 'Een naam bij het aanmelden',
+    items: [
+      'Heb je nog geen naam gekozen, dan vraagt NEXUS na het aanmelden hoe je wilt heten. Je vrienden, je teams en de beheerder zien die naam. Met Later vraagt dit toestel het niet meer.',
+      'In Beheer staat wie nog geen naam koos met zijn e-mailadres in plaats van "Zonder naam". Dat ziet alleen de beheerder.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-17',
     title: 'Samen studeren op je horloge',
     items: [
       'De open Samen studeren-sessies van je vrienden en teams staan nu op je horloge, met de timer, wie meedoet en een knop om mee te doen of te verlaten.',
