@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-16',
+    title: 'Samen een vrij moment zoeken',
+    items: [
+      'Plan je een afspraak met vrienden, tik dan bij Vrienden uitnodigen op Zoek een vrij moment. NEXUS toont momenten in de komende week waarop jullie allemaal vrij zijn, en met één tik verzet je je afspraak daarheen.',
+      'Je vrienden zien alleen wanneer je bezet bent, nooit wat er in je agenda staat. Liever niet? Zet het vinkje Vrienden zien wanneer ik bezet ben uit.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-16',
     title: 'Darts online op je horloge',
     items: [
       'Speel je een online match tegen een vriend, dan staat ze ook op je horloge onder Darts online: de stand, wie gooit en een uitgooi-tip.',

@@ -4,6 +4,7 @@ import { inviteCopyId, type AppointmentInvite } from '@nexus/core'
 import { lifeStore } from '../life/store'
 import { setInvitesApi, setInvitesState, syncInvites, type AppointmentInvites } from './invites'
 import { InviteFriends, InviteInbox } from './Invites'
+import { setFreeBusyApi, type FreeBusy } from '../friends/freeBusy'
 
 const H = 3_600_000
 const soon = Date.now() + 24 * H
@@ -30,6 +31,7 @@ describe('Afspraak met vrienden', () => {
     cleanup()
     setInvitesApi(null)
     setInvitesState({ invites: null, copies: {}, error: null })
+    setFreeBusyApi(null)
   })
 
   it('puts an accepted invite in your Agenda, follows the host and removes it when cancelled', async () => {
@@ -96,5 +98,40 @@ describe('Afspraak met vrienden', () => {
     await waitFor(() => expect(api.invite).toHaveBeenCalledWith('u3', expect.objectContaining({ id: mine, title: 'Filmavond' })))
     fireEvent.click(screen.getByRole('button', { name: 'Uitnodiging van Remo intrekken' }))
     await waitFor(() => expect(api.cancel).toHaveBeenCalledWith(mine, 'u2'))
+  })
+
+  it('finds a moment when your friend is free too and moves the appointment there', async () => {
+    const day = new Date(Date.now() + 2 * 24 * H)
+    day.setHours(0, 0, 0, 0)
+    const at = (h: number) => day.getTime() + h * H
+    const mine = await lifeStore.addAppointment({ title: 'Padel', startAt: at(9), endAt: at(10), location: '', notes: '', remind: [], target: 'phone' })
+    const appointment = lifeStore.getSnapshot().find((i) => i.id === mine)!
+    if (appointment.kind !== 'appointment') throw new Error('geen afspraak')
+    const api = fakeApi([])
+    setInvitesApi({ api, refresh: async () => {} })
+    setInvitesState({ invites: [] })
+    // Remo is busy on every day of the coming week except 14:00 on that day.
+    const blocks: [number, number][] = []
+    for (let d = -3; d < 9; d++) blocks.push(d === 0 ? [at(-24 + 0), at(14)] : [day.getTime() + d * 24 * H, day.getTime() + (d + 1) * 24 * H])
+    blocks.push([at(15), at(24)])
+    const of = vi.fn(async () => [{ user: 'u2', name: 'Remo', shares: true, blocks, until: Infinity, updatedAt: 1 }])
+    const setShares = vi.fn(async () => {})
+    setFreeBusyApi({ of, setShares } as unknown as FreeBusy, true)
+    const friends = { list: vi.fn(async () => [{ userId: 'u2', displayName: 'Remo', kind: 'friend' as const, since: 0 }]) }
+    render(<InviteFriends appointment={appointment} friendsApi={friends} />)
+    fireEvent.click(screen.getByText('Vrienden uitnodigen'))
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Remo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zoek een vrij moment' }))
+    await waitFor(() => expect(of).toHaveBeenCalledWith(['u2']))
+    const moments = await screen.findByLabelText('Vrije momenten')
+    const choices = moments.querySelectorAll('button')
+    expect(choices).toHaveLength(1)
+    fireEvent.click(choices[0])
+    await waitFor(() => {
+      const moved = lifeStore.getSnapshot().find((i) => i.id === mine)
+      expect(moved && moved.kind === 'appointment' && [moved.startAt, moved.endAt]).toEqual([at(14), at(15)])
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Vrienden zien wanneer ik bezet ben (niet wat)' }))
+    await waitFor(() => expect(setShares).toHaveBeenCalledWith(false))
   })
 })
