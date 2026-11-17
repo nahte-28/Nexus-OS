@@ -4,6 +4,7 @@ import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { WhatsNew } from '../shell/WhatsNew'
+import { AskName } from '../shell/AskName'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
@@ -63,6 +64,7 @@ export function Desktop() {
       <QuickCapture />
       <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
       <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
+      <AskName />
     </div>
   )
 }
