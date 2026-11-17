@@ -21,6 +21,7 @@ import {
 import { Friends } from '../friends/friends'
 import { supabase } from '../sync/supabase'
 import { DartsOnline, saveOnlineToHistory } from './online'
+import { Ranking } from './Ranking'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -177,6 +178,7 @@ export function Online({ apis = defaults }: { apis?: OnlineApis }) {
               </ul>
             </section>
           )}
+          <Ranking />
         </>
       )}
     </div>

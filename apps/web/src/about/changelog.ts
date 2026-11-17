@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-17',
+    title: 'Darts-ranglijst met vrienden',
+    items: [
+      'In Darts › Online staat nu een ranglijst van je afgewerkte online matchen: jij en elke vriend tegen wie je speelde, met gewonnen matchen, gemiddelde en hoogste finish.',
+      'Per vriend zie je ook de onderlinge stand. Van een vriend tellen alleen de matchen tegen jou.',
+      'Een afgewerkte online match komt nu ook in je Geschiedenis als je Darts › Online niet opende. Er is geen SQL-stap voor nodig.',
+    ],
+  },
+  {
+    date: '2026-11-17',
     title: 'Leerkaarten-duel',
     items: [
       'Daag een vriend uit met een van je stapels: open de stapel in Leerkaarten en tik op Daag een vriend uit. NEXUS maakt van hoogstens 10 kaarten meerkeuzevragen.',

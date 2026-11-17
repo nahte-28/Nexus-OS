@@ -1,7 +1,7 @@
 import { dartsForWatch, onlineWon, type ActionPayload, type PlanDartsGame } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logEvent } from '../devtools/log'
-import { DartsOnline } from './online'
+import { DartsOnline, saveOnlineToHistory } from './online'
 
 /**
  * Darts online on the watch: this device keeps your matches that are being played, and the safety
@@ -34,6 +34,8 @@ export const dartsWatchStore = {
 export async function syncDartsForWatch(api: Pick<DartsOnline, 'list' | 'end'>): Promise<void> {
   const list = await api.list()
   for (const g of list) if (g.status === 'playing' && onlineWon(g)) await api.end(g.id, 'done').catch(() => {})
+  // Finished matches go to the history (and the ranking), also without opening Darts › Online.
+  for (const g of list) saveOnlineToHistory(g)
   set(dartsForWatch(list))
 }
 
