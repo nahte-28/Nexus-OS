@@ -25,7 +25,8 @@ class WatchApp : Application() {
         Safety.grace = 0
         Safety.note = null
         Connect.kind = "horloge"
-        Safety.onChange = { Glance.refresh(it) }
+        // A new plan can open or close a Samen studeren session: its alarm follows.
+        Safety.onChange = { Glance.refresh(it); TogetherAlarm.reschedule(it) }
         Refresh.schedule(this)
     }
 }
@@ -70,6 +71,7 @@ class WatchBootReceiver : BroadcastReceiver() {
             Safety.reschedule(context.applicationContext)
             Refresh.schedule(context.applicationContext)
             Focus.reschedule(context.applicationContext)
+            TogetherAlarm.reschedule(context.applicationContext)
         }
     }
 }

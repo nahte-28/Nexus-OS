@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { togetherClock, finishedRounds, parseTogether, togetherPhase } from './studyTogether'
+import { togetherClock, finishedRounds, parseTogether, togetherForWatch, togetherPhase, type TogetherSession } from './studyTogether'
 
 const s = { focus: 25, break: 5, startedAt: 0 }
 const min = 60_000
@@ -24,5 +24,12 @@ describe('Samen studeren', () => {
     expect(parseTogether({})).toEqual([])
     expect(togetherClock(65_000)).toBe('1:05')
     expect(togetherClock(-1)).toBe('0:00')
+  })
+  it('puts the session you are in first for the watch, without yourself in the members', () => {
+    const base: TogetherSession = { id: 'a', title: 'Wiskunde', focus: 25, break: 5, startedAt: 10, host: 'Remo', mine: false, joined: false, members: [{ name: 'Remo', me: false }] }
+    const list = togetherForWatch([base, { ...base, id: 'b', startedAt: 5, joined: true, members: [{ name: 'Remo', me: false }, { name: 'Ethan', me: true }] }, { ...base, id: 'c', startedAt: 20 }])
+    expect(list.map((x) => x.id)).toEqual(['b', 'c', 'a'])
+    expect(list[0]).toEqual({ id: 'b', title: 'Wiskunde', host: 'Remo', focus: 25, break: 5, startedAt: 5, joined: true, members: ['Remo'] })
+    expect(togetherForWatch(Array.from({ length: 8 }, (_, i) => ({ ...base, id: `s${i}` })))).toHaveLength(5)
   })
 })

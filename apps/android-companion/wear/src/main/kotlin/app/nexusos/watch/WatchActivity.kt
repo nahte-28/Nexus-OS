@@ -30,6 +30,8 @@ import app.nexusos.companion.WatchToday
 import app.nexusos.companion.WatchDartsOnline
 import app.nexusos.companion.PlanDartsGame
 import app.nexusos.companion.PlanGaming
+import app.nexusos.companion.PlanTogether
+import app.nexusos.companion.WatchTogether
 import app.nexusos.companion.Inbox
 import app.nexusos.companion.Notifier
 import app.nexusos.companion.Protocol
@@ -181,6 +183,8 @@ class WatchActivity : Activity() {
         space(12)
         focus(now)
 
+        together(now)
+
         space(12)
         gaming(now)
 
@@ -312,6 +316,50 @@ class WatchActivity : Activity() {
                 render()
             }
         }
+    }
+
+    /**
+     * Samen studeren: the open sessions of your friends and teammates, as NEXUS sent them. Join one
+     * here and the watch buzzes at each switch between focus and break, with everyone in it.
+     */
+    private var togetherBusy: String? = null
+
+    private fun together(now: Long) {
+        val sessions = WatchTogether.load(this, now)
+        if (sessions.isEmpty()) return
+        space(12)
+        heading("Samen studeren", 15f)
+        for (s in sessions) {
+            space(6)
+            text(s.title, bold = true)
+            text(if (s.members.isNotEmpty()) "Met ${s.members.joinToString(", ")}" else if (s.joined) "Alleen jij" else "Van ${s.host}", muted = true, size = 12f)
+            val phase = WatchTogether.phase(s, now)
+            text("${if (phase.focus) "Focus" else "Pauze"} tot ${WatchFormat.at(phase.endsAt, now)} · blok ${phase.round}", size = 13f)
+            val pending = WatchTogether.pending(this, s)
+            when {
+                togetherBusy == s.id -> text("Bezig…", muted = true, size = 12f)
+                pending != null -> text(if (pending) "Meedoen verstuurd. Wacht tot NEXUS het bijwerkt." else "Verlaten verstuurd. Wacht tot NEXUS het bijwerkt.", muted = true, size = 12f)
+                s.joined -> button("Verlaten") { sendTogether(s, join = false) }
+                else -> button("Meedoen", primary = true) { sendTogether(s, join = true) }
+            }
+        }
+    }
+
+    private fun sendTogether(s: PlanTogether, join: Boolean) {
+        if (togetherBusy != null) return
+        togetherBusy = s.id
+        status = null
+        Connect.sendToNexus(this, Protocol.togetherPayload(s.id, join, System.currentTimeMillis())) { error ->
+            togetherBusy = null
+            if (error == null) {
+                WatchTogether.sent(this, s, join)
+                status = if (join) "Verstuurd. Zodra NEXUS op je pc of gsm het bijwerkt, trilt het horloge bij elke wissel." else "Verstuurd. NEXUS haalt je uit de sessie zodra het op je pc of gsm openstaat."
+            } else {
+                status = error
+            }
+            render()
+        }
+        render()
     }
 
     /**

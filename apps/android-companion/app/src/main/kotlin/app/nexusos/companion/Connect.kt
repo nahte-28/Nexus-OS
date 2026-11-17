@@ -144,6 +144,7 @@ object Connect {
                     Protocol.parsePlanWeather(plaintext)?.let { WatchWeather.save(app, it) }
                     WatchToday.save(app, plaintext)
                     WatchDartsOnline.save(app, plaintext)
+                    WatchTogether.save(app, plaintext)
                     Protocol.parsePlanGaming(plaintext)?.let { GamingTimer.fromPlan(app, it) }
                     Safety.replacePlan(app, message.senderDeviceId, plan)
                     continue

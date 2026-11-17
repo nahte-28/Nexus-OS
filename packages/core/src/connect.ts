@@ -48,6 +48,25 @@ export interface PlanPayload {
   today?: PlanToday | null
   /** Darts online on the watch: your matches that are being played; absent when there are none. */
   darts?: PlanDartsGame[]
+  /** Samen studeren on the watch: open sessions of friends and teammates; absent when there are none. */
+  together?: PlanTogether[]
+}
+
+/**
+ * A Samen studeren session, for the watch (togetherForWatch in studyTogether.ts). The watch counts
+ * the blocks itself from [startedAt], like every NEXUS does.
+ */
+export interface PlanTogether {
+  id: string
+  title: string
+  host: string
+  /** Minutes of a focus block and of a break. */
+  focus: number
+  break: number
+  startedAt: number
+  joined: boolean
+  /** The others who are in it now. */
+  members: string[]
 }
 
 /** An online darts match against a friend, for the watch (dartsForWatch in dartsOnline.ts). */
@@ -94,7 +113,8 @@ export interface PlanGaming {
  * "darts_practice": a practice round played on the watch (Around the Clock, Doubles rond, Bob's 27
  * or Scoring), for Darts › Oefenen; NEXUS replays it with its own rules. "darts_online": your visit in
  * an online match against a friend, entered on the watch; [seq] is the number of visits the watch saw,
- * so a visit sent twice or after the other one threw counts once at most.
+ * so a visit sent twice or after the other one threw counts once at most. "together": you joined or
+ * left a Samen studeren session on the watch.
  */
 export type ActionPayload =
   | { v: 1; kind: 'action'; action: 'done'; ref: string; at: number }
@@ -103,6 +123,7 @@ export type ActionPayload =
   | { v: 1; kind: 'action'; action: 'darts'; id: string; mode: 301 | 501; startedAt: number; visits: Array<{ score: number; darts: number }>; at: number }
   | { v: 1; kind: 'action'; action: 'darts_practice'; id: string; game: WatchPracticeGame; startedAt: number; throws: boolean[]; hits: number[]; visits: number[]; at: number }
   | { v: 1; kind: 'action'; action: 'darts_online'; id: string; seq: number; score: number; darts: number; at: number }
+  | { v: 1; kind: 'action'; action: 'together'; id: string; op: 'join' | 'leave'; at: number }
 
 /** The practice games the watch can play. */
 export type WatchPracticeGame = 'clock' | 'doubles' | 'bobs27' | 'scoring'
@@ -152,6 +173,10 @@ export function parseAction(value: unknown): ActionPayload | null {
     if (!id || !int(p.seq, 0, 10000) || !int(p.score, 0, 180)) return null
     const darts = int(p.darts, 1, 3) ? (p.darts as number) : 3
     return { v: 1, kind: 'action', action: 'darts_online', id, seq: p.seq as number, score: p.score as number, darts, at: p.at }
+  }
+  if (p.action === 'together' && (p.op === 'join' || p.op === 'leave')) {
+    const id = str(p.id, 64)
+    return id ? { v: 1, kind: 'action', action: 'together', id, op: p.op, at: p.at } : null
   }
   return null
 }

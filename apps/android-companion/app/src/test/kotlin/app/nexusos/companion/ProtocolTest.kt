@@ -156,4 +156,29 @@ class ProtocolTest {
         assertEquals(setOf("g1@2=60"), WatchDartsOnline.stillWaiting(games, setOf("g1@2=60", "g9@0=20")))
         assertEquals(emptySet<String>(), WatchDartsOnline.stillWaiting(listOf(g.copy(seq = 3)), setOf("g1@2=60")))
     }
+
+    @Test
+    fun readsSamenStuderenAndCountsTheBlocks() {
+        val json = "{\"v\":1,\"kind\":\"plan\",\"items\":[],\"sentAt\":50,\"together\":[" +
+            "{\"id\":\"s1\",\"title\":\"Wiskunde\",\"host\":\"Remo\",\"focus\":25,\"break\":5,\"startedAt\":1000,\"joined\":true,\"members\":[\"Remo\",\"\"]}," +
+            "{\"id\":\"s2\",\"focus\":200,\"break\":5,\"startedAt\":1000}]}"
+        val sessions = Protocol.parsePlanTogether(json)!!
+        val s = PlanTogether("s1", "Wiskunde", "Remo", 25, 5, 1000, true, listOf("Remo"))
+        assertEquals(listOf(s), sessions)
+        assertEquals(emptyList<PlanTogether>(), Protocol.parsePlanTogether("{\"v\":1,\"kind\":\"plan\",\"items\":[]}"))
+        assertNull(Protocol.parsePlanTogether("{\"v\":1,\"kind\":\"notification\",\"title\":\"Hoi\"}"))
+        val p = JSONObject(Protocol.togetherPayload("s1", false, 70))
+        assertEquals("together", p.getString("action"))
+        assertEquals("leave", p.getString("op"))
+        // 25 minutes focus, 5 minutes break, from the start.
+        val min = 60_000L
+        assertEquals(TogetherPhase(true, 1, 1000 + 25 * min), WatchTogether.phase(s, 1000 + 10 * min))
+        assertEquals(TogetherPhase(false, 1, 1000 + 30 * min), WatchTogether.phase(s, 1000 + 26 * min))
+        assertEquals(TogetherPhase(true, 2, 1000 + 55 * min), WatchTogether.phase(s, 1000 + 31 * min))
+        // A join stays on its way until NEXUS shows you in the session.
+        assertEquals(true, WatchTogether.pending(setOf("s1=join"), s))
+        assertNull(WatchTogether.pending(setOf("s9=join"), s))
+        assertEquals(emptySet<String>(), WatchTogether.stillWaiting(sessions, setOf("s1=join")))
+        assertEquals(setOf("s1=leave"), WatchTogether.stillWaiting(sessions, setOf("s1=leave", "s9=join")))
+    }
 }

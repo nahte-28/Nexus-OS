@@ -1,4 +1,4 @@
-import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanDartsGame, type PlanGaming, type PlanWeather, type PlanToday, buildPlanToday, emptyGoals, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
+import { openDeadlines, plannedBirthdayNotices, plannedCalendarNotices, plannedDagstart, plannedSleepNotices, type PlanDartsGame, type PlanTogether, type PlanGaming, type PlanWeather, type PlanToday, buildPlanToday, emptyGoals, plannedSubscriptionNotices, plannedDeadlineNotices, plannedHabitNotices, plannedFlowNotices, plannedReminders, safetyPlan, type PlannedNotice } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
 import { inQuietHours } from '../flows/runner'
@@ -20,6 +20,7 @@ import { goalsStore } from '../goals/store'
 import { gradesStore } from '../grades/store'
 import { focusStore } from '../study/timer'
 import { dartsWatchStore } from '../darts/watch'
+import { togetherWatchStore } from '../study/watch'
 
 const CHECK_MS = 60_000
 /** Sent again at least this often, so the phone always looks a few days ahead. */
@@ -76,24 +77,27 @@ export async function sendPlanIfChanged(
   weather: PlanWeather | null = null,
   today: PlanToday | null = null,
   darts: PlanDartsGame[] = [],
+  together: PlanTogether[] = [],
 ): Promise<number> {
   const state = connect.getSnapshot()
   if (state.status !== 'ready') return 0
   // The fetch time alone does not make it worth sending again.
   const shownWeather = weather ? { ...weather, at: 0 } : null
   const pushKey = JSON.stringify(gaming || shownWeather ? { plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}) } : plan)
-  // Vandaag and Darts online only go to the companion and the watch; a ticked habit does not replan web pushes.
-  const watchKey = today || darts.length > 0 ? JSON.stringify({ plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}), today, ...(darts.length > 0 ? { darts } : {}) }) : pushKey
+  // Vandaag, Darts online and Samen studeren only go to the companion and the watch; a ticked habit does not replan web pushes.
+  const watchOnly = today || darts.length > 0 || together.length > 0
+  const watchKey = watchOnly ? JSON.stringify({ plan, gaming, ...(shownWeather ? { weather: shownWeather } : {}), today, ...(darts.length > 0 ? { darts } : {}), ...(together.length > 0 ? { together } : {}) }) : pushKey
   let sent = 0
   for (const phone of phonesOf(state)) {
     const last = readSent(phone.id)
     const android = phone.platform === 'android'
     const key = android ? watchKey : pushKey
     // Nothing planned and nothing sent before: the phone has nothing to forget either.
-    if (!last && plan.length === 0 && !gaming && !(android && (today || darts.length > 0))) continue
+    if (!last && plan.length === 0 && !gaming && !(android && watchOnly)) continue
     if (last && last.key === key && now - last.at < REFRESH_MS) continue
     try {
       if (!android) await connect.sendPushPlan(phone.id, plan)
+      else if (together.length > 0) await connect.sendPlan(phone.id, plan, gaming, weather ?? undefined, today ?? undefined, darts, together)
       else if (darts.length > 0) await connect.sendPlan(phone.id, plan, gaming, weather ?? undefined, today ?? undefined, darts)
       else if (today) await connect.sendPlan(phone.id, plan, gaming, weather ?? undefined, today)
       else if (weather) await connect.sendPlan(phone.id, plan, gaming, weather)
@@ -121,7 +125,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const check = () => {
     if (busy || stopped) return
     busy = true
-    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming(), isFeatureOn('weather') ? weatherForWatch() : null, todayForWatch(), dartsWatchStore.getSnapshot()).finally(() => (busy = false))
+    void sendPlanIfChanged(connect, currentPlan(), Date.now(), planGaming(), isFeatureOn('weather') ? weatherForWatch() : null, todayForWatch(), dartsWatchStore.getSnapshot(), togetherWatchStore.getSnapshot()).finally(() => (busy = false))
   }
   const soon = () => {
     clearTimeout(debounce)
@@ -130,7 +134,7 @@ export function startSafetyNet(connect: ConnectEngine): () => void {
   const run = () => {
     check()
     timer = setInterval(check, CHECK_MS)
-    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), weatherStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), goalsStore.subscribe(soon), gradesStore.subscribe(soon), dartsWatchStore.subscribe(soon), connect.subscribe(soon))
+    unsubscribers.push(remindersStore.subscribe(soon), lifeStore.subscribe(soon), flowsStore.subscribe(soon), profilesStore.subscribe(soon), habitsStore.subscribe(soon), contactsStore.subscribe(soon), weatherStore.subscribe(soon), financeStore.subscribe(soon), gamingStore.subscribe(soon), goalsStore.subscribe(soon), gradesStore.subscribe(soon), dartsWatchStore.subscribe(soon), togetherWatchStore.subscribe(soon), connect.subscribe(soon))
   }
   if (typeof navigator !== 'undefined' && navigator.locks) {
     void navigator.locks.request('nexus-safety', () => {

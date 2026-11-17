@@ -66,6 +66,20 @@ data class PlanDartsGame(
     val line: String,
 )
 
+/** A Samen studeren session, as NEXUS sent it with the plan (PlanTogether in packages/core/src/connect.ts). */
+data class PlanTogether(
+    val id: String,
+    val title: String,
+    val host: String,
+    /** Minutes of a focus block and of a break. */
+    val focus: Int,
+    val pause: Int,
+    val startedAt: Long,
+    val joined: Boolean,
+    /** The others who are in it now. */
+    val members: List<String>,
+)
+
 data class BridgeTransfer(
     val transferId: String,
     val content: String,
@@ -250,6 +264,31 @@ object Protocol {
     fun dartsOnlinePayload(id: String, seq: Int, score: Int, darts: Int, at: Long): String =
         JSONObject().put("v", 1).put("kind", "action").put("action", "darts_online").put("id", id).put("seq", seq)
             .put("score", score).put("darts", darts.coerceIn(1, 3)).put("at", at).toString()
+
+    /** Samen studeren in a "plan" payload: null when [json] is no plan, empty when no session is open. */
+    fun parsePlanTogether(json: String): List<PlanTogether>? {
+        val o = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (o.optInt("v") != 1 || o.optString("kind") != "plan") return null
+        val a = o.optJSONArray("together") ?: return emptyList()
+        return (0 until minOf(a.length(), 5)).mapNotNull { i ->
+            val s = a.optJSONObject(i) ?: return@mapNotNull null
+            val id = s.optString("id").trim()
+            val focus = s.optInt("focus")
+            val pause = s.optInt("break")
+            val startedAt = s.optLong("startedAt")
+            if (id.isEmpty() || id.length > 64 || focus !in 5..90 || pause !in 1..30 || startedAt <= 0) return@mapNotNull null
+            val names = s.optJSONArray("members")
+            val members = if (names == null) emptyList() else (0 until minOf(names.length(), 8)).mapNotNull { j -> names.optString(j).trim().take(40).ifEmpty { null } }
+            PlanTogether(
+                id, s.optString("title").trim().take(60).ifEmpty { "Samen studeren" }, s.optString("host").trim().take(40).ifEmpty { "Zonder naam" },
+                focus, pause, startedAt, s.optBoolean("joined"), members,
+            )
+        }
+    }
+
+    /** You joined or left a Samen studeren session on the watch (ActionPayload "together"). */
+    fun togetherPayload(id: String, join: Boolean, at: Long): String =
+        JSONObject().put("v", 1).put("kind", "action").put("action", "together").put("id", id).put("op", if (join) "join" else "leave").put("at", at).toString()
 
     // Supabase Realtime speaks the Phoenix channel protocol (vsn 1.0.0) over a WebSocket.
 

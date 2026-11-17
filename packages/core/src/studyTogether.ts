@@ -1,5 +1,6 @@
 // Samen studeren: a shared focus session with friends and teammates. Everyone counts the same
 // focus and break blocks from the start time, so no device has to send ticks. Pure logic.
+import type { PlanTogether } from './connect'
 
 export interface TogetherMember {
   name: string
@@ -79,4 +80,21 @@ export function parseTogether(raw: unknown): TogetherSession[] {
 export function togetherClock(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+/** Open sessions for the watch: the one you are in first, then the newest. At most 5. */
+export function togetherForWatch(sessions: TogetherSession[]): PlanTogether[] {
+  return [...sessions]
+    .sort((a, b) => Number(b.joined) - Number(a.joined) || b.startedAt - a.startedAt)
+    .slice(0, 5)
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      host: s.host,
+      focus: s.focus,
+      break: s.break,
+      startedAt: s.startedAt,
+      joined: s.joined,
+      members: s.members.filter((m) => !m.me).map((m) => m.name).slice(0, 8),
+    }))
 }

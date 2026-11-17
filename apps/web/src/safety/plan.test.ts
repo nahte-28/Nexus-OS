@@ -67,6 +67,16 @@ describe('safety net sending', () => {
     expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null)
   })
 
+  it('sends Samen studeren to the watch with the plan', async () => {
+    const c = connect([phone, browserPhone])
+    const session = { id: 's1', title: 'Wiskunde', host: 'Remo', focus: 25, break: 5, startedAt: 1, joined: true, members: ['Remo'] }
+    expect(await sendPlanIfChanged(c, [], 0, null, null, null, [], [session])).toBe(1)
+    expect(c.sendPlan).toHaveBeenLastCalledWith('p1', [], null, undefined, undefined, [], [session])
+    expect(c.sendPushPlan).not.toHaveBeenCalled()
+    expect(await sendPlanIfChanged(c, [], 1000, null, null, null, [], [session])).toBe(0)
+    expect(await sendPlanIfChanged(c, [], 2000, null, null, null, [], [{ ...session, joined: false }])).toBe(1)
+  })
+
   it('sends nothing while there is nothing to plan or no phone', async () => {
     const c = connect()
     expect(await sendPlanIfChanged(c, [], 0)).toBe(0)

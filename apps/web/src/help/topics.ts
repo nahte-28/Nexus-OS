@@ -30,6 +30,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Blok: maak een blokschema tot je laatste examen. Kies wanneer je blok begint, hoe lang je per dag studeert en je rustdagen; de dag voor elk examen is herhaling van dat vak.',
       'Groep: maak een studiegroep en deel de uitnodigingscode, dan zien jullie elkaars deadlines, examens en studietijd, en delen jullie groepsdeadlines.',
       'Samen: start een focussessie of doe mee met die van je vrienden en teams. Iedereen ziet dezelfde timer en wie meedoet; elk blok dat je afmaakt, komt in je focuslog.',
+      'Open sessies staan ook op je horloge, onder Samen studeren. Doe daar mee of verlaat ze; zit je in een sessie, dan trilt het horloge bij elke wissel tussen focus en pauze. NEXUS moet daarvoor open en aangemeld zijn op je pc of gsm.',
       'Bij een groepsdeadline zet je met 💬 een opmerking; typ @ om iemand van de groep te vermelden.',
     ],
   },
