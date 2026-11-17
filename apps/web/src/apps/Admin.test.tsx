@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { parseAdminOverview } from '@nexus/core'
 import type { Admin as AdminApi } from '../admin/admin'
 
@@ -27,6 +27,19 @@ describe('Beheer', () => {
     expect(screen.getByRole('cell', { name: '1IT3' })).toBeTruthy()
     expect(screen.getByText('Het rooster laadt niet')).toBeTruthy()
     expect(screen.getByText(/4 browser/)).toBeTruthy()
+  })
+
+  it('toont alle accounts, ook wie offline is', async () => {
+    const users = Array.from({ length: 22 }, (_, i) => ({ name: `lid${i}@test`, createdAt: '2026-11-01T10:00:00Z', lastSignIn: '2026-11-12T10:00:00Z', lastSeen: null, online: false }))
+    const overview = parseAdminOverview({ accounts: { total: 23 }, users: [{ name: 'Bram', createdAt: '2026-11-01T10:00:00Z', lastSeen: '2026-11-13T14:59:00Z', online: true }, ...users] })
+    const api = { overview: vi.fn(async () => overview) } as unknown as AdminApi
+    render(<Admin api={api} />)
+    const list = await screen.findByRole('region', { name: 'Alle accounts' })
+    expect(within(list).getByText('Alle accounts (23)')).toBeTruthy()
+    expect(within(list).getByText('Nu online')).toBeTruthy()
+    expect(within(list).queryByText('lid21@test')).toBeNull()
+    fireEvent.click(within(list).getByRole('button', { name: 'Toon alle 23' }))
+    expect(within(list).getByText('lid21@test')).toBeTruthy()
   })
 
   it('zegt het als je geen beheerder bent of de SQL-stap ontbreekt', async () => {

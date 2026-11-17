@@ -8,10 +8,21 @@ export interface AdminOverview {
   at: number
   accounts: { total: number; new7d: number; signedIn7d: number; active24h: number; active7d: number }
   online: Array<{ name: string; state: 'available' | 'busy'; lastSeen: number | null }>
+  /** Every account, also offline, the most recently active first. Absent before 20261117140000_admin_users.sql. */
+  users: AdminUser[]
   devices: Record<string, number>
   teams: Array<{ name: string; members: number; online: number; messages7d: number; createdAt: number }>
   activity: { friendships: number; requests: number; teamMessages7d: number; comments7d: number; directMessages7d: number }
   errors: { count7d: number; latest: Array<{ at: number; app: string; message: string; note: string | null; version: string; name: string }> }
+}
+
+export interface AdminUser {
+  name: string
+  createdAt: number | null
+  lastSignIn: number | null
+  /** Null for someone who chose Onzichtbaar, or never opened NEXUS since Wie is online. */
+  lastSeen: number | null
+  online: boolean
 }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : 0)
@@ -37,6 +48,10 @@ export function parseAdminOverview(raw: unknown): AdminOverview {
     online: list(o.online).map((x) => {
       const p = obj(x)
       return { name: str(p.name, 'Zonder naam'), state: p.state === 'busy' ? 'busy' : 'available', lastSeen: time(p.lastSeen) }
+    }),
+    users: list(o.users).map((x) => {
+      const u = obj(x)
+      return { name: str(u.name, 'Zonder naam'), createdAt: time(u.createdAt), lastSignIn: time(u.lastSignIn), lastSeen: time(u.lastSeen), online: u.online === true }
     }),
     devices,
     teams: list(o.teams).map((x) => {
@@ -69,3 +84,6 @@ export function deviceSummary(devices: Record<string, number>): string {
 export function sortAdminTeams(teams: AdminOverview['teams']): AdminOverview['teams'] {
   return [...teams].sort((a, b) => b.online - a.online || b.messages7d - a.messages7d || a.name.localeCompare(b.name, 'nl'))
 }
+
+/** The last moment an account did something: last seen, else last signed in, else joined. */
+export const lastActive = (u: AdminUser): number | null => u.lastSeen ?? u.lastSignIn ?? u.createdAt

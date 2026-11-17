@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { deviceSummary, sortAdminTeams, type AdminOverview } from '@nexus/core'
+import { deviceSummary, lastActive, sortAdminTeams, type AdminOverview } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { Admin as AdminApi } from '../admin/admin'
 
 const defaultApi = supabase ? new AdminApi(supabase) : null
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const day = (t: number | null) => (t === null ? '–' : new Date(t).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' }))
+const SHOWN = 20
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 
 function Stat({ label, value, detail }: { label: string; value: number | string; detail?: string }) {
@@ -91,6 +93,8 @@ export function Admin({ api = defaultApi }: { api?: AdminApi | null }) {
             </p>
           </section>
 
+          <Accounts data={data} />
+
           <section className="space-y-2">
             <h3 className="font-medium">Samen</h3>
             <ul className="grid gap-1 text-xs sm:grid-cols-2">
@@ -148,5 +152,62 @@ export function Admin({ api = defaultApi }: { api?: AdminApi | null }) {
         </>
       )}
     </div>
+  )
+}
+
+/** Every account, also offline: name (or e-mail address without a name), last active and since when. */
+function Accounts({ data }: { data: AdminOverview }) {
+  const [all, setAll] = useState(false)
+  const users = data.users
+  if (users.length === 0) {
+    if (data.accounts.total === 0) return null
+    return (
+      <section aria-label="Alle accounts" className="space-y-1">
+        <h3 className="font-medium">Alle accounts</h3>
+        <p className="text-xs text-nx-muted">
+          Voor de lijst van alle accounts is nog één SQL-stap nodig: <code className="font-mono">supabase/migrations/20261117140000_admin_users.sql</code>. Kijk in Account › Database-check.
+        </p>
+      </section>
+    )
+  }
+  const shown = all ? users : users.slice(0, SHOWN)
+  return (
+    <section aria-label="Alle accounts" className="space-y-2">
+      <h3 className="font-medium">Alle accounts ({users.length})</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="text-left text-nx-muted">
+            <tr>
+              <th className="py-1 pr-2 font-normal">Naam</th>
+              <th className="py-1 pr-2 font-normal">Laatst actief</th>
+              <th className="py-1 font-normal">Account sinds</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((u, i) => {
+              const at = lastActive(u)
+              return (
+                <tr key={`${u.name}-${i}`} className="border-t border-nx-border">
+                  <td className="py-1 pr-2">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${u.online ? 'bg-emerald-500' : 'bg-nx-border'}`} />
+                      {u.name}
+                    </span>
+                  </td>
+                  <td className="py-1 pr-2">{u.online ? 'Nu online' : at === null ? '–' : when(at)}</td>
+                  <td className="py-1">{day(u.createdAt)}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {users.length > SHOWN && (
+        <button type="button" className={small} onClick={() => setAll(!all)}>
+          {all ? 'Minder tonen' : `Toon alle ${users.length}`}
+        </button>
+      )}
+      <p className="text-xs text-nx-muted">Wie Onzichtbaar koos, heeft hier alleen zijn laatste aanmelding, niet wanneer hij NEXUS open had.</p>
+    </section>
   )
 }

@@ -63,6 +63,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261116230000_free_busy.sql', label: 'Samen vrij moment zoeken met vrienden', needs: [{ table: 'free_busy' }] },
   { file: '20261117090000_card_duels.sql', label: 'Leerkaarten-duel met vrienden', needs: [{ table: 'card_duels' }] },
   { file: '20261117120000_admin_names.sql', label: 'Beheer: e-mailadres bij wie nog geen naam koos', needs: [{ fn: 'nexus_admin_name' }] },
+  { file: '20261117140000_admin_users.sql', label: 'Beheer: lijst van alle accounts', needs: [{ fn: 'admin_user_list' }] },
 ]
 
 /** What nexus_schema_status() returns. */

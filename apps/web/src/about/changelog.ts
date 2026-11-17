@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-17',
+    title: 'Alle accounts in Beheer',
+    items: [
+      'Beheer toont nu ook wie offline is: elk account met zijn naam (of e-mailadres), wanneer het laatst actief was en sinds wanneer het bestaat.',
+      'Van wie Onzichtbaar koos, zie je alleen de laatste aanmelding, niet wanneer NEXUS openstond.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
+    date: '2026-11-17',
     title: 'Een naam bij het aanmelden',
     items: [
       'Heb je nog geen naam gekozen, dan vraagt NEXUS na het aanmelden hoe je wilt heten. Je vrienden, je teams en de beheerder zien die naam. Met Later vraagt dit toestel het niet meer.',

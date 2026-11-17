@@ -315,6 +315,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Beheer: voor de beheerder van NEXUS een overzicht van accounts, wie online is, teams en foutmeldingen.',
     tips: [
       'Je ziet alleen tellingen en namen. Wie nog geen naam koos, staat er met zijn e-mailadres; dat ziet alleen de beheerder. Wat mensen in notities, berichten of bestanden schrijven, staat hier nooit; privéberichten zijn versleuteld en worden alleen geteld.',
+      'Bij Alle accounts staat iedereen, ook wie offline is: naam (of e-mailadres zonder naam), wanneer laatst actief en sinds wanneer. Van wie Onzichtbaar koos, zie je alleen de laatste aanmelding.',
       'Wie in Vrienden Onzichtbaar koos, telt niet mee als online.',
       'Bij Laatste foutmeldingen staat wat mensen met Probleem melden doorstuurden.',
       'Het oudste account wordt de eerste beheerder. Iemand anders beheerder maken doe je in de SQL Editor van Supabase; het voorbeeld staat bovenaan het SQL-bestand van Beheer.',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deviceSummary, parseAdminOverview, sortAdminTeams } from './admin'
+import { deviceSummary, lastActive, parseAdminOverview, sortAdminTeams } from './admin'
 
 describe('beheeroverzicht', () => {
   it('leest het antwoord van de database, ook met ontbrekende delen', () => {
@@ -27,5 +27,12 @@ describe('beheeroverzicht', () => {
     expect(deviceSummary({})).toBe('geen')
     const t = (name: string, online: number, messages7d: number) => ({ name, members: 3, online, messages7d, createdAt: 0 })
     expect(sortAdminTeams([t('B', 0, 5), t('A', 0, 5), t('C', 2, 0)]).map((x) => x.name)).toEqual(['C', 'A', 'B'])
+  })
+  it('leest alle accounts, ook wie offline is', () => {
+    const o = parseAdminOverview({ users: [{ name: 'lotte@test', createdAt: '2026-11-10T09:00:00Z', lastSignIn: '2026-11-12T09:00:00Z', lastSeen: null, online: false }, { name: 'Bram', lastSeen: '2026-11-13T14:59:00Z', online: true }] })
+    expect(o.users[0]).toEqual({ name: 'lotte@test', createdAt: Date.parse('2026-11-10T09:00:00Z'), lastSignIn: Date.parse('2026-11-12T09:00:00Z'), lastSeen: null, online: false })
+    expect(lastActive(o.users[0])).toBe(Date.parse('2026-11-12T09:00:00Z'))
+    expect(lastActive(o.users[1])).toBe(Date.parse('2026-11-13T14:59:00Z'))
+    expect(parseAdminOverview({}).users).toEqual([])
   })
 })
