@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-17',
+    title: 'Leerkaarten-duel',
+    items: [
+      'Daag een vriend uit met een van je stapels: open de stapel in Leerkaarten en tik op Daag een vriend uit. NEXUS maakt van hoogstens 10 kaarten meerkeuzevragen.',
+      'Jullie beantwoorden dezelfde vragen. Wie de meeste juist heeft, wint, en bij gelijkspel de snelste. De juiste antwoorden zie je pas als je zelf gespeeld hebt.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
     date: '2026-11-16',
     title: 'Samen een vrij moment zoeken',
     items: [

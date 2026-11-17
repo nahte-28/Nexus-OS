@@ -3,6 +3,7 @@ import { activeDecks, cardsOf, deckStats, dueCards, GRADE_LABELS, intervalLabel,
 import { studyPayload } from '../files/study'
 import { addCards, addDeck, answerCard, editCard, flashcardsStore, flashcardsSyncProblem, makeCards, removeCard, removeDeck, renameDeck } from '../flashcards/store'
 import { useNotes } from '../state/useNotes'
+import { ChallengeFriend, DuelPlay, DuelsSection } from '../flashcards/Duels'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -12,7 +13,7 @@ const GRADES: CardGrade[] = ['again', 'hard', 'good', 'easy']
 
 const useFlashcards = () => useSyncExternalStore(flashcardsStore.subscribe, flashcardsStore.getSnapshot)
 
-type View = { name: 'home' } | { name: 'deck'; id: string } | { name: 'practice'; deckId?: string } | { name: 'make'; deckId?: string }
+type View = { name: 'home' } | { name: 'deck'; id: string } | { name: 'practice'; deckId?: string } | { name: 'make'; deckId?: string } | { name: 'duel'; id: string }
 
 /** Leerkaarten: flashcards per vak, made by hand or by NEXUS AI, asked again on a smart schedule. */
 export function Flashcards() {
@@ -25,15 +26,16 @@ export function Flashcards() {
           Je leerkaarten staan alleen op dit apparaat: de database is nog niet bijgewerkt. Voer <code className="font-mono text-xs">{problem.slice(6)}</code> uit in de SQL Editor van Supabase.
         </p>
       )}
-      {view.name === 'home' && <Home onOpen={(id) => setView({ name: 'deck', id })} onPractice={() => setView({ name: 'practice' })} onMake={() => setView({ name: 'make' })} />}
-      {view.name === 'deck' && <DeckView id={view.id} onBack={() => setView({ name: 'home' })} onPractice={() => setView({ name: 'practice', deckId: view.id })} onMake={() => setView({ name: 'make', deckId: view.id })} />}
+      {view.name === 'home' && <Home onOpen={(id) => setView({ name: 'deck', id })} onPractice={() => setView({ name: 'practice' })} onMake={() => setView({ name: 'make' })} onDuel={(id) => setView({ name: 'duel', id })} />}
+      {view.name === 'deck' && <DeckView id={view.id} onBack={() => setView({ name: 'home' })} onPractice={() => setView({ name: 'practice', deckId: view.id })} onMake={() => setView({ name: 'make', deckId: view.id })} onDuel={(id) => setView({ name: 'duel', id })} />}
+      {view.name === 'duel' && <DuelPlay id={view.id} onDone={() => setView({ name: 'home' })} />}
       {view.name === 'practice' && <Practice deckId={view.deckId} onDone={() => setView(view.deckId ? { name: 'deck', id: view.deckId } : { name: 'home' })} />}
       {view.name === 'make' && <Make deckId={view.deckId} onDone={(id) => setView(id ? { name: 'deck', id } : { name: 'home' })} />}
     </div>
   )
 }
 
-function Home({ onOpen, onPractice, onMake }: { onOpen: (id: string) => void; onPractice: () => void; onMake: () => void }) {
+function Home({ onOpen, onPractice, onMake, onDuel }: { onOpen: (id: string) => void; onPractice: () => void; onMake: () => void; onDuel: (id: string) => void }) {
   const state = useFlashcards()
   const now = Date.now()
   const decks = activeDecks(state)
@@ -86,11 +88,12 @@ function Home({ onOpen, onPractice, onMake }: { onOpen: (id: string) => void; on
           </button>
         </form>
       </section>
+      <DuelsSection onPlay={onDuel} />
     </>
   )
 }
 
-function DeckView({ id, onBack, onPractice, onMake }: { id: string; onBack: () => void; onPractice: () => void; onMake: () => void }) {
+function DeckView({ id, onBack, onPractice, onMake, onDuel }: { id: string; onBack: () => void; onPractice: () => void; onMake: () => void; onDuel: (id: string) => void }) {
   const state = useFlashcards()
   const deck = activeDecks(state).find((d) => d.id === id)
   const now = Date.now()
@@ -128,6 +131,7 @@ function DeckView({ id, onBack, onPractice, onMake }: { id: string; onBack: () =
           Stapel verwijderen
         </button>
       </div>
+      <ChallengeFriend deckId={id} onPlay={onDuel} />
       <form
         aria-label="Nieuwe kaart"
         className="space-y-2 rounded-lg border border-nx-border p-3"

@@ -47,7 +47,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   flashcards: {
     summary: 'Leerkaarten die terugkomen net voor je ze zou vergeten.',
-    tips: ['Maak een stapel per vak en voeg kaarten toe, of laat NEXUS AI ze maken uit een notitie.', 'Herhaal elke dag de kaarten die klaarstaan; hoe goed je ze kende bepaalt wanneer ze terugkomen.'],
+    tips: ['Maak een stapel per vak en voeg kaarten toe, of laat NEXUS AI ze maken uit een notitie.', 'Herhaal elke dag de kaarten die klaarstaan; hoe goed je ze kende bepaalt wanneer ze terugkomen.', 'Duel: open een stapel en tik op Daag een vriend uit. NEXUS maakt van hoogstens 10 kaarten meerkeuzevragen, jullie beantwoorden dezelfde vragen en wie de meeste juist heeft, wint. De juiste antwoorden zie je pas na je eigen beurt. Een stapel heeft daarvoor minstens 4 kaarten met verschillende antwoorden nodig.'],
   },
   insights: {
     summary: 'Grafieken van je week: focustijd, afgeronde deadlines, gewoontes en meer.',
