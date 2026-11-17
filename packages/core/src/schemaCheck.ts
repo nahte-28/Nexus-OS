@@ -61,6 +61,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261116180000_appointment_invites.sql', label: 'Vrienden uitnodigen voor een afspraak', needs: [{ table: 'appointment_invites' }] },
   { file: '20261116210000_note_shares.sql', label: 'Notities delen met vrienden en teams', needs: [{ table: 'note_shares' }] },
   { file: '20261116230000_free_busy.sql', label: 'Samen vrij moment zoeken met vrienden', needs: [{ table: 'free_busy' }] },
+  { file: '20261117090000_card_duels.sql', label: 'Leerkaarten-duel met vrienden', needs: [{ table: 'card_duels' }] },
 ]
 
 /** What nexus_schema_status() returns. */

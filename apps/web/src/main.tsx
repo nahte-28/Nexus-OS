@@ -16,6 +16,7 @@ import { startAppointmentInvites } from './agenda/invites'
 import { startNoteShares } from './notes/shares'
 import { startDartsForWatch } from './darts/watch'
 import { startFreeBusy } from './friends/freeBusy'
+import { startCardDuels } from './flashcards/duel'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
 import { startDagstart } from './life/dagstart'
@@ -157,6 +158,8 @@ startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 startAppointmentInvites(supabase, () => isFeatureOn('friends'))
 // Samen vrij moment zoeken: friends see when you are busy (never what), to find a moment together.
 startFreeBusy(supabase, () => isFeatureOn('friends'))
+// Leerkaarten-duel: challenges from friends and their results.
+startCardDuels(supabase, () => isFeatureOn('friends'))
 // Notities delen: notes you share with friends or teams, and the ones shared with you.
 startNoteShares(supabase, () => isFeatureOn('friends') || isFeatureOn('teams'))
 // Darts online op je horloge: your matches against friends go to the watch with the plan.
