@@ -17,6 +17,7 @@ import { startNoteShares } from './notes/shares'
 import { startDartsForWatch } from './darts/watch'
 import { startTogetherForWatch } from './study/watch'
 import { startFreeBusy } from './friends/freeBusy'
+import { startBirthdays } from './friends/birthdays'
 import { startCardDuels } from './flashcards/duel'
 import { startFocusTicker } from './study/timer'
 import { startDeadlineAlerts } from './life/alerts'
@@ -159,6 +160,7 @@ startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
 startAppointmentInvites(supabase, () => isFeatureOn('friends'))
 // Samen vrij moment zoeken: friends see when you are busy (never what), to find a moment together.
 startFreeBusy(supabase, () => isFeatureOn('friends'))
+startBirthdays(supabase, () => isFeatureOn('friends'))
 // Leerkaarten-duel: challenges from friends and their results.
 startCardDuels(supabase, () => isFeatureOn('friends'))
 // Notities delen: notes you share with friends or teams, and the ones shared with you.

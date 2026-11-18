@@ -332,6 +332,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Bij Berichten stuur je een vriend een privébericht. Het wordt op je toestel versleuteld voor elk toestel van jullie twee (pc, browser en de Windows- of Linux-app); NEXUS zelf kan het niet lezen.',
       'Een toestel dat je later koppelt, kan oudere berichten niet lezen: die waren niet voor dat toestel versleuteld. Heb je webmeldingen aan in Chrome op je gsm, dan komt een nieuw bericht daar en op je horloge als melding, met twee snelle antwoorden. In de gsm-app zelf staan geen privéberichten.',
       'Een groen bolletje betekent dat NEXUS bij je vriend openstaat, oranje dat die bezet is. Bij Jouw status kies je Beschikbaar, Bezet of Onzichtbaar en een korte status. Onzichtbaar toont je voor iedereen offline.',
+      'Verjaardagen: wie bij Profielen › Over jou een verjaardag invult, staat bij zijn vrienden onder Verjaardagen (alleen dag en maand). Op de dag zelf krijgt de jarige om 8 uur een bericht van NEXUS, en zijn vrienden een seintje met de knop Feliciteer. Zet het vinkje bij Over jou uit als je vrienden het niet mogen zien.',
     ],
   },
   contacts: {

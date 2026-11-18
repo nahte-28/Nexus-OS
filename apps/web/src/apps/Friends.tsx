@@ -5,6 +5,9 @@ import { suggestedName } from '../study/group'
 import { clearPendingFriend, Friends as FriendsApi, myFriendLink, pendingFriend, type FriendProfile } from '../friends/friends'
 import { DirectMessages } from '../friends/dm'
 import { Messages } from '../friends/Messages'
+import { Birthdays } from '../friends/birthdays'
+import { FriendBirthdays } from '../friends/Birthdays'
+import { useSystemUnread } from '../friends/birthdays'
 import { defaultEngine, useConnect } from '../connect/ConnectContext'
 import { readStorage, writeStorage } from '../state/storage'
 import { MyStatus } from '../presence/MyStatus'
@@ -18,14 +21,16 @@ const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium t
 
 const defaultApi = supabase ? new FriendsApi(supabase) : null
 const defaultDms = supabase ? new DirectMessages(supabase, defaultEngine) : null
+const defaultBirthdays = supabase ? new Birthdays(supabase) : null
 const TAB_KEY = 'nexus.friends.tab'
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /** Vrienden: add people with your code or link, answer requests and see who your friends are. */
-export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defaultPresence }: { api?: FriendsApi | null; dms?: DirectMessages | null; presenceApi?: Presence | null }) {
+export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defaultPresence, birthdays = defaultBirthdays }: { api?: FriendsApi | null; dms?: DirectMessages | null; presenceApi?: Presence | null; birthdays?: Birthdays | null }) {
   const { presence, now } = usePresence(presenceApi)
   const { state: connect } = useConnect()
   const sealed = connect.status === 'ready'
+  const systemUnread = useSystemUnread()
   const [tab, setTabState] = useState<'Vrienden' | 'Berichten'>(() => (readStorage(TAB_KEY) === 'Berichten' ? 'Berichten' : 'Vrienden'))
   const setTab = (t: 'Vrienden' | 'Berichten') => {
     setTabState(t)
@@ -148,11 +153,16 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
             {(['Vrienden', 'Berichten'] as const).map((t) => (
               <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
                 {t}
+                {t === 'Berichten' && systemUnread > 0 && (
+                  <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${systemUnread} nieuw van NEXUS`}>
+                    {systemUnread}
+                  </span>
+                )}
               </button>
             ))}
           </div>
           {tab === 'Berichten' ? (
-            dms ? <Messages dms={dms} me={me.id} friends={list} sealed={sealed} /> : null
+            dms ? <Messages dms={dms} me={me.id} friends={list} sealed={sealed} system={birthdays} /> : null
           ) : (
             <>
             <section className="space-y-2 rounded-lg border border-nx-border p-3">
@@ -256,6 +266,7 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
                 ))}
               </ul>
             </section>
+            {birthdays && friendIds.length > 0 && <FriendBirthdays api={birthdays} refresh={friendIds.length} />}
             </>
           )}
         </>
