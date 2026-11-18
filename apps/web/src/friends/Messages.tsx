@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { conversations, DM_TEXT_MAX, type DirectMessage, type FriendEntry } from '@nexus/core'
 import { setOpenConversation, type DirectMessages } from './dm'
+import { onOutboxSent, sendOrQueue, useOutbox } from '../offline/outbox'
+import { QueuedMessages } from '../offline/QueuedMessages'
 import type { Birthdays } from './birthdays'
 import { SystemInbox } from './Birthdays'
 
@@ -114,6 +116,7 @@ function Conversation({
   const messages = all.filter((m) => (m.sender === friend.userId && m.recipient === me) || (m.sender === me && m.recipient === friend.userId))
   const last = messages[messages.length - 1]
   const unread = messages.some((m) => m.sender === friend.userId && m.readAt === null)
+  const queued = useOutbox('dm', me, friend.userId)
 
   useEffect(() => {
     setOpenConversation(friend.userId)
@@ -123,6 +126,14 @@ function Conversation({
     )
     return () => setOpenConversation(null)
   }, [dms, me, friend.userId, setAll, setProblem])
+  // A message that waited for internet went out: show it at once, without waiting for realtime.
+  useEffect(
+    () =>
+      onOutboxSent((item, result) => {
+        if (item.kind === 'dm' && result && typeof result === 'object' && 'id' in result) setAll((old) => merge(old, [result as DirectMessage]))
+      }),
+    [setAll],
+  )
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: 'end' })
   }, [last?.id])
@@ -135,8 +146,8 @@ function Conversation({
     if (!text.trim() || sending) return
     setSending(true)
     try {
-      const sent = await dms.send(friend.userId, text)
-      if (sent) setAll((old) => merge(old, [sent]))
+      const sent = await sendOrQueue('dm', me, friend.userId, text, () => dms.send(friend.userId, text))
+      if (sent && sent !== 'queued') setAll((old) => merge(old, [sent]))
       setText('')
       setProblem(null)
     } catch (err) {
@@ -183,6 +194,7 @@ function Conversation({
           )
         })}
       </ol>
+      <QueuedMessages items={queued} />
       <div ref={end} />
       <div className="sticky bottom-0 flex items-end gap-2 border-t border-nx-border bg-nx-surface pt-2">
         <textarea value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKey} rows={2} maxLength={DM_TEXT_MAX} placeholder={`Bericht aan ${friend.displayName}`} aria-label="Privébericht" className="min-w-0 flex-1 resize-none rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none" />

@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-18',
+    title: 'Berichten versturen zonder internet',
+    items: [
+      'Schrijf je een privébericht of een bericht in de teamchat zonder internet, dan wacht het op dit toestel en gaat het vanzelf weg zodra je weer online bent, in de volgorde waarin je schreef.',
+      'In het gesprek zie je welke berichten nog wachten. Je kunt ze annuleren, en een bericht dat de server weigerde opnieuw proberen.',
+      'Het Offline-centrum toont hoeveel berichten wachten, en met Nu syncen gaan ze meteen.',
+    ],
+  },
+  {
+    date: '2026-11-18',
     title: 'Geen notitiewerk meer kwijt',
     items: [
       'Bewerk je dezelfde notitie op twee apparaten voor ze konden synchroniseren, dan blijft de nieuwste versie staan en wordt de andere bewaard als een aparte notitie met "(conflictkopie)" in de titel.',

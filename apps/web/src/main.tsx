@@ -54,6 +54,7 @@ import { startTeamChatNotices } from './teams/chat'
 import { startMentionNotices } from './teams/comments'
 import { openFriendFromUrl, startFriendNotices } from './friends/friends'
 import { startDmNotices } from './friends/dm'
+import { startOutbox } from './offline/outbox'
 import { startPresence } from './presence/presence'
 import { startAdminCheck } from './admin/admin'
 import { startOwnKeyGuard } from './ai/ownKey'
@@ -148,6 +149,8 @@ startVault(supabase, () => isFeatureOn('vault'), onFeaturesChange)
 startSleepGuard(defaultEngine)
 // Gamevrienden: your "speelt nu" in the teams you chose, from the Gaming timer.
 startFriendsSharing(supabase, () => isFeatureOn('gaming'))
+// Berichten die wachten op internet: privéberichten and teamchat written offline.
+startOutbox()
 // Teamchat: a notice for new messages in your teams while NEXUS runs.
 startTeamChatNotices(supabase, () => isFeatureOn('teams'))
 // Opmerkingen: a notice when a teammate mentions you with @ on a task.

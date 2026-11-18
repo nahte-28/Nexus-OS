@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { chatRuns, mergeMessages, memberName, TEAM_CHAT_PAGE, TEAM_MESSAGE_MAX, teamCan, unreadMessages, type StudyGroup, type TeamMember, type TeamMessage, type TeamRole } from '@nexus/core'
 import { chatReadAt, markChatRead, setOpenChat, type TeamChat } from './chat'
+import { onOutboxSent, sendOrQueue, useOutbox } from '../offline/outbox'
+import { QueuedMessages } from '../offline/QueuedMessages'
 
 const REFRESH_MS = 60_000
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
@@ -47,9 +49,14 @@ export function useTeamChat(chat: TeamChat | null, team: StudyGroup | null, me: 
     void refresh()
     const t = setInterval(() => void refresh(), REFRESH_MS)
     const stop = chat.watch(groupId, (m) => setMessages((old) => mergeMessages(old, [m])))
+    // A message that waited for internet went out: show it at once, without waiting for realtime.
+    const stopSent = onOutboxSent((item, result) => {
+      if (item.kind === 'team' && item.target === groupId && result && typeof result === 'object' && 'id' in result) setMessages((old) => mergeMessages(old, [result as TeamMessage]))
+    })
     return () => {
       clearInterval(t)
       stop()
+      stopSent()
     }
   }, [chat, groupId, refresh])
 
@@ -71,8 +78,8 @@ export function useTeamChat(chat: TeamChat | null, team: StudyGroup | null, me: 
     send: async (text) => {
       if (!chat || !groupId) return false
       try {
-        const sent = await chat.send(groupId, text)
-        if (sent) setMessages((old) => mergeMessages(old, [sent]))
+        const sent = me ? await sendOrQueue('team', me, groupId, text, () => chat.send(groupId, text)) : await chat.send(groupId, text)
+        if (sent && sent !== 'queued') setMessages((old) => mergeMessages(old, [sent]))
         setProblem(null)
         return sent !== null
       } catch (err) {
@@ -107,6 +114,7 @@ export function TeamChatPanel({ team, members, me, role, state }: { team: StudyG
   const end = useRef<HTMLDivElement>(null)
   const { messages, markRead } = state
   const last = messages[messages.length - 1]?.id
+  const queued = useOutbox('team', me, team.id)
 
   // No notices for this team while you look at its chat.
   useEffect(() => {
@@ -178,6 +186,7 @@ export function TeamChatPanel({ team, members, me, role, state }: { team: StudyG
           )
         })}
       </ol>
+      <QueuedMessages items={queued} />
       <div ref={end} />
       <form onSubmit={(e) => void submit(e)} className="sticky bottom-0 flex items-end gap-2 border-t border-nx-border bg-nx-surface pt-2">
         <textarea

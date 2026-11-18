@@ -1,6 +1,7 @@
 import { chatNotice, cleanMessage, TEAM_CHAT_PAGE, type TeamMessage } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logEvent } from '../devtools/log'
+import { flushOutbox, registerOutboxSender } from '../offline/outbox'
 import { eventBus } from '../events/bus'
 import { showLocalNotification } from '../platform/notify'
 import { readStorage, writeStorage } from '../state/storage'
@@ -134,8 +135,11 @@ export function startTeamChatNotices(client: SupabaseClient | null, enabled: () 
     }
   }
 
+  // Messages written offline go out from here, also when the app with the conversation is closed.
+  const stopOutbox = registerOutboxSender('team', { owner: () => me, send: (item) => chat.send(item.target, item.text) })
   const listen = (userId: string | null) => {
     me = userId
+    if (userId) void flushOutbox()
     stop?.()
     stop = userId ? chat.watch(null, (m) => void onMessage(m)) : null
   }
@@ -145,6 +149,7 @@ export function startTeamChatNotices(client: SupabaseClient | null, enabled: () 
   })
   return () => {
     stop?.()
+    stopOutbox()
     data.subscription.unsubscribe()
   }
 }
