@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createNote, noteTitle, parseNotes, sortNotes } from './notes'
+import { createNote, noteConflictCopy, noteTitle, parseNotes, sortNotes } from './notes'
 
 describe('notes', () => {
   it('derives a title from the body when none is set', () => {
@@ -23,5 +23,20 @@ describe('notes', () => {
     const [old] = parseNotes(JSON.stringify([{ id: 'a', title: 't', body: '', updatedAt: 1 }]))
     expect(old.deletedAt).toBeNull()
     expect(sortNotes([old, { ...createNote(2, 'b'), deletedAt: 3 }]).map((n) => n.id)).toEqual(['a'])
+  })
+})
+
+describe('noteConflictCopy', () => {
+  const note = (title: string, body: string, deletedAt: number | null = null) => ({ id: 'a', title, body, updatedAt: 1, deletedAt })
+  it('keeps the losing text under a marked title', () => {
+    expect(noteConflictCopy(note('Lijst', 'melk'), note('Lijst', 'brood'), 5, 'b')).toEqual({ id: 'b', title: 'Lijst (conflictkopie)', body: 'melk', updatedAt: 5, deletedAt: null })
+  })
+  it('skips deletions, empty notes and identical text', () => {
+    expect(noteConflictCopy(note('', '', 2), note('x', 'y'))).toBeNull()
+    expect(noteConflictCopy(note('', ''), note('x', 'y'))).toBeNull()
+    expect(noteConflictCopy(note('x', 'y'), note('x', 'y'))).toBeNull()
+  })
+  it('keeps an edit that lost against a deletion', () => {
+    expect(noteConflictCopy(note('x', 'y'), note('', '', 9), 5, 'b')?.body).toBe('y')
   })
 })

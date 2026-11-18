@@ -49,3 +49,15 @@ export function parseNotes(raw: string | null): Note[] {
     return []
   }
 }
+
+/**
+ * Conflict copy for [syncOnce]: the version that lost keeps living as its own note, so an edit
+ * made on two devices at once never disappears. Nothing is copied when the losing side was a
+ * deletion or holds the same text as the winner.
+ */
+export function noteConflictCopy(loser: Note, winner: Note, now: number = Date.now(), id: string = crypto.randomUUID()): Note | null {
+  if (loser.deletedAt !== null) return null
+  if (!loser.title.trim() && !loser.body.trim()) return null
+  if (winner.deletedAt === null && loser.title === winner.title && loser.body === winner.body) return null
+  return { id, title: `${noteTitle(loser)} (conflictkopie)`, body: loser.body, updatedAt: now, deletedAt: null }
+}

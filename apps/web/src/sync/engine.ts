@@ -1,7 +1,7 @@
 import { logEvent } from '../devtools/log'
 import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { syncOnce, type Note, type RemoteStore } from '@nexus/core'
+import { noteConflictCopy, syncOnce, type Note, type RemoteStore } from '@nexus/core'
 import type { NotesStore } from '../state/notesStore'
 
 export type SyncStatus =
@@ -139,9 +139,13 @@ export class SyncEngine {
     this.set({ status: 'syncing', error: null })
     try {
       await this.store.ready
-      const report = await syncOnce(this.store, this.remote!)
+      const report = await syncOnce(this.store, this.remote!, { conflictCopy: (loser, winner) => noteConflictCopy(loser, winner) })
       this.set({ status: 'synced', lastSyncedAt: Date.now(), pending: this.store.dirtyIds().length })
-      reportSync('notes', 'Notities', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
+      if (report.copies > 0) {
+        const n = report.copies
+        reportSync('notes', 'Notities', 'merged', `${n === 1 ? 'Een notitie was' : `${n} notities waren`} op twee apparaten tegelijk bewerkt. De nieuwste versie blijft staan; de andere vind je als "(conflictkopie)" in Notities.`)
+        logEvent('sync', `${n} conflictkopie${n === 1 ? '' : 'ën'} van notities bewaard`)
+      } else reportSync('notes', 'Notities', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
     } catch (err) {
       const offline = !navigator.onLine
       this.set({
