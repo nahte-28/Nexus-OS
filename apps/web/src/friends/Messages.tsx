@@ -3,7 +3,7 @@ import { conversations, DM_TEXT_MAX, type DirectMessage, type FriendEntry } from
 import { setOpenConversation, type DirectMessages } from './dm'
 import { onOutboxSent, sendOrQueue, useOutbox } from '../offline/outbox'
 import { QueuedMessages } from '../offline/QueuedMessages'
-import type { Birthdays } from './birthdays'
+import type { Birthdays } from './birthdaysApi'
 import { SystemInbox } from './Birthdays'
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))

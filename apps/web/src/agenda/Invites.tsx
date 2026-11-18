@@ -3,7 +3,7 @@ import { canInvite, type FreeSlot, INVITE_MAX_FRIENDS, INVITE_STATUS_LABELS, inv
 import { useFeature } from '../features/store'
 import { Friends } from '../friends/friends'
 import { supabase } from '../sync/supabase'
-import { invitesApi, useInvites } from './invites'
+import { invitesApi, useInvites } from './invitesApi'
 import { findFreeMoments, setFreeBusyShares, useFreeBusy } from '../friends/freeBusy'
 import { lifeStore } from '../life/store'
 
