@@ -20,6 +20,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
+    date: '2026-11-18',
+    title: 'Verjaardagen',
+    items: [
+      'Op je verjaardag stuurt NEXUS je om 8 uur een bericht "Gelukkige verjaardag", in Vrienden › Berichten en als melding op je gsm.',
+      'In Vrienden zie je wanneer je vrienden jarig zijn, en op de dag zelf krijg je een seintje om ze te feliciteren.',
+      'Vrienden zien alleen de dag en de maand, nooit het jaar. Bij Profielen › Over jou kun je dat uitzetten.',
+      'Hiervoor is eenmalig een SQL-stap nodig (Account › Database-check).',
+    ],
+  },
+  {
     date: '2026-11-17',
     title: 'Alle accounts in Beheer',
     items: [

@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { deviceSummary, lastActive, sortAdminTeams, type AdminOverview } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { Admin as AdminApi } from '../admin/admin'
+import { Birthdays } from '../friends/birthdays'
+import { AdminBirthdays } from '../friends/Birthdays'
 
 const defaultApi = supabase ? new AdminApi(supabase) : null
+const defaultBirthdays = supabase ? new Birthdays(supabase) : null
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 const day = (t: number | null) => (t === null ? '–' : new Date(t).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' }))
 const SHOWN = 20
@@ -20,7 +23,7 @@ function Stat({ label, value, detail }: { label: string; value: number | string;
 }
 
 /** Beheer: for the owner of this NEXUS, how many people use it, who is online and what goes wrong. */
-export function Admin({ api = defaultApi }: { api?: AdminApi | null }) {
+export function Admin({ api = defaultApi, birthdays = defaultBirthdays }: { api?: AdminApi | null; birthdays?: Birthdays | null }) {
   const [data, setData] = useState<AdminOverview | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -94,6 +97,8 @@ export function Admin({ api = defaultApi }: { api?: AdminApi | null }) {
           </section>
 
           <Accounts data={data} />
+
+          {birthdays && <AdminBirthdays api={birthdays} />}
 
           <section className="space-y-2">
             <h3 className="font-medium">Samen</h3>
