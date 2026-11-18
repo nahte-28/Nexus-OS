@@ -2,6 +2,7 @@ import { cleanMessage, DM_DEVICES_MAX, DM_TEXT_MAX, encryptFor, openText, sealTe
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ConnectEngine } from '../connect/engine'
 import { logEvent } from '../devtools/log'
+import { flushOutbox, registerOutboxSender } from '../offline/outbox'
 import { eventBus } from '../events/bus'
 import { showLocalNotification } from '../platform/notify'
 import { friendError } from './friends'
@@ -146,8 +147,11 @@ export function startDmNotices(client: SupabaseClient | null, sealer: Sealer, en
       logEvent('sync', `Privéberichten: melding lukte niet: ${err instanceof Error ? err.message : err}`, true)
     }
   }
+  // Messages written offline go out from here, also when the app with the conversation is closed.
+  const stopOutbox = registerOutboxSender('dm', { owner: () => me, send: (item) => dms.send(item.target, item.text) })
   const listen = (userId: string | null) => {
     me = userId
+    if (userId) void flushOutbox()
     stop?.()
     stop = userId ? dms.watch((m, e) => void onMessage(m, e)) : null
   }
@@ -157,6 +161,7 @@ export function startDmNotices(client: SupabaseClient | null, sealer: Sealer, en
   })
   return () => {
     stop?.()
+    stopOutbox()
     data.subscription.unsubscribe()
   }
 }

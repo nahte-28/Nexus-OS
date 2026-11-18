@@ -79,6 +79,22 @@ describe('Teamchat', () => {
     expect(await screen.findByText('Top, bedankt')).toBeTruthy()
   })
 
+  it('keeps a message written without internet waiting, and can cancel it', async () => {
+    const { chat } = fakeChat(start)
+    chat.send.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    localStorage.setItem('nexus.teams.tab', 'Chat')
+    render(<Teams api={fakeTeams()} chat={chat} />)
+    const field = await screen.findByLabelText('Bericht')
+    fireEvent.change(field, { target: { value: 'Straks online' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    const waiting = await screen.findByRole('list', { name: 'Berichten die wachten' })
+    expect(within(waiting).getByText('Straks online')).toBeTruthy()
+    expect(within(waiting).getByText(/Wacht op internet/)).toBeTruthy()
+    expect((field as HTMLTextAreaElement).value).toBe('')
+    fireEvent.click(within(waiting).getByRole('button', { name: 'Annuleren' }))
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Berichten die wachten' })).toBeNull())
+  })
+
   it('removes only your own messages as a member, any as an admin', async () => {
     const own: TeamMessage = { id: 'm', groupId: 'g1', userId: ME, body: 'Typfout', createdAt: Date.now() }
     localStorage.setItem('nexus.teams.tab', 'Chat')
