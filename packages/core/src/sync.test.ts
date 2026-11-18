@@ -116,3 +116,68 @@ describe('syncOnce', () => {
     expect(pc.dirty.has('a')).toBe(true)
   })
 })
+
+describe('syncOnce with conflict copies', () => {
+  let n = 0
+  const copy = (loser: Rec, winner: Rec): Rec | null =>
+    loser.deletedAt !== null || loser.text === winner.text ? null : { id: `kopie-${++n}`, text: `${loser.text} (kopie)`, updatedAt: 100 + n, deletedAt: null }
+  const opts = { conflictCopy: copy }
+
+  async function shared() {
+    const server = new FakeServer()
+    const pc = new Device()
+    const phone = new Device()
+    pc.edit('a', 'oud', 1)
+    await syncOnce(pc, server, opts)
+    await syncOnce(phone, server, opts)
+    return { server, pc, phone }
+  }
+
+  it('keeps the older edit as a copy on the device that loses', async () => {
+    const { server, pc, phone } = await shared()
+    pc.edit('a', 'pc', 5)
+    phone.edit('a', 'gsm', 9)
+    await syncOnce(phone, server, opts)
+    const report = await syncOnce(pc, server, opts)
+    await syncOnce(phone, server, opts)
+    expect(report.copies).toBe(1)
+    expect(pc.records.get('a')?.text).toBe('gsm')
+    const texts = (d: Device) => d.all().map((r) => r.text).sort()
+    expect(texts(pc)).toEqual(['gsm', 'pc (kopie)'])
+    expect(texts(phone)).toEqual(['gsm', 'pc (kopie)'])
+    expect(pc.dirty.size).toBe(0)
+  })
+
+  it('keeps the server version as a copy when the newer edit syncs last', async () => {
+    const { server, pc, phone } = await shared()
+    phone.edit('a', 'gsm', 5)
+    await syncOnce(phone, server, opts)
+    pc.edit('a', 'pc', 9)
+    const report = await syncOnce(pc, server, opts)
+    await syncOnce(phone, server, opts)
+    expect(report.copies).toBe(1)
+    expect(server.rows.get('a')?.rec.text).toBe('pc')
+    expect(phone.all().map((r) => r.text).sort()).toEqual(['gsm (kopie)', 'pc'])
+  })
+
+  it('makes no copy without a conflict or for identical text', async () => {
+    const { server, pc, phone } = await shared()
+    pc.edit('a', 'nieuw', 5)
+    expect((await syncOnce(pc, server, opts)).copies).toBe(0)
+    await syncOnce(phone, server, opts)
+    pc.edit('a', 'zelfde', 7)
+    phone.edit('a', 'zelfde', 8)
+    await syncOnce(phone, server, opts)
+    expect((await syncOnce(pc, server, opts)).copies).toBe(0)
+    expect(pc.all()).toHaveLength(1)
+  })
+
+  it('does not copy an own upload back on the next round', async () => {
+    const { server, pc } = await shared()
+    pc.edit('a', 'een', 5)
+    await syncOnce(pc, server, opts)
+    pc.edit('a', 'twee', 6)
+    expect((await syncOnce(pc, server, opts)).copies).toBe(0)
+    expect(pc.all()).toHaveLength(1)
+  })
+})

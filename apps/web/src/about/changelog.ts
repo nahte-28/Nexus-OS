@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-18',
+    title: 'Geen notitiewerk meer kwijt',
+    items: [
+      'Bewerk je dezelfde notitie op twee apparaten voor ze konden synchroniseren, dan blijft de nieuwste versie staan en wordt de andere bewaard als een aparte notitie met "(conflictkopie)" in de titel.',
+      'Het Offline-centrum meldt wanneer dat gebeurde, zodat je de twee versies kunt vergelijken.',
+    ],
+  },
+  {
     date: '2026-11-17',
     title: 'Alle accounts in Beheer',
     items: [
