@@ -1,27 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { isDesktopApp } from '../platform/desktop'
 import { useSync } from '../sync/SyncContext'
-import type { SyncState } from '../sync/engine'
 import { DatabaseCheck } from '../account/DatabaseCheck'
 import { missingSupabaseEnv, supabase } from '../sync/supabase'
 import { AboutMe } from '../profiles/AboutMe'
 
-export function statusText(state: SyncState): string {
-  switch (state.status) {
-    case 'unconfigured':
-      return 'Alleen op dit apparaat'
-    case 'signed-out':
-      return 'Niet aangemeld'
-    case 'syncing':
-      return 'Bezig met synchroniseren…'
-    case 'synced':
-      return state.pending > 0 ? `${state.pending} wijziging(en) in wachtrij` : 'Gesynchroniseerd'
-    case 'offline':
-      return state.pending > 0 ? `Offline · ${state.pending} wijziging(en) in wachtrij` : 'Offline'
-    case 'error':
-      return 'Synchroniseren mislukt'
-  }
-}
+import { statusText } from '../sync/statusText'
+
+export { statusText }
 
 type Mode = 'login' | 'signup'
 

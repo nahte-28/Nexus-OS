@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { addToInbox, CAPTURE_TARGET_LABELS, DEFAULT_REMIND, guessCaptureKind, liveTemplates, logCapture, parseCapture, type CaptureKind, type CaptureTarget } from '@nexus/core'
-import { MicIcon, QuickNoteIcon } from '../apps/icons'
+import { MicIcon } from '../apps/icons'
 import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
 import { isDesktopApp, isLinuxApp } from '../platform/desktop'
 import { useFeature } from '../features/store'
 import { capturesStore, useCaptures } from './hub'
-import { captureState, closeCapture, openCapture } from './open'
+import { captureState, closeCapture } from './open'
 import { appendSpoken, speechSupported, startDictation, type Dictation } from './speech'
 
 const KINDS: CaptureTarget[] = ['note', 'deadline', 'reminder']
@@ -19,33 +19,7 @@ const toLocalInput = (t: number) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** Opens Snelle notitie on Alt+N (or Ctrl+Shift+Space) from anywhere in NEXUS. */
-export function useCaptureShortcut() {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN') || (e.ctrlKey && e.shiftKey && !e.altKey && e.code === 'Space')) {
-        e.preventDefault()
-        openCapture()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
-}
-
-export function CaptureButton({ className = '' }: { className?: string }) {
-  return (
-    <button
-      type="button"
-      aria-label="Snelle notitie (Alt+N)"
-      title="Snelle notitie (Alt+N)"
-      onClick={() => openCapture()}
-      className={`grid size-10 place-items-center rounded-lg text-nx-muted hover:bg-nx-surface-2 ${className}`}
-    >
-      <QuickNoteIcon className="size-5" />
-    </button>
-  )
-}
+export { CaptureButton, useCaptureShortcut } from './QuickCaptureHost'
 
 /**
  * Saves one capture where it belongs; returns where, for the message. With Snel vastleggen on,

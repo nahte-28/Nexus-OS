@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { groupApps, type AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
-import { WhatsNew } from '../shell/WhatsNew'
 import { AskName } from '../shell/AskName'
 import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
 import { ErrorBoundary } from '../devtools/ErrorBoundary'
 import { Dashboard } from '../profiles/Dashboard'
-import { CaptureButton, QuickCapture, useCaptureShortcut } from '../capture/QuickCapture'
+import { CaptureButton, QuickCaptureHost, useCaptureShortcut } from '../capture/QuickCaptureHost'
 import { Tour } from '../onboarding/Tour'
-import { SearchButton, SearchPalette, useSearchShortcut } from '../search/SearchPalette'
+import { SearchButton, useSearchShortcut } from '../search/SearchButton'
+
+// Loads when you open it, not with the app grid.
+// After an update; it carries the whole changelog, so it loads after the first screen.
+const WhatsNew = lazy(() => import('../shell/WhatsNew').then((m) => ({ default: m.WhatsNew })))
+const SearchPalette = lazy(() => import('../search/SearchPalette').then((m) => ({ default: m.SearchPalette })))
 
 /** Phone layout: app grid, full-screen apps and a bottom navigation bar. */
 export function MobileShell() {
@@ -67,11 +71,17 @@ export function MobileShell() {
         <CaptureButton className="size-11" />
         <SearchButton onClick={openSearch} className="size-11" />
       </header>
-      {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={switchTo} />}
+      {searching && (
+        <Suspense fallback={null}>
+          <SearchPalette onClose={() => setSearching(false)} onOpenApp={switchTo} />
+        </Suspense>
+      )}
       <Tour onOpenApp={switchTo} />
-      <QuickCapture />
+      <QuickCaptureHost />
       <OfflineBanner bottom={80} />
-      <WhatsNew bottom={80} />
+      <Suspense fallback={null}>
+        <WhatsNew bottom={80} />
+      </Suspense>
       <AskName top={72} />
 
       <main className="min-h-0 flex-1 overflow-auto">

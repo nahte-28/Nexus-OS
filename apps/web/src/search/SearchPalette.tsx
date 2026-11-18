@@ -16,10 +16,10 @@ import {
   type SearchResult,
 } from '@nexus/core'
 import { useVisibleApps } from '../apps/registry'
+import { SearchIcon } from '../apps/icons'
 import { useFeature } from '../features/store'
 import { runCommand } from '../launcher/commands'
 import { launcherStore, useLauncher } from '../launcher/store'
-import { SearchIcon } from '../apps/icons'
 import { filesStore } from '../files/store'
 import { useVault } from '../vault/store'
 import { lifeStore } from '../life/store'
@@ -27,33 +27,7 @@ import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
 import { reveal } from './reveal'
 
-/** Opens the search window on Ctrl+K / Cmd+K from anywhere. */
-export function useSearchShortcut(open: () => void) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        open()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open])
-}
-
-export function SearchButton({ onClick, className = '' }: { onClick: () => void; className?: string }) {
-  return (
-    <button
-      type="button"
-      aria-label="Zoeken (Ctrl+K)"
-      title="Zoeken (Ctrl+K)"
-      onClick={onClick}
-      className={`grid size-10 place-items-center rounded-lg text-nx-muted hover:bg-nx-surface-2 ${className}`}
-    >
-      <SearchIcon className="size-5" />
-    </button>
-  )
-}
+export { SearchButton, useSearchShortcut } from './SearchButton'
 
 type LauncherTab = 'Recent' | 'Vastgezet' | 'Opdrachten'
 const LAUNCHER_TABS: LauncherTab[] = ['Recent', 'Vastgezet', 'Opdrachten']
