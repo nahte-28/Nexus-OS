@@ -1,22 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { groupApps, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
-import { WhatsNew } from '../shell/WhatsNew'
 import { AskName } from '../shell/AskName'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
-import { QuickCapture, useCaptureShortcut } from '../capture/QuickCapture'
+import { QuickCaptureHost, useCaptureShortcut } from '../capture/QuickCaptureHost'
 import { Tour } from '../onboarding/Tour'
-import { SearchPalette, useSearchShortcut } from '../search/SearchPalette'
+import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { toggleGroup, useFoldedGroups } from './sidebarGroups'
 
 export const SIDEBAR_WIDTH = 224
+
+// Loads when you open it (Ctrl+K), not with the desktop.
+// After an update; it carries the whole changelog, so it loads after the first screen.
+const WhatsNew = lazy(() => import('../shell/WhatsNew').then((m) => ({ default: m.WhatsNew })))
+const SearchPalette = lazy(() => import('../search/SearchPalette').then((m) => ({ default: m.SearchPalette })))
 
 export function Desktop() {
   const { state, dispatch } = useWindows()
@@ -59,11 +63,17 @@ export function Desktop() {
         </main>
       </div>
       <Taskbar onOpenApp={openApp} onSearch={openSearch} />
-      {searching && <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />}
+      {searching && (
+        <Suspense fallback={null}>
+          <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />
+        </Suspense>
+      )}
       <Tour onOpenApp={openApp} />
-      <QuickCapture />
+      <QuickCaptureHost />
       <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
-      <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
+      <Suspense fallback={null}>
+        <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
+      </Suspense>
       <AskName />
     </div>
   )

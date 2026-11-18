@@ -72,7 +72,7 @@ describe('App shell', () => {
     })
   })
 
-  it('finds a note with Ctrl+K and opens it in Notities', () => {
+  it('finds a note with Ctrl+K and opens it in Notities', async () => {
     mockViewport(false)
     renderApp()
     fireEvent.click(screen.getAllByRole('button', { name: 'Notities' })[0])
@@ -83,7 +83,8 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sluiten' }))
 
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
-    const box = screen.getByRole('combobox', { name: 'Zoek overal' })
+    // The search window loads when it opens for the first time.
+    const box = await screen.findByRole('combobox', { name: 'Zoek overal' })
     fireEvent.change(box, { target: { value: 'wiskunde hoofdstuk' } })
     expect(within(screen.getByRole('group', { name: 'Notities' })).getAllByRole('option').map((o) => o.textContent)).toEqual([
       expect.stringContaining('Wiskunde examen'),
@@ -102,7 +103,7 @@ describe('App shell', () => {
     setFeature('launcher', true)
     renderApp()
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
-    expect(screen.getByRole('dialog', { name: 'Launcher' })).toBeTruthy()
+    expect(await screen.findByRole('dialog', { name: 'Launcher' })).toBeTruthy()
     expect(screen.getByRole('tab', { name: 'Recent' }).getAttribute('aria-selected')).toBe('true')
     const box = screen.getByRole('combobox', { name: 'Zoek overal' })
     fireEvent.change(box, { target: { value: 'back-up' } })

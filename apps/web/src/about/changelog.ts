@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-18',
+    title: 'NEXUS start sneller',
+    items: [
+      'Bij het openen laadt NEXUS een kwart minder code voor het eerste scherm. Dat merk je vooral op je gsm en bij een trage verbinding.',
+      'Synchroniseren, herinneringen en meldingen starten meteen na het eerste scherm in plaats van ervoor. Zoeken (Ctrl+K), Snelle notitie en "NEXUS is bijgewerkt" laden pas wanneer je ze nodig hebt.',
+    ],
+  },
+  {
+    date: '2026-11-18',
     title: 'Berichten versturen zonder internet',
     items: [
       'Schrijf je een privébericht of een bericht in de teamchat zonder internet, dan wacht het op dit toestel en gaat het vanzelf weg zodra je weer online bent, in de volgorde waarin je schreef.',
