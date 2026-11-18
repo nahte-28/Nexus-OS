@@ -19,12 +19,12 @@ describe('about you and the School or Werk profile', () => {
   })
 
   it('keeps what you typed, trimmed, and survives parsing and a first sync', () => {
-    let s = setAbout(applyRole(defaultProfilesState(), 'other'), { name: '  Jan ', place: 'Thuis', birthday: '1958-04-02' })
-    expect(s.about).toEqual({ name: 'Jan', role: 'other', place: 'Thuis', birthday: '1958-04-02' })
+    let s = setAbout(applyRole(defaultProfilesState(), 'other'), { name: '  Jan ', place: 'Thuis', birthday: '1958-04-02', shareBirthday: true })
+    expect(s.about).toEqual({ name: 'Jan', role: 'other', place: 'Thuis', birthday: '1958-04-02', shareBirthday: true })
     s = setAbout(s, { birthday: 'gisteren' })
     expect(s.about.birthday).toBe('')
     expect(parseProfilesState(JSON.parse(JSON.stringify(s))).about.name).toBe('Jan')
-    expect(parseProfilesState({}).about).toEqual({ name: '', role: null, place: '', birthday: '' })
+    expect(parseProfilesState({}).about).toEqual({ name: '', role: null, place: '', birthday: '', shareBirthday: true })
     const fresh = { ...defaultProfilesState(), revision: 5 }
     expect(mergeFirstSync({ ...s, revision: 1 }, fresh).about.name).toBe('Jan')
   })

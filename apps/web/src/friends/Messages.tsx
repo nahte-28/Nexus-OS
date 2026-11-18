@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { conversations, DM_TEXT_MAX, type DirectMessage, type FriendEntry } from '@nexus/core'
 import { setOpenConversation, type DirectMessages } from './dm'
+import type { Birthdays } from './birthdays'
+import { SystemInbox } from './Birthdays'
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -14,7 +16,7 @@ const merge = (a: DirectMessage[], b: DirectMessage[]): DirectMessage[] => {
 }
 
 /** Vrienden › Berichten: your conversations with friends, end-to-end encrypted. */
-export function Messages({ dms, me, friends, sealed }: { dms: DirectMessages; me: string; friends: FriendEntry[]; sealed: boolean }) {
+export function Messages({ dms, me, friends, sealed, system = null }: { dms: DirectMessages; me: string; friends: FriendEntry[]; sealed: boolean; system?: Birthdays | null }) {
   const [all, setAll] = useState<DirectMessage[]>([])
   const [open, setOpen] = useState<string | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
@@ -56,6 +58,7 @@ export function Messages({ dms, me, friends, sealed }: { dms: DirectMessages; me
         <Conversation dms={dms} me={me} friend={friend} all={all} setAll={setAll} onBack={() => setOpen(null)} setProblem={setProblem} />
       ) : (
         <>
+          {system && <SystemInbox api={system} onOpenFriend={setOpen} canOpen={(id) => accepted.some((f) => f.userId === id)} />}
           <p className="text-xs text-nx-muted">Berichten zijn end-to-end versleuteld: alleen jullie toestellen kunnen ze lezen, NEXUS zelf niet.</p>
           {accepted.length === 0 && <p className="text-nx-muted">Voeg eerst een vriend toe bij Vrienden.</p>}
           <ul className="space-y-1">

@@ -929,9 +929,11 @@ export interface AboutMe {
   place: string
   /** YYYY-MM-DD, or empty. */
   birthday: string
+  /** Whether friends see the day and month (never the year); on unless you turn it off. */
+  shareBirthday: boolean
 }
 
-export const EMPTY_ABOUT: AboutMe = { name: '', role: null, place: '', birthday: '' }
+export const EMPTY_ABOUT: AboutMe = { name: '', role: null, place: '', birthday: '', shareBirthday: true }
 const MAX_ABOUT = 60
 
 function parseAbout(raw: unknown): AboutMe {
@@ -943,6 +945,7 @@ function parseAbout(raw: unknown): AboutMe {
     role: LIFE_ROLES.includes(a.role as LifeRole) ? (a.role as LifeRole) : null,
     place: text(a.place),
     birthday: typeof a.birthday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.birthday) ? a.birthday : '',
+    shareBirthday: a.shareBirthday !== false,
   }
 }
 

@@ -149,6 +149,21 @@
     var fallback = { title: 'NEXUS', options: { body: 'Je hebt een herinnering. Open NEXUS om ze te lezen.', icon: '/icon-192.png', tag: 'nexus-push' } }
     if (!data || typeof data !== 'object') return fallback
     if (data.extra && typeof data.extra === 'object' && (data.extra.kind === 'dm' || data.extra.kind === 'team')) return messageNotice(data, data.extra)
+    // A message from NEXUS itself, such as "Gelukkige verjaardag" (20261118090000_birthdays.sql).
+    if (data.extra && typeof data.extra === 'object' && data.extra.kind === 'system') {
+      var sysTag = typeof data.extra.tag === 'string' ? data.extra.tag.slice(0, 300) : 'nexus-system'
+      return {
+        title: typeof data.extra.title === 'string' && data.extra.title ? data.extra.title.slice(0, 120) : 'NEXUS',
+        options: {
+          body: typeof data.extra.text === 'string' ? data.extra.text.slice(0, 1000) : 'Je hebt een bericht van NEXUS.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          tag: sysTag,
+          timestamp: Date.now(),
+          data: { url: '/', ref: sysTag },
+        },
+      }
+    }
     var tag = typeof data.ref === 'string' ? data.ref.slice(0, 300) : 'nexus-push'
     fallback.options.tag = tag
     try {

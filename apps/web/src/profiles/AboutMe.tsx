@@ -38,6 +38,13 @@ export function AboutMe() {
         Verjaardag (mag leeg)
         <input type="date" className={`${field} w-auto`} value={about.birthday} onChange={(e) => profilesStore.update((s) => setAbout(s, { birthday: e.target.value }))} />
       </label>
+      {about.birthday && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={about.shareBirthday} onChange={(e) => profilesStore.update((s) => setAbout(s, { shareBirthday: e.target.checked }))} />
+          Vrienden zien je verjaardag (dag en maand, nooit het jaar)
+        </label>
+      )}
+      {about.birthday && <p className="text-xs text-nx-muted">Op je verjaardag krijg je een bericht van NEXUS. 🎉</p>}
       {about.role && (
         <p className="text-sm text-nx-muted">
           {about.role === 'student'

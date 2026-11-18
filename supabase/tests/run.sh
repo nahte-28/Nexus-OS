@@ -36,6 +36,7 @@ psql -f "$here/free_busy.sql"
 psql -f "$here/card_duels.sql"
 psql -f "$here/admin_names.sql"
 psql -f "$here/admin_users.sql"
+psql -f "$here/birthdays.sql"
 # Every migration may run again (Database-check pastes them all at once), also with the test data above.
 for file in "$here"/../migrations/*.sql; do
   sed -E '/create extension if not exists (pg_net|pg_cron)/d' "$file" | psql -f - >/dev/null 2>&1 || {
