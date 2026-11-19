@@ -1,4 +1,4 @@
-import webpush from 'web-push'
+import { sendNotification } from 'web-push'
 import { cors, env, json } from './_shared.js'
 
 /**
@@ -105,7 +105,7 @@ export async function POST(request: Request): Promise<Response> {
   const results = await Promise.all(
     pushes.map(async (p) => {
       try {
-        const response = await webpush.sendNotification({ endpoint: p.endpoint, keys: { p256dh: p.p256dh, auth: p.auth } }, JSON.stringify(p.payload), options)
+        const response = await sendNotification({ endpoint: p.endpoint, keys: { p256dh: p.p256dh, auth: p.auth } }, JSON.stringify(p.payload), options)
         return response.statusCode
       } catch (err) {
         // 404 or 410: the browser dropped the subscription; NEXUS on the phone subscribes again when opened.
