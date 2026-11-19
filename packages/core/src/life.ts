@@ -184,6 +184,30 @@ export function parseAppointment(input: unknown): { ok: true; value: Appointment
   }
 }
 
+const COPY_SUFFIX = ' (conflictkopie)'
+
+/**
+ * The same deadline or appointment was changed on two devices before they synced. The newest
+ * version stays; this keeps the other as its own item, with "(conflictkopie)" in the title. Only a
+ * different title, time, place or note is worth a copy: a lost tick or reminder setting is not.
+ * Projects are never copied, an empty project next to the real one helps nobody. When both stay,
+ * the copy rings no reminders, or the same moment would ring twice.
+ */
+export function lifeConflictCopy(loser: LifeItem, winner: LifeItem, now: number = Date.now(), id: string = crypto.randomUUID()): LifeItem | null {
+  if (loser.deletedAt !== null || loser.kind === 'project' || winner.kind !== loser.kind) return null
+  const winnerLive = winner.deletedAt === null
+  const copy = { ...loser, id, title: `${loser.title.slice(0, MAX_TITLE - COPY_SUFFIX.length)}${COPY_SUFFIX}`, updatedAt: now, deletedAt: null, remind: winnerLive ? [] : loser.remind }
+  if (loser.kind === 'deadline') {
+    const w = winner as Deadline
+    if (winnerLive && loser.title === w.title && loser.dueAt === w.dueAt && loser.notes === w.notes) return null
+    return copy as Deadline
+  }
+  const w = winner as Appointment
+  if (winnerLive && loser.title === w.title && loser.startAt === w.startAt && loser.endAt === w.endAt && loser.location === w.location && loser.notes === w.notes) return null
+  // Next to the series that stays, a copy keeps only the moment itself, not every repeat.
+  return { ...(copy as Appointment), repeat: winnerLive ? null : (loser.repeat ?? null) }
+}
+
 const localDay = (t: number) => {
   const d = new Date(t)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`

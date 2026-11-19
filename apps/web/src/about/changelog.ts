@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-19',
+    title: 'Geen werk meer kwijt in de Agenda',
+    items: [
+      'Pas je dezelfde deadline of afspraak aan op twee apparaten voor ze konden synchroniseren, dan blijft de nieuwste versie staan en wordt de andere bewaard met "(conflictkopie)" in de titel. Zo raak je geen titel, tijdstip, plaats of notitie meer kwijt.',
+      'Zo\'n kopie stuurt geen herinneringen zolang het origineel er nog staat, zodat je niet twee keer een melding krijgt. Een kopie van een herhaalde afspraak geldt alleen voor dat ene moment.',
+    ],
+  },
+  {
     date: '2026-11-18',
     title: 'Onderdelen bijgewerkt',
     items: [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { agendaDay, appointmentRef, deadlineNotices, parseAppointment, deadlineRef, openDeadlines, parseDeadline, plannedDeadlineNotices, projectProgress, toLifeItem, type Appointment, type Deadline, type Project } from './life'
+import { agendaDay, appointmentRef, lifeConflictCopy, deadlineNotices, parseAppointment, deadlineRef, openDeadlines, parseDeadline, plannedDeadlineNotices, projectProgress, toLifeItem, type Appointment, type Deadline, type Project } from './life'
 
 const H = 60 * 60_000
 const deadline = (over: Partial<Deadline> = {}): Deadline => ({
@@ -104,5 +104,48 @@ describe('NEXUS Life', () => {
     expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(3)).map((e) => e.title)).toEqual(['Tandarts', 'Uitstap'])
     expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(4)).map((e) => [e.title, e.at])).toEqual([['Uitstap', day(4)]])
     expect(agendaDay({ calendarEvents: [], timetable: [], items: [a, trip], reminders: [] }, day(5))).toEqual([])
+  })
+})
+
+describe('lifeConflictCopy', () => {
+  const appt = (over: Partial<Appointment> = {}): Appointment => ({
+    kind: 'appointment',
+    id: 'a1',
+    title: 'Tandarts',
+    startAt: 10 * H,
+    endAt: 11 * H,
+    location: 'Gent',
+    notes: '',
+    remind: [60],
+    target: 'phone',
+    repeat: { freq: 'weekly', interval: 1, days: [], until: null, except: [] },
+    updatedAt: 1,
+    deletedAt: null,
+    ...over,
+  })
+
+  it('keeps a deadline whose title or time was lost, without reminders next to the one that stays', () => {
+    const copy = lifeConflictCopy(deadline({ title: 'Verslag labo 3', updatedAt: 2 }), deadline({ dueAt: 5, updatedAt: 3 }), 9, 'c1')
+    expect(copy).toMatchObject({ id: 'c1', kind: 'deadline', title: 'Verslag labo 3 (conflictkopie)', remind: [], updatedAt: 9, deletedAt: null })
+  })
+
+  it('keeps the reminders when the other device deleted it', () => {
+    expect(lifeConflictCopy(deadline({ notes: 'bijlage', updatedAt: 2 }), deadline({ deletedAt: 3, updatedAt: 3 }), 9, 'c1')).toMatchObject({ remind: [24 * 60, 60] })
+  })
+
+  it('makes no copy for a tick, a reminder setting, a deletion that lost, or a project', () => {
+    expect(lifeConflictCopy(deadline({ doneAt: 2, remind: [60] }), deadline({ updatedAt: 3 }))).toBeNull()
+    expect(lifeConflictCopy(deadline({ deletedAt: 2 }), deadline({ title: 'x' }))).toBeNull()
+    expect(lifeConflictCopy({ ...project, name: 'A' }, { ...project, name: 'B' })).toBeNull()
+  })
+
+  it('copies an appointment as one moment next to the series, and keeps the title short enough', () => {
+    const copy = lifeConflictCopy(appt({ location: 'Brugge', title: 'x'.repeat(160) }), appt(), 9, 'c1') as Appointment
+    expect(copy.repeat).toBeNull()
+    expect(copy.location).toBe('Brugge')
+    expect(copy.title).toHaveLength(160)
+    expect(copy.title.endsWith(' (conflictkopie)')).toBe(true)
+    expect(toLifeItem(copy)).toEqual(copy)
+    expect(lifeConflictCopy(appt({ remind: [] }), appt())).toBeNull()
   })
 })
