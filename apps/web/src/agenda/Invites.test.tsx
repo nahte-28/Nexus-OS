@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { inviteCopyId, type AppointmentInvite } from '@nexus/core'
 import { lifeStore } from '../life/store'
-import { setInvitesApi, setInvitesState, syncInvites, type AppointmentInvites } from './invites'
+import { setInvitesApi, setInvitesState, syncInvites, type AppointmentInvites } from './invitesApi'
 import { InviteFriends, InviteInbox } from './Invites'
 import { setFreeBusyApi, type FreeBusy } from '../friends/freeBusy'
 

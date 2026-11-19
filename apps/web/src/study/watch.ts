@@ -1,7 +1,7 @@
 import { togetherForWatch, type ActionPayload, type PlanTogether, type TogetherSession } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logEvent } from '../devtools/log'
-import { logTogether, markJoined, StudyTogether } from './together'
+import { logTogether, markJoined, StudyTogether } from './togetherApi'
 
 /**
  * Samen studeren on the watch: this device keeps the open sessions of your friends and teammates,

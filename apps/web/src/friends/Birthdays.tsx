@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { birthdayWhen, upcomingFriendBirthdays, type FriendBirthdayRow, type SystemMessage } from '@nexus/core'
-import { setSystemUnread, type Birthdays } from './birthdays'
+import { setSystemUnread, type Birthdays } from './birthdaysApi'
 
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))

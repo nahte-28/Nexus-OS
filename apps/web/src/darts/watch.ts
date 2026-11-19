@@ -1,7 +1,7 @@
 import { dartsForWatch, onlineWon, type ActionPayload, type PlanDartsGame } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logEvent } from '../devtools/log'
-import { DartsOnline, saveOnlineToHistory } from './online'
+import { DartsOnline, saveOnlineToHistory } from './onlineApi'
 
 /**
  * Darts online on the watch: this device keeps your matches that are being played, and the safety

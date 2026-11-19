@@ -20,7 +20,7 @@ import {
 } from '@nexus/core'
 import { Friends } from '../friends/friends'
 import { supabase } from '../sync/supabase'
-import { DartsOnline, saveOnlineToHistory } from './online'
+import { DartsOnline, saveOnlineToHistory } from './onlineApi'
 import { Ranking } from './Ranking'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'

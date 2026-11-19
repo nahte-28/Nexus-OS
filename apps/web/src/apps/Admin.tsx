@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { deviceSummary, lastActive, sortAdminTeams, type AdminOverview } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { Admin as AdminApi } from '../admin/admin'
-import { Birthdays } from '../friends/birthdays'
+import { Birthdays } from '../friends/birthdaysApi'
 import { AdminBirthdays } from '../friends/Birthdays'
 
 const defaultApi = supabase ? new AdminApi(supabase) : null

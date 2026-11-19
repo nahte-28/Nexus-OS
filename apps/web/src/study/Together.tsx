@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { TOGETHER_BREAK, TOGETHER_FOCUS, TOGETHER_POLL_MS, TOGETHER_TITLE_MAX, togetherClock, togetherPhase, type TogetherSession } from '@nexus/core'
 import { supabase } from '../sync/supabase'
-import { logTogether, markJoined, StudyTogether } from './together'
+import { logTogether, markJoined, StudyTogether } from './togetherApi'
 import { showTogetherOnWatch } from './watch'
 
 const defaultApi = supabase ? new StudyTogether(supabase) : null

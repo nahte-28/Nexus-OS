@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-18',
+    title: 'Onderdelen bijgewerkt',
+    items: [
+      'NEXUS draait op nieuwere versies van React, Supabase, Vite en de onderdelen van de Windows-app, met hun bugfixes. Je hoeft niets te doen.',
+      'De Windows-app bouwt weer: vier bestanden hadden namen die alleen in hoofdletters verschilden, en Windows haalde die door elkaar.',
+    ],
+  },
+  {
+    date: '2026-11-18',
     title: 'NEXUS start sneller',
     items: [
       'Bij het openen laadt NEXUS een kwart minder code voor het eerste scherm. Dat merk je vooral op je gsm en bij een trage verbinding.',

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { DirectMessage, FriendEntry, SystemMessage } from '@nexus/core'
-import type { Birthdays } from './birthdays'
+import type { Birthdays } from './birthdaysApi'
 import type { DirectMessages } from './dm'
 
 const { AdminBirthdays, FriendBirthdays } = await import('./Birthdays')

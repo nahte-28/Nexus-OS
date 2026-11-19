@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { TogetherSession } from '@nexus/core'
-import { logTogether, markJoined, togetherError, type StudyTogether } from './together'
+import { logTogether, markJoined, togetherError, type StudyTogether } from './togetherApi'
 import { Together } from './Together'
 import { FocusStore } from './timer'
 

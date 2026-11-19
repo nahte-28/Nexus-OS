@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { OnlineGame } from '@nexus/core'
 import { Online } from './Online'
-import type { DartsOnline } from './online'
+import type { DartsOnline } from './onlineApi'
 import { dartsStore } from './store'
 
 const game = (patch: Partial<OnlineGame> = {}): OnlineGame => ({ id: 'g1', side: 1, players: ['Remo', 'Ethan'], mode: 101, legsToWin: 1, setsToWin: 1, doubleOut: true, status: 'invited', visits: [], createdAt: 1, updatedAt: 2, ...patch })
