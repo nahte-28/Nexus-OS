@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-19',
+    title: 'NEXUS opent nog sneller',
+    items: [
+      'Het onderdeel voor je account en synchronisatie (ongeveer een vijfde van wat NEXUS bij het openen laadt) komt nu pas binnen nadat het eerste scherm er staat. Je notities, agenda en apps zijn er dus sneller, vooral op je gsm.',
+    ],
+  },
+  {
+    date: '2026-11-19',
     title: 'Geen werk meer kwijt in de Agenda',
     items: [
       'Pas je dezelfde deadline of afspraak aan op twee apparaten voor ze konden synchroniseren, dan blijft de nieuwste versie staan en wordt de andere bewaard met "(conflictkopie)" in de titel. Zo raak je geen titel, tijdstip, plaats of notitie meer kwijt.',

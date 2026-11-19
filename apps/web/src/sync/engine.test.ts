@@ -83,6 +83,35 @@ describe('SyncEngine', () => {
     stopPhone()
   })
 
+  it('loads the account only when it starts, and builds the remote from it', async () => {
+    const server = new FakeServer()
+    const store = new NotesStore()
+    await store.ready
+    store.add()
+    const load = vi.fn(async () => fakeClient(true))
+    const makeRemote = vi.fn(() => server)
+    const engine = new SyncEngine(load, store, makeRemote)
+    expect(engine.getSnapshot().status).toBe('signed-out')
+    expect(load).not.toHaveBeenCalled()
+    const stop = engine.start()
+    await settle(engine)
+    expect(engine.getSnapshot().status).toBe('synced')
+    expect(makeRemote).toHaveBeenCalledTimes(1)
+    expect(server.rows.size).toBe(1)
+    stop()
+  })
+
+  it('does nothing with an account that loads after it already stopped', async () => {
+    let resolve: (c: SupabaseClient) => void = () => {}
+    const client = fakeClient(true)
+    const getSession = vi.spyOn(client.auth, 'getSession')
+    const engine = new SyncEngine(() => new Promise((r) => (resolve = r)), new NotesStore(), () => new FakeServer())
+    engine.start()()
+    resolve(client)
+    await new Promise((r) => setTimeout(r, 0))
+    expect(getSession).not.toHaveBeenCalled()
+  })
+
   it('keeps changes queued while offline and sends them once back online', async () => {
     const server = new FakeServer()
     server.online = false

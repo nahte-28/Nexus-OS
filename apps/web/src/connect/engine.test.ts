@@ -95,6 +95,20 @@ describe('ConnectEngine', () => {
     stopAgain()
   })
 
+  it('loads the account and builds the remote only once it starts', async () => {
+    const remote = new FakeRemote()
+    const load = vi.fn(async () => fakeClient())
+    const engine = new ConnectEngine(load, () => remote, () => {})
+    expect(engine.getSnapshot().status).toBe('signed-out')
+    expect(load).not.toHaveBeenCalled()
+    const stop = engine.start()
+    await ready(engine)
+    expect(engine.getSnapshot().status).toBe('ready')
+    expect(remote.devices).toHaveLength(1)
+    stop()
+    expect(new ConnectEngine(null, () => remote).getSnapshot().status).toBe('unconfigured')
+  })
+
   it('receives an encrypted notification from the phone and keeps it only locally', async () => {
     const remote = new FakeRemote()
     const notified: InboxItem[] = []
