@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { CommentTarget, GroupMember, TaskComment } from '@nexus/core'
 import type { TaskComments } from './comments'
 
 const { TaskCommentThread } = await import('./TaskCommentsPanel')
 const { commentError } = await import('./comments')
+const { flushOutbox, registerOutboxSender, resetOutbox } = await import('../offline/outbox')
 
 const ME = 'me'
 const members: GroupMember[] = [
@@ -31,7 +32,31 @@ function fake(start: TaskComment[]) {
 }
 
 describe('Opmerkingen', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    resetOutbox()
+    localStorage.clear()
+  })
+
+  it('keeps an opmerking written without internet waiting, and shows it once it went out', async () => {
+    const api = fake([])
+    api.add.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    render(<TaskCommentThread api={api} groupId="g" target={target} members={members} me={ME} role="member" />)
+    await screen.findByText(/Nog geen opmerkingen/)
+    const field = screen.getByLabelText('Opmerking') as HTMLTextAreaElement
+    fireEvent.change(field, { target: { value: 'Klaar @Remo', selectionStart: 11 } })
+    fireEvent.click(screen.getByRole('button', { name: 'Plaatsen' }))
+    const waiting = await screen.findByRole('list', { name: 'Berichten die wachten' })
+    expect(within(waiting).getByText('Klaar @Remo')).toBeTruthy()
+    expect(field.value).toBe('')
+
+    // Back online: the sender of startMentionNotices sends it, with the mention.
+    registerOutboxSender('comment', { owner: () => ME, send: (item) => api.add('g', target, item.text, item.mentions ?? []) })
+    await flushOutbox()
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Berichten die wachten' })).toBeNull())
+    expect(api.add).toHaveBeenLastCalledWith('g', target, 'Klaar @Remo', ['r'])
+    expect((await screen.findByText('@Remo')).tagName).toBe('STRONG')
+  })
 
   it('suggests a member after @ and sends the mention along', async () => {
     const api = fake([{ id: 'a', groupId: 'g', target, userId: 'r', body: 'Hoe ver staat het, @Ethan?', mentions: [ME], createdAt: Date.now() - 1000 }])

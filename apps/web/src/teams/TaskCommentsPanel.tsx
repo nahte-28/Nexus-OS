@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   commentCounts,
+  commentOutboxTarget,
   completeMention,
   findMentions,
   memberName,
@@ -14,6 +15,8 @@ import {
   type TaskComment,
   type TeamRole,
 } from '@nexus/core'
+import { onOutboxSent, sendOrQueue, useOutbox } from '../offline/outbox'
+import { QueuedMessages } from '../offline/QueuedMessages'
 import type { TaskComments } from './comments'
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
@@ -76,6 +79,10 @@ export function TaskCommentThread({
   const [busy, setBusy] = useState(false)
   const field = useRef<HTMLTextAreaElement>(null)
   const { kind, taskId } = target
+  const outboxTarget = commentOutboxTarget(groupId, { kind, taskId } as CommentTarget)
+  const queued = useOutbox('comment', me, outboxTarget)
+  const changed = useRef(onChange)
+  changed.current = onChange
 
   useEffect(() => {
     let live = true
@@ -86,9 +93,18 @@ export function TaskCommentThread({
     const stop = api.watch(groupId, (c) => {
       if (c.target.taskId === taskId) setComments((old) => (old?.some((o) => o.id === c.id) ? old : [...(old ?? []), c]))
     })
+    // A waiting opmerking went out: it shows in the list right away.
+    const stopSent = onOutboxSent((item, result) => {
+      if (item.kind === 'comment' && item.target === commentOutboxTarget(groupId, { kind, taskId } as CommentTarget) && result && typeof result === 'object' && 'id' in result) {
+        const c = result as TaskComment
+        setComments((old) => (old?.some((o) => o.id === c.id) ? old : [...(old ?? []), c]))
+        changed.current?.()
+      }
+    })
     return () => {
       live = false
       stop()
+      stopSent()
     }
   }, [api, groupId, kind, taskId])
 
@@ -109,8 +125,10 @@ export function TaskCommentThread({
     if (!text.trim() || busy) return
     setBusy(true)
     try {
-      const added = await api.add(groupId, target, text, findMentions(text, members, me))
-      setComments((old) => (old?.some((o) => o.id === added.id) ? old : [...(old ?? []), added]))
+      const mentions = findMentions(text, members, me)
+      // Without internet it waits on this device and goes out by itself, in the order written.
+      const added = await sendOrQueue('comment', me, outboxTarget, text, () => api.add(groupId, target, text, mentions), mentions)
+      if (added !== 'queued') setComments((old) => (old?.some((o) => o.id === added.id) ? old : [...(old ?? []), added]))
       setText('')
       setCaret(0)
       setProblem(null)
@@ -178,6 +196,7 @@ export function TaskCommentThread({
           </li>
         ))}
       </ul>
+      <QueuedMessages items={queued} />
       <div className="relative">
         {suggestions.length > 0 && (
           <ul role="listbox" aria-label="Vermelden" className="absolute bottom-full left-0 z-10 mb-1 w-56 rounded-md border border-nx-border bg-nx-surface p-1 shadow">

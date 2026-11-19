@@ -5,12 +5,13 @@ import { readStorage, writeStorage } from '../state/storage'
 import { refreshChannels, registerChannel, reportSync } from './channels'
 
 /**
- * Berichten die wachten op internet. A privébericht or teamchat message written without a
+ * Berichten die wachten op internet. A privébericht, teamchat message or opmerking written without a
  * connection waits here, on this device only, and goes out in order once NEXUS is online again:
  * on the 'online' event, every minute, and via "Nu syncen" in the Offline-centrum.
  */
 
 const KEY = 'nexus.outbox'
+const KIND_LABEL: Record<OutboxKind, string> = { dm: 'privébericht', team: 'teamchat', comment: 'opmerking' }
 const RETRY_MS = 60_000
 
 export interface OutboxSender {
@@ -59,10 +60,10 @@ export function useOutbox(kind: OutboxKind, owner: string | undefined, target: s
 }
 const NONE: OutboxItem[] = []
 
-export function queueMessage(kind: OutboxKind, owner: string, target: string, text: string, at = Date.now()): OutboxItem {
-  const item: OutboxItem = { id: crypto.randomUUID(), kind, owner, target, text, createdAt: at, error: null }
+export function queueMessage(kind: OutboxKind, owner: string, target: string, text: string, at = Date.now(), mentions?: string[]): OutboxItem {
+  const item: OutboxItem = { id: crypto.randomUUID(), kind, owner, target, text, createdAt: at, error: null, ...(mentions ? { mentions } : {}) }
   set(addToOutbox(items, item))
-  logEvent('sync', `Bericht wacht op internet (${kind === 'dm' ? 'privébericht' : 'teamchat'})`)
+  logEvent('sync', `Bericht wacht op internet (${KIND_LABEL[kind]})`)
   return item
 }
 
@@ -82,7 +83,7 @@ const isOnline = () => typeof navigator === 'undefined' || navigator.onLine !== 
  * Tries to send now, or queues when there is no connection: resolves to what [send] returned,
  * or to 'queued'. A refusal from the server is thrown, so the person sees why, and nothing waits.
  */
-export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: string, text: string, send: () => Promise<T>): Promise<T | 'queued'> {
+export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: string, text: string, send: () => Promise<T>, mentions?: string[]): Promise<T | 'queued'> {
   const online = isOnline()
   // Behind older waiting messages of this conversation too, so the order stays as written.
   if (online && !items.some((i) => i.owner === owner && i.kind === kind && i.target === target && i.error === null)) {
@@ -92,7 +93,7 @@ export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: st
       if (!isNetworkFailure(err, isOnline())) throw err
     }
   }
-  queueMessage(kind, owner, target, text)
+  queueMessage(kind, owner, target, text, Date.now(), mentions)
   if (online) void flushOutbox()
   return 'queued'
 }
@@ -131,7 +132,7 @@ async function run(): Promise<void> {
   if (readStorage(KEY) !== null) items = load()
   let sent = 0
   let refused = 0
-  for (const kind of ['dm', 'team'] as const) {
+  for (const kind of ['dm', 'team', 'comment'] as const) {
     const sender = senders.get(kind)
     const owner = sender?.owner()
     if (!sender || !owner) continue
@@ -152,7 +153,7 @@ async function run(): Promise<void> {
       }
     }
   }
-  if (refused > 0) reportSync('outbox', 'Berichten', 'failed', `${refused} bericht${refused === 1 ? '' : 'en'} niet verstuurd: bekijk ze in het gesprek.`)
+  if (refused > 0) reportSync('outbox', 'Berichten', 'failed', `${refused} bericht${refused === 1 ? '' : 'en'} niet verstuurd: bekijk ze in het gesprek of bij de taak.`)
   else if (sent > 0) reportSync('outbox', 'Berichten', 'ok', `${sent} wachtend${sent === 1 ? ' bericht' : 'e berichten'} verstuurd`)
 }
 

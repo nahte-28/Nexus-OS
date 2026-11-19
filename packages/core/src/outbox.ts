@@ -1,21 +1,25 @@
 /**
- * Berichten die wachten op internet: privéberichten and teamchat written while offline stay on
- * this device and are sent, in order, as soon as there is a connection again.
+ * Berichten die wachten op internet: privéberichten, teamchat and opmerkingen written while
+ * offline stay on this device and are sent, in order, as soon as there is a connection again.
  */
+import type { CommentTarget } from './taskComments'
 
-export type OutboxKind = 'dm' | 'team'
+export type OutboxKind = 'dm' | 'team' | 'comment'
+const KINDS: readonly OutboxKind[] = ['dm', 'team', 'comment']
 
 export interface OutboxItem {
   id: string
   kind: OutboxKind
   /** The account that wrote it; another account on this device never sends it. */
   owner: string
-  /** The friend (dm) or team (team). */
+  /** The friend (dm), the team (team), or the task of an opmerking: see [commentOutboxTarget]. */
   target: string
   text: string
   createdAt: number
   /** Set when the server refused it: it then waits for "Opnieuw" instead of retrying by itself. */
   error: string | null
+  /** Who an opmerking mentions (@name). */
+  mentions?: string[]
 }
 
 /** More waiting messages than this and the oldest go: nobody writes fifty messages offline. */
@@ -27,8 +31,9 @@ export function parseOutbox(raw: unknown): OutboxItem[] {
   for (const v of raw) {
     if (typeof v !== 'object' || v === null) continue
     const o = v as Record<string, unknown>
-    if (typeof o.id !== 'string' || (o.kind !== 'dm' && o.kind !== 'team') || typeof o.owner !== 'string' || typeof o.target !== 'string' || typeof o.text !== 'string' || typeof o.createdAt !== 'number') continue
-    out.push({ id: o.id, kind: o.kind, owner: o.owner, target: o.target, text: o.text, createdAt: o.createdAt, error: typeof o.error === 'string' ? o.error : null })
+    if (typeof o.id !== 'string' || !KINDS.includes(o.kind as OutboxKind) || typeof o.owner !== 'string' || typeof o.target !== 'string' || typeof o.text !== 'string' || typeof o.createdAt !== 'number') continue
+    const mentions = Array.isArray(o.mentions) ? o.mentions.filter((m): m is string => typeof m === 'string') : null
+    out.push({ id: o.id, kind: o.kind as OutboxKind, owner: o.owner, target: o.target, text: o.text, createdAt: o.createdAt, error: typeof o.error === 'string' ? o.error : null, ...(mentions ? { mentions } : {}) })
   }
   return out.sort((a, b) => a.createdAt - b.createdAt)
 }
@@ -55,4 +60,15 @@ export function isNetworkFailure(err: unknown, online: boolean): boolean {
   if (!online) return true
   const text = err instanceof Error ? err.message : typeof err === 'object' && err !== null && 'message' in err ? String((err as { message: unknown }).message) : String(err)
   return /failed to fetch|fetch failed|networkerror|network request failed|load failed|geen verbinding|timed? ?out|ERR_INTERNET|ERR_NETWORK/i.test(text)
+}
+
+/** An opmerking waits for one task: the team and the task in one outbox target. */
+export function commentOutboxTarget(groupId: string, target: CommentTarget): string {
+  return `${groupId}/${target.kind}/${target.taskId}`
+}
+
+export function parseCommentOutboxTarget(value: string): { groupId: string; target: CommentTarget } | null {
+  const [groupId, kind, taskId, ...rest] = value.split('/')
+  if (!groupId || !taskId || rest.length > 0 || (kind !== 'project' && kind !== 'group')) return null
+  return { groupId, target: { kind, taskId } }
 }
