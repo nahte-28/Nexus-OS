@@ -267,7 +267,7 @@ export class AssistantSession {
       return null
     }
     // The full content goes back on the next request, thinking blocks included, unchanged.
-    this.history.push({ role: 'assistant', content: message.content as MessageParam['content'] })
+    this.history.push({ role: 'assistant', content: message.content as Anthropic.Beta.BetaMessageContentParam })
     const text = message.content
       .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
       .map((b) => b.text)
