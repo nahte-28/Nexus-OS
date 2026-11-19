@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLOW_TEMPLATES, type FlowContext, type FlowDefinition, type StoredFlow } from '@nexus/core'
 import { tickFlows, type FlowEffects } from './runner'
 import { FlowsStore, type FlowRun } from './store'
@@ -71,7 +71,13 @@ function effects(sync: FlowsSync, device: string): FlowEffects & { calls: string
 }
 
 describe('flows sync', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    // The runs happen on a fixed day; the clock stands there too, or they fall out of the 30 days of history.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(now + 60_000)
+  })
+  afterEach(() => vi.useRealTimers())
 
   it('brings a flow, its deletion and the settings from the PC to the phone', async () => {
     const account = fakeAccount()
