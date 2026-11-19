@@ -1,5 +1,5 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { syncOnce, toLifeItem, type LifeItem, type PullResult, type RemoteStore } from '@nexus/core'
+import { lifeConflictCopy, syncOnce, toLifeItem, type LifeItem, type PullResult, type RemoteStore } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import { lifeStore, type LifeStore } from './store'
@@ -114,10 +114,14 @@ export function startLifeSync(client: SupabaseClient | null, store: LifeStore = 
     running = (async () => {
       try {
         await store.ready
-        const report = await syncOnce(store, remote)
+        const report = await syncOnce(store, remote, { conflictCopy: (loser, winner) => lifeConflictCopy(loser, winner) })
         lifeSyncProblem.set(null)
         if (report.pushed || report.applied) logEvent('sync', `Agenda: ${report.pushed} verstuurd, ${report.applied} binnengehaald`)
-        reportSync('life', 'Agenda', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
+        if (report.copies > 0) {
+          const n = report.copies
+          reportSync('life', 'Agenda', 'merged', `${n === 1 ? 'Een deadline of afspraak was' : `${n} deadlines of afspraken waren`} op twee apparaten tegelijk bewerkt. De nieuwste versie blijft staan; de andere vind je als "(conflictkopie)" in de Agenda.`)
+          logEvent('sync', `${n} conflictkopie${n === 1 ? '' : 'ën'} in de Agenda bewaard`)
+        } else reportSync('life', 'Agenda', 'ok', `${report.pushed} verstuurd, ${report.applied} binnengehaald`, Date.now(), !report.pushed && !report.applied)
       } catch (err) {
         lifeSyncProblem.set(problemText(err))
         reportSync('life', 'Agenda', 'failed', problemText(err))
