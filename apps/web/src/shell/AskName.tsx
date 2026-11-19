@@ -3,22 +3,44 @@ import { FRIEND_NAME_MAX } from '@nexus/core'
 import { Friends } from '../friends/friends'
 import { profilesStore } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
-import { supabase } from '../sync/supabase'
+import { loadSupabase, supabaseConfigured } from '../sync/config'
 
 type Api = Pick<Friends, 'me' | 'profile' | 'setName'>
 
-const defaultApi: Api | null = supabase ? new Friends(supabase) : null
+interface AuthEvents {
+  onAuthStateChange(listener: (event: string) => void): { data: { subscription: { unsubscribe(): void } } }
+}
+
+/** The real account, loaded with the Supabase library after the first screen. */
+async function loadDefault(): Promise<{ api: Api; auth: AuthEvents } | null> {
+  const client = await loadSupabase()
+  return client ? { api: new Friends(client), auth: client.auth } : null
+}
+
 const laterKey = (user: string) => `nexus.askName.${user}`
 
 /**
  * After signing in without a name: asks once how you want to be called. Friends, teams and the
  * administrator see that name instead of "Zonder naam". Later hides the question on this device.
  */
-export function AskName({ api = defaultApi, top = 12 }: { api?: Api | null; top?: number }) {
+export function AskName({ api: given, top = 12 }: { api?: Api | null; top?: number }) {
+  const [loaded, setLoaded] = useState<{ api: Api; auth: AuthEvents } | null>(null)
+  const api = given === undefined ? (loaded?.api ?? null) : given
   const [user, setUser] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (given !== undefined || !supabaseConfigured) return
+    let live = true
+    void loadDefault()
+      .then((d) => live && setLoaded(d))
+      .catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [given])
 
   useEffect(() => {
     if (!api) return
@@ -36,14 +58,14 @@ export function AskName({ api = defaultApi, top = 12 }: { api?: Api | null; top?
       }
     }
     void check()
-    const sub = supabase?.auth.onAuthStateChange((event) => {
+    const sub = loaded?.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') void check()
     })
     return () => {
       live = false
       sub?.data.subscription.unsubscribe()
     }
-  }, [api])
+  }, [api, loaded])
 
   if (!api || !user) return null
   const save = async () => {

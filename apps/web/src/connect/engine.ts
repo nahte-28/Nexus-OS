@@ -95,15 +95,30 @@ export class ConnectEngine {
   private again = false
   private bridgeHandler: ((batch: BridgeBatch) => void | Promise<void>) | null = null
 
+  private client: SupabaseClient | null
+  private remote: ConnectRemote | null
+  private readonly loadClient: (() => Promise<SupabaseClient | null>) | null
+  private readonly makeRemote: (client: SupabaseClient) => ConnectRemote | null
+
+  /**
+   * `client` may be a loader: the Supabase library then only loads when [start] runs, after the
+   * first screen. `remote` is then built from the client once it is there.
+   */
   constructor(
-    private client: SupabaseClient | null,
-    private remote: ConnectRemote | null,
+    client: SupabaseClient | null | (() => Promise<SupabaseClient | null>),
+    remote: ConnectRemote | null | ((client: SupabaseClient) => ConnectRemote),
     private notify: (item: InboxItem) => void = showSystemNotification,
     /** Something done on another device, e.g. a deadline ticked off on the watch. */
     private onAction: (action: ActionPayload) => void | Promise<void> = () => undefined,
   ) {
+    const lazy = typeof client === 'function'
+    this.client = lazy ? null : client
+    this.remote = typeof remote === 'function' ? null : remote
+    this.makeRemote = typeof remote === 'function' ? remote : () => remote
+    const configured = lazy ? remote !== null : client !== null && remote !== null
+    this.loadClient = !configured ? null : lazy ? client : () => Promise.resolve(client)
     this.state = {
-      status: client && remote ? 'signed-out' : 'unconfigured',
+      status: configured ? 'signed-out' : 'unconfigured',
       device: null,
       devices: [],
       inbox: [],
@@ -115,8 +130,21 @@ export class ConnectEngine {
   start(): () => void {
     void this.loadInbox()
     const { client } = this
-    if (!client || !this.remote) return () => this.stop()
+    if (client && this.remote) this.listen(client)
+    else if (this.loadClient) {
+      let stopped = false
+      this.cleanups.push(() => (stopped = true))
+      void this.loadClient().then((loaded) => {
+        if (stopped || !loaded) return
+        this.client = loaded
+        this.remote ??= this.makeRemote(loaded)
+        if (this.remote) this.listen(loaded)
+      })
+    }
+    return () => this.stop()
+  }
 
+  private listen(client: SupabaseClient): void {
     void client.auth.getSession().then(({ data }) => this.setSession(data.session))
     const { data } = client.auth.onAuthStateChange((_event, session) => this.setSession(session))
     this.cleanups.push(() => data.subscription.unsubscribe())
@@ -135,7 +163,6 @@ export class ConnectEngine {
       document.removeEventListener('visibilitychange', onVisible)
       clearInterval(poll)
     })
-    return () => this.stop()
   }
 
   private stop(): void {
@@ -151,7 +178,7 @@ export class ConnectEngine {
       this.stopListening?.()
       this.stopListening = null
       this.identity = null
-      if (this.client) this.set({ status: 'signed-out', device: null, devices: [] })
+      if (this.loadClient) this.set({ status: 'signed-out', device: null, devices: [] })
       return
     }
     if (session.user.id !== previous) void this.connect()

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { reportText } from '@nexus/core'
-import { supabase } from '../sync/supabase'
+import { loadSupabase } from '../sync/config'
 import { makeReport, REPORT_MIGRATION, sendReport, type SendResult } from './report'
 
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -19,7 +19,9 @@ export function ReportButton({ app, error, note, onSent }: { app: string; error:
 
   const send = async () => {
     setState('sending')
-    const result = await sendReport(supabase, makeReport(app, error, note)).catch((): SendResult => 'failed')
+    const result = await loadSupabase()
+      .then((client) => sendReport(client, makeReport(app, error, note)))
+      .catch((): SendResult => 'failed')
     setState(result)
     if (result === 'sent') onSent?.()
   }

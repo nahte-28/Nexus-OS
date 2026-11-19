@@ -37,13 +37,26 @@ export class SyncEngine {
   private cleanups: Array<() => void> = []
   private signOutHooks: Array<() => Promise<void>> = []
 
+  private client: SupabaseClient | null
+  private remote: RemoteStore<Note> | null
+  private readonly loadClient: (() => Promise<SupabaseClient | null>) | null
+  private readonly makeRemote: (client: SupabaseClient) => RemoteStore<Note> | null
+
+  /**
+   * `client` may be a loader: the Supabase library then only loads when [start] runs, after the
+   * first screen. `remote` may likewise be built from the client once it is there.
+   */
   constructor(
-    private client: SupabaseClient | null,
+    client: SupabaseClient | null | (() => Promise<SupabaseClient | null>),
     private store: NotesStore,
-    private remote: RemoteStore<Note> | null,
+    remote: RemoteStore<Note> | null | ((client: SupabaseClient) => RemoteStore<Note>),
   ) {
+    this.client = typeof client === 'function' ? null : client
+    this.loadClient = typeof client === 'function' ? client : client ? () => Promise.resolve(client) : null
+    this.remote = typeof remote === 'function' ? null : remote
+    this.makeRemote = typeof remote === 'function' ? remote : () => remote
     this.state = {
-      status: client ? 'signed-out' : 'unconfigured',
+      status: this.loadClient ? 'signed-out' : 'unconfigured',
       email: null,
       lastSyncedAt: null,
       pending: store.dirtyIds().length,
@@ -63,8 +76,21 @@ export class SyncEngine {
         if (pending > 0) this.schedule()
       }),
     )
-    if (!client) return () => this.stop()
+    if (client) this.listen(client)
+    else if (this.loadClient) {
+      let stopped = false
+      this.cleanups.push(() => (stopped = true))
+      void this.loadClient().then((loaded) => {
+        if (stopped || !loaded) return
+        this.client = loaded
+        this.remote ??= this.makeRemote(loaded)
+        this.listen(loaded)
+      })
+    }
+    return () => this.stop()
+  }
 
+  private listen(client: SupabaseClient): void {
     void client.auth.getSession().then(({ data }) => this.setSession(data.session))
     const { data } = client.auth.onAuthStateChange((_event, session) => this.setSession(session))
     this.cleanups.push(() => data.subscription.unsubscribe())
@@ -88,8 +114,6 @@ export class SyncEngine {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () => void this.syncNow())
       .subscribe()
     this.cleanups.push(() => void client.removeChannel(channel))
-
-    return () => this.stop()
   }
 
   private stop(): void {
@@ -156,14 +180,19 @@ export class SyncEngine {
     }
   }
 
-  private requireClient(): SupabaseClient {
-    if (!this.client) throw new Error('Synchronisatie is niet ingesteld.')
-    return this.client
+  private async requireClient(): Promise<SupabaseClient> {
+    const client = this.client ?? (await this.loadClient?.())
+    if (!client) throw new Error('Synchronisatie is niet ingesteld.')
+    return client
+  }
+
+  private async auth(): Promise<SupabaseClient['auth']> {
+    return (await this.requireClient()).auth
   }
 
   /** Emails a one-time login link. */
   async signIn(email: string): Promise<void> {
-    const { error } = await this.requireClient().auth.signInWithOtp({
+    const { error } = await (await this.auth()).signInWithOtp({
       email,
       // A trailing slash is needed to match redirect patterns like https://*.vercel.app/**.
       options: { emailRedirectTo: `${window.location.origin}/` },
@@ -172,13 +201,13 @@ export class SyncEngine {
   }
 
   async signInWithPassword(email: string, password: string): Promise<void> {
-    const { error } = await this.requireClient().auth.signInWithPassword({ email, password })
+    const { error } = await (await this.auth()).signInWithPassword({ email, password })
     if (error) throw new Error(authErrorText(error.message))
   }
 
   /** Creates an account; resolves to true when the project still wants the email confirmed first. */
   async signUp(email: string, password: string): Promise<{ needsConfirmation: boolean }> {
-    const { data, error } = await this.requireClient().auth.signUp({
+    const { data, error } = await (await this.auth()).signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/` },
@@ -193,7 +222,7 @@ export class SyncEngine {
 
   /** Sets or changes the password of the signed-in account, e.g. one created via a login link. */
   async setPassword(password: string): Promise<void> {
-    const { error } = await this.requireClient().auth.updateUser({ password })
+    const { error } = await (await this.auth()).updateUser({ password })
     if (error) throw new Error(authErrorText(error.message))
   }
 
@@ -210,7 +239,7 @@ export class SyncEngine {
 
   /** Ends the sessions on every other device; this one stays signed in. */
   async signOutOthers(): Promise<void> {
-    const { error } = await this.requireClient().auth.signOut({ scope: 'others' })
+    const { error } = await (await this.auth()).signOut({ scope: 'others' })
     if (error) throw new Error(authErrorText(error.message))
   }
 
@@ -224,13 +253,14 @@ export class SyncEngine {
    * ends the sessions on every other device (Sentinel › Sessies).
    */
   async signOut(scope: 'local' | 'global' = 'local'): Promise<void> {
-    if (!this.client) return
+    if (!this.loadClient) return
+    const client = await this.requireClient()
     await this.syncNow()
     for (const hook of this.signOutHooks) await hook()
     if (scope === 'global') {
-      const { error } = await this.client.auth.signOut({ scope: 'global' })
+      const { error } = await client.auth.signOut({ scope: 'global' })
       if (error) throw new Error(authErrorText(error.message))
-    } else await this.client.auth.signOut()
+    } else await client.auth.signOut()
     await this.store.reset()
     this.set({ lastSyncedAt: null })
   }

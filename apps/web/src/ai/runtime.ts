@@ -4,7 +4,7 @@ import { lifeStore } from '../life/store'
 import { apiBase } from '../platform/desktop'
 import { remindersStore } from '../reminders/store'
 import { notesStore } from '../state/notesStore'
-import { supabase } from '../sync/supabase'
+import { loadSupabase } from '../sync/config'
 import { aiContextStore, approvalLog } from './context'
 import { AssistantSession, httpTransport } from './session'
 
@@ -17,7 +17,7 @@ export function bindTheme(setTheme: (theme: ThemeId) => void): void {
 
 /** One conversation for the whole app, so closing the window does not lose it. */
 export const assistant = new AssistantSession(
-  httpTransport(apiBase, async () => (await supabase?.auth.getSession())?.data.session?.access_token ?? null),
+  httpTransport(apiBase, async () => (await (await loadSupabase())?.auth.getSession())?.data.session?.access_token ?? null),
   () => ({
     notes: notesStore,
     reminders: remindersStore,
