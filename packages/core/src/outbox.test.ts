@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addToOutbox, isNetworkFailure, OUTBOX_MAX, outboxDue, outboxFor, parseOutbox, type OutboxItem } from './outbox'
+import { addToOutbox, commentOutboxTarget, isNetworkFailure, OUTBOX_MAX, outboxDue, outboxFor, parseCommentOutboxTarget, parseOutbox, type OutboxItem } from './outbox'
 
 const item = (id: string, at: number, extra: Partial<OutboxItem> = {}): OutboxItem => ({ id, kind: 'dm', owner: 'me', target: 'vriend', text: `bericht ${id}`, createdAt: at, error: null, ...extra })
 
@@ -28,5 +28,17 @@ describe('outbox', () => {
     expect(isNetworkFailure({ message: 'TypeError: Load failed' }, true)).toBe(true)
     expect(isNetworkFailure(new Error('Geen verbinding met de server.'), true)).toBe(true)
     expect(isNetworkFailure(new Error('Je vriend heeft nog geen toestel met NEXUS'), true)).toBe(false)
+  })
+})
+
+describe('opmerkingen in the outbox', () => {
+  it('keeps the team, the task and the mentions of a waiting opmerking', () => {
+    const target = commentOutboxTarget('g1', { kind: 'project', taskId: 't1' })
+    expect(parseCommentOutboxTarget(target)).toEqual({ groupId: 'g1', target: { kind: 'project', taskId: 't1' } })
+    expect(parseCommentOutboxTarget('g1/other/t1')).toBeNull()
+    expect(parseCommentOutboxTarget('g1/group')).toBeNull()
+    const [item] = parseOutbox([{ id: 'c', kind: 'comment', owner: 'me', target, text: 'klaar?', createdAt: 1, error: null, mentions: ['u2', 3] }])
+    expect(item).toMatchObject({ kind: 'comment', mentions: ['u2'] })
+    expect(parseOutbox([{ id: 'x', kind: 'mail', owner: 'me', target, text: 'x', createdAt: 1 }])).toEqual([])
   })
 })

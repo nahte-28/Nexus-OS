@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-19',
+    title: 'Opmerkingen zonder internet',
+    items: [
+      'Schrijf je een opmerking bij een taak in Teams of Studiegroep zonder internet, dan wacht ze op dit toestel en gaat ze vanzelf weg zodra je weer online bent, met je @vermeldingen erbij.',
+      'Onder de taak zie je welke opmerkingen nog wachten. Je kunt ze annuleren, en een opmerking die de server weigerde opnieuw proberen.',
+    ],
+  },
+  {
+    date: '2026-11-19',
     title: 'NEXUS opent nog sneller',
     items: [
       'Het onderdeel voor je account en synchronisatie (ongeveer een vijfde van wat NEXUS bij het openen laadt) komt nu pas binnen nadat het eerste scherm er staat. Je notities, agenda en apps zijn er dus sneller, vooral op je gsm.',

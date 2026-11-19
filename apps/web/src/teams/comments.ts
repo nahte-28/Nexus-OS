@@ -1,7 +1,8 @@
-import { mentionNotice, MENTIONS_MAX, TASK_COMMENT_MAX, type CommentTarget, type TaskComment } from '@nexus/core'
+import { mentionNotice, MENTIONS_MAX, parseCommentOutboxTarget, TASK_COMMENT_MAX, type CommentTarget, type TaskComment } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logEvent } from '../devtools/log'
 import { eventBus } from '../events/bus'
+import { flushOutbox, registerOutboxSender } from '../offline/outbox'
 import { showLocalNotification } from '../platform/notify'
 import { teamError } from './teams'
 
@@ -122,8 +123,18 @@ export function startMentionNotices(client: SupabaseClient | null, enabled: () =
     }
   }
 
+  // Opmerkingen written offline go out from here, also when the task is no longer open.
+  const stopOutbox = registerOutboxSender('comment', {
+    owner: () => me,
+    send: async (item) => {
+      const where = parseCommentOutboxTarget(item.target)
+      if (!where) throw new Error('Deze opmerking hoort bij geen taak meer.')
+      return comments.add(where.groupId, where.target, item.text, item.mentions ?? [])
+    },
+  })
   const listen = (userId: string | null) => {
     me = userId
+    if (userId) void flushOutbox()
     stop?.()
     stop = userId ? comments.watch(null, (c) => void onComment(c)) : null
   }
@@ -133,6 +144,7 @@ export function startMentionNotices(client: SupabaseClient | null, enabled: () =
   })
   return () => {
     stop?.()
+    stopOutbox()
     data.subscription.unsubscribe()
   }
 }
