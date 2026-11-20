@@ -26,6 +26,7 @@ import { lifeStore } from '../life/store'
 import { remindersStore } from '../reminders/store'
 import { useNotes } from '../state/useNotes'
 import { reveal } from './reveal'
+import { useMessageSearch } from './messageSearch'
 
 export { SearchButton, useSearchShortcut } from './SearchButton'
 
@@ -68,8 +69,12 @@ export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onO
   // Commands only for apps this profile shows.
   const commands = useMemo(() => LAUNCHER_COMMANDS.filter((c) => appIds.has(c.app)), [appIds])
 
+  const teamsOn = useFeature('teams') && appIds.has('teams')
+  const friendsOn = useFeature('friends') && appIds.has('friends')
+  const messages = useMessageSearch(query, { team: teamsOn, dm: friendsOn })
+
   const results = useMemo(() => {
-    const found = searchAll(query, {
+    const local = searchAll(query, {
       apps: apps.map((a) => ({ id: a.id, title: a.title })),
       notes,
       files,
@@ -77,9 +82,11 @@ export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onO
       reminders,
       actions: appIds.has('finance') ? FINANCE_ACTIONS.map((a) => ({ ...a, app: 'finance' as const })) : [],
     })
+    // Berichten come after the rest: they are found in the background a moment later.
+    const found = [...local, ...messages]
     if (!launcher) return found
     return [...found, ...launcherResults(query, commands)].sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'nl')).slice(0, 50)
-  }, [query, apps, appIds, notes, files, life, reminders, launcher, commands])
+  }, [query, apps, appIds, notes, files, life, reminders, launcher, commands, messages])
 
   /** A recent or pinned item that still exists and may be shown in this profile. */
   const exists = useMemo(() => {
@@ -132,7 +139,8 @@ export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onO
   }
 
   const choose = (r: LauncherRef) => {
-    if (launcher) launcherStore.opened(r)
+    // A message is not kept under Recent: it is found again by searching.
+    if (launcher && r.kind !== 'message') launcherStore.opened(r)
     if (r.kind === 'command') {
       const c = commands.find((x) => x.id === r.id)
       if (c) {

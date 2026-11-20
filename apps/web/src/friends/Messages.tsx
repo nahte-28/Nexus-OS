@@ -18,9 +18,13 @@ const merge = (a: DirectMessage[], b: DirectMessage[]): DirectMessage[] => {
 }
 
 /** Vrienden › Berichten: your conversations with friends, end-to-end encrypted. */
-export function Messages({ dms, me, friends, sealed, system = null }: { dms: DirectMessages; me: string; friends: FriendEntry[]; sealed: boolean; system?: Birthdays | null }) {
+export function Messages({ dms, me, friends, sealed, system = null, openFriend = null }: { dms: DirectMessages; me: string; friends: FriendEntry[]; sealed: boolean; system?: Birthdays | null; openFriend?: { id: string } | null }) {
   const [all, setAll] = useState<DirectMessage[]>([])
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<string | null>(openFriend?.id ?? null)
+  // Zoeken opens a conversation again while Berichten is already open.
+  useEffect(() => {
+    if (openFriend) setOpen(openFriend.id)
+  }, [openFriend])
   const [problem, setProblem] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {

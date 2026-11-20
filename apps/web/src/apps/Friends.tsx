@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { formatFriendCode, FRIEND_NAME_MAX, onlineCount, requestResult, sortFriends, type FriendEntry } from '@nexus/core'
+import { formatFriendCode, FRIEND_NAME_MAX, onlineCount, parseMessageOpen, requestResult, sortFriends, type FriendEntry } from '@nexus/core'
 import { supabase } from '../sync/supabase'
 import { suggestedName } from '../study/group'
 import { clearPendingFriend, Friends as FriendsApi, myFriendLink, pendingFriend, type FriendProfile } from '../friends/friends'
@@ -10,6 +10,7 @@ import { FriendBirthdays } from '../friends/Birthdays'
 import { useSystemUnread } from '../friends/birthdaysApi'
 import { defaultEngine, useConnect } from '../connect/ConnectContext'
 import { readStorage, writeStorage } from '../state/storage'
+import { onReveal, takeReveal } from '../search/reveal'
 import { MyStatus } from '../presence/MyStatus'
 import { defaultPresence, PresenceDot, usePresence } from '../presence/PresenceDot'
 import type { Presence } from '../presence/presence'
@@ -31,7 +32,22 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
   const { state: connect } = useConnect()
   const sealed = connect.status === 'ready'
   const systemUnread = useSystemUnread()
-  const [tab, setTabState] = useState<'Vrienden' | 'Berichten'>(() => (readStorage(TAB_KEY) === 'Berichten' ? 'Berichten' : 'Vrienden'))
+  // Opened from Zoeken on a privébericht: that conversation, under Berichten.
+  const [openFriend, setOpenFriend] = useState<{ id: string } | null>(() => {
+    const found = parseMessageOpen(takeReveal('friends'))
+    return found?.kind === 'dm' ? { id: found.id } : null
+  })
+  const [tab, setTabState] = useState<'Vrienden' | 'Berichten'>(() => (openFriend || readStorage(TAB_KEY) === 'Berichten' ? 'Berichten' : 'Vrienden'))
+  useEffect(
+    () =>
+      onReveal(() => {
+        const found = parseMessageOpen(takeReveal('friends'))
+        if (found?.kind !== 'dm') return
+        setOpenFriend({ id: found.id })
+        setTabState('Berichten')
+      }),
+    [],
+  )
   const setTab = (t: 'Vrienden' | 'Berichten') => {
     setTabState(t)
     writeStorage(TAB_KEY, t)
@@ -162,7 +178,7 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
             ))}
           </div>
           {tab === 'Berichten' ? (
-            dms ? <Messages dms={dms} me={me.id} friends={list} sealed={sealed} system={birthdays} /> : null
+            dms ? <Messages dms={dms} me={me.id} friends={list} sealed={sealed} system={birthdays} openFriend={openFriend} /> : null
           ) : (
             <>
             <section className="space-y-2 rounded-lg border border-nx-border p-3">

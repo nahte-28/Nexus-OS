@@ -29,6 +29,7 @@ import {
   type TeamProjectTask,
   type TeamRole,
   type TaskOutboxAction,
+  parseMessageOpen,
 } from '@nexus/core'
 import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
@@ -39,6 +40,7 @@ import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
 import { TeamChat } from '../teams/chat'
 import { TaskComments } from '../teams/comments'
 import { changeTask } from '../teams/taskQueue'
+import { onReveal, takeReveal } from '../search/reveal'
 import { useOutbox } from '../offline/outbox'
 import { QueuedMessages } from '../offline/QueuedMessages'
 import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
@@ -92,7 +94,9 @@ const EMPTY: TeamData = { members: [], invites: [], projects: [], tasks: [] }
 export function Teams({ api = defaultApi, chat = defaultChat, comments = defaultComments }: { api?: TeamsApi | null; chat?: TeamChat | null; comments?: TaskComments | null }) {
   const [me, setMe] = useState<{ id: string; email: string | undefined } | null | undefined>(undefined)
   const [list, setList] = useState<StudyGroup[] | null>(null)
-  const [picked, setPicked] = useState<string | null>(() => readStorage(PICKED_KEY))
+  // Opened from Zoeken on a teamchat message: that team, on Chat.
+  const [revealed] = useState(() => parseMessageOpen(takeReveal('teams')))
+  const [picked, setPicked] = useState<string | null>(() => (revealed?.kind === 'chat' ? revealed.id : readStorage(PICKED_KEY)))
   const [data, setData] = useState<TeamData>(EMPTY)
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,7 +109,21 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
     if (m !== 'join') clearPendingJoin()
     setModeState(m)
   }
-  const [tab, setTabState] = useState<Tab>(() => (TABS.includes(readStorage(TAB_KEY) as Tab) ? (readStorage(TAB_KEY) as Tab) : 'Projecten'))
+  const [tab, setTabState] = useState<Tab>(() => (revealed?.kind === 'chat' ? 'Chat' : TABS.includes(readStorage(TAB_KEY) as Tab) ? (readStorage(TAB_KEY) as Tab) : 'Projecten'))
+  useEffect(
+    () =>
+      onReveal(() => {
+        const found = parseMessageOpen(takeReveal('teams'))
+        if (found?.kind !== 'chat') return
+        setPicked((was) => {
+          if (was !== found.id) setData(EMPTY)
+          return found.id
+        })
+        writeStorage(PICKED_KEY, found.id)
+        setTabState('Chat')
+      }),
+    [],
+  )
   const setTab = (t: Tab) => {
     setTabState(t)
     writeStorage(TAB_KEY, t)
