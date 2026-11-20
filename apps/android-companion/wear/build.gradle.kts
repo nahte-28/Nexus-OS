@@ -21,7 +21,8 @@ android {
         // compiles the companion's code and adds its own screen. Unused classes (the notification
         // listener) are compiled too but not in the manifest, so they never run. The updater runs
         // here too and takes nexus-watch.apk from the same release.
-        java.srcDirs("../app/src/main/kotlin", "src/main/kotlin")
+        // Built-in Kotlin (AGP 9) compiles only the Kotlin directories, so the companion's code goes here.
+        kotlin.directories += "../app/src/main/kotlin"
         res.srcDirs("../app/src/main/res")
     }
 
