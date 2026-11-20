@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalize, searchAll, type SearchSources } from './search'
+import { messageResults, normalize, searchAll, type SearchableMessage, type SearchSources } from './search'
 import type { Appointment, Deadline, Project } from './life'
 
 const now = Date.UTC(2026, 9, 27, 12)
@@ -56,5 +56,26 @@ describe('Zoeken overal', () => {
   it('returns nothing for an empty query and handles special characters', () => {
     expect(searchAll('   ', sources(), now)).toEqual([])
     expect(searchAll('(c++', sources(), now)).toEqual([])
+  })
+})
+
+describe('searching messages', () => {
+  const at = new Date(2030, 0, 10, 14, 0).getTime()
+  const msgs: SearchableMessage[] = [
+    { id: '1', kind: 'team', where: 'Projectgroep', open: 'chat:g1', from: 'Zoë', text: 'Het verslag moet vrijdag binnen', at },
+    { id: '2', kind: 'dm', where: 'Lars', open: 'dm:f1', from: 'jij', text: 'Heb jij het Verslág al?', at: at + 60_000 },
+    { id: '3', kind: 'team', where: 'Projectgroep', open: 'chat:g1', from: 'Zoë', text: 'Tot morgen', at },
+  ]
+
+  it('finds teamchat and privéberichten, newest first', () => {
+    const found = messageResults('verslag', msgs)
+    expect(found.map((r) => [r.id, r.app])).toEqual([['dm:f1:2', 'friends'], ['chat:g1:1', 'teams']])
+    expect(found[1].title).toBe('Projectgroep: Het verslag moet vrijdag binnen…')
+    expect(found[1].detail).toMatch(/^Zoë · /)
+  })
+
+  it('needs every word', () => {
+    expect(messageResults('verslag morgen', msgs)).toEqual([])
+    expect(messageResults('  ', msgs)).toEqual([])
   })
 })

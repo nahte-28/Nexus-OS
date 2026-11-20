@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-20',
+    title: 'Zoeken in je berichten',
+    items: [
+      'Zoeken vindt nu ook je teamchat en je privéberichten, onder "Berichten". Klik op een resultaat en je komt meteen in die chat of dat gesprek.',
+      'Privéberichten blijven versleuteld: NEXUS opent ze op je eigen toestel en zoekt daar, niet op de server.',
+    ],
+  },
+  {
+    date: '2026-11-20',
     title: 'Herinnering voor teamtaken',
     items: [
       'Staat er in Teams een taak op jouw naam die binnen een dag af moet en nog niet klaar is, dan krijg je een herinnering op je pc en op je gsm en horloge, met de naam van het project erbij.',
