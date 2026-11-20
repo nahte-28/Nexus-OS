@@ -28,6 +28,7 @@ import {
   type TeamProject,
   type TeamProjectTask,
   type TeamRole,
+  type TaskOutboxAction,
 } from '@nexus/core'
 import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
@@ -37,6 +38,9 @@ import { Teams as TeamsApi } from '../teams/teams'
 import { clearPendingJoin, joinLink, pendingJoin } from '../teams/joinLink'
 import { TeamChat } from '../teams/chat'
 import { TaskComments } from '../teams/comments'
+import { changeTask } from '../teams/taskQueue'
+import { useOutbox } from '../offline/outbox'
+import { QueuedMessages } from '../offline/QueuedMessages'
 import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
 import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
 import { PresenceDot, usePresence } from '../presence/PresenceDot'
@@ -163,9 +167,10 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
   const run = async (work: () => Promise<unknown>, after: 'team' | 'list' = 'team') => {
     setBusy(true)
     try {
-      await work()
+      const result = await work()
       setProblem(null)
-      await (after === 'team' ? refreshTeam() : refreshList())
+      // A change that waits on internet: refreshing would only fail.
+      if (result !== 'queued') await (after === 'team' ? refreshTeam() : refreshList())
     } catch (err) {
       setProblem(message(err))
     } finally {
@@ -322,6 +327,8 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
   const mine = myTeamTasks(data.tasks, me)
   const board = project ? teamBoard(data.tasks, project.id) : null
   const projectOf = (id: string) => data.projects.find((p) => p.id === id)?.name ?? ''
+  const queued = useOutbox('task', me, team.id)
+  const update = (t: TeamProjectTask, change: Extract<TaskOutboxAction, { type: 'team.update' }>['change']) => changeTask({ teams: api }, me, team.id, { type: 'team.update', taskId: t.id, change }, t.title)
 
   return (
     <>
@@ -397,9 +404,11 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
                 e.preventDefault()
                 const dueAt = due ? Date.parse(due) : null
                 void run(async () => {
-                  await api.addTask(project, title, assignee, dueAt !== null && Number.isFinite(dueAt) ? dueAt : null)
+                  const action = { type: 'team.add', projectId: project.id, groupId: team.id, title, assignee, dueAt: dueAt !== null && Number.isFinite(dueAt) ? dueAt : null } as const
+                  const result = await changeTask({ teams: api }, me, team.id, action)
                   setTitle('')
                   setDue('')
+                  return result
                 })
               }}
             >
@@ -411,6 +420,7 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
               </button>
             </form>
           )}
+          <QueuedMessages items={queued} label="Taken die wachten" />
           <div className="grid gap-3 md:grid-cols-3">
             {TEAM_TASK_STATUSES.map((status, column) => (
               <div key={status} className="space-y-2 rounded-lg bg-nx-surface-2 p-2" aria-label={TEAM_TASK_STATUS_LABELS[status]} role="group">
@@ -425,7 +435,7 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
                     </p>
                     {edit ? (
                       <div className="flex flex-wrap items-center gap-1">
-                        <AssigneeSelect members={data.members} value={t.assignee} label={`${t.title} voor wie`} disabled={busy} onChange={(a) => void run(() => api.updateTask(t.id, { assignee: a }))} />
+                        <AssigneeSelect members={data.members} value={t.assignee} label={`${t.title} voor wie`} disabled={busy} onChange={(a) => void run(() => update(t, { assignee: a }))} />
                         <input
                           type="datetime-local"
                           aria-label={`${t.title} tegen wanneer`}
@@ -433,17 +443,17 @@ function Projects({ api, comments, team, data, me, role, busy, run }: PartProps 
                           disabled={busy}
                           onBlur={(e) => {
                             const next = e.target.value ? Date.parse(e.target.value) : null
-                            if (next !== t.dueAt && (next === null || Number.isFinite(next))) void run(() => api.updateTask(t.id, { dueAt: next }))
+                            if (next !== t.dueAt && (next === null || Number.isFinite(next))) void run(() => update(t, { dueAt: next }))
                           }}
                           className={`${field} w-auto text-xs`}
                         />
                         {column > 0 && (
-                          <button type="button" className={small} disabled={busy} aria-label={`${t.title} naar ${TEAM_TASK_STATUS_LABELS[TEAM_TASK_STATUSES[column - 1]]}`} onClick={() => void run(() => api.updateTask(t.id, { status: TEAM_TASK_STATUSES[column - 1] }))}>
+                          <button type="button" className={small} disabled={busy} aria-label={`${t.title} naar ${TEAM_TASK_STATUS_LABELS[TEAM_TASK_STATUSES[column - 1]]}`} onClick={() => void run(() => update(t, { status: TEAM_TASK_STATUSES[column - 1] }))}>
                             ←
                           </button>
                         )}
                         {column < 2 && (
-                          <button type="button" className={small} disabled={busy} aria-label={`${t.title} naar ${TEAM_TASK_STATUS_LABELS[TEAM_TASK_STATUSES[column + 1]]}`} onClick={() => void run(() => api.updateTask(t.id, { status: TEAM_TASK_STATUSES[column + 1] }))}>
+                          <button type="button" className={small} disabled={busy} aria-label={`${t.title} naar ${TEAM_TASK_STATUS_LABELS[TEAM_TASK_STATUSES[column + 1]]}`} onClick={() => void run(() => update(t, { status: TEAM_TASK_STATUSES[column + 1] }))}>
                             →
                           </button>
                         )}

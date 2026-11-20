@@ -1,17 +1,17 @@
 import { useSyncExternalStore } from 'react'
-import { addToOutbox, isNetworkFailure, outboxDue, outboxFor, parseOutbox, type OutboxItem, type OutboxKind } from '@nexus/core'
+import { addToOutbox, isNetworkFailure, type TaskOutboxAction, outboxDue, outboxFor, parseOutbox, type OutboxItem, type OutboxKind } from '@nexus/core'
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from '../state/storage'
 import { refreshChannels, registerChannel, reportSync } from './channels'
 
 /**
- * Berichten die wachten op internet. A privébericht, teamchat message or opmerking written without a
- * connection waits here, on this device only, and goes out in order once NEXUS is online again:
+ * Berichten die wachten op internet. A privébericht, teamchat message, opmerking or change to a
+ * team task made without a connection waits here, on this device only, and goes out in order once NEXUS is online again:
  * on the 'online' event, every minute, and via "Nu syncen" in the Offline-centrum.
  */
 
 const KEY = 'nexus.outbox'
-const KIND_LABEL: Record<OutboxKind, string> = { dm: 'privébericht', team: 'teamchat', comment: 'opmerking' }
+const KIND_LABEL: Record<OutboxKind, string> = { dm: 'privébericht', team: 'teamchat', comment: 'opmerking', task: 'teamtaak' }
 const RETRY_MS = 60_000
 
 export interface OutboxSender {
@@ -60,8 +60,14 @@ export function useOutbox(kind: OutboxKind, owner: string | undefined, target: s
 }
 const NONE: OutboxItem[] = []
 
-export function queueMessage(kind: OutboxKind, owner: string, target: string, text: string, at = Date.now(), mentions?: string[]): OutboxItem {
-  const item: OutboxItem = { id: crypto.randomUUID(), kind, owner, target, text, createdAt: at, error: null, ...(mentions ? { mentions } : {}) }
+/** What an item carries besides its text: the mentions of an opmerking, or a task change. */
+export interface OutboxExtra {
+  mentions?: string[]
+  action?: TaskOutboxAction
+}
+
+export function queueMessage(kind: OutboxKind, owner: string, target: string, text: string, at = Date.now(), extra: OutboxExtra = {}): OutboxItem {
+  const item: OutboxItem = { id: crypto.randomUUID(), kind, owner, target, text, createdAt: at, error: null, ...extra }
   set(addToOutbox(items, item))
   logEvent('sync', `Bericht wacht op internet (${KIND_LABEL[kind]})`)
   return item
@@ -83,7 +89,7 @@ const isOnline = () => typeof navigator === 'undefined' || navigator.onLine !== 
  * Tries to send now, or queues when there is no connection: resolves to what [send] returned,
  * or to 'queued'. A refusal from the server is thrown, so the person sees why, and nothing waits.
  */
-export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: string, text: string, send: () => Promise<T>, mentions?: string[]): Promise<T | 'queued'> {
+export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: string, text: string, send: () => Promise<T>, extra: OutboxExtra = {}): Promise<T | 'queued'> {
   const online = isOnline()
   // Behind older waiting messages of this conversation too, so the order stays as written.
   if (online && !items.some((i) => i.owner === owner && i.kind === kind && i.target === target && i.error === null)) {
@@ -93,7 +99,7 @@ export async function sendOrQueue<T>(kind: OutboxKind, owner: string, target: st
       if (!isNetworkFailure(err, isOnline())) throw err
     }
   }
-  queueMessage(kind, owner, target, text, Date.now(), mentions)
+  queueMessage(kind, owner, target, text, Date.now(), extra)
   if (online) void flushOutbox()
   return 'queued'
 }
@@ -132,7 +138,7 @@ async function run(): Promise<void> {
   if (readStorage(KEY) !== null) items = load()
   let sent = 0
   let refused = 0
-  for (const kind of ['dm', 'team', 'comment'] as const) {
+  for (const kind of ['dm', 'team', 'comment', 'task'] as const) {
     const sender = senders.get(kind)
     const owner = sender?.owner()
     if (!sender || !owner) continue

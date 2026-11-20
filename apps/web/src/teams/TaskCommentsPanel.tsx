@@ -127,7 +127,7 @@ export function TaskCommentThread({
     try {
       const mentions = findMentions(text, members, me)
       // Without internet it waits on this device and goes out by itself, in the order written.
-      const added = await sendOrQueue('comment', me, outboxTarget, text, () => api.add(groupId, target, text, mentions), mentions)
+      const added = await sendOrQueue('comment', me, outboxTarget, text, () => api.add(groupId, target, text, mentions), { mentions })
       if (added !== 'queued') setComments((old) => (old?.some((o) => o.id === added.id) ? old : [...(old ?? []), added]))
       setText('')
       setCaret(0)

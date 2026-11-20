@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-20',
+    title: 'Teamtaken zonder internet',
+    items: [
+      'Zonder internet kun je in Teams toch een taak toevoegen, ze naar een andere kolom schuiven, een andere persoon of datum kiezen. In Studiegroep kun je een groepsdeadline toevoegen of afvinken.',
+      'Die wijzigingen wachten op dit toestel, in de volgorde waarin je ze maakte, en gaan vanzelf door zodra je weer online bent. Onder het bord zie je wat nog wacht, en je kunt het annuleren.',
+    ],
+  },
+  {
     date: '2026-11-19',
     title: 'Opmerkingen zonder internet',
     items: [

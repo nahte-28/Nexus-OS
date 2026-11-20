@@ -18,6 +18,9 @@ import { readStorage, writeStorage } from '../state/storage'
 import { supabase } from '../sync/supabase'
 import { StudyGroups, suggestedName } from '../study/group'
 import { TaskComments } from '../teams/comments'
+import { changeTask } from '../teams/taskQueue'
+import { useOutbox } from '../offline/outbox'
+import { QueuedMessages } from '../offline/QueuedMessages'
 import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -66,6 +69,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
   const now = Date.now()
 
   const group = list?.find((g) => g.id === picked) ?? list?.[0] ?? null
+  const queued = useOutbox('task', me?.id, group?.id)
   const [talk, setTalk] = useState<string | null>(null)
   const { counts, refresh: refreshCounts } = useCommentCounts(comments, group?.id ?? null)
 
@@ -238,10 +242,10 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
                 const due = Date.parse(taskDue)
                 void run(async () => {
                   if (!Number.isFinite(due)) throw new Error('Kies een datum en uur voor de groepsdeadline.')
-                  await groups.addTask(group.id, taskTitle, due)
+                  const result = await changeTask({ groups }, me.id, group.id, { type: 'group.add', groupId: group.id, title: taskTitle, dueAt: due })
                   setTaskTitle('')
                   setTaskDue('')
-                  await refreshGroup()
+                  if (result !== 'queued') await refreshGroup()
                 })
               }}
             >
@@ -251,6 +255,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
                 Toevoegen
               </button>
             </form>
+            <QueuedMessages items={queued} label="Deadlines die wachten" />
             {openGroupTasks(tasks, now).length === 0 && <p className="text-nx-muted">Nog geen groepsdeadlines.</p>}
             <ul className="space-y-1">
               {openGroupTasks(tasks, now).map((t) => {
@@ -264,8 +269,8 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
                       aria-label={`${t.title} klaar`}
                       onChange={(e) =>
                         void run(async () => {
-                          await groups.setTaskDone(t, e.target.checked)
-                          await refreshGroup()
+                          const result = await changeTask({ groups }, me.id, group.id, { type: 'group.done', taskId: t.id, groupId: group.id, done: e.target.checked }, t.title)
+                          if (result !== 'queued') await refreshGroup()
                         })
                       }
                     />

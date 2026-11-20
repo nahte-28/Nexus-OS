@@ -47,6 +47,7 @@ import { startSleepGuard } from './gaming/timer'
 import { startFriendsSharing } from './gaming/friends'
 import { startTeamChatNotices } from './teams/chat'
 import { startMentionNotices } from './teams/comments'
+import { startTaskOutbox } from './teams/taskQueue'
 import { startFriendNotices } from './friends/friends'
 import { startDmNotices } from './friends/dm'
 import { startOutbox } from './offline/outbox'
@@ -141,6 +142,8 @@ startOutbox()
 startTeamChatNotices(supabase, () => isFeatureOn('teams'))
 // Opmerkingen: a notice when a teammate mentions you with @ on a task.
 startMentionNotices(supabase, () => isFeatureOn('teams'))
+// Teamtaken: changes made without internet go out once the connection is back.
+startTaskOutbox(supabase)
 // Vrienden: a notice for a new friend request, or when someone accepts yours.
 startFriendNotices(supabase, () => isFeatureOn('friends'))
 // Privéberichten: a notice for a new message, opened with this device's Connect key.
