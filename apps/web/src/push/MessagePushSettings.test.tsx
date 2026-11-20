@@ -11,15 +11,15 @@ describe('Berichten op je gsm', () => {
     render(<MessagePushSettings api={api} />)
     fireEvent.click(await screen.findByLabelText('Privéberichten van vrienden'))
     await waitFor(() => expect(api.set).toHaveBeenCalledWith({ dm: false, team: true }))
-    expect((screen.getByLabelText('Teamchat') as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText('Teamchat en nieuwe teamtaken voor jou') as HTMLInputElement).checked).toBe(true)
   })
 
   it('puts the switch back when saving fails, and asks for the SQL when it is missing', async () => {
     const api = { get: vi.fn(async () => ({ dm: true, team: true })), set: vi.fn(async () => Promise.reject(new Error('Geen verbinding.'))) } as unknown as MessagePush
     render(<MessagePushSettings api={api} />)
-    fireEvent.click(await screen.findByLabelText('Teamchat'))
+    fireEvent.click(await screen.findByLabelText('Teamchat en nieuwe teamtaken voor jou'))
     expect((await screen.findByRole('alert')).textContent).toBe('Geen verbinding.')
-    expect((screen.getByLabelText('Teamchat') as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByLabelText('Teamchat en nieuwe teamtaken voor jou') as HTMLInputElement).checked).toBe(true)
     expect(messagePushError({ code: 'PGRST205', message: "Could not find the table 'public.message_push'" })).toBe('setup:supabase/migrations/20261116090000_message_push.sql')
   })
 })
