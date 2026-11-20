@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-20',
+    title: 'Herinnering voor teamtaken',
+    items: [
+      'Staat er in Teams een taak op jouw naam die binnen een dag af moet en nog niet klaar is, dan krijg je een herinnering op je pc en op je gsm en horloge, met de naam van het project erbij.',
+      'Krijgt de taak een nieuwe datum, dan word je opnieuw herinnerd. Een taak die klaar is, laat je met rust.',
+    ],
+  },
+  {
+    date: '2026-11-20',
     title: 'Melding als je een teamtaak krijgt',
     items: [
       'Zet een teamgenoot in Teams een taak op jouw naam, dan krijg je een melding met wie het deed, de taak en het project. Dat gebeurt op je pc als NEXUS openstaat, en op je gsm en horloge ook als NEXUS daar dicht is.',
