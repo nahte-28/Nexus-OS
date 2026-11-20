@@ -65,6 +65,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261117120000_admin_names.sql', label: 'Beheer: e-mailadres bij wie nog geen naam koos', needs: [{ fn: 'nexus_admin_name' }] },
   { file: '20261117140000_admin_users.sql', label: 'Beheer: lijst van alle accounts', needs: [{ fn: 'admin_user_list' }] },
   { file: '20261118090000_birthdays.sql', label: 'Verjaardagen en berichten van NEXUS', needs: [{ table: 'birthdays' }, { table: 'system_messages' }] },
+  { file: '20261120090000_task_assigned_push.sql', label: 'Teams: melding als je een taak krijgt', needs: [{ fn: 'team_task_assigned_push' }] },
 ]
 
 /** What nexus_schema_status() returns. */

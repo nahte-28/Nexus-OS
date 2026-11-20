@@ -43,7 +43,7 @@ export function MessagePushSettings({ api = defaultApi }: { api?: MessagePush | 
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={prefs.team} onChange={(e) => change({ ...prefs, team: e.target.checked })} />
-            Teamchat
+            Teamchat en nieuwe teamtaken voor jou
           </label>
         </>
       )}

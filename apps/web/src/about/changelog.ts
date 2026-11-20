@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-20',
+    title: 'Melding als je een teamtaak krijgt',
+    items: [
+      'Zet een teamgenoot in Teams een taak op jouw naam, dan krijg je een melding met wie het deed, de taak en het project. Dat gebeurt op je pc als NEXUS openstaat, en op je gsm en horloge ook als NEXUS daar dicht is.',
+      'Je zet het uit in Apparaten › Meldingen op dit toestel, met de schakelaar "Teamchat en nieuwe teamtaken voor jou".',
+    ],
+  },
+  {
+    date: '2026-11-20',
     title: 'Teamtaken zonder internet',
     items: [
       'Zonder internet kun je in Teams toch een taak toevoegen, ze naar een andere kolom schuiven, een andere persoon of datum kiezen. In Studiegroep kun je een groepsdeadline toevoegen of afvinken.',
