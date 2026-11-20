@@ -2,10 +2,10 @@ import type { OutboxItem } from '@nexus/core'
 import { cancelQueued, retryQueued } from './outbox'
 
 /** Your messages that wait on this device, under the conversation, with Annuleren and Opnieuw. */
-export function QueuedMessages({ items }: { items: OutboxItem[] }) {
+export function QueuedMessages({ items, label = 'Berichten die wachten' }: { items: OutboxItem[]; label?: string }) {
   if (items.length === 0) return null
   return (
-    <ol aria-label="Berichten die wachten" className="space-y-1.5">
+    <ol aria-label={label} className="space-y-1.5">
       {items.map((m) => (
         <li key={m.id} className="flex flex-col items-end">
           <p className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl border border-dashed border-nx-accent/60 px-3 py-1.5 opacity-75">{m.text}</p>

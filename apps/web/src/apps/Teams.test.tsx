@@ -4,6 +4,8 @@ import type { StudyGroup, TeamInvite, TeamMember, TeamProject, TeamProjectTask, 
 import type { Teams as TeamsApi } from '../teams/teams'
 
 const { Teams } = await import('./Teams')
+const { flushOutbox, registerOutboxSender, resetOutbox } = await import('../offline/outbox')
+const { runTaskAction } = await import('../teams/taskQueue')
 const { lifeStore } = await import('../life/store')
 
 const ME = 'me-1'
@@ -55,6 +57,8 @@ describe('Teams', () => {
   afterEach(() => {
     cleanup()
     localStorage.clear()
+    resetOutbox()
+    vi.restoreAllMocks()
   })
 
   it('asks to sign in first', async () => {
@@ -72,12 +76,33 @@ describe('Teams', () => {
     fireEvent.change(screen.getByLabelText('Voor wie'), { target: { value: ME } })
     fireEvent.change(screen.getByLabelText('Tegen wanneer'), { target: { value: '2030-01-10T12:00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Taak toevoegen' }))
-    await waitFor(() => expect(api.addTask).toHaveBeenCalledWith(expect.objectContaining({ name: 'Labo' }), 'Verslag', ME, Date.parse('2030-01-10T12:00')))
+    await waitFor(() => expect(api.addTask).toHaveBeenCalledWith(expect.objectContaining({ id: 'p0', groupId: 'g1' }), 'Verslag', ME, Date.parse('2030-01-10T12:00')))
     expect(await screen.findByRole('heading', { name: 'Mijn taken' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Verslag naar Bezig' }))
     await waitFor(() => expect(within(screen.getByRole('group', { name: 'Bezig' })).getByText('Verslag')).toBeTruthy())
     fireEvent.click(screen.getByRole('button', { name: 'In mijn Agenda' }))
     await waitFor(() => expect(lifeStore.getSnapshot().some((i) => i.kind === 'deadline' && i.title === 'Verslag')).toBe(true))
+  })
+
+  it('keeps task changes made without internet and sends them once back online', async () => {
+    const api = fake()
+    render(<Teams api={api} />)
+    fireEvent.change(await screen.findByLabelText('Naam van het project'), { target: { value: 'Labo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Project maken' }))
+    expect(await screen.findByRole('heading', { name: 'Labo' })).toBeTruthy()
+    let online = false
+    vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => online)
+    fireEvent.change(screen.getByLabelText('Titel van de taak'), { target: { value: 'Verslag' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Taak toevoegen' }))
+    const waiting = await screen.findByRole('list', { name: 'Taken die wachten' })
+    expect(within(waiting).getByText('Nieuwe taak: Verslag')).toBeTruthy()
+    expect(api.addTask).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Failed|mislukt/i)).toBeNull()
+    online = true
+    registerOutboxSender('task', { owner: () => ME, send: (item) => runTaskAction({ teams: api }, item.action!) })
+    await flushOutbox()
+    expect(api.addTask).toHaveBeenCalledWith({ id: 'p0', groupId: 'g1' }, 'Verslag', null, null)
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Taken die wachten' })).toBeNull())
   })
 
   it('lets the owner change roles and make invitations that expire', async () => {

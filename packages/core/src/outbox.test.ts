@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addToOutbox, commentOutboxTarget, isNetworkFailure, OUTBOX_MAX, outboxDue, outboxFor, parseCommentOutboxTarget, parseOutbox, type OutboxItem } from './outbox'
+import { addToOutbox, commentOutboxTarget, isNetworkFailure, OUTBOX_MAX, outboxDue, outboxFor, parseCommentOutboxTarget, parseOutbox, parseTaskAction, type OutboxItem } from './outbox'
 
 const item = (id: string, at: number, extra: Partial<OutboxItem> = {}): OutboxItem => ({ id, kind: 'dm', owner: 'me', target: 'vriend', text: `bericht ${id}`, createdAt: at, error: null, ...extra })
 
@@ -40,5 +40,22 @@ describe('opmerkingen in the outbox', () => {
     const [item] = parseOutbox([{ id: 'c', kind: 'comment', owner: 'me', target, text: 'klaar?', createdAt: 1, error: null, mentions: ['u2', 3] }])
     expect(item).toMatchObject({ kind: 'comment', mentions: ['u2'] })
     expect(parseOutbox([{ id: 'x', kind: 'mail', owner: 'me', target, text: 'x', createdAt: 1 }])).toEqual([])
+  })
+})
+
+describe('task changes in the outbox', () => {
+  it('keeps a valid task change and drops a malformed one', () => {
+    const add = { type: 'team.add', projectId: 'p', groupId: 'g', title: 'Poster', assignee: null, dueAt: 5 }
+    expect(parseTaskAction(add)).toEqual(add)
+    expect(parseTaskAction({ type: 'team.update', taskId: 't', change: { status: 'doing', title: 'x' } })).toEqual({ type: 'team.update', taskId: 't', change: { status: 'doing' } })
+    expect(parseTaskAction({ type: 'team.update', taskId: 't', change: { status: 'weg' } })).toBeNull()
+    expect(parseTaskAction({ type: 'group.done', taskId: 't', groupId: 'g', done: true })).toMatchObject({ done: true })
+    expect(parseTaskAction({ type: 'group.add', groupId: 'g', title: 'Labo', dueAt: 'morgen' })).toBeNull()
+    const items = parseOutbox([
+      { id: 'a', kind: 'task', owner: 'me', target: 'g', text: 'Nieuwe taak: Poster', createdAt: 1, error: null, action: add },
+      { id: 'b', kind: 'task', owner: 'me', target: 'g', text: 'kapot', createdAt: 2, error: null, action: { type: 'x' } },
+    ])
+    expect(items.map((i) => i.id)).toEqual(['a'])
+    expect(items[0].action).toEqual(add)
   })
 })

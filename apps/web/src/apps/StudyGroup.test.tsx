@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { GroupMember, GroupTask, SharedItem, StudyGroup } from '@nexus/core'
 import type { StudyGroups } from '../study/group'
 
 const { StudyGroupTab } = await import('./StudyGroup')
 const { lifeStore } = await import('../life/store')
+const { flushOutbox, registerOutboxSender, resetOutbox } = await import('../offline/outbox')
+const { runTaskAction } = await import('../teams/taskQueue')
 
 const ME = 'me-1'
 function fake(signedIn = true) {
@@ -47,7 +49,11 @@ function fake(signedIn = true) {
 }
 
 describe('Studiegroep', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    resetOutbox()
+    vi.restoreAllMocks()
+  })
 
   it('asks to sign in first', async () => {
     render(<StudyGroupTab groups={fake(false)} />)
@@ -92,6 +98,30 @@ describe('Studiegroep', () => {
     expect(await screen.findByText(/2 van 2 klaar: jij, Zoë/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Groepsdeadline Groepsverslag verwijderen' }))
     expect(await screen.findByText('Nog geen groepsdeadlines.')).toBeTruthy()
+  })
+
+  it('keeps a tick made without internet and sends it once back online', async () => {
+    const groups = fake()
+    render(<StudyGroupTab groups={groups} />)
+    fireEvent.click(await screen.findByRole('button', { name: '+ Nieuwe groep' }))
+    fireEvent.change(screen.getByLabelText('Naam van de groep'), { target: { value: 'Project' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Groep maken' }))
+    await screen.findByText('ABCD-EF23')
+    fireEvent.change(screen.getByLabelText('Titel van de groepsdeadline'), { target: { value: 'Groepsverslag' } })
+    fireEvent.change(screen.getByLabelText('Wanneer'), { target: { value: '2099-12-01T23:59' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Toevoegen' }))
+    expect(await screen.findByText(/1 van 2 klaar: Zoë/)).toBeTruthy()
+
+    let online = false
+    vi.spyOn(navigator, 'onLine', 'get').mockImplementation(() => online)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Groepsverslag klaar' }))
+    const waiting = await screen.findByRole('list', { name: 'Deadlines die wachten' })
+    expect(within(waiting).getByText('Groepsverslag afgevinkt')).toBeTruthy()
+    expect(groups.setTaskDone).not.toHaveBeenCalled()
+    online = true
+    registerOutboxSender('task', { owner: () => ME, send: (item) => runTaskAction({ groups }, item.action!) })
+    await flushOutbox()
+    expect(groups.setTaskDone).toHaveBeenCalledWith({ id: 't0', groupId: 'g1' }, true)
   })
 
   it('refuses a malformed invite code', async () => {

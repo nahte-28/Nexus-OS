@@ -251,7 +251,7 @@ export class Teams {
     if (error) fail(error)
   }
 
-  async addTask(project: TeamProject, title: string, assignee: string | null, dueAt: number | null): Promise<void> {
+  async addTask(project: Pick<TeamProject, 'id' | 'groupId'>, title: string, assignee: string | null, dueAt: number | null): Promise<void> {
     const { error } = await this.client
       .from('team_project_tasks')
       .insert({ project_id: project.id, group_id: project.groupId, title: title.trim().slice(0, TEAM_TASK_TITLE_MAX), assignee, due_at: dueAt })

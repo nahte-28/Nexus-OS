@@ -153,7 +153,7 @@ export class StudyGroups {
   }
 
   /** Ticks a group deadline off (or on again) for you alone. */
-  async setTaskDone(task: GroupTask, done: boolean): Promise<void> {
+  async setTaskDone(task: Pick<GroupTask, 'id' | 'groupId'>, done: boolean): Promise<void> {
     const me = await this.me()
     if (!me) return
     const { error } = done
