@@ -1,12 +1,11 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 android {
     // The same namespace as the companion, so the shared code below finds its resources (R).
     namespace = "app.nexusos.companion"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.nexusos.watch"
@@ -22,7 +21,8 @@ android {
         // compiles the companion's code and adds its own screen. Unused classes (the notification
         // listener) are compiled too but not in the manifest, so they never run. The updater runs
         // here too and takes nexus-watch.apk from the same release.
-        java.srcDirs("../app/src/main/kotlin", "src/main/kotlin")
+        // Built-in Kotlin (AGP 9) compiles only the Kotlin directories, so the companion's code goes here.
+        kotlin.directories += "../app/src/main/kotlin"
         res.srcDirs("../app/src/main/res")
     }
 
@@ -45,9 +45,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
 }
 
