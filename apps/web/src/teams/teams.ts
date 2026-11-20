@@ -268,6 +268,26 @@ export class Teams {
     if (error) fail(error)
   }
 
+  /** Your open team tasks due before [until], over all your teams, with the names of their projects. */
+  async myDueTasks(me: string, until: number): Promise<{ tasks: TeamProjectTask[]; projects: Map<string, string> }> {
+    const { data, error } = await this.client
+      .from('team_project_tasks')
+      .select(TASK_COLUMNS)
+      .eq('assignee', me)
+      .neq('status', 'done')
+      .not('due_at', 'is', null)
+      .lte('due_at', until)
+    if (error) fail(error)
+    const tasks = (data as TaskRow[]).map(toTask)
+    const ids = [...new Set(tasks.map((t) => t.projectId))]
+    const projects = new Map<string, string>()
+    if (ids.length > 0) {
+      const named = await this.client.from('team_projects').select('id,name').in('id', ids)
+      for (const p of (named.data ?? []) as { id: string; name: string }[]) projects.set(p.id, p.name)
+    }
+    return { tasks, projects }
+  }
+
   async removeTask(taskId: string): Promise<void> {
     const { error } = await this.client.from('team_project_tasks').delete().eq('id', taskId)
     if (error) fail(error)

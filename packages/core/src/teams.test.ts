@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { normalizeKlas, parseProfilesState } from './profiles'
 import {
+  dueWhen,
+  teamTaskReminders,
   formatTeamCode,
   joinCodeFromPath,
   teamJoinLink,
@@ -98,5 +100,31 @@ describe('teams', () => {
     expect(normalizeKlas('veel te lange klas')).toBeNull()
     expect(parseProfilesState({ klas: '1it3' }).klas).toBe('1IT3')
     expect(parseProfilesState({ klas: '!' }).klas).toBe('')
+  })
+})
+
+describe('team task reminders', () => {
+  const now = new Date(2030, 0, 10, 12, 0).getTime()
+  const task = (id: string, dueAt: number | null, extra: Partial<TeamProjectTask> = {}): TeamProjectTask => ({
+    id, projectId: 'p1', groupId: 'g1', title: `Taak ${id}`, status: 'todo', assignee: 'me', dueAt, createdBy: 'x', updatedBy: 'x', updatedAt: 0, ...extra,
+  })
+
+  it('reminds once for your open tasks due within a day', () => {
+    const tasks = [
+      task('a', new Date(2030, 0, 11, 9, 30).getTime()),
+      task('b', new Date(2030, 0, 12, 9, 0).getTime()),
+      task('c', now + 3_600_000, { status: 'done' }),
+      task('d', now + 3_600_000, { assignee: 'z' }),
+      task('e', now - 60_000),
+      task('f', null),
+    ]
+    const due = teamTaskReminders(tasks, 'me', now, new Set(), () => 'Labo')
+    expect(due).toEqual([{ ref: `teamtask:a:${tasks[0].dueAt}`, title: 'Teamtaak bijna te laat', text: 'Taak a (Labo) moet af tegen morgen om 09:30.' }])
+    expect(teamTaskReminders(tasks, 'me', now, new Set([due[0].ref]))).toEqual([])
+  })
+
+  it('says vandaag, morgen or the weekday', () => {
+    expect(dueWhen(new Date(2030, 0, 10, 18, 0).getTime(), now)).toBe('vandaag om 18:00')
+    expect(dueWhen(new Date(2030, 0, 11, 8, 0).getTime(), now)).toBe('morgen om 08:00')
   })
 })

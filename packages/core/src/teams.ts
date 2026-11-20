@@ -175,3 +175,41 @@ export function memberName(members: GroupMember[], userId: string | null, me: st
   if (userId === me) return 'jij'
   return members.find((m) => m.userId === userId)?.displayName ?? 'Oud lid'
 }
+
+/** How long before its deadline a team task on your name gets a reminder. */
+export const TEAM_TASK_REMIND_MS = 24 * 60 * 60_000
+
+export interface TeamTaskReminder {
+  /** One per task and deadline: a new date reminds again. */
+  ref: string
+  title: string
+  text: string
+}
+
+const timeOf = (at: number) => new Date(at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+const dayStart = (at: number) => new Date(at).setHours(0, 0, 0, 0)
+
+/** "vandaag om 14:00", "morgen om 9:30". */
+export function dueWhen(dueAt: number, now: number): string {
+  const days = Math.round((dayStart(dueAt) - dayStart(now)) / 86_400_000)
+  const day = days <= 0 ? 'vandaag' : days === 1 ? 'morgen' : new Date(dueAt).toLocaleDateString('nl-BE', { weekday: 'long' })
+  return `${day} om ${timeOf(dueAt)}`
+}
+
+/**
+ * Reminders for open team tasks on your name whose deadline is within a day and still ahead,
+ * leaving out the ones already sent ([sent] holds their refs).
+ */
+export function teamTaskReminders(tasks: TeamProjectTask[], me: string, now: number, sent: ReadonlySet<string>, projectName: (id: string) => string = () => ''): TeamTaskReminder[] {
+  return myTeamTasks(tasks, me)
+    .filter((t) => t.dueAt !== null && t.dueAt > now && t.dueAt - now <= TEAM_TASK_REMIND_MS)
+    .map((t) => {
+      const project = projectName(t.projectId)
+      return {
+        ref: `teamtask:${t.id}:${t.dueAt}`,
+        title: 'Teamtaak bijna te laat',
+        text: `${t.title}${project ? ` (${project})` : ''} moet af tegen ${dueWhen(t.dueAt!, now)}.`,
+      }
+    })
+    .filter((r) => !sent.has(r.ref))
+}
