@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { emptyDarts } from '@nexus/core'
-import { Darts } from './Darts'
+import { BOT_PAUSE, Darts } from './Darts'
 import { dartsStore } from '../darts/store'
 
 const throwScore = (n: number) => {
@@ -79,6 +79,34 @@ describe('Darts', () => {
     // Ethan stands on D20.
     expect(screen.queryByRole('radio', { name: '0 op een dubbel' })).toBeNull()
     expect((screen.getByRole('radio', { name: '1 op een dubbel' }) as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('plays against the bot, which throws by itself, and undoes its visit with yours', () => {
+    vi.useFakeTimers()
+    try {
+      render(<Darts />)
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Tegen de bot' }))
+      expect(screen.queryByRole('textbox', { name: 'Speler 2' })).toBeNull()
+      fireEvent.change(screen.getByRole('combobox', { name: 'Niveau van de bot' }), { target: { value: 'pro' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+      const board = () => screen.getByRole('region', { name: 'Scorebord' })
+      expect(within(board()).getByText('Bot (Pro)')).toBeTruthy()
+      throwScore(100)
+      // The bot's turn: no score field, it throws after a pause.
+      expect(screen.queryByRole('textbox', { name: 'Score van deze beurt' })).toBeNull()
+      expect(within(board()).getByRole('status').textContent).toContain('Bot (Pro) gooit')
+      act(() => vi.advanceTimersByTime(BOT_PAUSE + 10))
+      expect(screen.getByLabelText('Pijlen van de bot').textContent).toMatch(/^Bot \(Pro\) gooide \S+ · \S+ · \S+$/)
+      expect(screen.getByRole('textbox', { name: 'Score van deze beurt' })).toBeTruthy()
+      expect(screen.getByLabelText('Gemiddelde van Bot (Pro)').textContent).not.toContain('–')
+      // Undo takes back the bot's visit and yours.
+      fireEvent.click(screen.getByRole('button', { name: 'Ongedaan maken' }))
+      expect(screen.getByLabelText('Gemiddelde van Ethan').textContent).toContain('–')
+      expect(screen.getByLabelText('Gemiddelde van Bot (Pro)').textContent).toContain('–')
+      expect(screen.getByRole('textbox', { name: 'Score van deze beurt' })).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('practises Around the Clock and checkouts, with stats', () => {

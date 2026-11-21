@@ -1,8 +1,13 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   addVisit,
   checkoutChance,
   onDouble,
+  BOT_LEVELS,
+  botName,
+  botVisit,
+  type BotDart,
+  type BotLevel,
   checkoutRoute,
   matchSummary,
   summaryLine,
@@ -170,6 +175,7 @@ function NewMatch() {
   const [pairs, setPairs] = useState(false)
   const [players, setPlayers] = useState<string[]>([settings.me, ''])
   const [format, setFormat] = useState<Format>({ mode: settings.mode, legsToWin: settings.legsToWin, setsToWin: settings.setsToWin, doubleOut: settings.doubleOut })
+  const [bot, setBot] = useState<BotLevel | null>(null)
   const [error, setError] = useState<string | null>(null)
   const size = pairs ? 2 : 1
   const maxSlots = MAX_PLAYERS * size
@@ -189,7 +195,12 @@ function NewMatch() {
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault()
-        const m = newMatch(crypto.randomUUID(), pairs ? sides : players, format, Date.now())
+        const humans = players.filter((p) => p.trim() !== '')
+        const withBot = bot !== null && !pairs
+        if (withBot && humans.length >= MAX_PLAYERS) return setError(`Met de bot erbij kunnen er hoogstens ${MAX_PLAYERS - 1} spelers meedoen.`)
+        const m = withBot
+          ? newMatch(crypto.randomUUID(), [...humans, botName(bot)], { ...format, bot: { side: humans.length, level: bot } }, Date.now())
+          : newMatch(crypto.randomUUID(), pairs ? sides : players, format, Date.now())
         if ('error' in m) return setError(m.error)
         setError(null)
         saveMatch(m)
@@ -202,6 +213,38 @@ function NewMatch() {
           Koppels (2 tegen 2)
         </label>
       </div>
+      {!pairs && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-nx-border p-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={bot !== null}
+              onChange={(e) => {
+                setBot(e.target.checked ? 'club' : null)
+                // Alone against the bot: the empty second player is not needed.
+                if (e.target.checked)
+                  setPlayers((list) => {
+                    const named = list.filter((p) => p.trim() !== '')
+                    return named.length > 0 ? named : ['']
+                  })
+              }}
+            />
+            Tegen de bot
+          </label>
+          {bot !== null && (
+            <label className="flex items-center gap-2">
+              Niveau
+              <select aria-label="Niveau van de bot" className={`${field} w-auto`} value={bot} onChange={(e) => setBot(e.target.value as BotLevel)}>
+                {BOT_LEVELS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label} (gem. ±{l.average})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         {sides.map((side, s) => (
           <div key={s} className={pairs ? 'space-y-1 rounded-lg border border-nx-border p-2' : 'space-y-1'} role={pairs ? 'group' : undefined} aria-label={pairs ? `Koppel ${s + 1}` : undefined}>
@@ -272,6 +315,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const [darts, setDarts] = useState(3)
   const [doubles, setDoubles] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [botDarts, setBotDarts] = useState<BotDart[] | null>(null)
   // With a finish on, ask how many darts went at a double, for the checkout percentage.
   const ask = settings.askDoubles && checkoutChance(match)
   // On a double you always throw at it, so 0 darts at a double is not an option.
@@ -283,6 +327,20 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const route = turn === null ? null : checkoutRoute(left, match.doubleOut)
   const typed = Number(score)
   const finishing = score !== '' && typed === left
+  const botTurn = match.bot !== undefined && turn === match.bot.side && match.winner === null
+  // The bot throws by itself, after a short pause so you can follow it.
+  useEffect(() => {
+    if (!botTurn || !match.bot) return
+    const level = match.bot.level
+    const timer = setTimeout(() => {
+      const v = botVisit(remaining(match, match.bot!.side), match.doubleOut, level)
+      const next = addVisit(match, v.score, Date.now(), v.darts, checkoutChance(match) ? v.doubles : undefined, v.bust)
+      if ('error' in next) return
+      setBotDarts(v.thrown)
+      saveMatch(next)
+    }, BOT_PAUSE)
+    return () => clearTimeout(timer)
+  }, [botTurn, match])
   const submit = (value: number) => {
     const out = value === left
     const next = addVisit(match, value, Date.now(), out ? darts : 3, ask ? (out ? Math.max(1, atDouble) : atDouble) : undefined)
@@ -331,7 +389,17 @@ function Scoreboard({ match }: { match: DartsMatch }) {
           )
         })}
       </ul>
-      {turn !== null && (
+      {botDarts && match.bot && (
+        <p className="text-sm text-nx-muted" aria-label="Pijlen van de bot">
+          {match.players[match.bot.side]} gooide {botDarts.map((d) => d.label).join(' · ')}
+        </p>
+      )}
+      {botTurn && (
+        <p role="status">
+          <b>{throwerName(match)}</b> gooit, nog {left}…
+        </p>
+      )}
+      {turn !== null && !botTurn && (
         <form
           aria-label="Beurt"
           className="space-y-2"
@@ -389,7 +457,15 @@ function Scoreboard({ match }: { match: DartsMatch }) {
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={button} disabled={leg.visits.length === 0 && match.legs.length === 1} onClick={() => saveMatch(undoVisit(match, Date.now()))}>
+        <button
+          type="button"
+          className={button}
+          disabled={leg.visits.length === 0 && match.legs.length === 1}
+          onClick={() => {
+            setBotDarts(null)
+            saveMatch(undoTurn(match))
+          }}
+        >
           Ongedaan maken
         </button>
         {match.winner === null ? (
@@ -401,7 +477,10 @@ function Scoreboard({ match }: { match: DartsMatch }) {
             type="button"
             className={primaryButton}
             onClick={() => {
-              const again = newMatch(crypto.randomUUID(), [...match.members.slice(1), match.members[0]], match, Date.now())
+              const sides = match.players.length
+              // Everyone moves up one place, the bot too.
+              const bot = match.bot && { ...match.bot, side: (match.bot.side - 1 + sides) % sides }
+              const again = newMatch(crypto.randomUUID(), [...match.members.slice(1), match.members[0]], { ...match, bot }, Date.now())
               if (!('error' in again)) saveMatch(again)
             }}
           >
@@ -411,6 +490,20 @@ function Scoreboard({ match }: { match: DartsMatch }) {
       </div>
     </section>
   )
+}
+
+/** How long the bot waits before it throws, in ms. */
+export const BOT_PAUSE = 900
+
+/** Undo the last visit; against the bot also its visit after yours, so it is your turn again. */
+function undoTurn(match: DartsMatch): DartsMatch {
+  let m = undoVisit(match, Date.now())
+  const bot = match.bot
+  if (bot && toThrow(m) === bot.side) {
+    const again = undoVisit(m, Date.now())
+    if (again !== m) m = again
+  }
+  return m
 }
 
 const avg = (a: number | null) => (a === null ? '–' : a.toFixed(2))
