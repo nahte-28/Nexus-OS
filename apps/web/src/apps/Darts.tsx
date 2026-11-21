@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react'
 import {
   addVisit,
   checkoutChance,
+  onDouble,
   checkoutRoute,
   matchSummary,
   summaryLine,
@@ -273,6 +274,9 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const [error, setError] = useState<string | null>(null)
   // With a finish on, ask how many darts went at a double, for the checkout percentage.
   const ask = settings.askDoubles && checkoutChance(match)
+  // On a double you always throw at it, so 0 darts at a double is not an option.
+  const least = onDouble(match) ? 1 : 0
+  const atDouble = Math.max(least, doubles)
   const turn = toThrow(match)
   const leg = currentLeg(match)
   const left = turn === null ? 0 : remaining(match, turn)
@@ -281,7 +285,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const finishing = score !== '' && typed === left
   const submit = (value: number) => {
     const out = value === left
-    const next = addVisit(match, value, Date.now(), out ? darts : 3, ask ? (out ? Math.max(1, doubles) : doubles) : undefined)
+    const next = addVisit(match, value, Date.now(), out ? darts : 3, ask ? (out ? Math.max(1, atDouble) : atDouble) : undefined)
     if ('error' in next) return setError(next.error)
     setError(null)
     setScore('')
@@ -362,9 +366,9 @@ function Scoreboard({ match }: { match: DartsMatch }) {
             <fieldset className="flex flex-wrap items-center gap-3">
               <legend className="sr-only">Pijlen op een dubbel</legend>
               Pijlen op een dubbel
-              {[0, 1, 2, 3].map((k) => (
+              {[0, 1, 2, 3].filter((k) => k >= least).map((k) => (
                 <label key={k} className="flex items-center gap-1">
-                  <input type="radio" name="doubles" aria-label={`${k} op een dubbel`} checked={doubles === k} onChange={() => setDoubles(k)} /> {k}
+                  <input type="radio" name="doubles" aria-label={`${k} op een dubbel`} checked={atDouble === k} onChange={() => setDoubles(k)} /> {k}
                 </label>
               ))}
             </fieldset>
