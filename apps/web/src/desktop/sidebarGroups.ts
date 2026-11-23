@@ -30,3 +30,26 @@ export function useFoldedGroups(): AppGroupId[] {
     () => folded,
   )
 }
+
+const COLLAPSED_KEY = 'nexus.sidebar.collapsed'
+let collapsed = readStorage(COLLAPSED_KEY) === '1'
+const collapseListeners = new Set<() => void>()
+
+/** Folds the whole sidebar to a narrow strip of icons (or opens it again), for more room; remembered on this device. */
+export function toggleSidebar(): void {
+  collapsed = !collapsed
+  writeStorage(COLLAPSED_KEY, collapsed ? '1' : '0')
+  collapseListeners.forEach((l) => l())
+}
+
+export const isSidebarCollapsed = (): boolean => collapsed
+
+export function useSidebarCollapsed(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      collapseListeners.add(l)
+      return () => collapseListeners.delete(l)
+    },
+    () => collapsed,
+  )
+}
