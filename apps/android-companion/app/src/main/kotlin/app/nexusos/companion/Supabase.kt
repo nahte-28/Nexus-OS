@@ -67,7 +67,7 @@ class Supabase(private val url: String, private val anonKey: String) {
         fun fetchConfig(host: String): Pair<String, String> {
             val request = Request.Builder().url("${normalizeHost(host)}/nexus-config.json").get().build()
             http.newCall(request).execute().use { response ->
-                val body = response.body?.string().orEmpty()
+                val body = response.body.string()
                 if (!response.isSuccessful || !body.trimStart().startsWith("{")) {
                     throw ApiException(response.code, "Geen NEXUS gevonden op dit adres. Controleer het adres van je NEXUS-webapp.")
                 }
@@ -150,7 +150,7 @@ class Supabase(private val url: String, private val anonKey: String) {
             .header("Prefer", "return=minimal")
             .method(method, body?.toRequestBody(JSON))
         http.newCall(builder.build()).execute().use { response ->
-            val text = response.body?.string().orEmpty()
+            val text = response.body.string()
             if (!response.isSuccessful) throw ApiException(response.code, errorText(response.code, text))
             return text
         }

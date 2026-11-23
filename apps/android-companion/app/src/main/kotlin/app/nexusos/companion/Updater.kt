@@ -55,7 +55,7 @@ object Updater {
     private fun fromFeed(build: Int, apk: String): FeedAnswer? {
         return try {
             val feed = Supabase.http.newCall(Request.Builder().url(UpdateCheck.RELEASES_FEED).header("User-Agent", "NEXUS-Companion").build())
-                .execute().use { if (it.isSuccessful) it.body?.string() else null } ?: return null
+                .execute().use { if (it.isSuccessful) it.body.string() else null } ?: return null
             if (!feed.contains("/releases/tag/companion-v")) return null
             val update = UpdateCheck.newestInFeed(feed, build, apk) ?: return FeedAnswer(null)
             // github.com answers an existing download with a redirect (not followed) and a missing APK with 404.
@@ -85,7 +85,7 @@ object Updater {
                                     throw java.io.IOException("GitHub laat even geen opvragingen meer toe vanaf dit netwerk. Probeer het over een uur opnieuw.")
                                 }
                                 if (!response.isSuccessful) throw java.io.IOException("GitHub gaf ${response.code}")
-                                response.body?.string().orEmpty()
+                                response.body.string()
                             }
                             UpdateCheck.newest(body, build, apk)?.let { State.Available(it) } ?: State.Current
                         }
@@ -107,7 +107,7 @@ object Updater {
                 val request = Request.Builder().url(update.url).header("User-Agent", "NEXUS-Companion").build()
                 Supabase.http.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) throw java.io.IOException("download gaf ${response.code}")
-                    file.outputStream().use { out -> response.body!!.byteStream().copyTo(out) }
+                    file.outputStream().use { out -> response.body.byteStream().copyTo(out) }
                 }
                 val installer = app.packageManager.packageInstaller
                 val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {

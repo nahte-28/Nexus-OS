@@ -5,7 +5,7 @@ plugins {
 android {
     // The same namespace as the companion, so the shared code below finds its resources (R).
     namespace = "app.nexusos.companion"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.nexusos.watch"
@@ -49,12 +49,12 @@ android {
 }
 
 dependencies {
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.1")
     // A tile and a watch-face complication with what is coming.
     implementation("androidx.wear.tiles:tiles:1.4.1")
     implementation("androidx.wear.protolayout:protolayout:1.2.1")
     implementation("androidx.wear.watchface:watchface-complications-data:1.2.1")
     implementation("androidx.wear.watchface:watchface-complications-data-source:1.2.1")
-    implementation("com.google.guava:guava:33.3.1-android")
+    implementation("com.google.guava:guava:33.8.0-android")
     testImplementation("junit:junit:4.13.2")
 }

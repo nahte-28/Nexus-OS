@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "app.nexusos.companion"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.nexusos.companion"
@@ -39,7 +39,7 @@ android {
 }
 
 dependencies {
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.1")
     testImplementation("junit:junit:4.13.2")
     // The real org.json, because unit tests only get stubs of Android's copy.
     testImplementation("org.json:json:20240303")
