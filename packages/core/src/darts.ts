@@ -352,7 +352,9 @@ export function addVisit(m: DartsMatch, score: number, now: number, darts = 3, d
   const pairs = (m.members[player]?.length ?? 1) > 1
   const used = left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3
   const won = left === 0 && !bust
-  const atDouble = doubles === undefined || !Number.isFinite(doubles) ? undefined : Math.min(used, Math.max(won ? 1 : 0, Math.round(doubles)))
+  // Standing on a double, the first dart always goes at it, so at least one went at a double.
+  const least = won || (m.doubleOut && isDouble(remaining(m, player))) ? 1 : 0
+  const atDouble = doubles === undefined || !Number.isFinite(doubles) ? undefined : Math.min(used, Math.max(least, Math.round(doubles)))
   const visit: DartsVisit = { player, score, darts: used, bust, ...(pairs ? { by: memberToThrow(m, player, leg) } : {}), ...(atDouble !== undefined ? { doubles: atDouble } : {}) }
   const done: DartsLeg = { ...leg, visits: [...leg.visits, visit], winner: left === 0 && !bust ? player : null }
   let next: DartsMatch = { ...m, legs: [...m.legs.slice(0, -1), done], updatedAt: now }
@@ -374,6 +376,18 @@ export function checkoutChance(m: DartsMatch): boolean {
   if (player === null || !m.doubleOut) return false
   const rest = remaining(m, player)
   return rest <= 170 && checkoutRoute(rest, true, 3) !== null
+}
+
+/** Whether [rest] is a score one double ends: 2 to 40 even, or the bull (50). */
+export const isDouble = (rest: number) => rest === 50 || (rest >= 2 && rest <= 40 && rest % 2 === 0)
+
+/**
+ * Whether the player to throw stands on a double (double-out), so every visit has at least one
+ * dart at a double and the scorer does not offer 0.
+ */
+export function onDouble(m: DartsMatch): boolean {
+  const player = toThrow(m)
+  return player !== null && m.doubleOut && isDouble(remaining(m, player))
 }
 
 /** The id a leg from the watch gets in NEXUS, so a second delivery changes nothing. */

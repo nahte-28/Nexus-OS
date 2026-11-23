@@ -62,6 +62,25 @@ describe('Darts', () => {
     expect(screen.getByRole('region', { name: 'Samenvatting van de wedstrijd' })).toBeTruthy()
   })
 
+  it('leaves out 0 darts at a double once a player stands on a double', () => {
+    render(<Darts />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Speler 2' }), { target: { value: 'Remo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+    throwScore(180)
+    throwScore(60)
+    throwScore(81) // Ethan 240
+    throwScore(60)
+    throwScore(140) // Ethan 100
+    throwScore(60)
+    // Ethan can finish 100, but stands on no double yet.
+    expect(screen.getByRole('radio', { name: '0 op een dubbel' })).toBeTruthy()
+    throwScore(60) // Ethan 40
+    throwScore(60)
+    // Ethan stands on D20.
+    expect(screen.queryByRole('radio', { name: '0 op een dubbel' })).toBeNull()
+    expect((screen.getByRole('radio', { name: '1 op een dubbel' }) as HTMLInputElement).checked).toBe(true)
+  })
+
   it('practises Around the Clock and checkouts, with stats', () => {
     render(<Darts />)
     fireEvent.click(screen.getByRole('tab', { name: 'Oefenen' }))

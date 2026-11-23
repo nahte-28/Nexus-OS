@@ -12,6 +12,11 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-21',
+    title: 'Darts: geen 0 meer op een dubbel',
+    items: ['Sta je op een dubbel (bijvoorbeeld 40 of 32), dan vraagt het scorebord niet meer of er 0 pijlen op een dubbel gingen: je gooit toch altijd naar de dubbel. Je kiest 1, 2 of 3.'],
+  },
+  {
     date: '2026-11-20',
     title: 'Zoeken in je berichten',
     items: [

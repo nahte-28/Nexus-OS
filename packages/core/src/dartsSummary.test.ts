@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addVisit, checkoutChance, dartsStats, newMatch, parseDarts, type DartsMatch } from './darts'
+import { addVisit, checkoutChance, dartsStats, isDouble, newMatch, onDouble, parseDarts, type DartsMatch } from './darts'
 import { matchSummary, summaryLine } from './dartsSummary'
 import { newPractice, watchPractice, watchPracticeId } from './dartsPractice'
 import { parseAction } from './connect'
@@ -8,6 +8,24 @@ const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
   return m
 }
+
+describe('standing on a double', () => {
+  it('knows the doubles and counts at least one dart at the double', () => {
+    expect([2, 16, 40, 50].every(isDouble)).toBe(true)
+    expect([1, 3, 42, 41, 60, 0].some(isDouble)).toBe(false)
+    let m = ok(newMatch('d', ['Ethan', 'Remo'], { mode: 301, legsToWin: 1, doubleOut: true }, 0))
+    m = ok(addVisit(m, 180, 1))
+    m = ok(addVisit(m, 60, 1))
+    m = ok(addVisit(m, 81, 1)) // Ethan 40
+    expect(onDouble(m)).toBe(false) // Remo is on 241
+    m = ok(addVisit(m, 60, 1))
+    expect(onDouble(m)).toBe(true)
+    m = ok(addVisit(m, 0, 1, 3, 0)) // missed, but the darts went at D20
+    expect(m.legs[0].visits[4].doubles).toBe(1)
+    const single = ok(newMatch('s', ['Ethan'], { mode: 301, legsToWin: 1, doubleOut: false }, 0))
+    expect(onDouble(ok(addVisit(ok(addVisit(single, 180, 1)), 81, 1)))).toBe(false)
+  })
+})
 
 describe('match summary', () => {
   it('sums up a finished match per player and per leg, with checkout percentage', () => {
