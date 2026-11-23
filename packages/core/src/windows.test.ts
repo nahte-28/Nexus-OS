@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { initialWindowsState, MIN_WINDOW_WIDTH, windowsReducer, type WindowAction } from './windows'
+import { initialWindowsState, MIN_WINDOW_WIDTH, openRect, windowsReducer, type WindowAction } from './windows'
 
 const rect = { x: 10, y: 10, width: 400, height: 300 }
 const run = (...actions: WindowAction[]) => actions.reduce(windowsReducer, initialWindowsState)
@@ -45,5 +45,32 @@ describe('windowsReducer', () => {
     expect(s.windows[0].rect.width).toBe(MIN_WINDOW_WIDTH)
     s = windowsReducer(s, { type: 'move', id, x: 50, y: -100 })
     expect(s.windows[0].rect.y).toBe(0)
+  })
+})
+
+describe('openRect', () => {
+  const agenda = { width: 760, height: 580 }
+
+  it('keeps the default size at the top left in a small window', () => {
+    expect(openRect(agenda, { width: 1056, height: 664 }, 0)).toEqual({ x: 40, y: 40, width: 760, height: 580 })
+    expect(openRect(agenda, { width: 1056, height: 664 }, 1, true)).toEqual({ x: 72, y: 72, width: 760, height: 580 })
+    expect(openRect(agenda, { width: 600, height: 500 }, 0)).toEqual({ x: 40, y: 40, width: 560, height: 460 })
+  })
+
+  it('grows and centres windows on a large screen', () => {
+    const rect = openRect(agenda, { width: 1696, height: 1032 }, 0)
+    expect(rect).toEqual({ x: 278, y: 81, width: 1140, height: 870 })
+  })
+
+  it('never opens a window outside the area', () => {
+    const rect = openRect({ width: 900, height: 900 }, { width: 1300, height: 700 }, 5)
+    expect(rect.x).toBeGreaterThanOrEqual(24)
+    expect(rect.y).toBeGreaterThanOrEqual(24)
+    expect(rect.x + rect.width).toBeLessThanOrEqual(1300 - 24)
+    expect(rect.y + rect.height).toBeLessThanOrEqual(700 - 24)
+  })
+
+  it('fills the area for apps like the Agenda', () => {
+    expect(openRect(agenda, { width: 1696, height: 1032 }, 0, true)).toEqual({ x: 24, y: 24, width: 1648, height: 984 })
   })
 })

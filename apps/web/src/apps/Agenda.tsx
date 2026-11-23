@@ -231,32 +231,39 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
       )}
       {sources.length > 1 && <CalendarLegend sources={sources} lead={state.calendarLead} />}
       {view === 'rooster' && <WeekGrid input={input} shown={shown} look={look} projects={projects} now={now} birthdays={birthdays} />}
-      {view === 'lijst' && days.map((day) => {
-        const entries = agendaDay(input, day).filter(shown)
-        const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
-        return (
-          <section key={day} aria-label={dayTitle(day, today)} className="space-y-1">
-            <h3 className="font-medium">{dayTitle(day, today)}</h3>
-            {birthdays(day).map((b) => <p key={b} className="text-sm">🎂 {b}</p>)}
-            {entries.length === 0 ? (
-              birthdays(day).length > 0 ? null :
-              <p className="text-nx-muted">Niets gepland.</p>
-            ) : (
-              <ul className="space-y-1">
-                {entries.map((e, i) => (
-                  <Entry
-                    key={i}
-                    entry={e}
-                    project={e.kind === 'deadline' ? projects.get(e.deadline.projectId ?? '') : undefined}
-                    clashes={'end' in e ? clashes.get(e) : undefined}
-                    color={'source' in e && e.source ? look.get(e.source)?.color : undefined}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
-        )
-      })}
+      {/* In a wide window (fullscreen) the seven days stand next to each other, like a week on paper. */}
+      {view === 'lijst' && (
+        <div className="@container">
+          <div className="space-y-4 @5xl:grid @5xl:grid-cols-7 @5xl:gap-3 @5xl:space-y-0">
+            {days.map((day) => {
+              const entries = agendaDay(input, day).filter(shown)
+              const clashes = overlapsOf(entries.filter((e): e is Extract<AgendaEntry, { end: number }> => 'end' in e))
+              return (
+                <section key={day} aria-label={dayTitle(day, today)} className="min-w-0 space-y-1 @5xl:min-h-72 @5xl:rounded-lg @5xl:border @5xl:border-nx-border @5xl:p-3">
+                  <h3 className="font-medium">{dayTitle(day, today)}</h3>
+                  {birthdays(day).map((b) => <p key={b} className="text-sm">🎂 {b}</p>)}
+                  {entries.length === 0 ? (
+                    birthdays(day).length > 0 ? null :
+                    <p className="text-nx-muted">Niets gepland.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {entries.map((e, i) => (
+                        <Entry
+                          key={i}
+                          entry={e}
+                          project={e.kind === 'deadline' ? projects.get(e.deadline.projectId ?? '') : undefined}
+                          clashes={'end' in e ? clashes.get(e) : undefined}
+                          color={'source' in e && e.source ? look.get(e.source)?.color : undefined}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {state.calendarEvents.length === 0 && state.lessons.length === 0 && (
         <p className="text-nx-muted">Je lessen verschijnen hier zodra je in Profielen je lesrooster of de agendalink van school instelt.</p>
       )}
@@ -468,7 +475,7 @@ function Entry({ entry, project, clashes, color }: { entry: AgendaEntry; project
   const series = entry.kind === 'appointment' && entry.appointment.repeat ? entry.appointment : null
   return (
     <li className={`flex flex-wrap items-baseline gap-x-2 rounded-md bg-nx-surface-2 px-2 py-1.5 ${color ? `border-l-4 ${EDGE[color]}` : ''}`}>
-      <span className="w-24 shrink-0 text-nx-muted tabular-nums">
+      <span className="w-24 shrink-0 text-nx-muted tabular-nums @5xl:w-auto">
         {clock(entry.at)}
         {entry.kind === 'lesson' || entry.kind === 'appointment' || entry.kind === 'event' ? `–${clock(entry.end)}` : ''}
       </span>
@@ -504,7 +511,7 @@ function DeadlineLine({ deadline: d, project, showTime }: { deadline: Deadline; 
         aria-label={`${d.title} klaar`}
         onChange={() => void lifeStore.updateDeadline(d.id, { doneAt: done ? null : Date.now() })}
       />
-      {showTime && <span className="w-[4.75rem] shrink-0 text-nx-muted tabular-nums">{clock(d.dueAt)}</span>}
+      {showTime && <span className="w-[4.75rem] shrink-0 text-nx-muted tabular-nums @5xl:w-auto">{clock(d.dueAt)}</span>}
       <span className={`min-w-0 flex-1 ${done ? 'text-nx-muted line-through' : 'font-medium'}`}>
         {d.title}
         {!showTime && <span className="font-normal text-nx-muted"> · {when(d.dueAt)}</span>}

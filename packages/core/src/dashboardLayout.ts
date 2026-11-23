@@ -82,5 +82,5 @@ export function moveWidget(all: WidgetId[], shown: WidgetId[], id: WidgetId, to:
 /** How many columns a widget takes on a grid of [columns]: a phone shows everything full width. */
 export const spanOn = (size: WidgetSize, columns: number) => Math.min(size.w, Math.max(1, columns))
 
-/** Columns of the dashboard grid for a width in pixels, as the CSS breakpoints sm (640) and lg (1024). */
-export const columnsFor = (width: number) => (width >= 1024 ? 3 : width >= 640 ? 2 : 1)
+/** Columns of the dashboard grid for a width in pixels, as the CSS breakpoints sm (640), lg (1024) and 2xl (1536). */
+export const columnsFor = (width: number) => (width >= 1536 ? 4 : width >= 1024 ? 3 : width >= 640 ? 2 : 1)

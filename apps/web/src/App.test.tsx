@@ -213,6 +213,19 @@ describe('App shell', () => {
     expect(within(nav).getByRole('button', { name: 'Agenda' })).toBeTruthy()
   })
 
+  it('folds the whole sidebar to icons and opens apps from there', () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk inklappen' }))
+    expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('1')
+    const rail = screen.getByRole('navigation', { name: 'Apps' })
+    fireEvent.click(within(rail).getByRole('button', { name: 'Agenda' }))
+    expect(screen.getByRole('dialog', { name: 'Agenda' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk uitklappen' }))
+    expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('0')
+    expect(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: /^Planning/ })).toBeTruthy()
+  })
+
   it('switches profile, which changes the apps and the theme', () => {
     mockViewport(false)
     renderApp()

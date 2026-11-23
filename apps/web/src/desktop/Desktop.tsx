@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { groupApps, type AppId } from '@nexus/core'
+import { groupApps, openRect, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
@@ -13,9 +13,14 @@ import { Tour } from '../onboarding/Tour'
 import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
-import { toggleGroup, useFoldedGroups } from './sidebarGroups'
+import { isSidebarCollapsed, toggleGroup, toggleSidebar, useFoldedGroups, useSidebarCollapsed } from './sidebarGroups'
 
 export const SIDEBAR_WIDTH = 224
+/** The sidebar folded to a strip of icons. */
+export const SIDEBAR_RAIL_WIDTH = 56
+
+/** How wide the sidebar is right now: new windows and Spaces fit in the room next to it. */
+export const sidebarWidth = () => (isSidebarCollapsed() ? SIDEBAR_RAIL_WIDTH : SIDEBAR_WIDTH)
 
 // Loads when you open it (Ctrl+K), not with the desktop.
 // After an update; it carries the whole changelog, so it loads after the first screen.
@@ -34,10 +39,8 @@ export function Desktop() {
     (appId: AppId) => {
       const app = getApp(appId)
       if (app.launch) return app.launch()
-      const offset = (state.windows.length % 6) * 32
-      const width = Math.min(app.defaultSize.width, window.innerWidth - SIDEBAR_WIDTH - 40)
-      const height = Math.min(app.defaultSize.height, window.innerHeight - TASKBAR_HEIGHT - 40)
-      dispatch({ type: 'open', appId, title: app.title, rect: { x: 40 + offset, y: 40 + offset, width, height } })
+      const area = { width: window.innerWidth - sidebarWidth(), height: window.innerHeight - TASKBAR_HEIGHT }
+      dispatch({ type: 'open', appId, title: app.title, rect: openRect(app.defaultSize, area, state.windows.length, app.fill) })
     },
     [dispatch, state.windows.length],
   )
@@ -79,15 +82,63 @@ export function Desktop() {
   )
 }
 
-/** Brand, the active profile and its apps in groups you can fold away. Switching profiles happens in the Profielen app. */
+/**
+ * Brand, the active profile and its apps in groups you can fold away. Switching profiles happens in
+ * the Profielen app. The button at the top folds the whole sidebar to a strip of icons, for more room.
+ */
 function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
   const { active } = useProfiles()
   const folded = useFoldedGroups()
+  const collapsed = useSidebarCollapsed()
+  const toggle = (
+    <button
+      type="button"
+      onClick={toggleSidebar}
+      aria-label={collapsed ? 'Zijbalk uitklappen' : 'Zijbalk inklappen'}
+      title={collapsed ? 'Zijbalk uitklappen' : 'Zijbalk inklappen'}
+      className="grid size-8 shrink-0 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text"
+    >
+      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M9 4v16" />
+        <path d={collapsed ? 'M13 10l2 2-2 2' : 'M16 10l-2 2 2 2'} />
+      </svg>
+    </button>
+  )
+  if (collapsed) {
+    return (
+      <aside style={{ width: SIDEBAR_RAIL_WIDTH }} className="nx-glass flex shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-nx-border py-3">
+        {toggle}
+        <nav aria-label="Apps" className="flex flex-col items-center gap-0.5">
+          {groupApps(apps).map((group, i) => (
+            <ul key={group.id} aria-label={group.title} className={`flex flex-col items-center gap-0.5 ${i > 0 ? 'mt-1 border-t border-nx-border pt-1' : ''}`}>
+              {group.apps.map((app) => (
+                <li key={app.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenApp(app.id)}
+                    aria-label={app.title}
+                    title={app.title}
+                    className="grid size-10 place-items-center rounded-lg text-nx-accent hover:bg-nx-surface-2 [&>svg]:size-5"
+                  >
+                    <app.icon />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ))}
+        </nav>
+      </aside>
+    )
+  }
   return (
     <aside style={{ width: SIDEBAR_WIDTH }} className="nx-glass flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border p-3">
-      <div className="px-2 pt-1">
-        <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>
-        <p className="text-xs text-nx-muted">{active.name} Mode</p>
+      <div className="flex items-start justify-between gap-2 pt-1 pl-2">
+        <div>
+          <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>
+          <p className="text-xs text-nx-muted">{active.name} Mode</p>
+        </div>
+        {toggle}
       </div>
       <nav aria-label="Apps" className="space-y-2">
         {groupApps(apps).map((group) => {
