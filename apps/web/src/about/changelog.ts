@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-23',
+    title: 'Ongelezen berichten op het NEXUS-icoon',
+    items: [
+      'Het NEXUS-icoon in je taakbalk, dock of op het beginscherm van je gsm toont nu hoeveel teamchat- en privéberichten je nog niet las. Lees je ze, dan verdwijnt het getal vanzelf.',
+      'Dat werkt als je NEXUS als app installeerde (bv. via Chrome of Edge: "App installeren"). Staat Teams of Vrienden uit, dan tellen die berichten niet mee.',
+    ],
+  },
+  {
+    date: '2026-11-23',
     title: 'Darts: score via foto',
     items: [
       'Weet je niet meer hoeveel je gooide? Tik op "Score via foto" onder het invoerveld en trek een foto van het bord. NEXUS AI leest de pijlen en vult de score in, bv. "T20 · 5 · T20 = 125". Klopt het niet, dan pas je het gewoon aan voor je invoert.',

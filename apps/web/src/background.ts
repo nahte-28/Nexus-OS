@@ -52,6 +52,7 @@ import { startAssignedNotices } from './teams/assignedNotices'
 import { startTeamTaskReminders } from './teams/dueReminders'
 import { startFriendNotices } from './friends/friends'
 import { startDmNotices } from './friends/dm'
+import { startAppBadge } from './badge/appBadge'
 import { startOutbox } from './offline/outbox'
 import { startPresence } from './presence/presence'
 import { startAdminCheck } from './admin/admin'
@@ -154,6 +155,8 @@ startTeamTaskReminders(supabase, defaultEngine, () => isFeatureOn('teams'))
 startFriendNotices(supabase, () => isFeatureOn('friends'))
 // Privéberichten: a notice for a new message, opened with this device's Connect key.
 startDmNotices(supabase, defaultEngine, () => isFeatureOn('friends'))
+// Ongelezen berichten: the number of unread teamchat and privéberichten on the NEXUS icon.
+startAppBadge(supabase, () => ({ teams: isFeatureOn('teams'), dms: isFeatureOn('friends') }))
 // Afspraak met vrienden: invites to your appointments, and your copies of the ones you accepted.
 startAppointmentInvites(supabase, () => isFeatureOn('friends'))
 // Samen vrij moment zoeken: friends see when you are busy (never what), to find a moment together.

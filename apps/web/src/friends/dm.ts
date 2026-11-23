@@ -6,6 +6,7 @@ import { flushOutbox, registerOutboxSender } from '../offline/outbox'
 import { eventBus } from '../events/bus'
 import { showLocalNotification } from '../platform/notify'
 import { friendError } from './friends'
+import { unreadChanged } from '../badge/events'
 
 export const DM_MIGRATION = 'supabase/migrations/20261113180000_direct_messages.sql'
 
@@ -96,6 +97,7 @@ export class DirectMessages {
   async markRead(friend: string): Promise<void> {
     const { error } = await this.client.rpc('mark_dm_read', { p_friend: friend })
     if (error) fail(error)
+    unreadChanged()
   }
 
   /** Removes a message for both of you. */
@@ -134,6 +136,7 @@ export function startDmNotices(client: SupabaseClient | null, sealer: Sealer, en
   const names = new Map<string, string>()
   const onMessage = async (m: DirectMessage, event: 'INSERT' | 'UPDATE') => {
     if (event !== 'INSERT' || !enabled() || !me || m.recipient !== me) return
+    unreadChanged()
     if (openConversation === m.sender && typeof document !== 'undefined' && document.visibilityState === 'visible') return
     try {
       if (!names.has(m.sender)) {

@@ -6,6 +6,7 @@ import { eventBus } from '../events/bus'
 import { showLocalNotification } from '../platform/notify'
 import { readStorage, writeStorage } from '../state/storage'
 import { teamError } from './teams'
+import { unreadChanged } from '../badge/events'
 
 export const TEAM_CHAT_MIGRATION = 'supabase/migrations/20261113090000_team_chat.sql'
 const READ_KEY = 'nexus.teams.chatRead'
@@ -88,6 +89,7 @@ export function markChatRead(groupId: string, at = Date.now()): void {
   }
   if ((all[groupId] ?? 0) >= at) return
   writeStorage(READ_KEY, JSON.stringify({ ...all, [groupId]: at }))
+  unreadChanged()
 }
 
 /** The team whose chat is open and visible right now: no notice for messages there. */
@@ -123,6 +125,7 @@ export function startTeamChatNotices(client: SupabaseClient | null, enabled: () 
 
   const onMessage = async (m: TeamMessage) => {
     if (!enabled() || m.userId === me) return
+    unreadChanged()
     if (openChat === m.groupId && typeof document !== 'undefined' && document.visibilityState === 'visible') return
     try {
       const [team, sender] = await Promise.all([nameOf('study_groups', m), nameOf('study_group_members', m)])
