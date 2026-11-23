@@ -53,6 +53,10 @@ export interface DartsLeg {
   winner: number | null
 }
 
+/** How well a bot throws, easiest first (see dartsBot.ts). */
+export type BotLevel = 'beginner' | 'gevorderd' | 'club' | 'sterk' | 'pro'
+const BOT_IDS: BotLevel[] = ['beginner', 'gevorderd', 'club', 'sterk', 'pro']
+
 export interface DartsMatch {
   id: string
   mode: DartsMode
@@ -71,6 +75,8 @@ export interface DartsMatch {
   finishedAt: number | null
   updatedAt: number
   deletedAt: number | null
+  /** In a match against the bot: the side it plays and how well. */
+  bot?: { side: number; level: BotLevel }
 }
 
 export interface DartsSettings {
@@ -177,7 +183,15 @@ function parseMatch(raw: unknown): DartsMatch | null {
     finishedAt: num(m.finishedAt),
     updatedAt: num(m.updatedAt) ?? 0,
     deletedAt: num(m.deletedAt),
+    ...parseBot(m.bot, players.length),
   }
+}
+
+function parseBot(raw: unknown, sides: number): { bot?: DartsMatch['bot'] } {
+  const b = raw as Record<string, unknown> | null
+  const side = num(b?.side)
+  const level = BOT_IDS.find((l) => l === b?.level)
+  return side !== null && side >= 0 && side < sides && level ? { bot: { side: Math.round(side), level } } : {}
 }
 
 const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase()
@@ -287,7 +301,7 @@ export function toThrow(m: DartsMatch): number | null {
   return (leg.starter + leg.visits.length) % m.players.length
 }
 
-export type MatchOptions = Pick<DartsMatch, 'mode' | 'legsToWin' | 'doubleOut'> & { setsToWin?: number }
+export type MatchOptions = Pick<DartsMatch, 'mode' | 'legsToWin' | 'doubleOut'> & { setsToWin?: number; bot?: DartsMatch['bot'] }
 
 /**
  * A new match. [players] holds one name per side, or for pairs (koppels) the members of each side;
@@ -300,7 +314,10 @@ export function newMatch(id: string, players: Array<string | string[]>, options:
   if (!validStart(options.mode)) return { error: `Een spel start op ${MIN_START} tot ${MAX_START}.` }
   const all = members.flat().map((n) => n.toLowerCase())
   if (new Set(all).size !== all.length) return { error: 'Elke speler mag maar één keer meedoen.' }
+  const bot = options.bot && options.bot.side >= 0 && options.bot.side < members.length && BOT_IDS.includes(options.bot.level) ? { bot: { side: options.bot.side, level: options.bot.level } } : {}
+  if (bot.bot && members[bot.bot.side].length > 1) return { error: 'De bot speelt alleen, niet in een koppel.' }
   return {
+    ...bot,
     id,
     mode: options.mode,
     doubleOut: options.doubleOut,
@@ -338,16 +355,16 @@ export function throwerName(m: DartsMatch): string | null {
 /**
  * Adds a visit for the player whose turn it is. A visit that goes below zero, leaves 1 with
  * double-out or finishes on a score no double can end is a bust: it counts as thrown but scores
- * nothing. Finishing wins the leg; enough legs win the match and the next leg starts with the next player.
+ * nothing. [forceBust] marks a visit as bust whose total would fit, like the bot ending on a single. Finishing wins the leg; enough legs win the match and the next leg starts with the next player.
  */
-export function addVisit(m: DartsMatch, score: number, now: number, darts = 3, doubles?: number): DartsMatch | { error: string } {
+export function addVisit(m: DartsMatch, score: number, now: number, darts = 3, doubles?: number, forceBust = false): DartsMatch | { error: string } {
   const player = toThrow(m)
   if (player === null) return { error: 'Deze wedstrijd is al gedaan.' }
   if (!Number.isInteger(score) || score < 0 || score > 180) return { error: 'Een beurt is 0 tot 180.' }
   if (IMPOSSIBLE.has(score)) return { error: `${score} kan niet met drie pijlen.` }
   const left = remaining(m, player) - score
   const finishable = !m.doubleOut || (score <= 170 && !BOGEY.has(score))
-  const bust = left < 0 || (m.doubleOut && left === 1) || (left === 0 && !finishable)
+  const bust = forceBust || left < 0 || (m.doubleOut && left === 1) || (left === 0 && !finishable)
   const leg = currentLeg(m)
   const pairs = (m.members[player]?.length ?? 1) > 1
   const used = left === 0 && !bust ? Math.min(3, Math.max(1, Math.round(darts))) : 3

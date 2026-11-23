@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-23',
+    title: 'Darts: spelen tegen een bot',
+    items: [
+      'Vink bij een nieuwe wedstrijd "Tegen de bot" aan en kies een niveau: Beginner, Gevorderd, Clubspeler, Sterk of Pro (van ongeveer 30 tot 90 gemiddeld).',
+      'De bot gooit zelf zijn beurt en je ziet waar zijn pijlen landden, zoals T20 · 5 · T20. Op een finish gooit hij naar de dubbel, en hij kan ook mis gooien of busten.',
+      'Ongedaan maken neemt de beurt van de bot en die van jou terug, zodat je meteen opnieuw kunt gooien.',
+    ],
+  },
+  {
     date: '2026-11-21',
     title: 'Darts: geen 0 meer op een dubbel',
     items: ['Sta je op een dubbel (bijvoorbeeld 40 of 32), dan vraagt het scorebord niet meer of er 0 pijlen op een dubbel gingen: je gooit toch altijd naar de dubbel. Je kiest 1, 2 of 3.'],
