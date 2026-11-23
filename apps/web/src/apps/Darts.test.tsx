@@ -8,6 +8,7 @@ vi.mock('../darts/photos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../darts/photos')>()),
   // jsdom draws no images, and NEXUS AI is not reachable in a test.
   shrinkPhoto: async () => 'data:image/jpeg;base64,AAAA',
+  readPhoto: async () => ({ darts: ['T20', 'T11', 'D14'], note: '' }),
   checkProof: async (f: { leg: number }, _out: boolean, _data: string, at: number) => ({ leg: f.leg, at, verdict: 'ok', darts: ['T20', 'T11', 'D14'] }),
 }))
 
@@ -135,6 +136,24 @@ describe('Darts', () => {
     fireEvent.click(within(proofs).getByRole('button', { name: 'Bewijsfoto van 121 weghalen' }))
     expect(await within(proofs).findByLabelText('Bewijsfoto voor 121')).toBeTruthy()
     expect(dartsStore.getSnapshot().matches[0].proofs).toBeUndefined()
+  })
+
+  it('reads the score of a visit from a photo and keeps a high finish as proof', async () => {
+    dartsStore.adopt({ ...emptyDarts(), settings: { ...emptyDarts().settings, me: 'Ethan', legsToWin: 1, mode: 301 } })
+    render(<Darts />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Speler 2' }), { target: { value: 'Remo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+    throwScore(180)
+    throwScore(60)
+    fireEvent.change(screen.getByLabelText('Score via foto'), { target: { files: [new File(['x'], 'bord.jpg', { type: 'image/jpeg' })] } })
+    expect((await screen.findByLabelText('Gelezen van de foto')).textContent).toBe('NEXUS AI zag T20 · T11 · D14 = 121. Klopt het niet? Pas de score aan.')
+    expect((screen.getByRole('textbox', { name: 'Score van deze beurt' }) as HTMLInputElement).value).toBe('121')
+    expect((screen.getByRole('radio', { name: 'Uit in 3' }) as HTMLInputElement).checked).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Invoeren' }))
+    expect(screen.getByRole('status').textContent).toMatch(/Ethan wint/)
+    const proofs = screen.getByRole('region', { name: "Bewijsfoto's" })
+    expect(await within(proofs).findByText('✓ Klopt volgens NEXUS AI: T20 T11 D14')).toBeTruthy()
+    expect(await within(proofs).findByRole('img', { name: 'Bord na de finish van 121' })).toBeTruthy()
   })
 
   it('practises Around the Clock and checkouts, with stats', () => {

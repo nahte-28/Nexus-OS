@@ -3,6 +3,9 @@ import {
   addVisit,
   checkoutChance,
   onDouble,
+  PROOF_FROM,
+  judgeProof,
+  photoVisit,
   BOT_LEVELS,
   botName,
   botVisit,
@@ -76,6 +79,8 @@ import { CricketScoreboard, CricketSummary, NewCricket, cricketRunning, saveCric
 import { useProfiles } from '../profiles/store'
 import { Online } from '../darts/Online'
 import { CheckoutProofs } from '../darts/Proofs'
+import { PhotoScoreButton, type PhotoScore } from '../darts/PhotoScore'
+import { savePhoto, storeProof } from '../darts/photos'
 import { readStorage, writeStorage } from '../state/storage'
 
 const TABS = ['Spelen', 'Online', 'Oefenen', 'Geschiedenis', 'Statistieken', 'Instellingen'] as const
@@ -317,6 +322,7 @@ function Scoreboard({ match }: { match: DartsMatch }) {
   const [doubles, setDoubles] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [botDarts, setBotDarts] = useState<BotDart[] | null>(null)
+  const [photo, setPhoto] = useState<PhotoScore | null>(null)
   // With a finish on, ask how many darts went at a double, for the checkout percentage.
   const ask = settings.askDoubles && checkoutChance(match)
   // On a double you always throw at it, so 0 darts at a double is not an option.
@@ -350,7 +356,20 @@ function Scoreboard({ match }: { match: DartsMatch }) {
     setScore('')
     setDarts(3)
     setDoubles(0)
+    setPhoto(null)
     saveMatch(next)
+    // A high finish read from a photo keeps that photo as proof, judged without asking NEXUS AI again.
+    if (photo && out && value >= PROOF_FROM && photoVisit(photo.reading).total === value) {
+      const leg = match.legs.length - 1
+      const proof = { leg, at: Date.now(), verdict: judgeProof(photo.reading, value, darts, match.doubleOut), darts: photo.reading.darts, ...(photo.reading.note ? { note: photo.reading.note } : {}) }
+      void savePhoto(match.id, leg, photo.data, proof.at).then(() => storeProof(match.id, proof, value))
+    }
+  }
+  const fromPhoto = (read: PhotoScore) => {
+    const visit = photoVisit(read.reading)
+    setPhoto(read)
+    setScore(String(visit.total))
+    if (visit.total === left) setDarts(visit.darts)
   }
   return (
     <section aria-label="Scorebord" className="space-y-3">
@@ -418,6 +437,14 @@ function Scoreboard({ match }: { match: DartsMatch }) {
             <button type="submit" className={primaryButton} disabled={score === ''}>
               Invoeren
             </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <PhotoScoreButton onRead={fromPhoto} />
+            {photo && (
+              <span className="text-xs text-nx-muted" aria-label="Gelezen van de foto">
+                NEXUS AI zag {photo.reading.darts.join(' · ')} = {photoVisit(photo.reading).total}. Klopt het niet? Pas de score aan.
+              </span>
+            )}
           </div>
           {finishing && (
             <fieldset className="flex items-center gap-3">

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-23',
+    title: 'Darts: score via foto',
+    items: [
+      'Weet je niet meer hoeveel je gooide? Tik op "Score via foto" onder het invoerveld en trek een foto van het bord. NEXUS AI leest de pijlen en vult de score in, bv. "T20 · 5 · T20 = 125". Klopt het niet, dan pas je het gewoon aan voor je invoert.',
+      'Gooi je zo 100 of meer uit, dan wordt die foto meteen je bewijsfoto bij "Hoge finishes", met het oordeel erbij.',
+    ],
+  },
+  {
+    date: '2026-11-23',
     title: 'Darts: bewijsfoto bij hoge finishes',
     items: [
       'Gooi je 100 of meer uit, dan kun je onder het scorebord een foto van het bord trekken als bewijs.',
