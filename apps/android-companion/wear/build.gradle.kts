@@ -5,7 +5,7 @@ plugins {
 android {
     // The same namespace as the companion, so the shared code below finds its resources (R).
     namespace = "app.nexusos.companion"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.nexusos.watch"
