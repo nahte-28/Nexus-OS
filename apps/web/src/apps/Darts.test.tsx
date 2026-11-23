@@ -4,6 +4,13 @@ import { emptyDarts } from '@nexus/core'
 import { BOT_PAUSE, Darts } from './Darts'
 import { dartsStore } from '../darts/store'
 
+vi.mock('../darts/photos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../darts/photos')>()),
+  // jsdom draws no images, and NEXUS AI is not reachable in a test.
+  shrinkPhoto: async () => 'data:image/jpeg;base64,AAAA',
+  checkProof: async (f: { leg: number }, _out: boolean, _data: string, at: number) => ({ leg: f.leg, at, verdict: 'ok', darts: ['T20', 'T11', 'D14'] }),
+}))
+
 const throwScore = (n: number) => {
   fireEvent.change(screen.getByRole('textbox', { name: 'Score van deze beurt' }), { target: { value: String(n) } })
   fireEvent.click(screen.getByRole('button', { name: 'Invoeren' }))
@@ -107,6 +114,27 @@ describe('Darts', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('adds a photo as proof of a high checkout, checked by NEXUS AI', async () => {
+    dartsStore.adopt({ ...emptyDarts(), settings: { ...emptyDarts().settings, me: 'Ethan', legsToWin: 1, mode: 301 } })
+    render(<Darts />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Speler 2' }), { target: { value: 'Remo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Starten' }))
+    throwScore(180)
+    throwScore(60)
+    expect(screen.queryByRole('region', { name: "Bewijsfoto's" })).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Score van deze beurt' }), { target: { value: '121' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Invoeren' }))
+    const proofs = screen.getByRole('region', { name: "Bewijsfoto's" })
+    expect(within(proofs).getByText(/gooide/).textContent).toBe('Leg 1: Ethan gooide 121 uit')
+    fireEvent.change(await within(proofs).findByLabelText('Bewijsfoto voor 121'), { target: { files: [new File(['x'], 'bord.jpg', { type: 'image/jpeg' })] } })
+    expect(await within(proofs).findByText('✓ Klopt volgens NEXUS AI: T20 T11 D14')).toBeTruthy()
+    expect(within(proofs).getByRole('img', { name: 'Bord na de finish van 121' })).toBeTruthy()
+    expect(dartsStore.getSnapshot().matches[0].proofs).toMatchObject([{ leg: 0, verdict: 'ok', darts: ['T20', 'T11', 'D14'] }])
+    fireEvent.click(within(proofs).getByRole('button', { name: 'Bewijsfoto van 121 weghalen' }))
+    expect(await within(proofs).findByLabelText('Bewijsfoto voor 121')).toBeTruthy()
+    expect(dartsStore.getSnapshot().matches[0].proofs).toBeUndefined()
   })
 
   it('practises Around the Clock and checkouts, with stats', () => {

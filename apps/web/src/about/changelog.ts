@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-23',
+    title: 'Darts: bewijsfoto bij hoge finishes',
+    items: [
+      'Gooi je 100 of meer uit, dan kun je onder het scorebord een foto van het bord trekken als bewijs.',
+      'NEXUS AI leest welke pijlen er in het bord zitten en zegt of ze de finish maken, bv. "Klopt volgens NEXUS AI: T20 T11 D14". Daarvoor moet je aangemeld zijn.',
+      'De foto blijft op je toestel bij de wedstrijd; het oordeel zie je op al je toestellen, ook later in de samenvatting bij Geschiedenis.',
+    ],
+  },
+  {
+    date: '2026-11-23',
     title: 'Darts: spelen tegen een bot',
     items: [
       'Vink bij een nieuwe wedstrijd "Tegen de bot" aan en kies een niveau: Beginner, Gevorderd, Clubspeler, Sterk of Pro (van ongeveer 30 tot 90 gemiddeld).',

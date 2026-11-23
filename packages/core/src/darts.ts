@@ -4,6 +4,7 @@
  * each visit, as on a scoreboard. One document per account (user_settings key 'darts'). Pure logic.
  */
 import { MAX_CRICKET, mergeCricket, parseCricket, type CricketMatch } from './dartsCricket'
+import { parseProofs, type CheckoutProof } from './dartsPhoto'
 import { MAX_PRACTICE, mergePractice, parsePractice, type DartsPractice } from './dartsPractice'
 
 /** The score each player starts a leg on: 501, 301, 701 or any own number from 2 to 1001 (e.g. 170). */
@@ -77,6 +78,8 @@ export interface DartsMatch {
   deletedAt: number | null
   /** In a match against the bot: the side it plays and how well. */
   bot?: { side: number; level: BotLevel }
+  /** Photos as proof of high checkouts: what NEXUS AI read on them. The photos stay on the device. */
+  proofs?: CheckoutProof[]
 }
 
 export interface DartsSettings {
@@ -184,8 +187,11 @@ function parseMatch(raw: unknown): DartsMatch | null {
     updatedAt: num(m.updatedAt) ?? 0,
     deletedAt: num(m.deletedAt),
     ...parseBot(m.bot, players.length),
+    ...withProofs(parseProofs(m.proofs, parsedLegs.length)),
   }
 }
+
+const withProofs = (proofs: CheckoutProof[]) => (proofs.length > 0 ? { proofs } : {})
 
 function parseBot(raw: unknown, sides: number): { bot?: DartsMatch['bot'] } {
   const b = raw as Record<string, unknown> | null
@@ -434,7 +440,12 @@ export function undoVisit(m: DartsMatch, now: number): DartsMatch {
   if (currentLeg(m).visits.length === 0 && all.length > 1) all = all.slice(0, -1)
   const leg = all[all.length - 1]
   if (leg.visits.length === 0) return m
-  return { ...m, legs: [...all.slice(0, -1), { ...leg, visits: leg.visits.slice(0, -1), winner: null }], winner: null, finishedAt: null, updatedAt: now }
+  const undone: DartsMatch = { ...m, legs: [...all.slice(0, -1), { ...leg, visits: leg.visits.slice(0, -1), winner: null }], winner: null, finishedAt: null, updatedAt: now }
+  // The finish of that leg is gone, so is its proof.
+  const proofs = m.proofs?.filter((p) => p.leg < all.length - 1)
+  if (!m.proofs) return undone
+  const { proofs: _, ...rest } = undone
+  return proofs && proofs.length > 0 ? { ...undone, proofs } : rest
 }
 
 /** Legs [player] won over the whole match. */
