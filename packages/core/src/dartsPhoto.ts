@@ -145,3 +145,12 @@ export function parseProofs(raw: unknown, legs: number): CheckoutProof[] {
 
 /** The id of the photo of [leg] of [matchId] on this device. */
 export const proofPhotoId = (matchId: string, leg: number) => `${matchId}:${leg}`
+
+/** The visit on a photo of the board: the total of the darts read, and how many darts that took. */
+export function photoVisit(reading: PhotoReading): { total: number; darts: number } {
+  const total = reading.darts.reduce((n, d) => n + (dartValue(d) ?? 0), 0)
+  // A miss after the last scoring dart is not thrown for the finish.
+  let used = reading.darts.length
+  while (used > 1 && reading.darts[used - 1] === 'Mis') used--
+  return { total, darts: Math.min(3, Math.max(1, used)) }
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addVisit, newMatch, parseDarts, undoVisit, type DartsMatch } from './darts'
-import { dartValue, highFinishes, judgeProof, parsePhotoReading, withoutProof, withProof } from './dartsPhoto'
+import { dartValue, highFinishes, judgeProof, parsePhotoReading, photoVisit, withoutProof, withProof } from './dartsPhoto'
 
 const ok = (m: DartsMatch | { error: string }): DartsMatch => {
   if ('error' in m) throw new Error(m.error)
@@ -35,6 +35,12 @@ describe('checkout proof', () => {
     expect(judgeProof({ darts: ['T20', 'T20', 'D1'], note: '' }, 121, 3)).toBe('nok') // 122
     expect(judgeProof({ darts: ['T20', 'T11', 'D14'], note: '' }, 121, 2)).toBe('nok') // three darts, two noted
     expect(judgeProof({ darts: [], note: 'Geen pijlen te zien' }, 121, 3)).toBe('unclear')
+  })
+
+  it('counts the visit on a photo', () => {
+    expect(photoVisit({ darts: ['T20', '5', 'T20'], note: '' })).toEqual({ total: 125, darts: 3 })
+    expect(photoVisit({ darts: ['T20', 'D20', 'Mis'], note: '' })).toEqual({ total: 100, darts: 2 })
+    expect(photoVisit({ darts: [], note: '' })).toEqual({ total: 0, darts: 1 })
   })
 
   it('keeps the proof with the match, through a sync, and drops it on undo', () => {
