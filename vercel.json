@@ -53,6 +53,9 @@
     "api/cards.ts": {
       "maxDuration": 60
     },
+    "api/darts.ts": {
+      "maxDuration": 60
+    },
     "api/calendar.ts": {
       "maxDuration": 30
     },

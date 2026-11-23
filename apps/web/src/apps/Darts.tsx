@@ -75,6 +75,7 @@ import { dartsStore, dartsSyncProblem, useDarts } from '../darts/store'
 import { CricketScoreboard, CricketSummary, NewCricket, cricketRunning, saveCricket } from '../darts/Cricket'
 import { useProfiles } from '../profiles/store'
 import { Online } from '../darts/Online'
+import { CheckoutProofs } from '../darts/Proofs'
 import { readStorage, writeStorage } from '../state/storage'
 
 const TABS = ['Spelen', 'Online', 'Oefenen', 'Geschiedenis', 'Statistieken', 'Instellingen'] as const
@@ -565,7 +566,7 @@ function Play() {
       {show ? (
         <>
           <Scoreboard match={show} />
-          {!running(show) && <Summary match={show} />}
+          {running(show) ? <CheckoutProofs match={show} /> : <Summary match={show} />}
           {!running(show) && again}
         </>
       ) : showCricket ? (
@@ -747,6 +748,7 @@ function Summary({ match }: { match: DartsMatch }) {
       <button type="button" className={small} onClick={copy}>
         {copied ? 'Gekopieerd' : 'Uitslag kopiëren'}
       </button>
+      <CheckoutProofs match={match} />
     </section>
   )
 }

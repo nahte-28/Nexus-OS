@@ -1,11 +1,12 @@
 /** Minimal IndexedDB wrapper: one object store per collection plus a key/value "meta" store. */
 
 const DB_NAME = 'nexus'
-const DB_VERSION = 5
+const DB_VERSION = 6
 // inbox: received Connect notifications; connect: this device's identity and keys;
 // reminders: planned notifications, kept on this device only; life: deadlines, appointments and
-// projects; files: your own files (Bestanden); folders: pc folders you opened in Bestanden.
-export const STORES = ['notes', 'meta', 'inbox', 'connect', 'reminders', 'life', 'files', 'folders'] as const
+// projects; files: your own files (Bestanden); folders: pc folders you opened in Bestanden;
+// dartsPhotos: photos as proof of a darts checkout, kept on this device only.
+export const STORES = ['notes', 'meta', 'inbox', 'connect', 'reminders', 'life', 'files', 'folders', 'dartsPhotos'] as const
 export type StoreName = (typeof STORES)[number]
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -23,6 +24,7 @@ export function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('life')) db.createObjectStore('life', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' })
       if (!db.objectStoreNames.contains('folders')) db.createObjectStore('folders', { keyPath: 'id' })
+      if (!db.objectStoreNames.contains('dartsPhotos')) db.createObjectStore('dartsPhotos', { keyPath: 'id' })
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => {
