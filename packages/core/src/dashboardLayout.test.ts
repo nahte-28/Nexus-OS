@@ -38,7 +38,7 @@ describe('dashboard layout', () => {
     expect(spanOn({ w: 3, h: 1 }, 1)).toBe(1)
     expect(spanOn({ w: 3, h: 1 }, 2)).toBe(2)
     expect(spanOn({ w: 2, h: 1 }, 3)).toBe(2)
-    expect([columnsFor(390), columnsFor(800), columnsFor(1400)]).toEqual([1, 2, 3])
+    expect([columnsFor(390), columnsFor(800), columnsFor(1400), columnsFor(1920)]).toEqual([1, 2, 3, 4])
   })
 
   it('travels with the profile and survives a stored copy', () => {

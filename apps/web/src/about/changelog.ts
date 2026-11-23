@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-23',
+    title: 'Beter op een groot scherm',
+    items: [
+      'Zet je NEXUS op volledig scherm (of op een grote monitor), dan gebruikt het nu de hele ruimte: de Agenda, Project Hub, Flow Studio, Teams en de Browser openen schermvullend, en andere apps openen groter en in het midden.',
+      'Het dashboard wordt breder en toont de widgets in vier kolommen. In een klein venster en op je gsm blijft alles zoals het was.',
+    ],
+  },
+  {
+    date: '2026-11-23',
     title: 'Ongelezen berichten op het NEXUS-icoon',
     items: [
       'Het NEXUS-icoon in je taakbalk, dock of op het beginscherm van je gsm toont nu hoeveel teamchat- en privéberichten je nog niet las. Lees je ze, dan verdwijnt het getal vanzelf.',

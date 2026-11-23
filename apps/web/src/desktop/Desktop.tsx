@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { groupApps, type AppId } from '@nexus/core'
+import { groupApps, openRect, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
@@ -34,10 +34,8 @@ export function Desktop() {
     (appId: AppId) => {
       const app = getApp(appId)
       if (app.launch) return app.launch()
-      const offset = (state.windows.length % 6) * 32
-      const width = Math.min(app.defaultSize.width, window.innerWidth - SIDEBAR_WIDTH - 40)
-      const height = Math.min(app.defaultSize.height, window.innerHeight - TASKBAR_HEIGHT - 40)
-      dispatch({ type: 'open', appId, title: app.title, rect: { x: 40 + offset, y: 40 + offset, width, height } })
+      const area = { width: window.innerWidth - SIDEBAR_WIDTH, height: window.innerHeight - TASKBAR_HEIGHT }
+      dispatch({ type: 'open', appId, title: app.title, rect: openRect(app.defaultSize, area, state.windows.length, app.fill) })
     },
     [dispatch, state.windows.length],
   )

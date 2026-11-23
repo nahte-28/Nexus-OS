@@ -108,3 +108,28 @@ export function windowsReducer(state: WindowsState, action: WindowAction): Windo
       }))
   }
 }
+
+/** From this width of the free desktop area (next to the sidebar) NEXUS counts as on a large screen. */
+export const LARGE_AREA_WIDTH = 1200
+const EDGE = 24
+
+/**
+ * Where a new window opens in a desktop area of [area] pixels. On a small screen: at the top left,
+ * at its default size, a little lower and to the right for each open window. On a large screen
+ * (fullscreen on a laptop or monitor) the window grows along, up to one and a half times its
+ * default size, and opens in the middle; an app with [fill] (like the Agenda) fills the area.
+ */
+export function openRect(size: { width: number; height: number }, area: { width: number; height: number }, openCount: number, fill = false): Rect {
+  const offset = (openCount % 6) * 32
+  if (area.width < LARGE_AREA_WIDTH) {
+    return { x: 40 + offset, y: 40 + offset, width: Math.min(size.width, area.width - 40), height: Math.min(size.height, area.height - 40) }
+  }
+  const maxWidth = area.width - 2 * EDGE
+  const maxHeight = area.height - 2 * EDGE
+  if (fill) return { x: EDGE + offset, y: EDGE + offset, width: maxWidth - offset, height: maxHeight - offset }
+  const scale = Math.min(1.5, area.width / 1100)
+  const width = Math.min(Math.round(size.width * scale), maxWidth)
+  const height = Math.min(Math.round(size.height * scale), maxHeight)
+  const place = (free: number, length: number) => Math.max(EDGE, Math.min(Math.round((free - length) / 2) + offset, free - length - EDGE))
+  return { x: place(area.width, width), y: place(area.height, height), width, height }
+}

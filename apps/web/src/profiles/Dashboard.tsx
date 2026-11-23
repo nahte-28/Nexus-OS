@@ -58,7 +58,7 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
   const devHub = useFeature('devHub')
   const marketplace = useFeature('marketplace')
   return (
-    <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 ${compact ? 'p-4' : 'p-6'}`}>
+    <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 2xl:max-w-[1600px] ${compact ? 'p-4' : 'p-6'}`}>
       <header className="space-y-1">
         <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
           {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}

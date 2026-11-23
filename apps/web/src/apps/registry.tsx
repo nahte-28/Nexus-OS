@@ -94,6 +94,8 @@ export interface AppDefinition {
   linux?: boolean
   /** Only listed for an admin of this NEXUS (Beheer). */
   admin?: boolean
+  /** On a large screen it opens filling the desktop, like the Agenda: room for a whole week. */
+  fill?: boolean
   /** Opens outside NEXUS's own windows (a website app) instead of showing [component]. */
   launch?: () => void
 }
@@ -116,7 +118,7 @@ function KlasHubLauncher() {
 
 /** Every app in NEXUS. New modules (Life, Gaming, Network...) register here. */
 export const APPS: AppDefinition[] = [
-  { id: 'agenda', title: 'Agenda', icon: CalendarIcon, component: Agenda, defaultSize: { width: 760, height: 580 } },
+  { id: 'agenda', title: 'Agenda', icon: CalendarIcon, component: Agenda, defaultSize: { width: 760, height: 580 }, fill: true },
   { id: 'study', title: 'Studie', icon: TimerIcon, component: Study, defaultSize: { width: 640, height: 600 } },
   { id: 'grades', title: 'Cijfers', icon: GradesIcon, component: Grades, defaultSize: { width: 680, height: 600 } },
   { id: 'habits', title: 'Gewoontes', icon: HabitIcon, component: Habits, defaultSize: { width: 620, height: 580 } },
@@ -132,7 +134,7 @@ export const APPS: AppDefinition[] = [
   { id: 'devices', title: 'Apparaten', icon: DevicesIcon, component: Devices, defaultSize: { width: 560, height: 520 } },
   { id: 'account', title: 'Account', icon: AccountIcon, component: Account, defaultSize: { width: 480, height: 340 } },
   { id: 'klashub', title: 'KlasHub', icon: BookIcon, component: KlasHubLauncher, defaultSize: { width: 420, height: 200 }, launch: openKlasHub },
-  { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, beta: true },
+  { id: 'flows', title: 'Flow Studio', icon: FlowIcon, component: FlowStudio, defaultSize: { width: 900, height: 620 }, fill: true, beta: true },
   { id: 'inbox', title: 'Inbox', icon: InboxIcon, component: UniversalInbox, defaultSize: { width: 640, height: 560 }, feature: 'inbox' },
   { id: 'spaces', title: 'Spaces', icon: SpacesIcon, component: Spaces, defaultSize: { width: 680, height: 560 }, feature: 'spaces' },
   { id: 'timemachine', title: 'Time Machine', icon: HistoryIcon, component: TimeMachine, defaultSize: { width: 680, height: 600 }, feature: 'timeMachine' },
@@ -141,7 +143,7 @@ export const APPS: AppDefinition[] = [
   { id: 'devhub', title: 'Developer Hub', icon: PuzzleIcon, component: DeveloperHub, defaultSize: { width: 760, height: 660 }, feature: 'devHub' },
   { id: 'capture', title: 'Snel vastleggen', icon: QuickNoteIcon, component: CaptureHub, defaultSize: { width: 620, height: 580 }, feature: 'capture' },
   { id: 'briefing', title: 'Dagbriefing', icon: SunIcon, component: Briefing, defaultSize: { width: 640, height: 600 }, feature: 'briefing' },
-  { id: 'projecthub', title: 'Project Hub', icon: BoardIcon, component: ProjectHub, defaultSize: { width: 900, height: 640 }, feature: 'projectHub' },
+  { id: 'projecthub', title: 'Project Hub', icon: BoardIcon, component: ProjectHub, defaultSize: { width: 900, height: 640 }, fill: true, feature: 'projectHub' },
   { id: 'knowledge', title: 'Kennis', icon: LibraryIcon, component: Knowledge, defaultSize: { width: 820, height: 640 }, feature: 'knowledge' },
   { id: 'studylab', title: 'Study Lab', icon: FlaskIcon, component: StudyLab, defaultSize: { width: 760, height: 640 }, feature: 'studyLab' },
   { id: 'gaming', title: 'Gaming Companion', icon: GamepadIcon, component: Gaming, defaultSize: { width: 720, height: 620 }, feature: 'gaming' },
@@ -153,8 +155,8 @@ export const APPS: AppDefinition[] = [
   { id: 'contacts', title: 'Contacten', icon: ContactsIcon, component: Contacts, defaultSize: { width: 600, height: 620 }, feature: 'contacts' },
   { id: 'linuxapps', title: 'Linux-apps', icon: TerminalIcon, component: LinuxApps, defaultSize: { width: 640, height: 520 }, linux: true },
   { id: 'system', title: 'Systeem', icon: SlidersIcon, component: System, defaultSize: { width: 560, height: 620 }, linux: true },
-  { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, feature: 'browser' },
-  { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, feature: 'teams' },
+  { id: 'browser', title: 'Browser', icon: GlobeIcon, component: Browser, defaultSize: { width: 760, height: 600 }, fill: true, feature: 'browser' },
+  { id: 'teams', title: 'Teams', icon: TeamIcon, component: Teams, defaultSize: { width: 860, height: 640 }, fill: true, feature: 'teams' },
   { id: 'friends', title: 'Vrienden', icon: FriendsIcon, component: Friends, defaultSize: { width: 560, height: 620 }, feature: 'friends' },
   { id: 'admin', title: 'Beheer', icon: AdminIcon, component: Admin, defaultSize: { width: 760, height: 640 }, admin: true },
   { id: 'controlcenter', title: 'Control Center', icon: ControlIcon, component: ControlCenter, defaultSize: { width: 820, height: 640 }, feature: 'controlCenter' },
