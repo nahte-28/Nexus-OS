@@ -1,4 +1,4 @@
-import { appointmentsOf, nextOccurrence, openDeadlines, parseAppointment, repeatLabel, parseDeadline, parseReminder, REPEAT_LABELS, TARGET_LABELS, type Note, type ThemeId } from '@nexus/core'
+import { appointmentsOf, nextOccurrence, openDeadlines, parseAppointment, repeatLabel, parseDeadline, parseReminder, REPEAT_LABELS, TARGET_LABELS, PLAN_TASK_MAX_MINUTES, type Note, type TaskToPlan, type ThemeId } from '@nexus/core'
 import { phonesOf, type ConnectEngine } from '../connect/engine'
 import type { LifeStore } from '../life/store'
 import type { RemindersStore } from '../reminders/store'
@@ -11,6 +11,8 @@ export interface ToolContext {
   connect: Pick<ConnectEngine, 'getSnapshot' | 'notifyPhones'>
   setTheme(theme: ThemeId): void
   now(): number
+  /** Inplannen: finds free time for a task and puts the blocks in the Agenda. */
+  planTask?(task: TaskToPlan): Promise<{ blocks: Array<{ start: number; end: number }>; short: Array<{ minutes: number }> }>
 }
 
 export interface ToolSpec {
@@ -195,6 +197,38 @@ export const TOOL_SPECS: Record<string, ToolSpec> = {
       if (!parsed.ok) throw new Error(parsed.error)
       await ctx.life.addAppointment(parsed.value, ctx.now())
       return `Afspraak toegevoegd in de Agenda, op ${when(parsed.value.startAt)}.`
+    },
+  },
+
+  plan_task: {
+    label: 'Taak inplannen',
+    readOnly: false,
+    describe: (input) => {
+      const minutes = typeof input.minutes === 'number' ? input.minutes : 0
+      const due = typeof input.dueAt === 'string' && Number.isFinite(Date.parse(input.dueAt)) ? ` voor ${when(Date.parse(input.dueAt))}` : ''
+      return `Vrije tijd zoeken voor "${str(input.title) ?? ''}" (${minutes < 60 ? `${minutes} min` : `${Math.round((minutes / 60) * 10) / 10} uur`})${due} en die in je Agenda zetten.`
+    },
+    validate: (input, ctx) =>
+      !ctx.planTask
+        ? 'Inplannen kan hier niet.'
+        : typeof input.title !== 'string' || !input.title.trim()
+          ? 'title is verplicht.'
+          : typeof input.minutes !== 'number' || !Number.isFinite(input.minutes) || input.minutes < 15 || input.minutes > PLAN_TASK_MAX_MINUTES
+            ? `minutes moet tussen 15 en ${PLAN_TASK_MAX_MINUTES} liggen.`
+            : input.dueAt !== undefined && (typeof input.dueAt !== 'string' || !Number.isFinite(Date.parse(input.dueAt)))
+              ? 'dueAt moet een ISO 8601-tijdstip zijn.'
+              : input.dueAt !== undefined && Date.parse(str(input.dueAt)!) <= ctx.now()
+                ? 'De deadline is al voorbij.'
+                : null,
+    run: async (input, ctx) => {
+      const title = str(input.title)!.trim()
+      // Without a time, a deadline with the same name in the Agenda decides.
+      const deadline = openDeadlines(ctx.life.getSnapshot()).find((d) => d.title.trim().toLowerCase() === title.toLowerCase() && d.dueAt > ctx.now())
+      const dueAt = str(input.dueAt) ? Date.parse(str(input.dueAt)!) : (deadline?.dueAt ?? null)
+      const { blocks, short } = await ctx.planTask!({ title, dueAt, minutes: input.minutes as number })
+      if (blocks.length === 0) return 'Er is geen vrij moment gevonden in de studietijden (Studie > Planning). Er is niets ingepland.'
+      const left = short[0] ? ` Nog ${short[0].minutes} min vond geen plek${dueAt ? ' voor de deadline' : ''}.` : ''
+      return `In de Agenda gezet als "Werken aan: ${title}": ${blocks.map((b) => `${new Date(b.start).toISOString()} tot ${new Date(b.end).toISOString()}`).join('; ')}.${left}`
     },
   },
 

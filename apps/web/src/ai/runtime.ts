@@ -1,5 +1,6 @@
 import type { ThemeId } from '@nexus/core'
 import { defaultEngine } from '../connect/ConnectContext'
+import { proposeTaskPlan, saveTaskPlan } from '../life/autoPlan'
 import { lifeStore } from '../life/store'
 import { apiBase } from '../platform/desktop'
 import { remindersStore } from '../reminders/store'
@@ -25,6 +26,11 @@ export const assistant = new AssistantSession(
     connect: defaultEngine,
     setTheme: (theme) => applyTheme(theme),
     now: Date.now,
+    planTask: async (task) => {
+      const plan = proposeTaskPlan(task)
+      await saveTaskPlan(task.title, plan)
+      return plan
+    },
   }),
   { context: aiContextStore.getSnapshot, log: (entry) => approvalLog.add(entry) },
 )

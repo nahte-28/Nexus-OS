@@ -184,4 +184,24 @@ describe('AssistantSession', () => {
     const agenda = JSON.parse(await TOOL_SPECS.list_agenda.run({}, ctx)) as Array<{ title: string }>
     expect(agenda.map((a) => a.title)).toEqual(['Verslag', 'Tandarts'])
   })
+
+  it('plans a task with the time of the deadline of the same name', async () => {
+    const { ctx } = fakeContext()
+    await TOOL_SPECS.create_deadline.run({ title: 'Verslag', dueAt: '2026-11-03T23:59:00+01:00' }, ctx)
+    const asked: unknown[] = []
+    ctx.planTask = async (task) => {
+      asked.push(task)
+      return { blocks: [{ start: Date.parse('2026-10-19T17:00:00+02:00'), end: Date.parse('2026-10-19T18:30:00+02:00') }], short: [{ minutes: 30 }] }
+    }
+    expect(TOOL_SPECS.plan_task.validate({ title: 'Verslag', minutes: 5 }, ctx)).toMatch(/minutes/)
+    expect(TOOL_SPECS.plan_task.validate({ title: 'Verslag', minutes: 60, dueAt: '2026-10-18T10:00:00+02:00' }, ctx)).toMatch(/voorbij/)
+    expect(TOOL_SPECS.plan_task.validate({ title: 'Verslag', minutes: 120 }, ctx)).toBeNull()
+    expect(TOOL_SPECS.plan_task.describe({ title: 'Verslag', minutes: 120 })).toContain('2 uur')
+    const answer = await TOOL_SPECS.plan_task.run({ title: 'verslag', minutes: 120 }, ctx)
+    expect(asked).toEqual([{ title: 'verslag', dueAt: Date.parse('2026-11-03T23:59:00+01:00'), minutes: 120 }])
+    expect(answer).toContain('Werken aan: verslag')
+    expect(answer).toContain('Nog 30 min')
+    delete ctx.planTask
+    expect(TOOL_SPECS.plan_task.validate({ title: 'Verslag', minutes: 120 }, ctx)).not.toBeNull()
+  })
 })

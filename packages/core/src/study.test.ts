@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_FOCUS, freeSlots, newTimer, nextPhase, parseFocusSettings, pauseTimer, phaseEndNotice, planStudy, startTimer, timeLeft } from './study'
+import { DEFAULT_FOCUS, freeSlots, newTimer, nextPhase, parseFocusSettings, pauseTimer, phaseEndNotice, planStudy, planTask, plannedTitle, startTimer, timeLeft } from './study'
 
 const M = 60_000
 // Monday 2 November 2026, local time.
@@ -50,5 +50,23 @@ describe('Studieplanner', () => {
     ])
     expect(short).toEqual([])
     expect(planStudy([{ id: 'x', title: 'Te laat', dueAt: day(2, 18), minutes: 300 }], [], day(2, 12), { windows }).short).toEqual([{ taskId: 'x', title: 'Te laat', minutes: 240 }])
+  })
+
+  it('plans one task in the first free time around what is busy', () => {
+    const windows = [{ days: [1, 2, 3, 4, 5, 6, 7], start: '17:00', end: '21:00' }]
+    const busy = [{ start: day(2, 17), end: day(2, 18) }]
+    const { blocks, short } = planTask({ title: ' Verslag ', dueAt: day(4, 12), minutes: 120 }, busy, day(2, 12), { windows, blockMinutes: 90 })
+    expect(blocks.map((b) => [b.title, new Date(b.start).getDate(), new Date(b.start).getHours(), (b.end - b.start) / M])).toEqual([
+      ['Verslag', 2, 18, 90],
+      ['Verslag', 2, 19, 30],
+    ])
+    expect(short).toEqual([])
+    // Without a deadline: somewhere in the coming week.
+    const free = planTask({ title: 'Kamer opruimen', dueAt: null, minutes: 60 }, [], day(2, 22), { windows })
+    expect(free.blocks).toHaveLength(1)
+    expect(new Date(free.blocks[0].start).getDate()).toBe(3)
+    // Too little time before the deadline.
+    expect(planTask({ title: 'Morgen', dueAt: day(2, 18), minutes: 240 }, [], day(2, 12), { windows }).short[0].minutes).toBe(180)
+    expect(plannedTitle('  Verslag ')).toBe('Werken aan: Verslag')
   })
 })
