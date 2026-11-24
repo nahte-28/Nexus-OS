@@ -281,6 +281,14 @@ h3 {
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Vinkjes, keuzerondjes, schuifjes en voortgangsbalken in de accentkleur: koper in Pulse, groen in Focus. */
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'],
+  progress {
+    accent-color: var(--nx-accent);
+  }
+
   /* Keuzelijsten volgen het thema, ook het uitklapmenu in donkere modus op Windows. */
   select,
   option {

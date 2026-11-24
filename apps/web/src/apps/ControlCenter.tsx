@@ -209,7 +209,7 @@ export function ControlCenter() {
                 return (
                   <li key={a.id}>
                     <button type="button" aria-pressed={on} onClick={() => favoritesStore.toggle(a.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-nx-surface-2">
-                      <span aria-hidden className={on ? 'text-amber-500' : 'text-nx-muted'}>
+                      <span aria-hidden className={on ? 'text-nx-accent' : 'text-nx-muted'}>
                         {on ? '★' : '☆'}
                       </span>
                       {a.title}

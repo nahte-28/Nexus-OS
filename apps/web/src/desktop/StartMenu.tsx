@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { useVisibleApps } from '../apps/registry'
+import { favoritesStore, useFavorites } from '../controlcenter/store'
 import { PowerIcon, TerminalIcon } from '../apps/icons'
 import { filterLinuxApps, installNexusOs, openLinuxApp, sessionPower, useLinuxApps, useLiveSystem, useNexusSession, type PowerAction } from '../platform/session'
 
@@ -17,6 +18,7 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
   // Linux apps only show while searching, so the menu stays NEXUS's own.
   const linuxResults = query.trim() ? filterLinuxApps(linux.apps, query).slice(0, 6) : []
   const session = useNexusSession()
+  const favorites = useFavorites()
   const live = useLiveSystem()
   const [error, setError] = useState<string | null>(null)
 
@@ -55,19 +57,40 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
         className="w-full rounded-lg border border-nx-border bg-nx-surface-2 px-3 py-2 text-sm outline-none placeholder:text-nx-muted"
       />
       <ul className="mt-3 grid grid-cols-3 gap-1">
-        {results.map((app) => (
-          <li key={app.id}>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => onOpenApp(app.id)}
-              className="flex w-full flex-col items-center gap-1 rounded-lg p-2 text-xs hover:bg-nx-surface-2"
-            >
-              <app.icon className="text-nx-accent" />
-              {app.title}
-            </button>
-          </li>
-        ))}
+        {results.map((app) => {
+          const favorite = favorites.includes(app.id)
+          return (
+            <li key={app.id} className="group relative">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => onOpenApp(app.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  favoritesStore.toggle(app.id)
+                }}
+                className="flex w-full flex-col items-center gap-1 rounded-lg p-2 text-xs hover:bg-nx-surface-2"
+              >
+                <app.icon className="text-nx-accent" />
+                {app.title}
+              </button>
+              {app.id !== 'controlcenter' && (
+                <button
+                  type="button"
+                  aria-pressed={favorite}
+                  aria-label={favorite ? `${app.title} uit je favorieten` : `${app.title} bij je favorieten`}
+                  title={favorite ? 'Uit je favorieten (taakbalk en bureaublad)' : 'Bij je favorieten (taakbalk en bureaublad)'}
+                  onClick={() => favoritesStore.toggle(app.id)}
+                  className={`absolute top-0.5 right-0.5 grid size-6 place-items-center rounded-md text-sm leading-none hover:bg-nx-surface-2 focus-visible:opacity-100 ${
+                    favorite ? 'text-nx-accent' : 'text-nx-muted opacity-0 group-hover:opacity-100'
+                  }`}
+                >
+                  <span aria-hidden>{favorite ? '★' : '☆'}</span>
+                </button>
+              )}
+            </li>
+          )
+        })}
         {results.length === 0 && linuxResults.length === 0 && <li className="col-span-3 p-2 text-sm text-nx-muted">Geen apps gevonden.</li>}
       </ul>
       {linuxResults.length > 0 && (

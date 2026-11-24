@@ -16,20 +16,25 @@ export async function startWithEverything(page: Page): Promise<void> {
 
 export const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1000) < 768
 
-/** The buttons that open an app: the rows on the desktop's home screen, the grid on a phone. */
-export function appButtons(page: Page) {
-  return isMobile(page) ? page.getByRole('group', { name: 'Apps' }).getByRole('button') : page.getByRole('navigation', { name: 'Apps' }).getByRole('button')
+/** On a phone: the grid of apps. On the desktop all apps are under the NEXUS mark (Start). */
+async function showApps(page: Page) {
+  if (isMobile(page)) return page.getByRole('group', { name: 'Apps' })
+  const menu = page.getByRole('menu', { name: 'Startmenu' })
+  if (!(await menu.isVisible())) await page.getByRole('button', { name: 'Start', exact: true }).click()
+  return menu
 }
 
-/** The button that opens one app (on the desktop it is an icon, named by its label). */
-export function appButton(page: Page, title: string) {
-  return appButtons(page).and(page.getByRole('button', { name: title, exact: true }))
+/** Opens one app the way you would: from the grid on a phone, from Start on the desktop. */
+export async function openApp(page: Page, title: string) {
+  const apps = await showApps(page)
+  await apps.getByRole(isMobile(page) ? 'button' : 'menuitem', { name: title, exact: true }).click()
 }
 
 /** The names of every app you can open. */
 export async function appTitles(page: Page): Promise<string[]> {
-  const buttons = await appButtons(page).all()
-  const names = await Promise.all(buttons.map(async (b) => (await b.getAttribute('aria-label')) ?? (await b.innerText())))
+  const apps = await showApps(page)
+  const names = await apps.getByRole(isMobile(page) ? 'button' : 'menuitem').allInnerTexts()
+  if (!isMobile(page)) await page.keyboard.press('Escape')
   return names.map((t) => t.trim()).filter(Boolean)
 }
 

@@ -114,7 +114,7 @@ export function Tour({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
         </p>
         <h2 id="tour-title" className="flex items-center gap-2 text-lg font-semibold">
           {current.title}
-          {current.done && <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600">✓ in orde</span>}
+          {current.done && <span className="rounded-full bg-nx-accent/15 px-2 py-0.5 text-xs font-medium text-nx-accent">✓ in orde</span>}
         </h2>
         <p>{current.text}</p>
         {current.action && !current.done && (

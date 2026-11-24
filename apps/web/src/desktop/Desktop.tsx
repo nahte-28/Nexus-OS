@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { groupApps, openRect, type AppId } from '@nexus/core'
+import { openRect, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
@@ -13,6 +13,8 @@ import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { placeOf } from './windowPlaces'
+import { useFavorites } from '../controlcenter/store'
+import { mostUsed, usageStore, useUsage } from '../apps/usage'
 
 // Loads when you open it (Ctrl+K), not with the desktop.
 // After an update; it carries the whole changelog, so it loads after the first screen.
@@ -30,6 +32,7 @@ export function Desktop() {
   const openApp = useCallback(
     (appId: AppId) => {
       const app = getApp(appId)
+      usageStore.record(appId)
       if (app.launch) return app.launch()
       const area = { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }
       dispatch({ type: 'open', appId, title: app.title, rect: placeOf(appId, area) ?? openRect(app.defaultSize, area, state.windows.length, app.fill) })
@@ -74,17 +77,30 @@ export function Desktop() {
 }
 
 /**
- * Je apps staan op het bureaublad, onder de titel: per groep een rij icoontjes. Zo blijft de
- * ruimte naast je vensters helemaal vrij.
+ * Op het bureaublad, onder de titel: je favorieten en de apps die je het vaakst opent. Alle apps
+ * staan onder het NEXUS-teken (Start); daar zet je met de ster een app bij je favorieten.
  */
 function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
+  const favorites = useFavorites()
+  const usage = useUsage()
+  const byId = new Map(apps.map((a) => [a.id, a]))
+  const favoriteApps = favorites.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
+  const used = mostUsed(
+    usage,
+    apps.filter((a) => !favorites.includes(a.id)),
+    8,
+  )
+  const rows = [
+    { id: 'favorites', title: 'Favorieten', apps: favoriteApps },
+    { id: 'used', title: 'Meest gebruikt', apps: used },
+  ].filter((r) => r.apps.length > 0)
   return (
-    <nav aria-label="Apps" className="flex flex-wrap gap-x-6 gap-y-3">
-      {groupApps(apps).map((group) => (
-        <section key={group.id} aria-label={group.title}>
-          <h2 className="mb-1 text-xs font-semibold text-nx-muted">{group.title}</h2>
+    <nav aria-label="Apps" className="flex flex-wrap items-end gap-x-6 gap-y-3">
+      {rows.map((row) => (
+        <section key={row.id} aria-label={row.title}>
+          <h2 className="mb-1 text-xs font-semibold text-nx-muted">{row.title}</h2>
           <ul className="nx-glass flex flex-wrap gap-0.5 rounded-lg border border-nx-border p-1">
-            {group.apps.map((app) => (
+            {row.apps.map((app) => (
               <li key={app.id}>
                 <button
                   type="button"
@@ -101,6 +117,10 @@ function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: 
           </ul>
         </section>
       ))}
+      <p className="pb-2.5 text-xs text-nx-muted">
+        {rows.length === 0 ? 'Al je apps staan onder het NEXUS-teken linksonder. ' : 'Alle apps: het NEXUS-teken linksonder. '}
+        Met de ster zet je een app bij je favorieten.
+      </p>
     </nav>
   )
 }
