@@ -16,7 +16,7 @@ export function WhatsNew({ bottom }: { bottom: number }) {
     setEntries([])
   }
   return (
-    <section aria-label="NEXUS is bijgewerkt" className="nx-glass fixed right-3 z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-nx-border p-3 text-sm shadow-lg" style={{ bottom }}>
+    <section aria-label="NEXUS is bijgewerkt" className="nx-glass nx-enter-toast-up fixed right-3 z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-nx-border p-3 text-sm shadow-lg" style={{ bottom }}>
       <h2 className="font-semibold">NEXUS is bijgewerkt</h2>
       <ul className="mt-1 ml-4 list-disc text-nx-muted">
         {entries.slice(0, SHOWN).map((e) => (

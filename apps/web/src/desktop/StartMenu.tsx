@@ -41,7 +41,7 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
       ref={ref}
       role="menu"
       aria-label="Startmenu"
-      className="nx-glass absolute bottom-full left-2 mb-2 max-h-[calc(100dvh-4.5rem)] w-80 overflow-y-auto overscroll-contain rounded-xl border border-nx-border p-3"
+      className="nx-glass nx-enter-menu absolute bottom-full left-2 mb-2 max-h-[calc(100dvh-4.5rem)] w-80 overflow-y-auto overscroll-contain rounded-xl border border-nx-border p-3"
     >
       <input
         autoFocus

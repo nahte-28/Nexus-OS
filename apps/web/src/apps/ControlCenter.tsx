@@ -54,8 +54,8 @@ function Switch({ label, detail, on, disabled, onChange }: { label: string; deta
         <span className="block font-medium">{label}</span>
         <span className="block text-xs text-nx-muted">{detail}</span>
       </span>
-      <span aria-hidden className={`relative h-5 w-9 shrink-0 rounded-full transition ${on ? 'bg-nx-accent' : 'bg-nx-border'}`}>
-        <span className={`absolute top-0.5 size-4 rounded-full bg-white transition ${on ? 'left-4.5' : 'left-0.5'}`} />
+      <span aria-hidden className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? 'bg-nx-accent' : 'bg-nx-border'}`}>
+        <span className={`absolute top-0.5 left-0.5 size-4 rounded-full bg-white transition-transform duration-150 ease-out ${on ? 'translate-x-4' : ''}`} />
       </span>
     </button>
   )
