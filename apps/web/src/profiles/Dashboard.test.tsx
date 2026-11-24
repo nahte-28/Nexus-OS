@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
 import { profilesStore } from './store'
@@ -57,5 +57,28 @@ describe('Workspace Studio 2.0 dashboard', () => {
     expect(screen.getByText('Agenda deze week')).toBeTruthy()
     expect(screen.getByRole('listitem', { name: 'Vandaag' })).toBeTruthy()
     expect(screen.getByRole('listitem', { name: 'Morgen' })).toBeTruthy()
+  })
+
+  it('shows Mijn dag as a time line with what is next and where it is now', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 10, 24, 11, 10))
+    const weekday = 2
+    profilesStore.update((s) => ({
+      ...s,
+      calendarEvents: [],
+      lessons: [
+        { id: 'a', day: weekday, start: '10:25', end: '11:15', subject: 'Frans', room: 'A07' },
+        { id: 'b', day: weekday, start: '11:15', end: '12:05', subject: 'Geschiedenis', room: 'B04' },
+        { id: 'c', day: weekday, start: '14:55', end: '15:45', subject: 'Engels' },
+      ],
+    }))
+    profilesStore.updateProfile(active().id, { widgets: ['today'], layout: {} })
+    render(<Dashboard onOpenApp={() => {}} />)
+    const day = screen.getByRole('region', { name: 'Mijn dag' })
+    expect(within(day).getByRole('heading', { name: 'Geschiedenis begint over 5 minuten in B04' })).toBeTruthy()
+    expect(within(day).getByText('Nog 2 vandaag, klaar om 15:45')).toBeTruthy()
+    expect(within(day).getByTestId('nu')).toBeTruthy()
+    vi.useRealTimers()
+    profilesStore.update((s) => ({ ...s, lessons: [] }))
   })
 })

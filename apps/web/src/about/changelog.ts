@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Mijn dag bovenaan je dashboard',
+    items: [
+      'Nieuw bovenaan het dashboard: Mijn dag. Je lessen, afspraken en agenda van vandaag staan op een tijdlijn, met een koperen lijn op het uur van nu. Bovenaan staat in één zin wat er straks begint en waar, bijvoorbeeld "Biologie begint over 10 minuten in Labo 2".',
+      'Op je telefoon zie je dezelfde dag als lijst, met alleen wat nog komt.',
+      'Deadlines en afspraken tonen nu groot hoeveel dagen je nog hebt. Wat morgen of vandaag af moet, valt op in je accentkleur.',
+      'Het welkomstformulier neemt geen half scherm meer in: het is een smalle regel die je openklikt wanneer je wil.',
+      'Mijn dag kan je via Indeling aanpassen verplaatsen, kleiner maken of verbergen, zoals elke widget.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een nieuw uiterlijk: de werkbank',
     items: [
       'NEXUS ziet er anders uit. Focus is nu een lichte werkbank met soldeermasker-groen, Pulse een donkere printplaat met koperen accenten. Je eigen accentkleur blijft werken.',

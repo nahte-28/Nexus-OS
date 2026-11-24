@@ -188,6 +188,48 @@ h3 {
   display: none;
 }
 
+/* Mijn dag: "nu" op de tijdlijn, een koperspoor met een soldeerpunt bovenaan. */
+.nx-now {
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--nx-accent);
+  pointer-events: none;
+}
+.nx-now::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--nx-accent);
+  box-shadow: 0 0 0 2px var(--nx-surface);
+}
+
+/* Iets wat je kan openen komt 2px omhoog onder je cursor en zakt terug als je klikt. */
+.nx-lift {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 120ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nx-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+.nx-lift:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-lift {
+    transition: none;
+  }
+  .nx-lift:hover,
+  .nx-lift:active {
+    transform: none;
+  }
+}
+
 .nx-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
