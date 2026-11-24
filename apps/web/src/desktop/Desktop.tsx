@@ -108,11 +108,11 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
   )
   if (collapsed) {
     return (
-      <aside style={{ width: SIDEBAR_RAIL_WIDTH }} className="nx-glass flex shrink-0 flex-col items-center gap-2 overflow-y-auto border-r border-nx-border py-3">
+      <aside style={{ width: SIDEBAR_RAIL_WIDTH }} className="nx-sidebar flex shrink-0 flex-col items-center gap-2 overflow-x-hidden overflow-y-auto border-r border-nx-border/60 py-3">
         {toggle}
         <nav aria-label="Apps" className="flex flex-col items-center gap-0.5">
           {groupApps(apps).map((group, i) => (
-            <ul key={group.id} aria-label={group.title} className={`flex flex-col items-center gap-0.5 ${i > 0 ? 'mt-1 border-t border-nx-border pt-1' : ''}`}>
+            <ul key={group.id} aria-label={group.title} className={`flex w-10 flex-col items-center gap-0.5 ${i > 0 ? 'mt-1 border-t border-nx-border/60 pt-1' : ''}`}>
               {group.apps.map((app) => (
                 <li key={app.id}>
                   <button
@@ -120,7 +120,7 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
                     onClick={() => onOpenApp(app.id)}
                     aria-label={app.title}
                     title={app.title}
-                    className="grid size-10 place-items-center rounded-lg text-nx-accent hover:bg-nx-surface-2 [&>svg]:size-5"
+                    className="grid size-9 place-items-center rounded-lg text-nx-accent hover:bg-nx-surface-2 [&>svg]:size-5"
                   >
                     <app.icon />
                   </button>
@@ -133,7 +133,7 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
     )
   }
   return (
-    <aside style={{ width: SIDEBAR_WIDTH }} className="nx-glass flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border p-3">
+    <aside style={{ width: SIDEBAR_WIDTH }} className="nx-sidebar flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border/60 p-3">
       <div className="flex items-start justify-between gap-2 pt-1 pl-2">
         <div>
           <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>

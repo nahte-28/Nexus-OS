@@ -29,6 +29,7 @@ export const WIDGET_TITLES: Record<WidgetId, string> = {
   quick_note: 'Snelle notitie',
   clock: 'Klok',
   shortcuts: 'Snelkoppelingen',
+  agenda_week: 'Agenda deze week',
 }
 
 export const WIDGET_IDS = Object.keys(WIDGET_TITLES) as WidgetId[]
@@ -45,6 +46,7 @@ export const WIDGET_DEFAULT_SIZES: Partial<Record<WidgetId, WidgetSize>> = {
   habits: { w: 1, h: 2 },
   quick_note: { w: 2, h: 1 },
   shortcuts: { w: 2, h: 1 },
+  agenda_week: { w: 4, h: 2 },
 }
 
 export const defaultSizeOf = (id: WidgetId): WidgetSize => WIDGET_DEFAULT_SIZES[id] ?? DEFAULT_SIZE
