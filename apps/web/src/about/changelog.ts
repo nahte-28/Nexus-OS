@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Wat moet ik halen op mijn volgende examen?',
+    items: [
+      'Open een vak in Cijfers en je ziet meteen welk punt je minstens nodig hebt op je volgende examen om je doel te halen, standaard 10/20 (50%). Je doel pas je per vak aan.',
+      'Tellen je oefenexamens elk voor 10 tot 20% mee, geef ze dan als onderdeel in met hun eigen percentage. Kies welk onderdeel je volgende examen is en wat je verwacht op de rest.',
+      'NEXUS toont ook wat volstaat als je de rest perfect doet, en of je al zeker door bent. Staat een examen op bv. 50 punten, dan krijg je het antwoord op 50.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Je gamingstatus op Discord',
     items: [
       'Start je de Gaming-timer in Gaming Companion, dan zien je vrienden op Discord wat je speelt en hoe lang al, bv. "Speelt Valorant · op pc". Stop je, dan verdwijnt het. Ook een timer die je op je gsm of horloge start, telt mee.',

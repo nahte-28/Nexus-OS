@@ -37,7 +37,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   grades: {
     summary: 'Hou je cijfers per vak bij en zie je gemiddelde.',
-    tips: ['Voeg per vak toetsen toe met hun gewicht.', 'Je cijfers synchroniseren tussen je apparaten als je aangemeld bent.'],
+    tips: ['Voeg per vak toetsen toe met hun gewicht.', 'Open een vak en kijk bij "Wat moet ik halen?" welk punt je minstens nodig hebt op je volgende examen.', 'Je cijfers synchroniseren tussen je apparaten als je aangemeld bent.'],
   },
   habits: {
     summary: 'Gewoontes die je elke dag of week wilt doen, met een reeks en een herinnering.',
