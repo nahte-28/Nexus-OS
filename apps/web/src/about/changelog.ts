@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Focusmuziek met Spotify',
+    items: [
+      'Koppel Spotify in Instellingen › Spotify en kies een playlist om te studeren en een om te gamen, uit je eigen playlists of met een link.',
+      'Start je de focustimer in Studie, dan speelt Spotify je studeerplaylist. In een pauze pauzeert de muziek en daarna gaat ze verder. Start je een Gaming-sessie, ook vanaf je horloge, dan komt je gamingplaylist op.',
+      'Speelt Spotify nog nergens, dan kiest NEXUS je pc of gsm waar Spotify open staat. Je hebt Spotify Premium nodig.',
+      'In de Windows- of Linux-app koppel je met een code die je in de browser krijgt.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Taken automatisch inplannen',
     items: [
       'Bij elke open deadline in de Agenda staat Inplannen: kies hoeveel tijd je nodig hebt, en NEXUS zoekt vrije momenten voor de deadline, rond je lessen, afspraken en Google Agenda. Met In Agenda zetten staan ze erin als "Werken aan: …", met een melding op je gsm als het begint.',

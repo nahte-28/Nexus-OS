@@ -22,6 +22,7 @@ import { startDagstart } from './life/dagstart'
 import { startGradesSync } from './grades/store'
 import { startHabitAlerts } from './habits/alerts'
 import { startWeekReview } from './review/week'
+import { startFocusMusic } from './spotify/focusMusic'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
 import { startExamsSync } from './study/exams'
@@ -199,5 +200,7 @@ startWeekReview(defaultEngine)
 startFilesSync(supabase)
 // Automatische back-up: now and then everything in one file in Bestanden, so it is in your account too.
 startAutoBackup(supabase)
+// Spotify focusmuziek: the study playlist with the focus timer, the gaming playlist with Gaming.
+startFocusMusic()
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { THEMES } from '@nexus/core'
 import { BackupSection } from '../backup/BackupSection'
 import { ModuleSettings } from '../features/ModuleSettings'
+import { SpotifySettings } from '../spotify/SpotifySettings'
 import { startTour } from '../onboarding/Tour'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
@@ -48,6 +49,7 @@ export function Settings() {
           Rondleiding starten
         </button>
       </fieldset>
+      <SpotifySettings />
       <BackupSection />
       <BetaSettings />
       <ModuleSettings />
