@@ -19,6 +19,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Overlapt een afspraak met een les of een andere afspraak, dan zie je dat meteen.',
       'Bij een afspraak tik je op Vrienden uitnodigen. Wie aanvaardt, krijgt ze in zijn eigen Agenda, en verander of verwijder je de afspraak, dan verandert ze bij hem mee. Een herhaalde afspraak kan je niet delen.',
       'Zoek een vrij moment (bij Vrienden uitnodigen): kies een of meer vrienden, en NEXUS toont momenten in de komende week waarop jullie allemaal vrij zijn, tussen 9 en 22 uur. Tik er een aan om je afspraak daarheen te verzetten. Vrienden zien alleen wanneer je bezet bent (lessen, afspraken en gekoppelde agenda\'s), nooit wat. Zet het vinkje uit als je dat niet wil.',
+      'Inplannen bij een deadline: kies hoeveel tijd je nodig hebt, en NEXUS zoekt vrije momenten voor de deadline, rond je lessen, afspraken en gekoppelde agenda\'s, in je studietijden uit Studie › Planning. Met In Agenda zetten komen ze erin als "Werken aan: …", met een melding op je gsm. Je kan het ook aan NEXUS AI vragen, bv. "plan 2 uur in voor mijn verslag".',
       'Dagstart stuurt elke ochtend een kort overzicht; Week maakt op zondag een terugblik.',
     ],
   },

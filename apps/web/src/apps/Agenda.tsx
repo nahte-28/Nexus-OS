@@ -56,6 +56,7 @@ import { useContacts } from '../contacts/store'
 import { useFeature } from '../features/store'
 import { lifeSyncProblem } from '../life/sync'
 import { lifeStore } from '../life/store'
+import { blockLabel, proposeTaskPlan, saveTaskPlan } from '../life/autoPlan'
 import { Related } from '../integration/Related'
 import { InviteFriends, InvitedBy, InviteInbox } from '../agenda/Invites'
 import { onReveal, takeReveal } from '../search/reveal'
@@ -64,6 +65,7 @@ import { calendarProblems, refreshCalendars, refreshOnOpen } from '../profiles/c
 import { remindersStore } from '../reminders/store'
 import { autoReview, makeReview, setAutoReview, weekInput } from '../review/week'
 import { ACCENTS } from '../theme/accents'
+import { readStorage } from '../state/storage'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -624,6 +626,7 @@ function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; pro
   const done = d.doneAt !== null
   const late = !done && d.dueAt < Date.now()
   const focused = useContext(FocusContext) === d.id
+  const [planning, setPlanning] = useState(false)
   return (
     <li id={`agenda-${d.id}`} className={`flex flex-wrap items-center gap-2 rounded-lg border border-nx-border bg-nx-surface-2 p-3${focusRing(focused)}`}>
       <input
@@ -643,13 +646,84 @@ function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; pro
         {d.notes && <p className="mt-1 whitespace-pre-wrap text-nx-muted">{d.notes}</p>}
         <Related itemId={d.id} />
       </div>
+      {!done && !late && (
+        <button type="button" className={button} aria-expanded={planning} onClick={() => setPlanning((p) => !p)}>
+          Inplannen
+        </button>
+      )}
       <button type="button" className={button} onClick={onEdit}>
         Bewerken
       </button>
       <button type="button" className={`${button} text-red-500`} onClick={() => window.confirm(`"${d.title}" verwijderen?`) && void lifeStore.remove(d.id)}>
         Verwijderen
       </button>
+      {planning && !done && !late && <PlanDeadline deadline={d} onDone={() => setPlanning(false)} />}
     </li>
+  )
+}
+
+/** The Studieplanner's estimate for a deadline, else two hours. */
+function estimateOf(id: string): number {
+  try {
+    const value = (JSON.parse(readStorage('nexus.study.estimates') ?? '{}') as Record<string, unknown>)[id]
+    return typeof value === 'number' && value > 0 ? value : 120
+  } catch {
+    return 120
+  }
+}
+
+/** Inplannen: NEXUS looks for free time before the deadline, around lessons, appointments and linked calendars. */
+function PlanDeadline({ deadline: d, onDone }: { deadline: Deadline; onDone: () => void }) {
+  const [minutes, setMinutes] = useState(() => estimateOf(d.id))
+  const [plan, setPlan] = useState(() => proposeTaskPlan({ title: d.title, dueAt: d.dueAt, minutes }))
+  const [saved, setSaved] = useState<number | null>(null)
+  const choose = (m: number) => {
+    setMinutes(m)
+    setPlan(proposeTaskPlan({ title: d.title, dueAt: d.dueAt, minutes: m }))
+    setSaved(null)
+  }
+  return (
+    <section aria-label={`${d.title} inplannen`} className="w-full space-y-2 rounded-md border border-nx-border bg-nx-surface p-2">
+      <label className="flex flex-wrap items-center gap-2">
+        Hoeveel tijd heb je nodig?
+        <select value={minutes} onChange={(e) => choose(Number(e.target.value))} className={`${field} w-28`}>
+          {[30, 60, 90, 120, 180, 240, 360, 480].map((m) => (
+            <option key={m} value={m}>
+              {m < 60 ? `${m} min` : `${m / 60} uur`}
+            </option>
+          ))}
+        </select>
+      </label>
+      {plan.blocks.length === 0 ? (
+        <p className="text-nx-muted">Er is geen vrij moment meer voor de deadline. Pas je studietijden aan in Studie &gt; Planning.</p>
+      ) : (
+        <ul className="space-y-1" aria-label="Voorstel">
+          {plan.blocks.map((b) => (
+            <li key={b.start} className="rounded-md bg-nx-surface-2 px-2 py-1">
+              {blockLabel(b)}
+            </li>
+          ))}
+        </ul>
+      )}
+      {plan.short.map((s) => (
+        <p key={s.taskId} role="alert" className="text-red-500">
+          Nog {s.minutes} min zonder plek voor de deadline.
+        </p>
+      ))}
+      <div className="flex flex-wrap items-center gap-2">
+        {plan.blocks.length > 0 && saved === null && (
+          <button type="button" className={primaryButton} onClick={() => void saveTaskPlan(d.title, plan).then(setSaved)}>
+            In Agenda zetten
+          </button>
+        )}
+        <button type="button" className={button} onClick={onDone}>
+          {saved === null ? 'Annuleren' : 'Sluiten'}
+        </button>
+        <span className="text-nx-muted">
+          {saved !== null ? `${saved === 1 ? '1 blok staat' : `${saved} blokken staan`} in je Agenda, met een melding op je gsm.` : 'In je vrije tijd uit Studie > Planning. Opnieuw inplannen vervangt de vorige blokken.'}
+        </span>
+      </div>
+    </section>
   )
 }
 

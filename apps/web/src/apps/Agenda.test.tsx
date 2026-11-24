@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 const { Agenda } = await import('./Agenda')
 const { profilesStore } = await import('../profiles/store')
 const { contactsStore } = await import('../contacts/store')
+const { lifeStore } = await import('../life/store')
 const { emptyContacts, saveContact, emptyContact } = await import('@nexus/core')
 
 describe('Agenda', () => {
@@ -150,5 +151,20 @@ describe('Agenda', () => {
     fireEvent.click(auto)
     expect(localStorage.getItem('nexus.review.auto')).toBe('off')
     expect(screen.getByRole('button', { name: 'Weekoverzicht maken' })).toBeTruthy()
+  })
+
+  it('plans a deadline in free time and puts the blocks in the Agenda', async () => {
+    await lifeStore.addDeadline({ title: 'Paper geschiedenis', dueAt: Date.now() + 4 * 24 * 60 * 60_000, projectId: null, notes: '', remind: [], target: 'this_device' })
+    render(<Agenda />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Deadlines' }))
+    const row = (await screen.findByText('Paper geschiedenis')).closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Inplannen' }))
+    const panel = within(row).getByRole('region', { name: 'Paper geschiedenis inplannen' })
+    fireEvent.change(within(panel).getByRole('combobox'), { target: { value: '60' } })
+    expect(within(within(panel).getByRole('list', { name: 'Voorstel' })).getAllByRole('listitem').length).toBeGreaterThan(0)
+    fireEvent.click(within(panel).getByRole('button', { name: 'In Agenda zetten' }))
+    await within(panel).findByText(/in je Agenda/)
+    const blocks = lifeStore.getSnapshot().filter((i) => i.kind === 'appointment' && i.title === 'Werken aan: Paper geschiedenis')
+    expect(blocks.reduce((sum, b) => sum + (b.kind === 'appointment' ? b.endAt - b.startAt : 0), 0)).toBe(60 * 60_000)
   })
 })

@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Taken automatisch inplannen',
+    items: [
+      'Bij elke open deadline in de Agenda staat Inplannen: kies hoeveel tijd je nodig hebt, en NEXUS zoekt vrije momenten voor de deadline, rond je lessen, afspraken en Google Agenda. Met In Agenda zetten staan ze erin als "Werken aan: …", met een melding op je gsm als het begint.',
+      'Je kan het ook aan NEXUS AI vragen, bv. "plan 3 uur in voor mijn verslag labo". Je ziet eerst wat het wil doen en kiest zelf of het mag.',
+      'NEXUS plant in je studietijden uit Studie › Planning (standaard weekdagen 17 tot 21 uur en in het weekend 10 tot 17 uur). Opnieuw inplannen vervangt de vorige blokken van die taak.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Mijn dag bovenaan je dashboard',
     items: [
       'Nieuw bovenaan het dashboard: Mijn dag. Je lessen, afspraken en agenda van vandaag staan op een tijdlijn, met een koperen lijn op het uur van nu. Bovenaan staat in één zin wat er straks begint en waar, bijvoorbeeld "Biologie begint over 10 minuten in Labo 2".',

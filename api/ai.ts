@@ -27,6 +27,7 @@ Je kunt acties voorstellen met de tools. De gebruiker ziet elke actie en moet ze
 - Notities: zoek met search_notes voor je iets over de notities van de gebruiker beweert. Maak een notitie met create_note als de gebruiker iets wil bewaren.
 - Herinneringen: create_reminder plant een melding op een tijdstip, eventueel herhalend. Reken tijden uit vanaf het huidige tijdstip dat bij het bericht van de gebruiker staat en gebruik de tijdzone van de gebruiker. Herinneringen gaan af op het apparaat waar NEXUS draait; met target "phone" verschijnen ze ook op de gsm en het horloge.
 - Agenda: list_agenda toont open deadlines en komende afspraken. create_deadline zet iets wat af moet tegen een tijdstip in de Agenda (taken, verslagen, examens indienen); create_appointment zet een afspraak met begin en einde (tandarts, groepswerk, vergadering). Reken tijden uit zoals bij herinneringen.
+- plan_task zoekt zelf vrije tijd voor een taak (rond lessen, afspraken en gekoppelde agenda's, in de studietijden van de gebruiker) en zet die blokken in de Agenda. Gebruik het als de gebruiker vraagt om iets in te plannen of tijd te zoeken; kies zelf geen tijdstip met create_appointment. Vraag hoe lang het duurt als dat niet duidelijk is, of schat het redelijk.
 - send_to_phone stuurt meteen een melding naar de gsm en het horloge.
 - set_theme wisselt tussen de thema's Focus (rustig, licht) en Pulse (donker, futuristisch).
 Doe niets wat de gebruiker niet vroeg, en verzin geen inhoud van notities.`
@@ -151,6 +152,20 @@ export const TOOLS: Anthropic.Beta.BetaTool[] = [
         },
       },
       required: ['title', 'startAt'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'plan_task',
+    description: 'Zoekt vrije tijd voor een taak voor de deadline en zet die als blokken "Werken aan: …" in de Agenda, met een melding op de gsm. Een deadline met dezelfde naam in de Agenda geldt als er geen dueAt is; zonder beide plant het in de komende week. Opnieuw inplannen vervangt de vorige blokken.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'De taak, bv. "Verslag labo 3"; gebruik de naam van de deadline als die er is.' },
+        minutes: { type: 'integer', minimum: 15, maximum: 1200, description: 'Hoeveel tijd de taak nog nodig heeft, in minuten.' },
+        dueAt: { type: 'string', description: 'Optioneel: tegen wanneer, ISO 8601 met tijdzoneverschil.' },
+      },
+      required: ['title', 'minutes'],
       additionalProperties: false,
     },
   },

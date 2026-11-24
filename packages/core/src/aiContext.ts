@@ -25,8 +25,8 @@ export const AI_MODULES: AiModuleInfo[] = [
   {
     id: 'agenda',
     title: 'Agenda en lesrooster',
-    description: 'Deadlines, afspraken en lessen bekijken en toevoegen; ook in het Weekoverzicht.',
-    tools: ['list_agenda', 'create_deadline', 'create_appointment'],
+    description: 'Deadlines, afspraken en lessen bekijken en toevoegen, taken inplannen in je vrije tijd; ook in het Weekoverzicht.',
+    tools: ['list_agenda', 'create_deadline', 'create_appointment', 'plan_task'],
   },
   {
     id: 'reminders',

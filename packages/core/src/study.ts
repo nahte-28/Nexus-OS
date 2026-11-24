@@ -187,3 +187,34 @@ export function planStudy(
 /** Marks appointments the Studieplanner made, so planning again replaces them. */
 export const STUDY_BLOCK_NOTE = 'Gepland door de Studieplanner.'
 export const studyBlockTitle = (task: string) => `Studeren: ${task}`.slice(0, 160)
+
+/** Marks appointments that "Inplannen" made for one task, so planning that task again replaces them. */
+export const PLANNED_NOTE = 'Ingepland door NEXUS.'
+export const plannedTitle = (task: string) => `Werken aan: ${task.trim()}`.slice(0, 160)
+/** A task without a deadline is planned in the coming week. */
+export const PLAN_TASK_DAYS = 7
+export const PLAN_TASK_MAX_MINUTES = 20 * 60
+
+export interface TaskToPlan {
+  title: string
+  /** Tegen wanneer; null plans it in the coming [PLAN_TASK_DAYS] days. */
+  dueAt: number | null
+  minutes: number
+}
+
+/**
+ * Inplannen: finds free time for one task (a deadline or something NEXUS AI was asked to plan)
+ * in the study windows, around lessons, appointments and linked calendars, before its deadline.
+ * The first free moments come first; long tasks are split into blocks of at most [blockMinutes].
+ */
+export function planTask(
+  task: TaskToPlan,
+  busy: Busy[],
+  now: number,
+  { windows = DEFAULT_WINDOWS, blockMinutes = 90 }: { windows?: StudyWindow[]; blockMinutes?: number } = {},
+): PlanResult {
+  const dueAt = task.dueAt ?? now + PLAN_TASK_DAYS * DAY_MS
+  const minutes = Math.min(PLAN_TASK_MAX_MINUTES, Math.max(0, Math.round(task.minutes)))
+  const horizonDays = Math.max(1, Math.ceil((dueAt - now) / DAY_MS))
+  return planStudy([{ id: 'task', title: task.title.trim(), dueAt, minutes }], busy, now, { windows, blockMinutes, horizonDays: Math.min(horizonDays, 60) })
+}
