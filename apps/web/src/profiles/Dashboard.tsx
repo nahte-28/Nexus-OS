@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import {
+  activeHabits,
   columnsFor,
+  fillGaps,
+  isDone,
+  isDue,
+  MAX_COLUMNS,
+  MAX_ROWS,
   moveWidget,
-  resizeBy,
+  packWidgets,
+  rowsOf,
   setSize,
   sizeFromDrag,
   sizeOf,
-  spanOn,
+  toggleDone,
   WIDGET_IDS,
   WIDGET_TITLES,
   type WidgetLayout,
@@ -19,6 +26,8 @@ import { useConnect } from '../connect/ConnectContext'
 import { ExtensionWidgets } from '../devhub/ExtensionWidgets'
 import { setFeature, useAppSwitches, useFeature } from '../features/store'
 import { financeStore } from '../finance/store'
+import { useVisibleApps } from '../apps/registry'
+import { habitsStore } from '../habits/store'
 import { useGaming } from '../gaming/store'
 import { currentSleepPlan, startGaming, stopGaming } from '../gaming/timer'
 import { dismissPrompt, usePrompts } from '../flows/prompts'
@@ -26,6 +35,7 @@ import { appName } from '../flows/runner'
 import { lifeStore } from '../life/store'
 import { installUpdate, useUpdate } from '../platform/update'
 import { remindersStore } from '../reminders/store'
+import { notesStore } from '../state/notesStore'
 import { useNotes } from '../state/useNotes'
 import { profilesStore, useProfiles } from './store'
 import { AboutMe } from './AboutMe'
@@ -50,55 +60,48 @@ function greeting(now: number): string {
   return h < 6 ? 'Goedenacht' : h < 12 ? 'Goedemorgen' : h < 18 ? 'Goedemiddag' : 'Goedenavond'
 }
 
-/** The home screen of the active profile: status, then its widgets. */
+/** The home screen of the active profile: a greeting, then its widgets, which you can move and resize. */
 export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; compact?: boolean }) {
-  const { state, active, reason } = useProfiles()
+  const { state, active } = useProfiles()
   const now = useMinute()
-  const Icon = PROFILE_ICONS[active.id]
   const devHub = useFeature('devHub')
   const marketplace = useFeature('marketplace')
+  const [editing, setEditing] = useState(false)
   return (
-    <section aria-label="Dashboard" className={`mx-auto w-full max-w-5xl space-y-4 2xl:max-w-[1600px] ${compact ? 'p-4' : 'p-6'}`}>
-      <header className="space-y-1">
-        <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
-          {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}
-        </h1>
-        <p className="text-nx-muted">
-          {new Date(now).toLocaleDateString('nl-BE', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          })}
-        </p>
+    <section aria-label="Dashboard" className={`flex w-full flex-col gap-4 ${compact ? 'mx-auto max-w-5xl p-4' : 'min-h-full p-6 2xl:px-8'}`}>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
+            {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}
+          </h1>
+          <p className="text-nx-muted">
+            {new Date(now).toLocaleDateString('nl-BE', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </p>
+        </div>
+        {!compact && (
+          <button
+            type="button"
+            aria-pressed={editing}
+            onClick={() => setEditing(!editing)}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium ${editing ? 'bg-nx-accent text-nx-accent-text' : 'border border-nx-border bg-nx-surface hover:bg-nx-surface-2'}`}
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+              {editing ? <path d="M5 12l5 5L20 7" /> : <path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" />}
+            </svg>
+            {editing ? 'Klaar' : 'Indeling aanpassen'}
+          </button>
+        )}
       </header>
 
       <Welcome />
 
       <FlowPrompts onOpenApp={onOpenApp} />
 
-      <div className="grid gap-3 md:grid-cols-[2fr_1fr]">
-        <Card>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">{active.name} Mode</p>
-              <p className="flex items-center gap-2 text-lg font-semibold">
-                <Icon className="size-5 text-nx-accent" />
-                {active.description}
-              </p>
-              <p className="text-sm text-nx-muted">{reasonText(reason, state)}</p>
-            </div>
-            <span className="rounded-md bg-nx-accent px-2.5 py-1 text-xs font-semibold text-nx-accent-text">ACTIEF</span>
-          </div>
-          <div className="mt-3 border-t border-nx-border pt-3">
-            <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>
-              Profiel wisselen in Profielen
-            </button>
-          </div>
-        </Card>
-        {active.widgets.includes('next_class') ? <NextClass now={now} onOpenApp={onOpenApp} /> : <Upcoming onOpenApp={onOpenApp} />}
-      </div>
-
-      <WidgetGrid compact={compact} onOpenApp={onOpenApp} />
+      <WidgetGrid compact={compact} editing={editing} now={now} onOpenApp={onOpenApp} />
 
       {(devHub || marketplace) && <ExtensionWidgets />}
     </section>
@@ -184,7 +187,7 @@ function Welcome() {
 
 function Card({ children, title }: { children: ReactNode; title?: string }) {
   return (
-    <div className="nx-glass h-full rounded-2xl border border-nx-border p-4">
+    <div className="nx-glass h-full overflow-hidden rounded-2xl border border-nx-border p-4">
       {title && <h2 className="mb-2 text-xs font-semibold tracking-wide text-nx-muted uppercase">{title}</h2>}
       {children}
     </div>
@@ -193,83 +196,180 @@ function Card({ children, title }: { children: ReactNode; title?: string }) {
 
 const linkButton = 'text-sm font-medium text-nx-accent hover:underline'
 
-/** The widgets in the grid: next_class (and deadlines without it) sit in the top row. */
-const inGrid = (widgets: WidgetId[]) => widgets.filter((w) => w !== 'next_class' && !(w === 'deadlines' && !widgets.includes('next_class')))
-
-/** Columns of the grid at the current window width, as the CSS breakpoints. */
-function useColumns(): number {
-  const read = () => (typeof window === 'undefined' ? 3 : columnsFor(window.innerWidth))
-  const [cols, setCols] = useState(read)
+/** The width of an element in pixels, kept up to date; null until it is measured. */
+function useWidth(ref: RefObject<HTMLElement | null>): number | null {
+  const [width, setWidth] = useState<number | null>(null)
   useEffect(() => {
-    const on = () => setCols(read())
-    window.addEventListener('resize', on)
-    return () => window.removeEventListener('resize', on)
-  }, [])
-  return cols
+    const el = ref.current
+    if (!el) return
+    const read = () => setWidth(el.getBoundingClientRect().width || null)
+    read()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', read)
+      return () => window.removeEventListener('resize', read)
+    }
+    const observer = new ResizeObserver(read)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [ref])
+  return width
 }
 
-const ROW = 'minmax(9rem, auto)'
+const FILL_KEY = 'nexus.dashboard.fill'
+
+/** Whether widgets stretch into empty cells (on by default); a choice of this device. */
+function useFillGaps(): [boolean, (on: boolean) => void] {
+  const [fill, setFill] = useState(() => {
+    try {
+      return localStorage.getItem(FILL_KEY) !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const change = (on: boolean) => {
+    try {
+      localStorage.setItem(FILL_KEY, on ? 'on' : 'off')
+    } catch {
+      // Private window: only for now.
+    }
+    setFill(on)
+  }
+  return [fill, change]
+}
+
+const ROW_MIN = '9rem'
+const ROW_MIN_PX = 144
+/** Rows grow with the screen up to this height; more room than that is for more widgets. */
+const ROW_MAX_PX = 380
+const GAP_PX = 12
+
+/** The nearest parent that scrolls: the desktop behind the windows. */
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const y = getComputedStyle(p).overflowY
+    if (y === 'auto' || y === 'scroll') return p
+  }
+  return null
+}
+
+/** The height from the top of [ref] to the bottom of the visible desktop, kept up to date. */
+function useRoomBelow(ref: RefObject<HTMLElement | null>, deps: unknown[]): number | null {
+  const [room, setRoom] = useState<number | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    const parent = el && scrollParent(el)
+    if (!el || !parent) return
+    const read = () => {
+      const top = el.getBoundingClientRect().top - parent.getBoundingClientRect().top + parent.scrollTop
+      setRoom(parent.clientHeight - top - 24)
+    }
+    read()
+    window.addEventListener('resize', read)
+    return () => window.removeEventListener('resize', read)
+  }, [ref, ...deps])
+  return room
+}
 const small = 'rounded-md border border-nx-border bg-nx-surface px-2 py-0.5 text-xs hover:bg-nx-surface-2 disabled:opacity-40'
 
 /**
- * Workspace Studio 2.0: the dashboard grid of the active profile. In "Indeling aanpassen" you
- * drag widgets to another place, drag the corner (or use the buttons) to make them wider or
- * higher, add and hide widgets, and see how it looks on a phone.
+ * Workspace Studio 2.0: the dashboard grid of the active profile. It has more columns on a bigger
+ * screen and fills the height of the screen; widgets stretch into empty cells. In "Indeling
+ * aanpassen" you drag widgets to another place, drag the corner (or use the buttons) to make them
+ * wider or higher, add and hide widgets, and see how it looks on a phone.
  */
-function WidgetGrid({ compact, onOpenApp }: { compact: boolean; onOpenApp: OpenApp }) {
+function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; editing: boolean; now: number; onOpenApp: OpenApp }) {
   const { active } = useProfiles()
-  const screenCols = useColumns()
-  const [editing, setEditing] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  const width = useWidth(box)
   const [preview, setPreview] = useState<'pc' | 'gsm'>('pc')
+  const [fill, setFill] = useFillGaps()
   const [dragging, setDragging] = useState<WidgetId | null>(null)
+  const [over, setOver] = useState<WidgetId | null>(null)
   const appSwitches = useAppSwitches()
+  useEffect(() => {
+    if (!editing) setPreview('pc')
+  }, [editing])
   // A widget goes with its app: switched off in Apps aan/uit, it is not on the dashboard either.
-  const shown = widgetsOn(inGrid(active.widgets), appSwitches)
+  const shown = widgetsOn(active.widgets, appSwitches)
   const layout = active.layout ?? {}
-  const cols = editing && preview === 'gsm' ? 1 : compact ? 1 : screenCols
+  const phone = compact || (editing && preview === 'gsm')
+  const cols = phone ? 1 : columnsFor(width ?? (typeof window === 'undefined' ? 1200 : window.innerWidth))
+  const packed = packWidgets(
+    shown.map((id) => ({ id, size: sizeOf(layout, id) })),
+    cols,
+  )
+  const placements = fill && cols > 1 ? fillGaps(packed, cols) : packed
+  const rows = rowsOf(placements)
+  const list = useRef<HTMLUListElement>(null)
+  const room = useRoomBelow(list, [editing, preview, rows, width])
+  // On a computer the rows share the height of the screen, so the dashboard fills it.
+  const rowHeight = room === null ? null : Math.round(Math.min(ROW_MAX_PX, Math.max(ROW_MIN_PX, (room - GAP_PX * (rows - 1)) / Math.max(1, rows))))
   const save = (patch: { widgets?: WidgetId[]; layout?: WidgetLayout }) => profilesStore.updateProfile(active.id, patch)
   const move = (id: WidgetId, to: number) => save({ widgets: moveWidget(active.widgets, shown, id, to) })
   const hidden = WIDGET_IDS.filter((w) => !active.widgets.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')) && appOn(appSwitches, WIDGET_APP[w] ?? 'settings'))
 
+  /** Drag with the pointer (mouse, pen or touch): also works in the Windows app, where drag-and-drop of the page is off. */
+  const startMove = (id: WidgetId) => (e: ReactPointerEvent<HTMLElement>) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest('button,[data-resize]')) return
+    e.preventDefault()
+    setDragging(id)
+    let target: WidgetId | null = null
+    const onMovePointer = (ev: PointerEvent) => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>('[data-widget]')
+      const hit = (el?.dataset.widget as WidgetId | undefined) ?? null
+      target = hit && hit !== id ? hit : null
+      setOver(target)
+    }
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMovePointer)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      setDragging(null)
+      setOver(null)
+      if (target) move(id, shown.indexOf(target))
+    }
+    window.addEventListener('pointermove', onMovePointer)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }
+
   const grid = (
     <ul
+      ref={list}
       aria-label="Widgets"
       className="grid gap-3"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: ROW, gridAutoFlow: 'row dense' }}
+      style={{
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        // A widget with more to show than fits makes its row taller; the page then scrolls.
+        gridAutoRows: phone || rowHeight === null ? `minmax(${ROW_MIN}, auto)` : `minmax(${rowHeight}px, auto)`,
+      }}
     >
-      {shown.map((w, i) => {
-        const size = sizeOf(layout, w)
+      {placements.map((p) => {
+        const w = p.id
+        const i = shown.indexOf(w)
+        const stored = sizeOf(layout, w)
+        const size = { w: p.w, h: p.h } as WidgetSize
         return (
           <li
             key={w}
-            style={{ gridColumn: `span ${spanOn(size, cols)}`, gridRow: `span ${size.h}` }}
-            className={`relative min-w-0 ${editing ? 'rounded-2xl outline-2 outline-dashed outline-nx-accent/60' : ''} ${dragging === w ? 'opacity-50' : ''}`}
-            draggable={editing}
-            onDragStart={(e) => {
-              setDragging(w)
-              e.dataTransfer.effectAllowed = 'move'
-              e.dataTransfer.setData('text/plain', w)
-            }}
-            onDragEnd={() => setDragging(null)}
-            onDragOver={(e) => editing && dragging && e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault()
-              if (dragging && dragging !== w) move(dragging, i)
-              setDragging(null)
-            }}
+            data-widget={w}
+            style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}` }}
+            className={`relative min-w-0 ${editing ? `cursor-grab touch-none rounded-2xl outline-2 outline-dashed ${over === w ? 'outline-nx-accent' : 'outline-nx-accent/60'}` : ''} ${dragging === w ? 'cursor-grabbing opacity-50' : ''}`}
+            onPointerDown={editing ? startMove(w) : undefined}
           >
-            <div className={editing ? 'pointer-events-none h-full select-none' : 'h-full'} aria-hidden={editing || undefined}>
-              <Widget id={w} onOpenApp={onOpenApp} />
+            <div className={editing ? 'pointer-events-none h-full opacity-40 select-none' : 'h-full'} aria-hidden={editing || undefined}>
+              <Widget id={w} rows={p.h} now={now} onOpenApp={onOpenApp} />
             </div>
             {editing && (
               <EditFrame
                 id={w}
                 size={size}
+                stretched={size.w > stored.w || size.h > stored.h}
+                columns={cols}
                 index={i}
                 count={shown.length}
                 onMove={(to) => move(w, to)}
                 onSize={(next) => save({ layout: setSize(layout, w, next) })}
-                onResize={(dw, dh) => save({ layout: resizeBy(layout, w, dw, dh) })}
                 onHide={() => save({ widgets: active.widgets.filter((x) => x !== w) })}
               />
             )}
@@ -280,10 +380,13 @@ function WidgetGrid({ compact, onOpenApp }: { compact: boolean; onOpenApp: OpenA
   )
 
   return (
-    <div className="space-y-3">
-      {!compact && (
-        <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
-          {editing && (
+    <div ref={box} className="flex flex-col gap-3">
+      {editing && (
+        <div className="space-y-2 rounded-2xl border border-nx-border p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-nx-muted">
+              Sleep een widget naar een andere plek, of sleep de hoek rechtsonder om hem breder of hoger te maken. Dit geldt voor het profiel {active.name} en gaat mee naar je andere apparaten.
+            </p>
             <div role="radiogroup" aria-label="Voorbeeld" className="flex gap-1">
               {(['pc', 'gsm'] as const).map((p) => (
                 <button key={p} type="button" role="radio" aria-checked={preview === p} onClick={() => setPreview(p)} className={`${small} ${preview === p ? 'font-semibold' : ''}`}>
@@ -291,17 +394,11 @@ function WidgetGrid({ compact, onOpenApp }: { compact: boolean; onOpenApp: OpenA
                 </button>
               ))}
             </div>
-          )}
-          <button type="button" className={small} aria-pressed={editing} onClick={() => (setEditing(!editing), setPreview('pc'))}>
-            {editing ? 'Klaar' : 'Indeling aanpassen'}
-          </button>
-        </div>
-      )}
-      {editing && (
-        <div className="space-y-2 rounded-2xl border border-nx-border p-3 text-sm">
-          <p className="text-nx-muted">
-            Sleep een widget naar een andere plek, of sleep de hoek rechtsonder om hem breder of hoger te maken. Dit geldt voor het profiel {active.name} en gaat mee naar je andere apparaten.
-          </p>
+          </div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={fill} onChange={(e) => setFill(e.target.checked)} />
+            Lege plekken opvullen: widgets rekken mee tot het scherm vol is
+          </label>
           {hidden.length > 0 && (
             <div className="flex flex-wrap items-center gap-1">
               <span className="text-nx-muted">Toevoegen:</span>
@@ -328,33 +425,38 @@ function WidgetGrid({ compact, onOpenApp }: { compact: boolean; onOpenApp: OpenA
 function EditFrame({
   id,
   size,
+  stretched,
+  columns,
   index,
   count,
   onMove,
   onSize,
-  onResize,
   onHide,
 }: {
   id: WidgetId
   size: WidgetSize
+  stretched: boolean
+  columns: number
   index: number
   count: number
   onMove: (to: number) => void
   onSize: (size: WidgetSize) => void
-  onResize: (dw: number, dh: number) => void
   onHide: () => void
 }) {
   const title = WIDGET_TITLES[id]
   const frame = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState<WidgetSize | null>(null)
+  const maxW = Math.min(MAX_COLUMNS, columns)
+  const resize = (dw: number, dh: number) => onSize({ w: Math.min(maxW, size.w + dw), h: size.h + dh } as WidgetSize)
   return (
     <div ref={frame} className="absolute inset-0 flex flex-col justify-between p-2" role="group" aria-label={`${title} indelen`}>
       <div className="flex flex-wrap items-center gap-1">
-        <span className="cursor-grab rounded-md bg-nx-accent px-2 py-0.5 text-xs font-medium text-nx-accent-text" aria-hidden>
+        <span className="rounded-md bg-nx-accent px-2 py-0.5 text-xs font-medium text-nx-accent-text" aria-hidden>
           ⠿ {title}
         </span>
         <span className="text-xs text-nx-muted">
           {(live ?? size).w}×{(live ?? size).h}
+          {stretched && !live ? ' · rekt mee' : ''}
         </span>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-1">
@@ -365,16 +467,16 @@ function EditFrame({
           <button type="button" className={small} disabled={index === count - 1} aria-label={`${title} naar achteren`} onClick={() => onMove(index + 1)}>
             →
           </button>
-          <button type="button" className={small} disabled={size.w === 1} aria-label={`${title} smaller`} onClick={() => onResize(-1, 0)}>
+          <button type="button" className={small} disabled={size.w === 1} aria-label={`${title} smaller`} onClick={() => resize(-1, 0)}>
             −↔
           </button>
-          <button type="button" className={small} disabled={size.w === 3} aria-label={`${title} breder`} onClick={() => onResize(1, 0)}>
+          <button type="button" className={small} disabled={size.w >= maxW} aria-label={`${title} breder`} onClick={() => resize(1, 0)}>
             +↔
           </button>
-          <button type="button" className={small} disabled={size.h === 1} aria-label={`${title} lager`} onClick={() => onResize(0, -1)}>
+          <button type="button" className={small} disabled={size.h === 1} aria-label={`${title} lager`} onClick={() => resize(0, -1)}>
             −↕
           </button>
-          <button type="button" className={small} disabled={size.h === 2} aria-label={`${title} hoger`} onClick={() => onResize(0, 1)}>
+          <button type="button" className={small} disabled={size.h >= MAX_ROWS} aria-label={`${title} hoger`} onClick={() => resize(0, 1)}>
             +↕
           </button>
           <button type="button" className={small} aria-label={`${title} verbergen`} onClick={onHide}>
@@ -383,17 +485,20 @@ function EditFrame({
         </div>
         <span
           aria-hidden
+          data-resize
           title="Sleep om de grootte te veranderen"
           className="size-5 cursor-nwse-resize touch-none rounded-br-xl border-r-4 border-b-4 border-nx-accent"
           onPointerDown={(e) => {
             const box = frame.current?.getBoundingClientRect()
             if (!box) return
             e.preventDefault()
+            e.stopPropagation()
             const start = { x: e.clientX, y: e.clientY }
             const cell = { width: box.width / size.w, height: box.height / size.h }
             let last = size
             const onMovePointer = (ev: PointerEvent) => {
-              last = sizeFromDrag(size, ev.clientX - start.x, ev.clientY - start.y, cell)
+              const next = sizeFromDrag(size, ev.clientX - start.x, ev.clientY - start.y, cell)
+              last = { ...next, w: Math.min(maxW, next.w) } as WidgetSize
               setLive(last)
             }
             const onUp = () => {
@@ -411,27 +516,170 @@ function EditFrame({
   )
 }
 
-function Widget({ id, onOpenApp }: { id: WidgetId; onOpenApp: OpenApp }) {
+function Widget({ id, rows, now, onOpenApp }: { id: WidgetId; rows: number; now: number; onOpenApp: OpenApp }) {
   switch (id) {
+    case 'profile':
+      return <ProfileWidget onOpenApp={onOpenApp} />
+    case 'next_class':
+      return <NextClass now={now} onOpenApp={onOpenApp} />
     case 'deadlines':
-      return <Upcoming onOpenApp={onOpenApp} />
+      return <Upcoming rows={rows} onOpenApp={onOpenApp} />
     case 'notes':
-      return <RecentNotes onOpenApp={onOpenApp} />
+      return <RecentNotes rows={rows} onOpenApp={onOpenApp} />
     case 'ai_study':
       return <AiStudy onOpenApp={onOpenApp} />
     case 'klashub':
       return <KlasHub onOpenApp={onOpenApp} />
     case 'notifications':
-      return <Notifications onOpenApp={onOpenApp} />
+      return <Notifications rows={rows} onOpenApp={onOpenApp} />
     case 'devices':
       return <DevicesWidget onOpenApp={onOpenApp} />
     case 'finance':
       return <FinanceWidget onOpenApp={onOpenApp} />
     case 'gaming':
       return <GamingWidget onOpenApp={onOpenApp} />
-    case 'next_class':
+    case 'habits':
+      return <HabitsWidget rows={rows} now={now} onOpenApp={onOpenApp} />
+    case 'quick_note':
+      return <QuickNote />
+    case 'clock':
+      return <ClockWidget now={now} />
+    case 'shortcuts':
+      return <Shortcuts onOpenApp={onOpenApp} />
+    default:
+      // A widget from a newer NEXUS (synced from another device): nothing to show here yet.
       return null
   }
+}
+
+/** The active profile: what it is for, why it is on, and a way to switch. */
+function ProfileWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
+  const { state, active, reason } = useProfiles()
+  const Icon = PROFILE_ICONS[active.id]
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">{active.name} Mode</p>
+          <p className="flex items-center gap-2 text-lg font-semibold">
+            <Icon className="size-5 text-nx-accent" />
+            {active.description}
+          </p>
+          <p className="text-sm text-nx-muted">{reasonText(reason, state)}</p>
+        </div>
+        <span className="rounded-md bg-nx-accent px-2.5 py-1 text-xs font-semibold text-nx-accent-text">ACTIEF</span>
+      </div>
+      <div className="mt-3 border-t border-nx-border pt-3">
+        <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>
+          Profiel wisselen in Profielen
+        </button>
+      </div>
+    </Card>
+  )
+}
+
+/** Today's habits, ticked off right here. */
+function HabitsWidget({ rows, now, onOpenApp }: { rows: number; now: number; onOpenApp: OpenApp }) {
+  const state = useSyncExternalStore(habitsStore.subscribe, habitsStore.getSnapshot)
+  const today = activeHabits(state).filter((h) => isDue(h, now))
+  const done = today.filter((h) => isDone(h, now)).length
+  return (
+    <Card title="Gewoontes vandaag">
+      {today.length === 0 ? (
+        <p className="text-sm text-nx-muted">Geen gewoontes voor vandaag.</p>
+      ) : (
+        <>
+          <p className="mb-1 text-sm text-nx-muted">
+            {done} van {today.length} gedaan
+          </p>
+          <ul className="space-y-1 text-sm">
+            {today.slice(0, 4 * rows).map((h) => (
+              <li key={h.id}>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isDone(h, now)}
+                    onChange={() => habitsStore.update((s) => ({ ...s, habits: s.habits.map((x) => (x.id === h.id ? toggleDone(x, Date.now()) : x)) }))}
+                  />
+                  <span className={`truncate ${isDone(h, now) ? 'text-nx-muted line-through' : ''}`}>{h.name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('habits')}>
+        Gewoontes openen
+      </button>
+    </Card>
+  )
+}
+
+/** Type something and keep it as a note, without opening Notities. */
+function QuickNote() {
+  const [text, setText] = useState('')
+  const [saved, setSaved] = useState(false)
+  const save = () => {
+    const body = text.trim()
+    if (!body) return
+    const id = notesStore.add()
+    notesStore.update(id, { body })
+    setText('')
+    setSaved(true)
+  }
+  return (
+    <Card title="Snelle notitie">
+      <div className="flex h-[calc(100%-1.5rem)] flex-col gap-2">
+        <textarea
+          aria-label="Snelle notitie"
+          value={text}
+          onChange={(e) => (setText(e.target.value), setSaved(false))}
+          onKeyDown={(e) => e.key === 'Enter' && (e.ctrlKey || e.metaKey) && save()}
+          placeholder="Schrijf iets op…"
+          className="min-h-16 flex-1 resize-none rounded-lg border border-nx-border bg-nx-surface p-2 text-sm"
+        />
+        <div className="flex items-center gap-2">
+          <button type="button" disabled={!text.trim()} onClick={save} className="rounded-lg bg-nx-accent px-3 py-1 text-sm font-medium text-nx-accent-text disabled:opacity-40">
+            Notitie bewaren
+          </button>
+          {saved && <span className="text-xs text-nx-muted">Bewaard in Notities</span>}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function ClockWidget({ now }: { now: number }) {
+  return (
+    <Card>
+      <div className="flex h-full flex-col items-center justify-center text-center">
+        <p className="text-5xl font-semibold tabular-nums">{clock(now)}</p>
+        <p className="mt-1 text-sm text-nx-muted">{new Date(now).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      </div>
+    </Card>
+  )
+}
+
+/** The apps of this profile as buttons; which apps is set per profile in Profielen. */
+function Shortcuts({ onOpenApp }: { onOpenApp: OpenApp }) {
+  const apps = useVisibleApps()
+  return (
+    <Card title="Snelkoppelingen">
+      {/* Scrolls inside the card: a long list of apps does not make the row taller. */}
+      <ul className="grid h-[calc(100%-1.5rem)] min-h-16 grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] content-start gap-1 overflow-y-auto [contain:size]">
+        {apps.map((app) => (
+          <li key={app.id}>
+            <button type="button" onClick={() => onOpenApp(app.id)} className="flex w-full flex-col items-center gap-1 rounded-lg p-2 text-xs hover:bg-nx-surface-2">
+              <span className="text-nx-accent [&>svg]:size-6">
+                <app.icon />
+              </span>
+              <span className="w-full truncate text-center">{app.title}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
 }
 
 function dayWord(at: number, now: number): string {
@@ -488,7 +736,7 @@ function NextClass({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
   )
 }
 
-function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
+function Upcoming({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }) {
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
   const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
   const now = Date.now()
@@ -507,7 +755,7 @@ function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
         <p className="text-sm text-nx-muted">Niets gepland.</p>
       ) : (
         <ul className="space-y-1 text-sm">
-          {items.slice(0, 5).map((r) => (
+          {items.slice(0, 5 * rows).map((r) => (
             <li key={r.id} className="flex justify-between gap-2">
               <span className="truncate">
                 {r.deadline ? '📌 ' : ''}
@@ -533,7 +781,7 @@ function Upcoming({ onOpenApp }: { onOpenApp: OpenApp }) {
   )
 }
 
-function RecentNotes({ onOpenApp }: { onOpenApp: OpenApp }) {
+function RecentNotes({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }) {
   const { notes } = useNotes()
   return (
     <Card title="Notities">
@@ -541,7 +789,7 @@ function RecentNotes({ onOpenApp }: { onOpenApp: OpenApp }) {
         <p className="text-sm text-nx-muted">Nog geen notities.</p>
       ) : (
         <ul className="space-y-1 text-sm">
-          {notes.slice(0, 3).map((n) => (
+          {notes.slice(0, 4 * rows - 1).map((n) => (
             <li key={n.id} className="truncate">
               {noteTitle(n)}
             </li>
@@ -686,13 +934,13 @@ function KlasHub({ onOpenApp }: { onOpenApp: OpenApp }) {
   )
 }
 
-function Notifications({ onOpenApp }: { onOpenApp: OpenApp }) {
+function Notifications({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }) {
   const { state } = useConnect()
   return (
     <Card title="Meldingen">
       <p className="text-sm">{state.unread > 0 ? `${state.unread} nieuwe melding(en)` : 'Geen nieuwe meldingen.'}</p>
       <ul className="mt-1 space-y-1 text-sm text-nx-muted">
-        {state.inbox.slice(0, 3).map((i) => (
+        {state.inbox.slice(0, 4 * rows - 1).map((i) => (
           <li key={i.id} className="truncate">
             {i.appName}: {i.title}
           </li>

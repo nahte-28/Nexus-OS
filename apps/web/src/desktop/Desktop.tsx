@@ -13,6 +13,7 @@ import { Tour } from '../onboarding/Tour'
 import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
+import { placeOf } from './windowPlaces'
 import { isSidebarCollapsed, toggleGroup, toggleSidebar, useFoldedGroups, useSidebarCollapsed } from './sidebarGroups'
 
 export const SIDEBAR_WIDTH = 224
@@ -40,7 +41,7 @@ export function Desktop() {
       const app = getApp(appId)
       if (app.launch) return app.launch()
       const area = { width: window.innerWidth - sidebarWidth(), height: window.innerHeight - TASKBAR_HEIGHT }
-      dispatch({ type: 'open', appId, title: app.title, rect: openRect(app.defaultSize, area, state.windows.length, app.fill) })
+      dispatch({ type: 'open', appId, title: app.title, rect: placeOf(appId, area) ?? openRect(app.defaultSize, area, state.windows.length, app.fill) })
     },
     [dispatch, state.windows.length],
   )

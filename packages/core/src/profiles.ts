@@ -16,7 +16,7 @@ export type ProfileId = 'school' | 'personal' | 'gaming' | 'developer'
 export type AccentId = 'blue' | 'cyan' | 'violet' | 'green' | 'orange' | 'pink'
 export const ACCENT_IDS: AccentId[] = ['blue', 'cyan', 'violet', 'green', 'orange', 'pink']
 
-export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications' | 'finance' | 'gaming'
+export type WidgetId = 'next_class' | 'deadlines' | 'notes' | 'ai_study' | 'klashub' | 'devices' | 'notifications' | 'finance' | 'gaming' | 'profile' | 'habits' | 'quick_note' | 'clock' | 'shortcuts'
 
 export interface Profile {
   id: ProfileId
@@ -204,7 +204,7 @@ export function klashubLink(text: string): string | null {
   if (CALENDAR_HOSTS.includes(url.hostname.toLowerCase()) || /\.ics$/i.test(url.pathname)) return null
   return url.href
 }
-export const PROFILES_SCHEMA = 14
+export const PROFILES_SCHEMA = 15
 
 export const PROFILE_IDS: ProfileId[] = ['school', 'personal', 'gaming', 'developer']
 
@@ -218,7 +218,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
     apps: ['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
-    widgets: ['next_class', 'deadlines', 'klashub', 'ai_study', 'notes'],
+    widgets: ['profile', 'next_class', 'deadlines', 'klashub', 'ai_study', 'notes', 'quick_note', 'clock', 'shortcuts'],
     quietNonEssential: true,
     allowApps: [],
     accent: null,
@@ -229,7 +229,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
     apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'journal', 'flashcards', 'insights', 'finance', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
-    widgets: ['deadlines', 'notes', 'finance', 'notifications', 'devices'],
+    widgets: ['profile', 'deadlines', 'notes', 'habits', 'finance', 'notifications', 'devices', 'quick_note', 'clock', 'shortcuts'],
     quietNonEssential: false,
     allowApps: [],
     accent: null,
@@ -240,7 +240,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Donker en rustig: alleen belangrijke meldingen komen erdoor.',
     theme: 'pulse',
     apps: ['notifications', 'assistant', 'devices', 'notes', 'account', 'about'],
-    widgets: ['gaming', 'notifications', 'devices'],
+    widgets: ['profile', 'gaming', 'notifications', 'devices', 'clock', 'shortcuts'],
     quietNonEssential: true,
     allowApps: [],
     accent: null,
@@ -251,7 +251,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Met de ontwikkelaarstools en het logboek erbij.',
     theme: 'pulse',
     apps: ['developer', 'assistant', 'agenda', 'files', 'notes', 'notifications', 'reminders', 'devices', 'account', 'about'],
-    widgets: ['deadlines', 'notes', 'devices'],
+    widgets: ['profile', 'deadlines', 'notes', 'devices', 'quick_note', 'clock', 'shortcuts'],
     quietNonEssential: false,
     allowApps: [],
     accent: null,
@@ -813,6 +813,16 @@ export function parseProfilesState(raw: unknown): ProfilesState {
     const widgets = profiles.gaming.widgets
     if (Array.isArray(widgets) && !widgets.includes('gaming')) profiles.gaming = { ...profiles.gaming, widgets: ['gaming', ...widgets] }
   }
+  // Copies from before the movable dashboard get the profile card as a widget (first) and the new
+  // widgets that are a default in that profile, at the end.
+  if (typeof r.schema !== 'number' || r.schema < 15) {
+    for (const id of PROFILE_IDS) {
+      const widgets = profiles[id].widgets
+      if (!Array.isArray(widgets)) continue
+      const extra = base.profiles[id].widgets.filter((w) => (w === 'habits' || w === 'quick_note' || w === 'clock' || w === 'shortcuts') && !widgets.includes(w))
+      profiles[id] = { ...profiles[id], widgets: [...(widgets.includes('profile') ? [] : (['profile'] as WidgetId[])), ...widgets, ...extra] }
+    }
+  }
   const merged = { ...base.schedule, ...(typeof r.schedule === 'object' ? r.schedule : {}) }
   const schedule =
     isTime(merged.start) && isTime(merged.end) && Array.isArray(merged.days) && PROFILE_IDS.includes(merged.profile)
@@ -957,7 +967,7 @@ export const WORK_PROFILE: Pick<Profile, 'name' | 'description' | 'apps' | 'widg
   name: 'Werk',
   description: 'Je werkdag: afspraken, taken en notities, met minder afleiding.',
   apps: ['agenda', 'notes', 'files', 'reminders', 'habits', 'insights', 'assistant', 'notifications', 'devices', 'account', 'about'],
-  widgets: ['deadlines', 'notes', 'notifications'],
+  widgets: ['profile', 'deadlines', 'notes', 'notifications', 'habits', 'quick_note', 'clock', 'shortcuts'],
 }
 
 /**
