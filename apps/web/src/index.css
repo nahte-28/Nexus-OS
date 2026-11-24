@@ -184,6 +184,34 @@ h3 {
   padding-top: env(safe-area-inset-top);
 }
 
+/* In de base-laag, zodat klassen als bg-nx-surface-2 op een element nog altijd winnen. */
+@layer base {
+  /* Op een aanraakscherm reageren knoppen meteen (geen wachttijd voor dubbeltikken), zonder grijze flits. */
+  a,
+  button,
+  input,
+  label,
+  select,
+  summary,
+  textarea,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keuzelijsten volgen het thema, ook het uitklapmenu in donkere modus op Windows. */
+  select,
+  option {
+    background-color: var(--nx-surface);
+    color: var(--nx-text);
+  }
+
+  /* Scrollen in een venster of dialoog schuift de pagina erachter niet mee. */
+  [role='dialog'] {
+    overscroll-behavior: contain;
+  }
+}
+
 ::selection {
   background: color-mix(in srgb, var(--nx-accent) 28%, transparent);
 }

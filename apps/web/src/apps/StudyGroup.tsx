@@ -163,7 +163,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
       {mode === 'create' ? (
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam van de groep, bv. 1IT3 projectgroep" aria-label="Naam van de groep" className={field} />
       ) : (
-        <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={14} placeholder="Uitnodigingscode, bv. ABCD-EF23" aria-label="Uitnodigingscode" className={`${field} font-mono uppercase`} />
+        <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={14} placeholder="Uitnodigingscode, bv. ABCD-EF23" aria-label="Uitnodigingscode" spellCheck={false} autoComplete="off" className={`${field} font-mono uppercase`} />
       )}
       <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} placeholder="Je naam in de groep" aria-label="Je naam in de groep" className={field} />
       <p className="text-xs text-nx-muted">Je e-mailadres blijft verborgen. De groep ziet alleen deze naam en wat je zelf deelt.</p>

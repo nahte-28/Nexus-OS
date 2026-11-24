@@ -243,7 +243,7 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
               <h3 className="font-medium">Iemand toevoegen</h3>
               {pendingFriend() && <p className="text-xs">Je opende een vriendenlink. Tik op Verzoek sturen.</p>}
               <div className="flex gap-2">
-                <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={12} placeholder="Code, bv. ABCD-EFGH" aria-label="Vriendencode" className={`${field} flex-1 font-mono uppercase`} />
+                <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={12} placeholder="Code, bv. ABCD-EFGH" aria-label="Vriendencode" spellCheck={false} autoComplete="off" className={`${field} flex-1 font-mono uppercase`} />
                 <button type="submit" className={button} disabled={busy || !code.trim()}>
                   Verzoek sturen
                 </button>

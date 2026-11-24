@@ -198,7 +198,7 @@ function LinkedCalendars() {
     <div className="flex flex-wrap items-center gap-2 text-nx-muted" aria-label="Gekoppelde agenda's">
       <span className="min-w-0 flex-1">
         {busy
-          ? "Agenda's ophalen..."
+          ? "Agenda's ophalen…"
           : oldest === null
             ? 'Je gekoppelde agenda is nog niet opgehaald.'
             : `${times.length === 1 && state.googleUrl ? 'Google Agenda' : "Gekoppelde agenda's"} bijgewerkt om ${new Date(oldest).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`}

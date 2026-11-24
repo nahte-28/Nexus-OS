@@ -321,7 +321,7 @@ function CalendarLink() {
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" className={primaryButton} disabled={busy || !link.trim()}>
-          {busy ? 'Ophalen...' : 'Lessen ophalen'}
+          {busy ? 'Ophalen…' : 'Lessen ophalen'}
         </button>
         {state.calendarUrl && (
           <button
@@ -380,7 +380,7 @@ function GoogleLink() {
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" className={primaryButton} disabled={busy || !link.trim()}>
-          {busy ? 'Ophalen...' : 'Google Agenda ophalen'}
+          {busy ? 'Ophalen…' : 'Google Agenda ophalen'}
         </button>
         {state.googleUrl && (
           <button
@@ -445,7 +445,7 @@ function ExtraCalendars() {
                       })
                     }}
                   >
-                    {busy === c.id ? 'Ophalen...' : 'Bijwerken'}
+                    {busy === c.id ? 'Ophalen…' : 'Bijwerken'}
                   </button>
                   <button type="button" className={button} aria-label={`${c.name} ontkoppelen`} onClick={() => removeExtra(c.id)}>
                     Ontkoppelen
@@ -484,7 +484,7 @@ function ExtraCalendars() {
           </label>
         </div>
         <button type="submit" className={primaryButton} disabled={busy !== null || !link.trim()}>
-          {busy === 'new' ? 'Ophalen...' : 'Agenda toevoegen'}
+          {busy === 'new' ? 'Ophalen…' : 'Agenda toevoegen'}
         </button>
       </form>
       {message && <p role="status">{message}</p>}
@@ -692,7 +692,7 @@ function DeviceSync() {
     unavailable: 'Synchroniseren is niet ingesteld in deze versie.',
     off: 'Dit toestel houdt zijn profielen voor zichzelf.',
     'signed-out': 'Meld je aan in Account om je profielen mee te nemen naar je andere toestellen.',
-    syncing: 'Bezig met synchroniseren...',
+    syncing: 'Bezig met synchroniseren…',
     synced: `Gesynchroniseerd${status.at ? ` om ${new Date(status.at).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}` : ''}.`,
     error: `Synchroniseren mislukt: ${status.error ?? 'onbekende fout'}`,
   }
