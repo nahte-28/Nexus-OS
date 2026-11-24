@@ -4,6 +4,7 @@ import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { AskName } from '../shell/AskName'
+import { NexusMark } from '../shell/NexusMark'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
 import { useProfiles } from '../profiles/store'
@@ -120,7 +121,8 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
                     onClick={() => onOpenApp(app.id)}
                     aria-label={app.title}
                     title={app.title}
-                    className="grid size-10 place-items-center rounded-lg text-nx-accent hover:bg-nx-surface-2 [&>svg]:size-5"
+                    data-trace="left"
+                    className="grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-accent [&>svg]:size-5"
                   >
                     <app.icon />
                   </button>
@@ -136,8 +138,8 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
     <aside style={{ width: SIDEBAR_WIDTH }} className="nx-glass flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border p-3">
       <div className="flex items-start justify-between gap-2 pt-1 pl-2">
         <div>
-          <p className="text-lg font-bold tracking-wide text-nx-accent">NEXUS</p>
-          <p className="text-xs text-nx-muted">{active.name} Mode</p>
+          <NexusMark />
+          <p className="mt-0.5 text-xs text-nx-muted">{active.name} Mode</p>
         </div>
         {toggle}
       </div>
@@ -150,7 +152,7 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
                 type="button"
                 aria-expanded={open}
                 onClick={() => toggleGroup(group.id)}
-                className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider text-nx-muted hover:bg-nx-surface-2"
+                className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-xs font-semibold text-nx-muted hover:text-nx-text"
               >
                 {group.title}
                 <span aria-hidden="true" className={`transition ${open ? 'rotate-90' : ''}`}>
@@ -164,9 +166,10 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
                       <button
                         type="button"
                         onClick={() => onOpenApp(app.id)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
+                        data-trace="left"
+                        className="group flex w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-nx-surface-2"
                       >
-                        <span className="text-nx-accent [&>svg]:size-5">
+                        <span className="text-nx-muted group-hover:text-nx-accent [&>svg]:size-[18px]">
                           <app.icon />
                         </span>
                         {app.title}
@@ -182,3 +185,4 @@ function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: A
     </aside>
   )
 }
+

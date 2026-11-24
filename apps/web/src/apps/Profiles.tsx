@@ -134,7 +134,7 @@ function Overview() {
               >
                 <span className="flex items-center gap-2 font-medium">
                   <Icon className="size-4 text-nx-accent" /> {p.name}
-                  {selected && <span className="ml-auto rounded bg-nx-accent px-1.5 text-xs text-nx-accent-text">ACTIEF</span>}
+                  {selected && <span className="ml-auto text-xs font-medium text-nx-accent">Actief</span>}
                 </span>
                 <span className="mt-1 block text-nx-muted">{p.description}</span>
               </button>

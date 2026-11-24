@@ -27,7 +27,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
         aria-label="Start"
         aria-expanded={startOpen}
         onClick={() => setStartOpen((v) => !v)}
-        className={`grid size-10 place-items-center rounded-lg ${startOpen ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-accent hover:bg-nx-surface-2'}`}
+        className={`grid size-10 place-items-center rounded-md ${startOpen ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-text hover:bg-nx-surface-2 hover:text-nx-accent'}`}
       >
         <GridIcon />
       </button>
@@ -44,11 +44,12 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
               type="button"
               aria-pressed={active}
               onClick={() => dispatch(active ? { type: 'minimize', id: win.id } : { type: 'focus', id: win.id })}
-              className={`flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm ${
+              data-trace="bottom"
+              className={`flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm ${
                 active ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'
               } ${win.minimized ? 'opacity-60' : ''}`}
             >
-              <app.icon className="size-4 text-nx-accent" />
+              <app.icon className={`size-4 ${active ? 'text-nx-accent' : 'text-nx-muted'}`} />
               {win.title}
             </button>
           )

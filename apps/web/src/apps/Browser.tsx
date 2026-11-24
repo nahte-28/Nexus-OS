@@ -127,7 +127,7 @@ export function Browser() {
       ) : (
         groups.map((g) => (
           <section key={g.folder || '-'} aria-label={g.folder || 'Zonder map'} className="space-y-2">
-            {g.folder && <h4 className="text-xs font-medium uppercase tracking-wide text-nx-muted">{g.folder}</h4>}
+            {g.folder && <h4 className="text-xs font-medium text-nx-muted">{g.folder}</h4>}
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {g.items.map((b) => (
                 <li key={b.id} className="flex items-center gap-2 rounded-lg border border-nx-border p-2">

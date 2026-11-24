@@ -170,7 +170,7 @@ function Running({ session, now, busy, onLeave }: { session: TogetherSession; no
         <h3 className="font-medium">{session.title}</h3>
         <span className="text-nx-muted">{session.mine ? 'jouw sessie' : `van ${session.host}`}</span>
       </div>
-      <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">
+      <p className="text-xs font-semibold text-nx-accent">
         {p.phase === 'focus' ? 'Focus' : 'Pauze'} · blok {p.round}
       </p>
       <p className="font-mono text-5xl tabular-nums" role="timer" aria-live="off">

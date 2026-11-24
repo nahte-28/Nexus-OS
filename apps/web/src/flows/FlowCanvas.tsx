@@ -276,7 +276,7 @@ function Palette({
 }) {
   return (
     <div>
-      <p className="mb-1 text-xs font-semibold tracking-wide text-nx-muted uppercase">{title}</p>
+      <p className="mb-1 text-xs font-semibold text-nx-muted">{title}</p>
       <ul className="flex flex-wrap gap-1">
         {items.map(({ key, label, d }) => (
           <li key={key}>

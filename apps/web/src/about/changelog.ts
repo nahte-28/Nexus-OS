@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Een nieuw uiterlijk: de werkbank',
+    items: [
+      'NEXUS ziet er anders uit. Focus is nu een lichte werkbank met soldeermasker-groen, Pulse een donkere printplaat met koperen accenten. Je eigen accentkleur blijft werken.',
+      'Een nieuw lettertype dat beter leest op kleine schermen, en rustigere titels zonder hoofdletters.',
+      'Wat actief is krijgt een koperen spoor met een soldeerpunt: het venster vooraan, het geopende venster in de taakbalk, de app onder je cursor in de zijbalk en het tabblad onderaan op je telefoon.',
+      'Het profiel op je dashboard toont nu met een groen lampje dat het actief is.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een dashboard dat je scherm vult, en dat je zelf indeelt',
     items: [
       'Op een groot scherm vult het dashboard nu de hele ruimte: tot zes kolommen naast elkaar, en de widgets worden hoger tot het scherm vol is. Lege plekken vullen ze vanzelf op.',

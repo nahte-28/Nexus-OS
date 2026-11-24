@@ -5,7 +5,7 @@ import { writeStorage } from '../state/storage'
 import { applyAccent } from './accents'
 
 const STORAGE_KEY = 'nexus.theme'
-const THEME_COLORS: Record<ThemeId, string> = { focus: '#eef1f5', pulse: '#0b1020' }
+const THEME_COLORS: Record<ThemeId, string> = { focus: '#e5e9e5', pulse: '#0c1310' }
 
 interface ThemeContextValue {
   theme: ThemeId

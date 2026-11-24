@@ -11,6 +11,7 @@ import { Dashboard } from '../profiles/Dashboard'
 import { CaptureButton, QuickCaptureHost, useCaptureShortcut } from '../capture/QuickCaptureHost'
 import { Tour } from '../onboarding/Tour'
 import { SearchButton, useSearchShortcut } from '../search/SearchButton'
+import { NexusMark } from '../shell/NexusMark'
 
 // Loads when you open it, not with the app grid.
 // After an update; it carries the whole changelog, so it loads after the first screen.
@@ -65,7 +66,7 @@ export function MobileShell() {
             <BackIcon />
           </button>
         ) : (
-          <span className="pl-2 font-semibold tracking-wide text-nx-accent">NEXUS</span>
+          <NexusMark className="pl-2" />
         )}
         <h1 className="min-w-0 flex-1 truncate font-medium">{app?.title ?? ''}</h1>
         <CaptureButton className="size-11" />
@@ -97,12 +98,12 @@ export function MobileShell() {
             <div className="space-y-4 p-5" aria-label="Apps" role="group">
               {groupApps(apps).map((group) => (
                 <section key={group.id} aria-label={group.title}>
-                  <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-nx-muted">{group.title}</h2>
+                  <h2 className="mb-2 text-xs font-semibold text-nx-muted">{group.title}</h2>
                   <ul className="grid grid-cols-4 gap-y-5">
                     {group.apps.map((a) => (
                       <li key={a.id}>
                         <button type="button" onClick={() => open(a.id)} className="flex w-full flex-col items-center gap-2 text-xs">
-                          <span className="nx-glass grid size-14 place-items-center rounded-2xl border border-nx-border text-nx-accent">
+                          <span className="nx-glass grid size-14 place-items-center rounded-xl border border-nx-border text-nx-accent">
                             <a.icon />
                           </span>
                           {a.title}
@@ -147,7 +148,9 @@ function NavButton({
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`flex h-16 flex-1 flex-col items-center justify-center gap-1 text-xs ${active ? 'text-nx-accent' : 'text-nx-muted'}`}
+      data-trace="bottom"
+      data-on={active}
+      className={`flex h-16 flex-1 flex-col items-center justify-center gap-1 text-xs ${active ? 'font-semibold text-nx-text [&>svg]:text-nx-accent' : 'text-nx-muted'}`}
     >
       {children}
       {label}

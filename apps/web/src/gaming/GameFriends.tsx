@@ -158,7 +158,7 @@ function TeamCard({ team, me, role, members, data, state, now, apis, onChanged, 
         </label>
       </div>
       <div>
-        <h4 className="text-xs font-medium uppercase text-nx-muted">Speelt nu</h4>
+        <h4 className="text-xs font-medium text-nx-muted">Speelt nu</h4>
         {playing.length === 0 ? (
           <p className="text-nx-muted">Niemand die het deelt.</p>
         ) : (
@@ -172,7 +172,7 @@ function TeamCard({ team, me, role, members, data, state, now, apis, onChanged, 
         )}
       </div>
       <div className="space-y-2">
-        <h4 className="text-xs font-medium uppercase text-nx-muted">Samen spelen</h4>
+        <h4 className="text-xs font-medium text-nx-muted">Samen spelen</h4>
         {plans.length === 0 && <p className="text-nx-muted">Nog niets gepland.</p>}
         {plans.map((plan) => (
           <PlanRow key={plan.id} plan={plan} me={me} members={members} data={data} mayRemove={plan.createdBy === me || teamCan(role, 'manage')} onAnswer={(a) => run(() => apis.friends.answer(plan, a, me))} onRemove={() => run(() => apis.friends.removePlan(plan.id))} />
