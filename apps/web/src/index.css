@@ -176,6 +176,18 @@ h3 {
   transform: translateX(50%);
 }
 
+/* The sidebar: see-through, so the wallpaper shows; it scrolls without a scrollbar in the way. */
+.nx-sidebar {
+  background: color-mix(in srgb, var(--nx-surface) 35%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  scrollbar-width: none;
+}
+
+.nx-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
 .nx-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

@@ -19,6 +19,17 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Een nieuw lettertype dat beter leest op kleine schermen, en rustigere titels zonder hoofdletters.',
       'Wat actief is krijgt een koperen spoor met een soldeerpunt: het venster vooraan, het geopende venster in de taakbalk, de app onder je cursor in de zijbalk en het tabblad onderaan op je telefoon.',
       'Het profiel op je dashboard toont nu met een groen lampje dat het actief is.',
+      'Klap je de zijbalk in, dan verdwijnt hij helemaal en staan je apps op je bureaublad, per groep onder de titel. Met de knop links in de taakbalk haal je de zijbalk terug.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'Je agenda open op het dashboard, en een doorzichtige zijbalk',
+    items: [
+      'Nieuw op het dashboard: Agenda deze week. Je ziet je lessen, afspraken, Google Agenda, deadlines en herinneringen van de komende zeven dagen naast elkaar, met vandaag in de kleur van je profiel. Klik op een dag om de Agenda te openen.',
+      'Je krijgt deze widget er vanzelf bij, groot en bovenaan. Via Indeling aanpassen kan je hem verplaatsen, groter of kleiner maken of verbergen.',
+      'De zijbalk is nu doorzichtig, zodat je achtergrond erdoor schijnt.',
+      'Ingeklapt staan de icoontjes netjes onder elkaar, zonder schuifbalk ernaast. Scrollen kan nog altijd met je muiswiel.',
     ],
   },
   {

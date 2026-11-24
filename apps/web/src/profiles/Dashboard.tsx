@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import {
   activeHabits,
+  agendaDay,
+  calendarSources,
+  linkedEvents,
+  type AgendaEntry,
   columnsFor,
   fillGaps,
   isDone,
@@ -61,7 +65,8 @@ function greeting(now: number): string {
 }
 
 /** The home screen of the active profile: a greeting, then its widgets, which you can move and resize. */
-export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; compact?: boolean }) {
+/** shortcuts: je apps, getoond onder de titel wanneer de zijbalk ingeklapt is. */
+export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { onOpenApp: OpenApp; compact?: boolean; shortcuts?: ReactNode }) {
   const { state, active } = useProfiles()
   const now = useMinute()
   const devHub = useFeature('devHub')
@@ -96,6 +101,8 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
           </button>
         )}
       </header>
+
+      {shortcuts}
 
       <Welcome />
 
@@ -546,10 +553,81 @@ function Widget({ id, rows, now, onOpenApp }: { id: WidgetId; rows: number; now:
       return <ClockWidget now={now} />
     case 'shortcuts':
       return <Shortcuts onOpenApp={onOpenApp} />
+    case 'agenda_week':
+      return <AgendaWeek rows={rows} now={now} onOpenApp={onOpenApp} />
     default:
       // A widget from a newer NEXUS (synced from another device): nothing to show here yet.
       return null
   }
+}
+
+const DAY_MS = 86_400_000
+
+function startOfDay(t: number): number {
+  const d = new Date(t)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+const ENTRY_ICON: Partial<Record<AgendaEntry['kind'], string>> = { deadline: '📌 ', appointment: '📅 ', reminder: '⏰ ', event: '🗓️ ' }
+
+/**
+ * The week of the Agenda, open on the dashboard: lessons, appointments, Google Agenda, deadlines
+ * and reminders, one column per day, as many days as fit (up to seven).
+ */
+function AgendaWeek({ rows, now, onOpenApp }: { rows: number; now: number; onOpenApp: OpenApp }) {
+  const { state } = useProfiles()
+  const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
+  const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
+  const today = startOfDay(now)
+  // +1 hour per step keeps each start on the right day across a time change.
+  const days = Array.from({ length: 7 }, (_, i) => startOfDay(today + i * DAY_MS + 3_600_000))
+  const input = { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items: life, reminders }
+  const hidden = new Set(calendarSources(state).filter((c) => c.hidden).map((c) => c.id))
+  const perDay = Math.max(3, rows * 5)
+  return (
+    <div className="nx-glass flex h-full flex-col overflow-hidden rounded-2xl border border-nx-border p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="text-[13px] font-semibold text-nx-muted">Agenda deze week</h2>
+        <button type="button" className={linkButton} onClick={() => onOpenApp('agenda')}>
+          Agenda openen
+        </button>
+      </div>
+      <ol className="grid min-h-0 flex-1 [grid-auto-rows:100%] grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2 overflow-hidden">
+        {days.map((day) => {
+          const entries = agendaDay(input, day).filter((e) => !('source' in e && e.source && hidden.has(e.source)))
+          const isToday = day === today
+          const title = isToday ? 'Vandaag' : day === days[1] ? 'Morgen' : new Date(day).toLocaleDateString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short' })
+          return (
+            <li key={day} aria-label={title} className={`flex min-h-0 flex-col overflow-hidden rounded-xl border p-2 ${isToday ? 'border-nx-accent bg-nx-accent/10' : 'border-nx-border'}`}>
+              <button type="button" onClick={() => onOpenApp('agenda')} className={`mb-1 text-left text-sm font-semibold first-letter:uppercase ${isToday ? 'text-nx-accent' : ''}`}>
+                {title}
+              </button>
+              {entries.length === 0 ? (
+                <p className="text-xs text-nx-muted">Niets gepland.</p>
+              ) : (
+                <ul className="min-h-0 space-y-1 overflow-hidden text-xs">
+                  {entries.slice(0, perDay).map((e, i) => (
+                    <li key={i} className={`rounded-md bg-nx-surface-2 px-1.5 py-1 ${e.kind === 'deadline' && e.deadline.doneAt !== null ? 'text-nx-muted line-through' : ''}`}>
+                      <span className="block text-nx-muted tabular-nums">
+                        {clock(e.at)}
+                        {'end' in e ? `–${clock(e.end)}` : ''}
+                      </span>
+                      <span className="line-clamp-2">
+                        {ENTRY_ICON[e.kind] ?? ''}
+                        {e.title}
+                      </span>
+                    </li>
+                  ))}
+                  {entries.length > perDay && <li className="text-nx-muted">+{entries.length - perDay} meer</li>}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
 }
 
 /** The active profile: what it is for, why it is on, and a way to switch. */

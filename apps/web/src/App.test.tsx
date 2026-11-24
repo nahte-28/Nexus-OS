@@ -213,15 +213,16 @@ describe('App shell', () => {
     expect(within(nav).getByRole('button', { name: 'Agenda' })).toBeTruthy()
   })
 
-  it('folds the whole sidebar to icons and opens apps from there', () => {
+  it('hides the sidebar and puts the apps on the home screen instead', () => {
     mockViewport(false)
     renderApp()
     fireEvent.click(screen.getByRole('button', { name: 'Zijbalk inklappen' }))
     expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('1')
-    const rail = screen.getByRole('navigation', { name: 'Apps' })
-    fireEvent.click(within(rail).getByRole('button', { name: 'Agenda' }))
+    expect(screen.queryByRole('button', { name: 'Zijbalk inklappen' })).toBeNull()
+    const home = within(screen.getByRole('region', { name: 'Dashboard' })).getByRole('navigation', { name: 'Apps' })
+    fireEvent.click(within(home).getByRole('button', { name: 'Agenda' }))
     expect(screen.getByRole('dialog', { name: 'Agenda' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk uitklappen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk tonen' }))
     expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('0')
     expect(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: /^Planning/ })).toBeTruthy()
   })
