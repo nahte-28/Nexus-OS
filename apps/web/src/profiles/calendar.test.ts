@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { defaultProfilesState, linkedEvents } from '@nexus/core'
-import { removeExtra, syncCalendar, syncExtra, syncGoogle } from './calendar'
+import { calendarProblems, refreshCalendars, removeExtra, syncCalendar, syncExtra, syncGoogle } from './calendar'
 import { ProfilesStore } from './store'
 
 const NOW = Date.parse('2026-10-20T07:00:00Z')
@@ -70,5 +70,27 @@ describe('other calendars', () => {
     for (const bad of ['http://club.example.be/a.ics', 'https://192.168.1.10/a.ics', 'https://localhost/a.ics', 'https://nas.local/a.ics', 'https://user:pw@club.example.be/a.ics'])
       expect(await syncExtra(bad, 'x', 'c1', store, d)).toMatch(/geen agendalink/)
     expect(d.fetch).not.toHaveBeenCalled()
+  })
+})
+
+describe('keeping Google Agenda fresh', () => {
+  const google = 'https://calendar.google.com/calendar/ical/me%40gmail.com/private-abc/basic.ics'
+
+  it('fetches Google Agenda again after a quarter of an hour, school only after an hour', async () => {
+    const store = new ProfilesStore(() => NOW, { ...defaultProfilesState(), calendarUrl: LINK, calendarSyncedAt: NOW - 20 * 60_000, googleUrl: google, googleSyncedAt: NOW - 20 * 60_000 })
+    const fetch = vi.fn(async () => new Response(ICS.replace('Networking', 'Tandarts (verplaatst)')))
+    expect(await refreshCalendars(store, undefined, NOW, { fetch, token: async () => 'token', now: () => NOW })).toEqual([])
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledWith('/api/calendar', expect.objectContaining({ body: JSON.stringify({ url: google }) }))
+    expect(store.getSnapshot().state.googleEvents.map((e) => e.subject)).toEqual(['Tandarts (verplaatst)'])
+  })
+
+  it('remembers a failed Google fetch so the Agenda can show it, and forgets it after a good one', async () => {
+    const store = new ProfilesStore(() => NOW, defaultProfilesState())
+    const failing = { fetch: vi.fn(async () => Response.json({ error: 'De agenda gaf een fout (404).' }, { status: 502 })), token: async () => 'token', now: () => NOW }
+    expect(await syncGoogle(google, store, failing)).toBe('De agenda gaf een fout (404).')
+    expect(calendarProblems.getSnapshot().google).toBe('De agenda gaf een fout (404).')
+    await syncGoogle(google, store, { ...failing, fetch: vi.fn(async () => new Response(ICS)) })
+    expect(calendarProblems.getSnapshot().google).toBeUndefined()
   })
 })
