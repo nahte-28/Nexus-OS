@@ -12,8 +12,39 @@ import { cors, emailForToken, env, json } from './_shared.js'
  *   NEXUS_CALENDAR_HOSTS   optional, comma-separated hosts; defaults to apih.ap.be (the AP intranet)
  */
 
-// Below the 4.5 MB a Vercel function may answer; a Google Agenda with years of history can be large.
+// Below the 4.5 MB a Vercel function may answer. A Google Agenda with years of history can be far
+// larger, so past events are left out first (see trimPast); only the raw download has a higher cap.
 const MAX_BYTES = 4_000_000
+const MAX_RAW_BYTES = 40_000_000
+/** Events that ended more than this long ago are not sent on; NEXUS only shows from yesterday on. */
+const KEEP_PAST_MS = 3 * 24 * 60 * 60_000
+
+/** The date (UTC midnight) in a DTSTART/DTEND/UNTIL value such as 20261124T100000Z or 20261124; precise enough with a margin of days. */
+function dayOf(value: string | undefined): number | null {
+  const m = value && /(\d{4})(\d{2})(\d{2})/.exec(value)
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null
+}
+
+/**
+ * The calendar without the events that are over before [cutoff]: one-off events that ended earlier
+ * and series whose UNTIL lies before it. Series without an end, time zones and everything else stay,
+ * so NEXUS reads the coming weeks exactly as before, also for a calendar with years of history.
+ */
+export function trimPast(ics: string, cutoff: number): string {
+  return ics.replace(/BEGIN:VEVENT\r?\n[\s\S]*?END:VEVENT\r?\n?/g, (block) => {
+    const unfolded = block.replace(/\r?\n[ \t]/g, '')
+    const prop = (name: string) => new RegExp(`^${name}(?:;[^:\\r\\n]*)?:([^\\r\\n]*)`, 'm').exec(unfolded)?.[1]
+    const rule = prop('RRULE')
+    if (rule) {
+      const until = dayOf(/UNTIL=([0-9TZ]+)/.exec(rule)?.[1])
+      return until !== null && until + 24 * 60 * 60_000 < cutoff ? '' : block
+    }
+    // A moved occurrence stays while either its old or its new time is recent, so the series skips the old one.
+    const end = Math.max(dayOf(prop('DTEND')) ?? dayOf(prop('DTSTART')) ?? Infinity, dayOf(prop('RECURRENCE-ID')) ?? -Infinity)
+    return end + 24 * 60 * 60_000 < cutoff ? '' : block
+  })
+}
+
 const GOOGLE_HOST = 'calendar.google.com'
 
 /** Loopback, private, link-local, carrier-grade NAT, multicast and other non-public addresses. */
@@ -136,7 +167,9 @@ export async function POST(request: Request): Promise<Response> {
 
   const got = await fetchCalendar(url, !known)
   if (typeof got !== 'string') return json(request, got.status, got.error)
-  const text = got
-  if (text.length > MAX_BYTES || !text.includes('BEGIN:VCALENDAR')) return json(request, 502, 'Deze link geeft geen agenda terug.')
+  if (got.length > MAX_RAW_BYTES || !got.includes('BEGIN:VCALENDAR')) return json(request, 502, 'Deze link geeft geen agenda terug.')
+  const text = trimPast(got, Date.now() - KEEP_PAST_MS)
+  if (text.length > MAX_BYTES) return json(request, 502, 'Deze agenda is te groot om op te halen, ook zonder de afspraken van vroeger.')
+  if (!text.includes('BEGIN:VCALENDAR')) return json(request, 502, 'Deze link geeft geen agenda terug.')
   return new Response(text, { status: 200, headers: { 'content-type': 'text/calendar; charset=utf-8', 'cache-control': 'no-store', ...cors(request) } })
 }

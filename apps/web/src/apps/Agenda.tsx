@@ -60,6 +60,7 @@ import { Related } from '../integration/Related'
 import { InviteFriends, InvitedBy, InviteInbox } from '../agenda/Invites'
 import { onReveal, takeReveal } from '../search/reveal'
 import { profilesStore, useProfiles } from '../profiles/store'
+import { calendarProblems, refreshCalendars, refreshOnOpen } from '../profiles/calendar'
 import { remindersStore } from '../reminders/store'
 import { autoReview, makeReview, setAutoReview, weekInput } from '../review/week'
 import { ACCENTS } from '../theme/accents'
@@ -176,6 +177,52 @@ export function Agenda() {
   )
 }
 
+/**
+ * When a Google Agenda or another calendar is linked: when it was last fetched, a button to fetch it
+ * right away and what went wrong in the background. Opening the Agenda fetches copies older than a few minutes.
+ */
+function LinkedCalendars() {
+  const { state } = useProfiles()
+  const problems = useSyncExternalStore(calendarProblems.subscribe, calendarProblems.getSnapshot)
+  const [busy, setBusy] = useState(false)
+  const linked = Boolean(state.googleUrl) || state.extraCalendars.length > 0
+  useEffect(() => {
+    if (linked) void refreshOnOpen()
+  }, [linked])
+  if (!linked) return null
+  const times = [state.googleUrl ? state.googleSyncedAt : undefined, ...state.extraCalendars.map((c) => state.extraEvents[c.id]?.syncedAt ?? null)].filter((t) => t !== undefined)
+  const oldest = times.includes(null) ? null : Math.min(...(times as number[]))
+  const names = new Map(calendarSources(state).map((s) => [s.id, s.name]))
+  const errors = Object.entries(problems).filter(([id]) => id !== 'school' && names.has(id))
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-nx-muted" aria-label="Gekoppelde agenda's">
+      <span className="min-w-0 flex-1">
+        {busy
+          ? "Agenda's ophalen..."
+          : oldest === null
+            ? 'Je gekoppelde agenda is nog niet opgehaald.'
+            : `${times.length === 1 && state.googleUrl ? 'Google Agenda' : "Gekoppelde agenda's"} bijgewerkt om ${new Date(oldest).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`}
+      </span>
+      <button
+        type="button"
+        className={button}
+        disabled={busy}
+        onClick={() => {
+          setBusy(true)
+          void refreshCalendars(profilesStore, 0).then(() => setBusy(false))
+        }}
+      >
+        Vernieuwen
+      </button>
+      {errors.map(([id, error]) => (
+        <p key={id} role="alert" className="w-full text-red-500">
+          {names.get(id)}: {error}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }) {
   const items = useLife()
   const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
@@ -218,6 +265,7 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
           + Deadline
         </button>
       </div>
+      <LinkedCalendars />
       <InviteInbox />
       {overdue.length > 0 && (
         <section aria-label="Te laat" className="space-y-1 rounded-lg border border-red-500/40 p-3">

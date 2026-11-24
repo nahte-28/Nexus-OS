@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-24',
+    title: 'Wijzigingen in Google Agenda komen sneller door',
+    items: [
+      'Pas je in Google Agenda een afspraak aan, verplaats je ze of verwijder je ze, dan volgt NEXUS nu binnen een kwartier in plaats van na enkele uren. Kom je terug naar NEXUS of open je de Agenda, dan haalt NEXUS je agenda meteen opnieuw op.',
+      'Bovenaan de Agenda zie je wanneer je Google Agenda laatst is bijgewerkt, met een knop Vernieuwen. Lukt ophalen niet, dan zie je daar waarom.',
+      'Een Google Agenda met jaren geschiedenis is geen probleem meer: NEXUS laat oude afspraken weg en haalt de komende weken gewoon op.',
+      'Herhalingen zoals "elke maand op de 24e", "elk jaar" en "elke tweede dinsdag van de maand" verschijnen nu op elke dag, niet alleen de eerste keer.',
+    ],
+  },
+  {
     date: '2026-11-23',
     title: 'Beter op een groot scherm, en een zijbalk die inklapt',
     items: [

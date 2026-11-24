@@ -104,6 +104,28 @@ describe('repeating events', () => {
   })
 })
 
+describe('Google repeat rules', () => {
+  const months = (ics: string) => parseIcs(ics, Date.parse('2026-11-01T00:00:00Z'), Date.parse('2027-03-01T00:00:00Z')).map((e) => new Date(e.start).toISOString().slice(0, 10))
+
+  it('reads "monthly on day 24" (BYMONTHDAY) and "yearly" (BYMONTH) like plain rules', () => {
+    expect(months(cal(vevent('UID:h', 'DTSTART:20261124T120000Z', 'DTEND:20261124T130000Z', 'RRULE:FREQ=MONTHLY;BYMONTHDAY=24', 'SUMMARY:Huur')))).toEqual(['2026-11-24', '2026-12-24', '2027-01-24', '2027-02-24'])
+    expect(months(cal(vevent('UID:y', 'DTSTART:20251201T120000Z', 'DTEND:20251201T130000Z', 'RRULE:FREQ=YEARLY;BYMONTH=12;BYMONTHDAY=1', 'SUMMARY:Feest')))).toEqual(['2026-12-01'])
+  })
+
+  it('reads "monthly on the second Tuesday" and "on the last Friday"', () => {
+    expect(months(cal(vevent('UID:t', 'DTSTART;TZID=Europe/Brussels:20261110T190000', 'DTEND;TZID=Europe/Brussels:20261110T200000', 'RRULE:FREQ=MONTHLY;BYDAY=2TU', 'SUMMARY:Club')))).toEqual(['2026-11-10', '2026-12-08', '2027-01-12', '2027-02-09'])
+    expect(months(cal(vevent('UID:f', 'DTSTART:20261127T120000Z', 'DTEND:20261127T130000Z', 'RRULE:FREQ=MONTHLY;BYDAY=-1FR;COUNT=3', 'SUMMARY:Borrel')))).toEqual(['2026-11-27', '2026-12-25', '2027-01-29'])
+  })
+
+  it('moves one occurrence of a monthly series to another day', () => {
+    const ics = cal(
+      vevent('UID:t', 'DTSTART;TZID=Europe/Brussels:20261110T190000', 'DTEND;TZID=Europe/Brussels:20261110T200000', 'RRULE:FREQ=MONTHLY;BYDAY=2TU', 'SUMMARY:Club'),
+      vevent('UID:t', 'RECURRENCE-ID;TZID=Europe/Brussels:20261208T190000', 'DTSTART;TZID=Europe/Brussels:20261210T190000', 'DTEND;TZID=Europe/Brussels:20261210T200000', 'SUMMARY:Club'),
+    )
+    expect(months(ics)).toEqual(['2026-11-10', '2026-12-10', '2027-01-12', '2027-02-09'])
+  })
+})
+
 describe('icsUrl', () => {
   it('takes public https and webcal links, not local ones', () => {
     expect(icsUrl(' webcal://club.example.be/a.ics ')).toBe('https://club.example.be/a.ics')

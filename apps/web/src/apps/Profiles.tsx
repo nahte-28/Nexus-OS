@@ -376,7 +376,7 @@ function GoogleLink() {
       <p className="text-nx-muted">
         Open Google Agenda op een computer, ga naar Instellingen, kies links je agenda en kopieer onder "Agenda integreren" het "Geheime adres in
         iCal-indeling". Je afspraken verschijnen dan in de Agenda en de Studieplanner plant eromheen. NEXUS leest alleen; deel dit adres met
-        niemand, want wie het heeft, kan je agenda lezen. Hele dagen tellen niet mee.
+        niemand, want wie het heeft, kan je agenda lezen. Wat je in Google aanpast, verplaatst of verwijdert, volgt binnen een kwartier (meteen met Vernieuwen in de Agenda). Hele dagen tellen niet mee.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="submit" className={primaryButton} disabled={busy || !link.trim()}>
