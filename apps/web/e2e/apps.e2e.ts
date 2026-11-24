@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { appButtons, isMobile, startWithEverything, trackErrors } from './helpers'
+import { appButton, appTitles, isMobile, startWithEverything, trackErrors } from './helpers'
 
 // KlasHub opens Remo's site in its own window; that is not part of NEXUS.
 const SKIP = ['KlasHub']
@@ -19,10 +19,10 @@ for (const theme of ['focus', 'pulse'] as const) {
       for (const v of r.violations.filter((x) => x.impact === 'serious' || x.impact === 'critical')) report.push(`${where}: ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target.join(' ')}`)
     }
     await check('Dashboard')
-    const titles = (await appButtons(page).allInnerTexts()).map((t) => t.trim()).filter((t) => t && !SKIP.includes(t))
+    const titles = (await appTitles(page)).filter((t) => !SKIP.includes(t))
     expect(titles.length).toBeGreaterThan(20)
     for (const title of titles) {
-      await appButtons(page).getByText(title, { exact: true }).click()
+      await appButton(page, title).click()
       const view = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: title })
       await expect(view).toBeVisible()
       await page.waitForTimeout(300)
@@ -43,7 +43,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     await check('Launcher opdracht')
     await launcher.getByRole('button', { name: 'Sluiten' }).click()
     // Vault: the tabs Bestanden gets with the module on.
-    await appButtons(page).getByText('Bestanden', { exact: true }).click()
+    await appButton(page, 'Bestanden').click()
     const files = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Bestanden' })
     for (const tab of ['Verzamelingen', 'Prullenbak', 'Deellinks']) {
       await files.getByRole('tab', { name: tab }).click()
@@ -52,7 +52,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await files.getByRole('button', { name: 'Sluiten' }).click()
     // Marketplace: a kind tab and the permission dialog of a widget.
-    await appButtons(page).getByText('Marketplace', { exact: true }).click()
+    await appButton(page, 'Marketplace').click()
     const market = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Marketplace' })
     await market.getByRole('tab', { name: 'Widgets' }).click()
     await market.getByRole('button', { name: 'Installeren' }).first().click()
@@ -62,7 +62,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await market.getByRole('button', { name: 'Sluiten' }).click()
     // Offline-centrum: every tab.
-    await appButtons(page).getByText('Offline-centrum', { exact: true }).click()
+    await appButton(page, 'Offline-centrum').click()
     const offline = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Offline-centrum' })
     for (const tab of ['Wachtrij', 'Samengevoegd', 'Geschiedenis', 'Per app']) {
       await offline.getByRole('tab', { name: tab }).click()
@@ -72,7 +72,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     else await offline.getByRole('button', { name: 'Sluiten' }).click()
     // Integratie: Platform Health in the Developer Hub (Financiën is not in this profile; its Kalender has a unit test).
     for (const [app, tab] of [['Developer Hub', 'Platform Health']] as const) {
-      await appButtons(page).getByText(app, { exact: true }).click()
+      await appButton(page, app).click()
       const view = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: app })
       await view.getByRole('tab', { name: tab }).click()
       await check(`${app} ${tab}`)
@@ -80,7 +80,7 @@ for (const theme of ['focus', 'pulse'] as const) {
       else await view.getByRole('button', { name: 'Sluiten' }).click()
     }
     // Sentinel: every tab, not only the first.
-    await appButtons(page).getByText('Sentinel', { exact: true }).click()
+    await appButton(page, 'Sentinel').click()
     const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
     for (const tab of ['Apparaten', 'Sessies', 'Toestemmingen', 'Activiteit']) {
       await sentinel.getByRole('tab', { name: tab }).click()

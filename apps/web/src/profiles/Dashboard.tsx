@@ -1,3 +1,4 @@
+import { NexusMark } from '../shell/NexusMark'
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import {
   activeHabits,
@@ -65,7 +66,7 @@ function greeting(now: number): string {
 }
 
 /** The home screen of the active profile: a greeting, then its widgets, which you can move and resize. */
-/** shortcuts: je apps, getoond onder de titel wanneer de zijbalk ingeklapt is. */
+/** shortcuts: je apps, getoond onder de titel. */
 export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { onOpenApp: OpenApp; compact?: boolean; shortcuts?: ReactNode }) {
   const { state, active } = useProfiles()
   const now = useMinute()
@@ -76,6 +77,7 @@ export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { on
     <section aria-label="Dashboard" className={`flex w-full flex-col gap-4 ${compact ? 'mx-auto max-w-5xl p-4' : 'min-h-full p-6 2xl:px-8'}`}>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
+          {!compact && <NexusMark className="mb-4" />}
           <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
             {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}
           </h1>

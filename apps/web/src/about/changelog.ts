@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Geen zijbalk meer, en een nieuw NEXUS-teken',
+    items: [
+      'De zijbalk is weg. Je apps staan op je bureaublad, onder de titel, per groep in een rij. Zo hebben je vensters altijd de volle breedte.',
+      'Een nieuw NEXUS-teken: een N getekend als koperspoor tussen twee soldeerpunten. Je ziet het bovenaan je bureaublad, op de Start-knop in de taakbalk en als icoon van de app.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een nieuw uiterlijk: de werkbank',
     items: [
       'NEXUS ziet er anders uit. Focus is nu een lichte werkbank met soldeermasker-groen, Pulse een donkere printplaat met koperen accenten. Je eigen accentkleur blijft werken.',
