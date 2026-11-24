@@ -8,6 +8,8 @@ import {
   linkedEvents,
   type AgendaEntry,
   columnsFor,
+  dayTimeline,
+  type TimedEntry,
   fillGaps,
   isDone,
   isDue,
@@ -160,6 +162,7 @@ function Welcome() {
       return needsAbout(state)
     }
   })
+  const [expanded, setExpanded] = useState(false)
   if (!open) return null
   const close = () => {
     try {
@@ -168,6 +171,21 @@ function Welcome() {
       // Private window: the card comes back next time.
     }
     setOpen(false)
+  }
+  if (!expanded) {
+    return (
+      <section aria-label="Welkom" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-dashed border-nx-accent/60 bg-nx-surface/70 px-4 py-2.5 text-sm">
+        <p>Vertel NEXUS hoe je heet en wat je doet, dan past je dashboard zich aan.</p>
+        <span className="flex gap-4">
+          <button type="button" className={linkButton} onClick={() => setExpanded(true)}>
+            Over jou invullen
+          </button>
+          <button type="button" className="text-sm text-nx-muted hover:underline" onClick={close}>
+            Later
+          </button>
+        </span>
+      </section>
+    )
   }
   return (
     <section aria-label="Welkom" className="nx-glass space-y-3 rounded-2xl border border-nx-accent p-4">
@@ -549,6 +567,8 @@ function Widget({ id, rows, now, onOpenApp }: { id: WidgetId; rows: number; now:
       return <Shortcuts onOpenApp={onOpenApp} />
     case 'agenda_week':
       return <AgendaWeek rows={rows} now={now} onOpenApp={onOpenApp} />
+    case 'today':
+      return <MyDay now={now} onOpenApp={onOpenApp} />
     default:
       // A widget from a newer NEXUS (synced from another device): nothing to show here yet.
       return null
@@ -621,6 +641,122 @@ function AgendaWeek({ rows, now, onOpenApp }: { rows: number; now: number; onOpe
         })}
       </ol>
     </div>
+  )
+}
+
+/** What a timed thing is called on Mijn dag, with its room or place. */
+const placeOf = (e: TimedEntry) => (e.detail ? ` in ${e.detail}` : '')
+
+/** The one line on top of Mijn dag: what is on now or next, in plain words. */
+function dayHeadline(current: TimedEntry | null, next: TimedEntry | null, now: number): string {
+  if (next) {
+    const minutes = Math.round((next.at - now) / 60_000)
+    if (minutes <= 60) return `${next.title} begint over ${minutes} ${minutes === 1 ? 'minuut' : 'minuten'}${placeOf(next)}`
+  }
+  if (current) return `Nu ${current.title}${placeOf(current)}, tot ${clock(current.end)}`
+  if (next) return `Straks ${next.title} om ${clock(next.at)}${placeOf(next)}`
+  return 'Je dag zit erop'
+}
+
+/**
+ * Mijn dag: today as a time line across the dashboard, with a copper trace at the time it is now.
+ * Lessons, appointments and calendar events stand where they fall in the day; on a narrow screen
+ * the same day reads as a list.
+ */
+function MyDay({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
+  const { state } = useProfiles()
+  const life = useSyncExternalStore(lifeStore.subscribe, lifeStore.getSnapshot)
+  const reminders = useSyncExternalStore(remindersStore.subscribe, remindersStore.getSnapshot)
+  const input = { calendarEvents: state.calendarEvents, googleEvents: linkedEvents(state), timetable: state.lessons, items: life, reminders }
+  const hidden = new Set(calendarSources(state).filter((c) => c.hidden).map((c) => c.id))
+  const entries = agendaDay(input, startOfDay(now)).filter((e) => !('source' in e && e.source && hidden.has(e.source)))
+  const day = dayTimeline(entries, now)
+  const past = day ? day.blocks.filter((b) => b.entry.end <= now).length : 0
+  const stageOf = (e: TimedEntry) => (e.end <= now ? 'past' : e === day?.current ? 'now' : e === day?.next ? 'next' : 'later')
+  return (
+    <section aria-label="Mijn dag" className="nx-glass @container flex h-full flex-col overflow-hidden rounded-2xl border border-nx-border px-5 py-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-xl font-semibold tracking-tight @3xl:text-[22px]">{day ? dayHeadline(day.current, day.next, now) : 'Niets gepland vandaag'}</h2>
+        {day && day.endsAt !== null ? (
+          <p className="text-sm text-nx-muted">
+            {day.left > 0 ? `Nog ${day.left} vandaag, ` : ''}
+            {`klaar om ${clock(day.endsAt)}`}
+          </p>
+        ) : (
+          <button type="button" className={linkButton} onClick={() => onOpenApp('agenda')}>
+            Agenda openen
+          </button>
+        )}
+      </div>
+      {day && (
+        <>
+          {/* Wide: the time line. */}
+          <div className="relative mt-4 hidden min-h-0 flex-1 @2xl:block" style={{ minHeight: `${1.25 + day.lanes * 3.75}rem` }}>
+            <div aria-hidden className="absolute inset-x-0 top-0 h-4 text-[11px] text-nx-muted tabular-nums">
+              {day.hours.map((h) => (
+                <span key={h.at} className="absolute -translate-x-1/2" style={{ left: `${h.left * 100}%` }}>
+                  {clock(h.at)}
+                </span>
+              ))}
+            </div>
+            <ol className="absolute inset-x-0 top-6 bottom-0">
+              {day.blocks.map((b, i) => {
+                const st = stageOf(b.entry)
+                return (
+                  <li
+                    key={i}
+                    className="absolute px-0.5"
+                    style={{ left: `${b.left * 100}%`, width: `${b.width * 100}%`, top: `${(b.lane / day.lanes) * 100}%`, height: `${100 / day.lanes}%`, maxHeight: '5.5rem' }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpenApp('agenda')}
+                      title={`${b.entry.title}, ${clock(b.entry.at)} tot ${clock(b.entry.end)}${placeOf(b.entry)}`}
+                      className={`nx-lift flex h-full w-full flex-col overflow-hidden rounded-lg border px-2.5 py-2 text-left ${st === 'past' ? 'border-nx-border bg-nx-surface-2 opacity-55' : st === 'next' || st === 'now' ? 'border-nx-accent/50 bg-nx-accent/12' : 'border-nx-border bg-nx-surface-2'}`}
+                    >
+                      <span className="truncate text-sm font-semibold">{b.entry.title}</span>
+                      <span className="truncate text-xs text-nx-muted tabular-nums">
+                        {clock(b.entry.at)}
+                        {b.entry.detail ? `, ${b.entry.detail}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+            {day.now !== null && <span aria-hidden data-testid="nu" className="nx-now absolute top-4 -bottom-1" style={{ left: `${day.now * 100}%` }} />}
+          </div>
+          {/* Narrow: the same day as a list, what is next marked with the trace. */}
+          <ol className="mt-3 min-h-0 space-y-1.5 overflow-hidden @2xl:hidden">
+            {past > 0 && day.left > 0 && (
+              <li className="text-xs text-nx-muted">
+                {past} {past === 1 ? 'is' : 'zijn'} al voorbij
+              </li>
+            )}
+            {day.blocks.map((b, i) => {
+              const st = stageOf(b.entry)
+              // What is over takes no room on a phone while there is still something to come.
+              if (st === 'past' && day.left > 0) return null
+              return (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => onOpenApp('agenda')}
+                    className={`flex w-full items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm ${st === 'past' ? 'border-nx-border bg-nx-surface-2 text-nx-muted' : st === 'next' || st === 'now' ? 'border-nx-accent/50 bg-nx-accent/12 shadow-[inset_3px_0_0_var(--nx-accent)]' : 'border-nx-border bg-nx-surface-2'}`}
+                  >
+                    <span className="truncate font-semibold">{b.entry.title}</span>
+                    <span className="shrink-0 text-xs text-nx-muted tabular-nums">
+                      {clock(b.entry.at)}
+                      {b.entry.detail ? `, ${b.entry.detail}` : ''}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </>
+      )}
+    </section>
   )
 }
 
@@ -820,7 +956,7 @@ function Upcoming({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }
     ...openDeadlines(life).map((d) => ({ id: d.id, title: d.title, at: d.dueAt, deadline: true })),
     ...appointmentsOf(life).flatMap((a) => {
       const next = nextOccurrence(a, now)
-      return next ? [{ id: a.id, title: `📅 ${a.title}`, at: next.startAt, deadline: false }] : []
+      return next ? [{ id: a.id, title: a.title, at: next.startAt, deadline: false }] : []
     }),
     ...reminders.map((r) => ({ id: r.id, title: r.title, at: r.at, deadline: false })),
   ].sort((a, b) => a.at - b.at)
@@ -829,24 +965,33 @@ function Upcoming({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }
       {items.length === 0 ? (
         <p className="text-sm text-nx-muted">Niets gepland.</p>
       ) : (
-        <ul className="space-y-1 text-sm">
-          {items.slice(0, 5 * rows).map((r) => (
-            <li key={r.id} className="flex justify-between gap-2">
-              <span className="truncate">
-                {r.deadline ? '📌 ' : ''}
-                {r.title}
-              </span>
-              <span className={`shrink-0 tabular-nums ${r.deadline && r.at < now ? 'text-red-500' : 'text-nx-muted'}`}>
-                {r.deadline && r.at < now
-                  ? 'te laat'
-                  : new Date(r.at).toLocaleString('nl-BE', {
-                      weekday: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-              </span>
-            </li>
-          ))}
+        <ul className="text-sm">
+          {items.slice(0, 4 * rows).map((r) => {
+            const late = r.deadline && r.at < now
+            const days = Math.round((startOfDay(r.at) - startOfDay(now)) / DAY_MS)
+            return (
+              <li key={r.id} className="grid grid-cols-[2.75rem_1fr] items-center gap-3 border-t border-nx-border py-1.5 first:border-t-0">
+                <span className={`text-right leading-none tabular-nums ${late || days <= 1 ? 'text-nx-accent' : ''}`}>
+                  {late ? (
+                    <span className="text-xs font-semibold text-red-500">te laat</span>
+                  ) : days === 0 ? (
+                    <span className="text-xs font-semibold">vandaag</span>
+                  ) : (
+                    <>
+                      <span className="block text-2xl font-semibold">{days}</span>
+                      <span className="block text-[11px] text-nx-muted">{days === 1 ? 'dag' : 'dagen'}</span>
+                    </>
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{r.title}</span>
+                  <span className="block truncate text-xs text-nx-muted">
+                    {new Date(r.at).toLocaleString('nl-BE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </span>
+              </li>
+            )
+          })}
         </ul>
       )}
       <button type="button" className={`${linkButton} mt-2`} onClick={() => onOpenApp('agenda')}>

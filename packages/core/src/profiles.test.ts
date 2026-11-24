@@ -205,7 +205,7 @@ describe('next lesson', () => {
     // Budget, the app before it, is replaced where it stood.
     expect(parseProfilesState({ schema: 10, profiles: { personal: { apps: ['notes', 'budget', 'insights'] } } }).profiles.personal.apps).toEqual(['notes', 'finance', 'insights', 'journal'])
     expect(s.profiles.personal.apps).toEqual(['insights', 'finance', 'notes', 'journal'])
-    expect(s.profiles.personal.widgets).toEqual(['profile', 'agenda_week', 'deadlines', 'notes', 'finance', 'devices', 'habits', 'quick_note', 'clock', 'shortcuts'])
+    expect(s.profiles.personal.widgets).toEqual(['today', 'profile', 'agenda_week', 'deadlines', 'notes', 'finance', 'devices', 'habits', 'quick_note', 'clock', 'shortcuts'])
     expect(s.profiles.gaming.widgets).toEqual(['profile', 'gaming', 'devices', 'clock', 'shortcuts'])
     const removed = parseProfilesState({ ...s, profiles: { ...s.profiles, personal: { ...s.profiles.personal, widgets: ['notes'] } } })
     expect(removed.profiles.personal.widgets).toEqual(['notes'])
