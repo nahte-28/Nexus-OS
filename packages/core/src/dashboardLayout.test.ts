@@ -84,11 +84,19 @@ describe('dashboard layout', () => {
     const old = JSON.parse(JSON.stringify({ ...state, schema: 14 }))
     old.profiles.school.widgets = ['next_class', 'deadlines', 'notes']
     const back = parseProfilesState(old)
-    expect(back.profiles.school.widgets).toEqual(['profile', 'next_class', 'agenda_week', 'deadlines', 'notes', 'quick_note', 'clock', 'shortcuts'])
+    expect(back.profiles.school.widgets).toEqual(['today', 'profile', 'next_class', 'agenda_week', 'deadlines', 'notes', 'quick_note', 'clock', 'shortcuts'])
     expect(parseProfilesState(JSON.parse(JSON.stringify(back))).profiles.school.widgets).toEqual(back.profiles.school.widgets)
     // A copy from before the agenda widget gets it after the profile card, once.
     const v15 = JSON.parse(JSON.stringify({ ...state, schema: 15 }))
     v15.profiles.personal.widgets = ['profile', 'notes']
-    expect(parseProfilesState(v15).profiles.personal.widgets).toEqual(['profile', 'agenda_week', 'notes'])
+    expect(parseProfilesState(v15).profiles.personal.widgets).toEqual(['today', 'profile', 'agenda_week', 'notes'])
+    // A copy from before Mijn dag gets it on top, once; a profile without it by default does not.
+    const v16 = JSON.parse(JSON.stringify({ ...state, schema: 16 }))
+    v16.profiles.school.widgets = ['profile', 'notes']
+    v16.profiles.gaming.widgets = ['gaming']
+    const after = parseProfilesState(v16)
+    expect(after.profiles.school.widgets).toEqual(['today', 'profile', 'notes'])
+    expect(after.profiles.gaming.widgets).toEqual(['gaming'])
+    expect(parseProfilesState(JSON.parse(JSON.stringify(after))).profiles.school.widgets).toEqual(['today', 'profile', 'notes'])
   })
 })

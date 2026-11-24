@@ -46,6 +46,7 @@ export const WIDGET_APP: Partial<Record<WidgetId, AppId>> = {
   habits: 'habits',
   quick_note: 'notes',
   agenda_week: 'agenda',
+  today: 'agenda',
 }
 
 /** The widgets whose app is on. */
