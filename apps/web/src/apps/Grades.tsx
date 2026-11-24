@@ -1,5 +1,5 @@
 import { useState, useSyncExternalStore } from 'react'
-import { activeCourses, courseResult, DEFAULT_TARGET, formatMark, gradesOverview, PASS_MARK, type Course, type CourseResult, type GradePart } from '@nexus/core'
+import { activeCourses, courseResult, DEFAULT_TARGET, formatMark, gradesOverview, nextExamNeed, PASS_MARK, type Course, type CourseResult, type GradePart } from '@nexus/core'
 import { gradesStore, gradesSyncProblem } from '../grades/store'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
@@ -189,6 +189,7 @@ function CourseEditor({ course, result }: { course: Course; result: CourseResult
       {result.totalWeight !== 100 && course.parts.length > 0 && (
         <p className="text-xs text-amber-600">De onderdelen tellen samen voor {decimal(result.totalWeight)}% mee in plaats van 100%. NEXUS rekent met die verhouding.</p>
       )}
+      <NextExam course={course} result={result} />
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -202,6 +203,69 @@ function CourseEditor({ course, result }: { course: Course; result: CourseResult
         </button>
       </div>
     </div>
+  )
+}
+
+/** "Wat moet ik halen?": the mark your next exam needs, with the other open parts as you expect them. */
+function NextExam({ course, result }: { course: Course; result: CourseResult }) {
+  const open = course.parts.filter((p) => p.score === null)
+  const [chosen, setChosen] = useState<string | null>(null)
+  const [expected, setExpected] = useState<number | null>(null)
+  if (open.length === 0 || result.totalWeight === 0) return null
+  const part = open.find((p) => p.id === chosen) ?? open[0]
+  const others = open.length - 1
+  const guess = expected ?? result.score ?? course.target
+  const need = nextExamNeed(course, part.id, guess)
+  if (!need) return null
+  const out20 = part.max === 20
+  let text: string
+  let tone = ''
+  if (need.status === 'safe') {
+    text = `Je haalt je doel van ${formatMark(course.target)} al, wat je ook haalt op ${part.name}.`
+    tone = 'text-green-600'
+  } else if (need.status === 'impossible') {
+    text =
+      others > 0 && need.minimum <= 20
+        ? `Met ${formatMark(guess)} op de rest is zelfs ${part.max}/${part.max} op ${part.name} te weinig. Haal je meer op de rest, dan volstaat ${formatMark(need.minimum)}.`
+        : `Je doel van ${formatMark(course.target)} haal je niet meer, zelfs niet met ${part.max}/${part.max} op ${part.name}.`
+    tone = 'text-red-500'
+  } else {
+    text = `Op ${part.name} heb je minstens ${out20 ? formatMark(need.needed) : `${decimal(need.neededRaw)}/${decimal(part.max)} (${formatMark(need.needed)})`} nodig.`
+    if (need.needed > 14) tone = 'text-amber-600'
+  }
+  return (
+    <section aria-label="Wat moet ik halen" className="space-y-2 rounded-lg border border-nx-border bg-nx-surface p-3">
+      <p className="font-medium">Wat moet ik halen?</p>
+      <div className="flex flex-wrap items-end gap-2">
+        {open.length > 1 && (
+          <label className="min-w-40 flex-1">
+            <span className="text-xs text-nx-muted">Volgende examen</span>
+            <select aria-label="Volgende examen" value={part.id} onChange={(e) => setChosen(e.target.value)} className={field}>
+              {open.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({decimal(p.weight)}%)
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {others > 0 && (
+          <label className="w-44">
+            <span className="text-xs text-nx-muted">Verwacht op de rest (op 20)</span>
+            <NumberInput label="Verwacht op de rest" value={guess} onChange={(n) => setExpected(n === null ? null : Math.min(20, Math.max(0, n)))} />
+          </label>
+        )}
+      </div>
+      <p className={tone} aria-live="polite">
+        {text}
+      </p>
+      {others > 0 && need.status === 'open' && (
+        <p className="text-xs text-nx-muted">
+          Gerekend met {formatMark(guess)} op {others === 1 ? 'het andere open onderdeel' : `de ${others} andere open onderdelen`}. Haal je daar {formatMark(20)}, dan {need.minimum === 0 ? 'ben je al zeker door' : `volstaat ${formatMark(need.minimum)}`}.
+        </p>
+      )}
+      <p className="text-xs text-nx-muted">Je doel van {formatMark(course.target)} ({decimal((course.target / 20) * 100)}%) pas je hierboven aan bij Doel.</p>
+    </section>
   )
 }
 

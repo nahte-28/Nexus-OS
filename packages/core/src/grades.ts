@@ -144,3 +144,37 @@ export function gradesOverview(state: GradesState): GradesOverview {
 
 /** "13,5/20" in Belgian notation. */
 export const formatMark = (n: number) => `${n.toLocaleString('nl-BE', { maximumFractionDigits: 1 })}/20`
+
+export interface NextExamNeed {
+  /** Mark you need on that part, out of 20; 0 when you already make it, above 20 when you can't. */
+  needed: number
+  /** The same, out of what that part is marked on (e.g. 34 of 50). */
+  neededRaw: number
+  /** What that part needs at least, with full marks on every other open part (out of 20). */
+  minimum: number
+  status: 'safe' | 'open' | 'impossible'
+}
+
+/**
+ * What you need on one open part (your next exam) to reach the course target, when the other open
+ * parts go as you expect (a mark out of 20). Null when that part is already marked or unknown.
+ */
+export function nextExamNeed(course: Course, partId: string, othersExpected: number): NextExamNeed | null {
+  const part = course.parts.find((p) => p.id === partId)
+  if (!part || part.score !== null) return null
+  const totalWeight = course.parts.reduce((n, p) => n + p.weight, 0)
+  const expected = Math.min(20, Math.max(0, othersExpected))
+  let points = 0
+  let best = 0
+  for (const p of course.parts) {
+    if (p.id === part.id) continue
+    const done = p.score !== null ? (p.weight * (p.score as number) * 20) / p.max : null
+    points += done ?? p.weight * expected
+    best += done ?? p.weight * 20
+  }
+  const raw = (course.target * totalWeight - points) / part.weight
+  // Rounded up, so the mark shown is always enough.
+  const ceil1 = (n: number) => Math.max(0, Math.ceil(n * 10 - 1e-9) / 10)
+  const status = raw <= 0 ? 'safe' : raw > 20 + 1e-9 ? 'impossible' : 'open'
+  return { needed: ceil1(raw), neededRaw: ceil1((raw * part.max) / 20), minimum: ceil1((course.target * totalWeight - best) / part.weight), status }
+}
