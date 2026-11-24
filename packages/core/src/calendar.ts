@@ -146,8 +146,14 @@ function occurrences(start: WallTime, rule: string, to: number): number[] {
   const until = untilWall ? toTime(untilWall) : Infinity
   const byDay = parts.BYDAY ? parts.BYDAY.split(',') : []
   const firstAt = toTime(start)
-  const simple = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(freq) && (byDay.length === 0 || (freq === 'WEEKLY' && byDay.every((d) => WEEKDAYS.includes(d))))
-  if (!simple || parts.BYMONTHDAY || parts.BYMONTH || parts.BYSETPOS) return [firstAt]
+  // Google writes "monthly on day 24" as BYMONTHDAY=24 and "yearly" with BYMONTH: the same as no rule part.
+  const sameDay = !parts.BYMONTHDAY || (['MONTHLY', 'YEARLY'].includes(freq) && Number(parts.BYMONTHDAY) === start.d)
+  const sameMonth = !parts.BYMONTH || (freq === 'YEARLY' && Number(parts.BYMONTH) === start.mo)
+  // "Monthly on the second Tuesday" (BYDAY=2TU) or "on the last Friday" (BYDAY=-1FR).
+  const nth = freq === 'MONTHLY' && byDay.length === 1 && !parts.BYMONTHDAY ? /^([+-]?[1-5])(SU|MO|TU|WE|TH|FR|SA)$/.exec(byDay[0]) : null
+  const simple = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(freq) && (byDay.length === 0 || nth !== null || (freq === 'WEEKLY' && byDay.every((d) => WEEKDAYS.includes(d))))
+  if (!simple || !sameDay || !sameMonth || parts.BYSETPOS) return [firstAt]
+  if (nth) return nthWeekdays(start, Number(nth[1]), WEEKDAYS.indexOf(nth[2]), interval, count, until, firstAt, to)
 
   const at = (dayOffset: number, months = 0) => {
     // Calendar arithmetic on the date only; the wall-clock time stays, so summer time is right.
@@ -171,6 +177,29 @@ function occurrences(start: WallTime, rule: string, to: number): number[] {
       if (t > until || t >= to || out.length >= count) return out
       out.push(t)
     }
+  }
+  return out
+}
+
+/** The [n]th (or, when negative, the last but -n-1) [weekday] of every [interval]th month from [start]. */
+function nthWeekdays(start: WallTime, n: number, weekday: number, interval: number, count: number, until: number, firstAt: number, to: number): number[] {
+  const out: number[] = []
+  for (let step = 0; step < MAX_STEPS && out.length < count; step++) {
+    const month = new Date(Date.UTC(start.y, start.mo - 1 + step * interval, 1))
+    const y = month.getUTCFullYear()
+    const mo = month.getUTCMonth()
+    let day: number
+    if (n > 0) day = 1 + ((weekday - month.getUTCDay() + 7) % 7) + (n - 1) * 7
+    else {
+      const last = new Date(Date.UTC(y, mo + 1, 0))
+      day = last.getUTCDate() - ((last.getUTCDay() - weekday + 7) % 7) + (n + 1) * 7
+    }
+    // A fifth Tuesday that this month does not have is skipped.
+    if (day < 1 || day > new Date(Date.UTC(y, mo + 1, 0)).getUTCDate()) continue
+    const t = toTime({ ...start, y, mo: mo + 1, d: day })
+    if (t < firstAt) continue
+    if (t > until || t >= to) return out
+    out.push(t)
   }
   return out
 }
