@@ -12,6 +12,7 @@ import { CaptureButton, QuickCaptureHost, useCaptureShortcut } from '../capture/
 import { Tour } from '../onboarding/Tour'
 import { SearchButton, useSearchShortcut } from '../search/SearchButton'
 import { NexusMark } from '../shell/NexusMark'
+import { usageStore } from '../apps/usage'
 
 // Loads when you open it, not with the app grid.
 // After an update; it carries the whole changelog, so it loads after the first screen.
@@ -36,6 +37,7 @@ export function MobileShell() {
   }, [])
 
   const open = (id: AppId) => {
+    usageStore.record(id)
     const launch = getApp(id).launch
     if (launch) return launch()
     history.pushState({ app: id }, '')

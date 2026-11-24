@@ -28,9 +28,19 @@ const renderApp = () =>
     </ThemeProvider>,
   )
 
+/** All apps are under the NEXUS mark (Start); opening one closes the menu again. */
+const startMenu = () => {
+  if (!screen.queryByRole('menu', { name: 'Startmenu' })) fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+  return within(screen.getByRole('menu', { name: 'Startmenu' }))
+}
+const closeStart = () => {
+  if (screen.queryByRole('menu', { name: 'Startmenu' })) fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+}
+const startApps = () => startMenu().getAllByRole('menuitem').map((b) => b.textContent?.trim())
+
 /** Profiles are only switched in the Profielen app. */
 const chooseProfile = (name: string) => {
-  fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+  fireEvent.click(startMenu().getByRole('menuitem', { name: 'Profielen' }))
   const dialog = screen.getByRole('dialog', { name: 'Profielen' })
   fireEvent.click(within(within(dialog).getByRole('list', { name: 'Profielen kiezen' })).getByRole('button', { name: new RegExp(`^${name}`) }))
   fireEvent.click(within(dialog).getByRole('button', { name: 'Sluiten' }))
@@ -172,13 +182,14 @@ describe('App shell', () => {
   it('shows a blueprint module while it is on and hides it when switched off', () => {
     mockViewport(false)
     renderApp()
-    const sidebar = screen.getByRole('navigation', { name: 'Apps' })
-    expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Instellingen' })[0])
+    expect(startApps()).toContain('Spaces')
+    fireEvent.click(startMenu().getByRole('menuitem', { name: 'Instellingen' }))
     fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
-    expect(within(sidebar).queryByRole('button', { name: 'Spaces' })).toBeNull()
+    expect(startApps()).not.toContain('Spaces')
+    closeStart()
     fireEvent.click(screen.getByRole('checkbox', { name: /^Spaces/ }))
-    expect(within(sidebar).getByRole('button', { name: 'Spaces' })).toBeTruthy()
+    expect(startApps()).toContain('Spaces')
+    closeStart()
   })
 
   it('switches theme and remembers it', () => {
@@ -200,24 +211,34 @@ describe('App shell', () => {
     expect(screen.getByText(/^NEXUS OS v\d+\.\d+$/)).toBeTruthy()
   })
 
-  it('shows the apps on the home screen, without a sidebar, and opens them from there', () => {
+  it('shows favourites in the taskbar and on the home screen, and all apps under Start', () => {
     mockViewport(false)
     renderApp()
     expect(screen.queryByRole('complementary')).toBeNull()
     const home = within(screen.getByRole('region', { name: 'Dashboard' })).getByRole('navigation', { name: 'Apps' })
-    expect(within(home).getByRole('region', { name: 'Planning' })).toBeTruthy()
-    fireEvent.click(within(home).getByRole('button', { name: 'Agenda' }))
+    // Agenda is one of the starting favourites.
+    fireEvent.click(within(within(home).getByRole('region', { name: 'Favorieten' })).getByRole('button', { name: 'Agenda' }))
     expect(screen.getByRole('dialog', { name: 'Agenda' })).toBeTruthy()
+    expect(within(screen.getByRole('navigation', { name: 'Favorieten' })).getByRole('button', { name: 'Agenda' })).toBeTruthy()
+    // What you open shows under Meest gebruikt; the star in Start makes an app a favourite.
+    fireEvent.click(startMenu().getByRole('menuitem', { name: 'Gewoontes' }))
+    expect(within(within(home).getByRole('region', { name: 'Meest gebruikt' })).getByRole('button', { name: 'Gewoontes' })).toBeTruthy()
+    fireEvent.click(startMenu().getByRole('button', { name: 'Gewoontes bij je favorieten' }))
+    expect(within(screen.getByRole('navigation', { name: 'Favorieten' })).getByRole('button', { name: 'Gewoontes' })).toBeTruthy()
+    fireEvent.click(startMenu().getByRole('button', { name: 'Gewoontes uit je favorieten' }))
+    closeStart()
+    expect(within(screen.getByRole('navigation', { name: 'Favorieten' })).queryByRole('button', { name: 'Gewoontes' })).toBeNull()
   })
 
   it('switches profile, which changes the apps and the theme', () => {
     mockViewport(false)
     renderApp()
-    const sidebar = screen.getByRole('navigation', { name: 'Apps' })
-    expect(within(sidebar).getByRole('button', { name: 'Herinneringen' })).toBeTruthy()
+    expect(startApps()).toContain('Herinneringen')
+    closeStart()
     chooseProfile('Gaming')
-    expect(within(sidebar).queryByRole('button', { name: 'Herinneringen' })).toBeNull()
-    expect(within(sidebar).getByRole('button', { name: 'Profielen' })).toBeTruthy()
+    expect(startApps()).not.toContain('Herinneringen')
+    expect(startApps()).toContain('Profielen')
+    closeStart()
     expect(document.documentElement.dataset.theme).toBe('pulse')
     chooseProfile('Persoonlijk')
     expect(document.documentElement.dataset.theme).toBe('focus')
@@ -228,7 +249,7 @@ describe('App shell', () => {
     renderApp()
     chooseProfile('School')
     expect(screen.getByText('School Workspace')).toBeTruthy()
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+    fireEvent.click(startMenu().getByRole('menuitem', { name: 'Profielen' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Lesrooster' }))
     fireEvent.change(screen.getByLabelText('Vak'), { target: { value: 'Wiskunde' } })
     fireEvent.click(screen.getByRole('button', { name: 'Les toevoegen' }))
@@ -242,12 +263,12 @@ describe('App shell', () => {
     vi.stubGlobal('open', open)
     renderApp()
     chooseProfile('School')
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'KlasHub' }))
+    fireEvent.click(startMenu().getByRole('menuitem', { name: 'KlasHub' }))
     expect(open).toHaveBeenCalledWith('https://klashub.vercel.app', '_blank', 'noopener')
     expect(screen.queryByRole('dialog', { name: 'KlasHub' })).toBeNull()
   })
 
-  const openProfiles = () => fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Profielen' }))
+  const openProfiles = () => fireEvent.click(startMenu().getByRole('menuitem', { name: 'Profielen' }))
 
   it('picks a profile for one hour from the Profielen app', () => {
     mockViewport(false)
@@ -267,15 +288,12 @@ describe('App shell', () => {
     openProfiles()
     fireEvent.click(screen.getByRole('tab', { name: 'Apps & widgets' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Apps' })).getByRole('button', { name: 'Meldingen omhoog' }))
-    const nav = screen.getByRole('navigation', { name: 'Apps' })
-    const names = (group: string) => within(within(nav).getByRole('region', { name: group })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))
-    // The apps on the home screen are in groups; the profile's order stays inside each group.
+    // All apps under Start follow the profile's order.
     expect(profilesStore.getSnapshot().state.profiles.personal.apps.slice(8, 11)).toEqual(['insights', 'notifications', 'finance'])
-    expect(names('School').slice(0, 3)).toEqual(['Studie', 'Cijfers', 'Leerkaarten'])
-    expect(names('Planning').slice(0, 3)).toEqual(['Agenda', 'Notities', 'Bestanden'])
-    expect(names('Persoonlijk').slice(0, 4)).toEqual(['Gewoontes', 'Dagboek', 'Inzichten', 'Financiën'])
-    // (Ontwikkelaar may still show from the developer-mode test above.)
-    expect(names('Systeem').filter((t) => t !== 'Ontwikkelaar').slice(0, 2)).toEqual(['Meldingen', 'Apparaten'])
+    const order = startApps()
+    closeStart()
+    expect(order.indexOf('Inzichten')).toBeLessThan(order.indexOf('Meldingen'))
+    expect(order.indexOf('Meldingen')).toBeLessThan(order.indexOf('Financiën'))
 
     fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))
@@ -299,7 +317,7 @@ describe('App shell', () => {
   it('builds a flow from a template in Flow Studio, with a dry run and a confirmed delete', () => {
     mockViewport(false)
     renderApp()
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: 'Flow Studio' }))
+    fireEvent.click(startMenu().getByRole('menuitem', { name: 'Flow Studio' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Sjablonen' }))
     const template = within(screen.getByRole('list', { name: 'Sjablonen' })).getByText('School Start').closest('li')!
     fireEvent.click(within(template).getByRole('button', { name: 'Gebruiken' }))

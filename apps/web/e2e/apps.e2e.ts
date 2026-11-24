@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
-import { appButton, appTitles, isMobile, startWithEverything, trackErrors } from './helpers'
+import { openApp, appTitles, isMobile, startWithEverything, trackErrors } from './helpers'
 
 // KlasHub opens Remo's site in its own window; that is not part of NEXUS.
 const SKIP = ['KlasHub']
@@ -22,7 +22,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     const titles = (await appTitles(page)).filter((t) => !SKIP.includes(t))
     expect(titles.length).toBeGreaterThan(20)
     for (const title of titles) {
-      await appButton(page, title).click()
+      await openApp(page, title)
       const view = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: title })
       await expect(view).toBeVisible()
       await page.waitForTimeout(300)
@@ -43,7 +43,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     await check('Launcher opdracht')
     await launcher.getByRole('button', { name: 'Sluiten' }).click()
     // Vault: the tabs Bestanden gets with the module on.
-    await appButton(page, 'Bestanden').click()
+    await openApp(page, 'Bestanden')
     const files = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Bestanden' })
     for (const tab of ['Verzamelingen', 'Prullenbak', 'Deellinks']) {
       await files.getByRole('tab', { name: tab }).click()
@@ -52,7 +52,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await files.getByRole('button', { name: 'Sluiten' }).click()
     // Marketplace: a kind tab and the permission dialog of a widget.
-    await appButton(page, 'Marketplace').click()
+    await openApp(page, 'Marketplace')
     const market = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Marketplace' })
     await market.getByRole('tab', { name: 'Widgets' }).click()
     await market.getByRole('button', { name: 'Installeren' }).first().click()
@@ -62,7 +62,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     if (isMobile(page)) await page.getByRole('button', { name: 'Terug', exact: true }).click()
     else await market.getByRole('button', { name: 'Sluiten' }).click()
     // Offline-centrum: every tab.
-    await appButton(page, 'Offline-centrum').click()
+    await openApp(page, 'Offline-centrum')
     const offline = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Offline-centrum' })
     for (const tab of ['Wachtrij', 'Samengevoegd', 'Geschiedenis', 'Per app']) {
       await offline.getByRole('tab', { name: tab }).click()
@@ -72,7 +72,7 @@ for (const theme of ['focus', 'pulse'] as const) {
     else await offline.getByRole('button', { name: 'Sluiten' }).click()
     // Integratie: Platform Health in the Developer Hub (Financiën is not in this profile; its Kalender has a unit test).
     for (const [app, tab] of [['Developer Hub', 'Platform Health']] as const) {
-      await appButton(page, app).click()
+      await openApp(page, app)
       const view = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: app })
       await view.getByRole('tab', { name: tab }).click()
       await check(`${app} ${tab}`)
@@ -80,7 +80,7 @@ for (const theme of ['focus', 'pulse'] as const) {
       else await view.getByRole('button', { name: 'Sluiten' }).click()
     }
     // Sentinel: every tab, not only the first.
-    await appButton(page, 'Sentinel').click()
+    await openApp(page, 'Sentinel')
     const sentinel = isMobile(page) ? page.locator('main') : page.getByRole('dialog', { name: 'Sentinel' })
     for (const tab of ['Apparaten', 'Sessies', 'Toestemmingen', 'Activiteit']) {
       await sentinel.getByRole('tab', { name: tab }).click()

@@ -12,6 +12,8 @@ import { CaptureButton } from '../capture/QuickCaptureHost'
 import { StartMenu } from './StartMenu'
 import { useMinute } from '../state/useNow'
 import { NexusGlyph } from '../shell/NexusMark'
+import { useVisibleApps } from '../apps/registry'
+import { useFavorites } from '../controlcenter/store'
 
 export const TASKBAR_HEIGHT = 52
 
@@ -35,6 +37,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
       </button>
       <SearchButton onClick={onSearch} />
       <CaptureButton />
+      <Favorites onOpenApp={onOpenApp} />
 
       <nav aria-label="Geopende vensters" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {state.windows.map((win) => {
@@ -72,6 +75,39 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
         />
       )}
     </footer>
+  )
+}
+
+/**
+ * Je favoriete apps, vast in de taakbalk. Je kiest ze met de ster in het Start-menu (het NEXUS-teken)
+ * of in Control Center. Een app die al open staat, krijgt een koperen punt.
+ */
+function Favorites({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
+  const favorites = useFavorites()
+  const visible = useVisibleApps()
+  const { state } = useWindows()
+  const apps = favorites.flatMap((id) => visible.filter((a) => a.id === id))
+  if (apps.length === 0) return null
+  return (
+    <nav aria-label="Favorieten" className="flex shrink-0 items-center gap-0.5 border-x border-nx-border px-1">
+      {apps.map((app) => {
+        const open = state.windows.some((w) => w.appId === app.id)
+        return (
+          <button
+            key={app.id}
+            type="button"
+            onClick={() => onOpenApp(app.id)}
+            aria-label={app.title}
+            title={app.title}
+            data-trace="bottom"
+            className="relative grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-accent [&>svg]:size-5"
+          >
+            <app.icon />
+            {open && <span aria-hidden className="absolute bottom-1 size-1 rounded-full bg-nx-accent" />}
+          </button>
+        )
+      })}
+    </nav>
   )
 }
 

@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Favorieten in de taakbalk',
+    items: [
+      'Zet je favoriete apps in de taakbalk: open het NEXUS-teken (Start) en klik op de ster bij een app, of klik er met de rechtermuisknop op. Een app die open staat, krijgt er een koperen punt onder.',
+      'Op je bureaublad staan nu je favorieten en de apps die je het vaakst opent. Alle apps vind je onder het NEXUS-teken.',
+      'Vinkjes, keuzerondjes en schuifjes, zoals bij je gewoontes, staan in de kleur van NEXUS: koper in Pulse, groen in Focus.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een donkergroen app-icoon, overal hetzelfde',
     items: [
       'Het icoon van NEXUS is nu een koperen N op donkergroen, de kleuren van NEXUS zelf, op je gsm, je horloge en je laptop. Na de volgende update van de app zie je het nieuwe icoon; soms moet je de app daarvoor opnieuw installeren.',
