@@ -3,6 +3,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, WindowEvent};
 
 mod browser;
+mod discord;
 mod session;
 mod store;
 mod system;
@@ -31,6 +32,7 @@ pub fn run() {
             Some(vec![MINIMIZED_FLAG]),
         ))
         .manage(browser::BrowserState::default())
+        .manage(discord::DiscordState::default())
         .invoke_handler(tauri::generate_handler![
             update::check_update,
             update::install_update,
@@ -72,7 +74,9 @@ pub fn run() {
             store::store_search,
             store::store_install,
             store::store_remove,
-            store::store_update_all
+            store::store_update_all,
+            discord::discord_set_activity,
+            discord::discord_clear
         ])
         .setup(|app| {
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;

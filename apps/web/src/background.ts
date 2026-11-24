@@ -23,6 +23,7 @@ import { startGradesSync } from './grades/store'
 import { startHabitAlerts } from './habits/alerts'
 import { startWeekReview } from './review/week'
 import { startFocusMusic } from './spotify/focusMusic'
+import { startDiscordStatus } from './gaming/discord'
 import { startHabitsSync } from './habits/store'
 import { startFlashcardsSync } from './flashcards/store'
 import { startExamsSync } from './study/exams'
@@ -202,5 +203,7 @@ startFilesSync(supabase)
 startAutoBackup(supabase)
 // Spotify focusmuziek: the study playlist with the focus timer, the gaming playlist with Gaming.
 startFocusMusic()
+// Discord-status: in the Windows- and Linux-app, what you play while the Gaming timer runs.
+startDiscordStatus()
 // The focus timer's notifications, also with the Studie window closed.
 startFocusTicker(defaultEngine)

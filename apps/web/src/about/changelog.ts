@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Je gamingstatus op Discord',
+    items: [
+      'Start je de Gaming-timer in Gaming Companion, dan zien je vrienden op Discord wat je speelt en hoe lang al, bv. "Speelt Valorant · op pc". Stop je, dan verdwijnt het. Ook een timer die je op je gsm of horloge start, telt mee.',
+      'Dit werkt in de Windows- en Linux-app, zolang Discord op die computer open staat. Je hoeft niet in te loggen bij Discord.',
+      'In Instellingen › Discord zet je het aan of uit, of toon je alleen "Aan het gamen" zonder de naam van de game.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Focusmuziek met Spotify',
     items: [
       'Koppel Spotify in Instellingen › Spotify en kies een playlist om te studeren en een om te gamen, uit je eigen playlists of met een link.',
