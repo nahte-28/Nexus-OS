@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Rustige, vloeiende beweging',
+    items: [
+      'Vensters, het Start-menu en de rondleiding komen nu zacht tevoorschijn in plaats van plots te verschijnen. Meldingen onderaan schuiven omhoog, het voorstel van Spaces schuift van boven binnen.',
+      'Zoeken (Ctrl+K) en Snel vastleggen openen bewust nog altijd meteen: die gebruik je vaak met het toetsenbord.',
+      'De schakelaars in Control Center glijden nu, zoals die in Instellingen.',
+      'Het Start-menu past altijd op je scherm: met veel apps kan je erin scrollen, en het zoekveld bovenaan blijft zichtbaar.',
+      'Vraag je in je systeem om minder beweging, dan gebeurt alles meteen.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een veiligere database en kleine verbeteringen',
     items: [
       'Je database is beter beveiligd en sneller. Draai in Account › Database-check de nieuwe stap "Database veiliger en sneller".',

@@ -9,6 +9,9 @@
  * Componenten gebruiken alleen deze namen, zodat Focus en Pulse netjes wisselen.
  */
 @theme {
+  /* Beweging: sterkere curves dan de standaard, ook voor de klassen ease-out en ease-in-out. Binnenkomen en weggaan: ease-out; verschuiven op het scherm: ease-in-out. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --color-nx-bg: var(--nx-bg);
   --color-nx-surface: var(--nx-surface);
   --color-nx-surface-2: var(--nx-surface-2);
@@ -119,7 +122,9 @@ h3 {
   pointer-events: none;
   background: var(--nx-accent);
   opacity: 0;
-  transition: opacity 120ms ease-out, transform 160ms ease-out;
+  transition:
+    opacity 120ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 [data-trace]::after {
   width: 6px;
@@ -174,6 +179,83 @@ h3 {
 }
 [data-trace='bottom']:is(:hover, :focus-visible, [aria-pressed='true'], [data-on='true'])::after {
   transform: translateX(50%);
+}
+
+/*
+ * Binnenkomen. Alleen wat af en toe opent beweegt; zoeken (Ctrl+K) en snel vastleggen openen meteen,
+ * omdat je ze tientallen keren per dag met het toetsenbord oproept. Alleen opacity en transform, zodat
+ * het vloeiend blijft. Wie minder beweging vraagt, krijgt alles meteen (zie onderaan).
+ */
+
+/* Een venster: komt tevoorschijn waar het opent. */
+.nx-enter-window {
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Het Start-menu: groeit uit de Start-knop linksonder. */
+.nx-enter-menu {
+  transform-origin: bottom left;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* De rondleiding en andere dialogen in het midden, met de achtergrond mee. */
+.nx-enter-modal {
+  transition:
+    opacity 250ms var(--ease-out),
+    transform 250ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+.nx-enter-backdrop {
+  transition: opacity 250ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* Meldingen onderaan schuiven omhoog, die bovenaan naar beneden. */
+.nx-enter-toast-up,
+.nx-enter-toast-down {
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease;
+}
+.nx-enter-toast-up {
+  @starting-style {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+.nx-enter-toast-down {
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+/* Het voorbeeld als je een venster naar de rand sleept. */
+.nx-enter-fade {
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.98);
+  }
 }
 
 .nx-safe-bottom {

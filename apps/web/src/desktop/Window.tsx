@@ -106,7 +106,7 @@ export function Window({ win, focused }: Props) {
         <div
           aria-hidden
           data-testid="snap-preview"
-          className="pointer-events-none absolute rounded-xl border-2 border-nx-accent bg-nx-accent/15 transition-[left,right] duration-150 ease-out"
+          className="nx-enter-fade pointer-events-none absolute rounded-xl border-2 border-nx-accent bg-nx-accent/15"
           style={{
             zIndex: win.z,
             top: 8,
@@ -121,7 +121,7 @@ export function Window({ win, focused }: Props) {
         aria-label={win.title}
         style={style}
         onPointerDown={() => !focused && dispatch({ type: 'focus', id: win.id })}
-        className={`nx-glass absolute flex flex-col overflow-hidden border ${
+        className={`nx-glass nx-enter-window absolute flex flex-col overflow-hidden border ${
           win.maximized ? 'rounded-none' : 'rounded-xl'
         } border-nx-border ${focused ? '' : 'opacity-[0.97]'}`}
       >
