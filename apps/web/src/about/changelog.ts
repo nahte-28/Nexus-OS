@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Een veiligere database en kleine verbeteringen',
+    items: [
+      'Je database is beter beveiligd en sneller. Draai in Account › Database-check de nieuwe stap "Database veiliger en sneller".',
+      'Op een aanraakscherm reageren knoppen meteen, zonder grijze flits. Keuzelijsten volgen nu ook in Pulse het thema.',
+      'Codes van vrienden, teams en studiegroepen krijgen geen rode kronkellijn van de spellingcontrole meer.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'De klok loopt gelijk',
     items: [
       'De klok in de taakbalk, op het dashboard en de wereldklok springen nu meteen naar de nieuwe minuut, in plaats van tot een minuut achter te lopen. Kom je terug naar NEXUS na een ander tabblad of slaapstand, dan staat de klok meteen juist.',

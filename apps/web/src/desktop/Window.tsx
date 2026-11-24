@@ -106,7 +106,7 @@ export function Window({ win, focused }: Props) {
         <div
           aria-hidden
           data-testid="snap-preview"
-          className="pointer-events-none absolute rounded-xl border-2 border-nx-accent bg-nx-accent/15 transition-all"
+          className="pointer-events-none absolute rounded-xl border-2 border-nx-accent bg-nx-accent/15 transition-[left,right] duration-150 ease-out"
           style={{
             zIndex: win.z,
             top: 8,

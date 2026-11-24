@@ -265,7 +265,7 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
             {mode === 'create' ? (
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Naam van het team, bv. Projectgroep IoT" aria-label="Naam van het team" className={field} />
             ) : (
-              <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={14} placeholder="Code, bv. ABCDE-FGH23" aria-label="Code" className={`${field} font-mono uppercase`} />
+              <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={14} placeholder="Code, bv. ABCDE-FGH23" aria-label="Code" spellCheck={false} autoComplete="off" className={`${field} font-mono uppercase`} />
             )}
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} placeholder="Je naam in het team" aria-label="Je naam in het team" className={field} />
             <p className="text-xs text-nx-muted">Je e-mailadres blijft verborgen. Het team ziet alleen deze naam.</p>
@@ -766,7 +766,7 @@ function TeamClass({ api, team, busy, run }: Omit<PartProps, 'role'>) {
     >
       <p className="font-medium">Klas</p>
       <div className="flex flex-wrap items-center gap-2">
-        <input value={klas} onChange={(e) => setKlas(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Klas van het team" className={`${field} w-28 font-mono uppercase`} />
+        <input value={klas} onChange={(e) => setKlas(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Klas van het team" spellCheck={false} autoComplete="off" className={`${field} w-28 font-mono uppercase`} />
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={open && !!klas.trim()} disabled={!klas.trim()} onChange={(e) => setOpen(e.target.checked)} />
           Open voor klasgenoten
@@ -830,7 +830,7 @@ function ClassTeams({ api, displayName, setDisplayName, busy, onJoined }: { api:
       >
         <label className="flex items-center gap-2">
           Jouw klas
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Jouw klas" className={`${field} w-28 font-mono uppercase`} />
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={12} placeholder="bv. 1IT3" aria-label="Jouw klas" spellCheck={false} autoComplete="off" className={`${field} w-28 font-mono uppercase`} />
         </label>
         <button type="submit" className={small} disabled={!draft.trim() || normalizeKlas(draft) === klas}>
           Opslaan
