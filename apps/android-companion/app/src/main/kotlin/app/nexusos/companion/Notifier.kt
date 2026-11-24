@@ -37,7 +37,7 @@ object Notifier {
         )
         val builder = Notification.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_nexus)
-            .setColor(context.getColor(R.color.nexus_accent))
+            .setColor(context.getColor(R.color.nexus_green))
             .setContentTitle(n.title.ifEmpty { n.appName })
             .setContentText(n.text)
             .setSubText(note ?: from?.let { "van $it" })
@@ -63,7 +63,7 @@ object Notifier {
         val sender = from ?: t.senderName.ifEmpty { "een ander toestel" }
         val builder = Notification.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_nexus)
-            .setColor(context.getColor(R.color.nexus_accent))
+            .setColor(context.getColor(R.color.nexus_green))
             .setContentTitle("${if (t.link != null) "Link" else "Tekst"} van $sender")
             .setContentText(t.content)
             .setSubText("Bridge")
