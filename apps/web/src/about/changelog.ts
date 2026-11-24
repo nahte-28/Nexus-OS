@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'De klok loopt gelijk',
+    items: [
+      'De klok in de taakbalk, op het dashboard en de wereldklok springen nu meteen naar de nieuwe minuut, in plaats van tot een minuut achter te lopen. Kom je terug naar NEXUS na een ander tabblad of slaapstand, dan staat de klok meteen juist.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Geen zijbalk meer, en een nieuw NEXUS-teken',
     items: [
       'De zijbalk is weg. Je apps staan op je bureaublad, onder de titel, per groep in een rij. Zo hebben je vensters altijd de volle breedte.',
