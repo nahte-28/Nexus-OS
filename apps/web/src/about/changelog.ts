@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Een donkergroen app-icoon, overal hetzelfde',
+    items: [
+      'Het icoon van NEXUS is nu een koperen N op donkergroen, de kleuren van NEXUS zelf, op je gsm, je horloge en je laptop. Na de volgende update van de app zie je het nieuwe icoon; soms moet je de app daarvoor opnieuw installeren.',
+      'Ook het kleine teken in de statusbalk van je gsm en horloge is het nieuwe NEXUS-teken.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een veiligere database en kleine verbeteringen',
     items: [
       'Je database is beter beveiligd en sneller. Draai in Account › Database-check de nieuwe stap "Database veiliger en sneller".',
