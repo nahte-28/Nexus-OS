@@ -23,7 +23,7 @@ export function ModuleSettings() {
     <fieldset className="space-y-3 border-t border-nx-border pt-4 text-sm">
       <legend className="mb-2 text-sm font-semibold text-nx-muted">Apps aan/uit</legend>
       <p className="text-nx-muted">
-        Zet uit wat je niet gebruikt. Een app die uit staat, verdwijnt uit de zijbalk, het zoeken en het dashboard, in elk profiel. Je gegevens blijven bewaard en zijn terug zodra je de app weer aanzet. Profielen, Instellingen, Help en Account blijven altijd. Met een account gelden je keuzes op al je toestellen.
+        Zet uit wat je niet gebruikt. Een app die uit staat, verdwijnt van je bureaublad, uit het zoeken en van het dashboard, in elk profiel. Je gegevens blijven bewaard en zijn terug zodra je de app weer aanzet. Profielen, Instellingen, Help en Account blijven altijd. Met een account gelden je keuzes op al je toestellen.
       </p>
       {groups.map((g) => (
         <Group key={g.id} id={g.id} title={g.title}>

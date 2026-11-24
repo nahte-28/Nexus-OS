@@ -107,14 +107,14 @@ export function Tour({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
   const last = step === steps.length - 1
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div role="dialog" aria-modal="true" aria-labelledby="tour-title" className="nx-glass w-full max-w-md space-y-3 rounded-2xl border border-nx-border p-5 text-sm shadow-xl">
+    <div className="nx-enter-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div role="dialog" aria-modal="true" aria-labelledby="tour-title" className="nx-glass nx-enter-modal w-full max-w-md space-y-3 rounded-2xl border border-nx-border p-5 text-sm shadow-xl">
         <p className="text-xs text-nx-muted">
           Stap {step + 1} van {steps.length}
         </p>
         <h2 id="tour-title" className="flex items-center gap-2 text-lg font-semibold">
           {current.title}
-          {current.done && <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600">✓ in orde</span>}
+          {current.done && <span className="rounded-full bg-nx-accent/15 px-2 py-0.5 text-xs font-medium text-nx-accent">✓ in orde</span>}
         </h2>
         <p>{current.text}</p>
         {current.action && !current.done && (

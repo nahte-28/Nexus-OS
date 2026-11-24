@@ -92,7 +92,7 @@ function Switch({ label, on, disabled, onChange }: { label: string; on: boolean;
       onClick={() => onChange(!on)}
       className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${on ? 'bg-nx-accent' : 'bg-nx-border'}`}
     >
-      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${on ? 'left-5' : 'left-0.5'}`} />
+      <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ease-out ${on ? 'translate-x-5' : ''}`} />
     </button>
   )
 }

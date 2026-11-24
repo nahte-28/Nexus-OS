@@ -6,6 +6,7 @@ import {
 import { clockStore } from '../clock/store'
 import { remindersStore } from '../reminders/store'
 import { readStorage, writeStorage } from '../state/storage'
+import { useMinute } from '../state/useNow'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -189,7 +190,7 @@ function Stopwatch() {
 
 function WorldClock() {
   const { zones } = useClock()
-  const now = useNow(15_000)
+  const now = useMinute()
   const [pick, setPick] = useState('')
   const free = WORLD_CITIES.filter((c) => !zones.includes(c.zone) && c.zone !== HOME)
   const label = (zone: string) => WORLD_CITIES.find((c) => c.zone === zone)?.label ?? zone

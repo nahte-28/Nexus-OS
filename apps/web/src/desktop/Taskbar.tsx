@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp } from '../apps/registry'
-import { BellIcon, CloudIcon, GridIcon } from '../apps/icons'
+import { BellIcon, CloudIcon } from '../apps/icons'
 import { statusText } from '../sync/statusText'
 import { useConnect } from '../connect/ConnectContext'
 import { useSync } from '../sync/SyncContext'
@@ -10,34 +10,22 @@ import { useWindows } from '../state/WindowsContext'
 import { SearchButton } from '../search/SearchButton'
 import { CaptureButton } from '../capture/QuickCaptureHost'
 import { StartMenu } from './StartMenu'
-import { toggleSidebar, useSidebarCollapsed } from './sidebarGroups'
+import { useMinute } from '../state/useNow'
+import { NexusGlyph } from '../shell/NexusMark'
+import { useVisibleApps } from '../apps/registry'
+import { useFavorites } from '../controlcenter/store'
 
 export const TASKBAR_HEIGHT = 52
 
 export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => void; onSearch: () => void }) {
   const { state, dispatch } = useWindows()
   const [startOpen, setStartOpen] = useState(false)
-  const sidebarHidden = useSidebarCollapsed()
 
   return (
     <footer
       style={{ height: TASKBAR_HEIGHT }}
       className="nx-glass absolute inset-x-0 bottom-0 z-[10000] flex items-center gap-1 border-t border-nx-border px-2"
     >
-      {sidebarHidden && (
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-label="Zijbalk tonen"
-          title="Zijbalk tonen"
-          className="grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text"
-        >
-          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M9 4v16M13 10l2 2-2 2" />
-          </svg>
-        </button>
-      )}
       <button
         type="button"
         aria-label="Start"
@@ -45,10 +33,11 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
         onClick={() => setStartOpen((v) => !v)}
         className={`grid size-10 place-items-center rounded-md ${startOpen ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-text hover:bg-nx-surface-2 hover:text-nx-accent'}`}
       >
-        <GridIcon />
+        <NexusGlyph className="size-[22px]" />
       </button>
       <SearchButton onClick={onSearch} />
       <CaptureButton />
+      <Favorites onOpenApp={onOpenApp} />
 
       <nav aria-label="Geopende vensters" className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {state.windows.map((win) => {
@@ -89,12 +78,41 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
   )
 }
 
+/**
+ * Je favoriete apps, vast in de taakbalk. Je kiest ze met de ster in het Start-menu (het NEXUS-teken)
+ * of in Control Center. Een app die al open staat, krijgt een koperen punt.
+ */
+function Favorites({ onOpenApp }: { onOpenApp: (id: AppId) => void }) {
+  const favorites = useFavorites()
+  const visible = useVisibleApps()
+  const { state } = useWindows()
+  const apps = favorites.flatMap((id) => visible.filter((a) => a.id === id))
+  if (apps.length === 0) return null
+  return (
+    <nav aria-label="Favorieten" className="flex shrink-0 items-center gap-0.5 border-x border-nx-border px-1">
+      {apps.map((app) => {
+        const open = state.windows.some((w) => w.appId === app.id)
+        return (
+          <button
+            key={app.id}
+            type="button"
+            onClick={() => onOpenApp(app.id)}
+            aria-label={app.title}
+            title={app.title}
+            data-trace="bottom"
+            className="relative grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-accent [&>svg]:size-5"
+          >
+            <app.icon />
+            {open && <span aria-hidden className="absolute bottom-1 size-1 rounded-full bg-nx-accent" />}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
 function Clock() {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 15_000)
-    return () => clearInterval(t)
-  }, [])
+  const now = new Date(useMinute())
   return (
     <time dateTime={now.toISOString()} className="px-3 text-right text-xs leading-tight text-nx-muted tabular-nums">
       <span className="block text-sm text-nx-text">{now.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span>

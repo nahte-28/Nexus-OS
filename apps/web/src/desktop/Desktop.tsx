@@ -1,13 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { groupApps, openRect, type AppId } from '@nexus/core'
+import { openRect, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { AskName } from '../shell/AskName'
-import { NexusMark } from '../shell/NexusMark'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
-import { useProfiles } from '../profiles/store'
 import { useWindows } from '../state/WindowsContext'
 import { QuickCaptureHost, useCaptureShortcut } from '../capture/QuickCaptureHost'
 import { Tour } from '../onboarding/Tour'
@@ -15,11 +13,8 @@ import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { placeOf } from './windowPlaces'
-import { isSidebarCollapsed, toggleGroup, toggleSidebar, useFoldedGroups, useSidebarCollapsed } from './sidebarGroups'
-
-export const SIDEBAR_WIDTH = 224
-/** How wide the sidebar is right now: new windows and Spaces fit in the room next to it. Ingeklapt: niets. */
-export const sidebarWidth = () => (isSidebarCollapsed() ? 0 : SIDEBAR_WIDTH)
+import { useFavorites } from '../controlcenter/store'
+import { mostUsed, usageStore, useUsage } from '../apps/usage'
 
 // Loads when you open it (Ctrl+K), not with the desktop.
 // After an update; it carries the whole changelog, so it loads after the first screen.
@@ -29,7 +24,6 @@ const SearchPalette = lazy(() => import('../search/SearchPalette').then((m) => (
 export function Desktop() {
   const { state, dispatch } = useWindows()
   const apps = useVisibleApps()
-  const collapsed = useSidebarCollapsed()
   const [searching, setSearching] = useState(false)
   const openSearch = useCallback(() => setSearching(true), [])
   useSearchShortcut(openSearch)
@@ -38,8 +32,9 @@ export function Desktop() {
   const openApp = useCallback(
     (appId: AppId) => {
       const app = getApp(appId)
+      usageStore.record(appId)
       if (app.launch) return app.launch()
-      const area = { width: window.innerWidth - sidebarWidth(), height: window.innerHeight - TASKBAR_HEIGHT }
+      const area = { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }
       dispatch({ type: 'open', appId, title: app.title, rect: placeOf(appId, area) ?? openRect(app.defaultSize, area, state.windows.length, app.fill) })
     },
     [dispatch, state.windows.length],
@@ -54,10 +49,9 @@ export function Desktop() {
   return (
     <div className="nx-wallpaper relative h-full overflow-hidden">
       <div className="absolute inset-x-0 top-0 flex" style={{ bottom: TASKBAR_HEIGHT }}>
-        <Sidebar apps={apps} onOpenApp={openApp} />
         <main className="relative min-w-0 flex-1 overflow-hidden" aria-label="Bureaublad">
           <div className="h-full overflow-auto">
-            <Dashboard onOpenApp={openApp} shortcuts={collapsed ? <HomeShortcuts apps={apps} onOpenApp={openApp} /> : null} />
+            <Dashboard onOpenApp={openApp} shortcuts={<HomeShortcuts apps={apps} onOpenApp={openApp} />} />
           </div>
           {state.windows.map((win) => (
             <Window key={win.id} win={win} focused={state.focusedId === win.id} />
@@ -83,95 +77,30 @@ export function Desktop() {
 }
 
 /**
- * Brand, the active profile and its apps in groups you can fold away. Switching profiles happens in
- * the Profielen app. The button at the top folds the whole sidebar to a strip of icons, for more room.
- */
-function Sidebar({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
-  const { active } = useProfiles()
-  const folded = useFoldedGroups()
-  const collapsed = useSidebarCollapsed()
-  const toggle = (
-    <button
-      type="button"
-      onClick={toggleSidebar}
-      aria-label={collapsed ? 'Zijbalk uitklappen' : 'Zijbalk inklappen'}
-      title={collapsed ? 'Zijbalk uitklappen' : 'Zijbalk inklappen'}
-      className="grid size-8 shrink-0 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text"
-    >
-      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <path d="M9 4v16" />
-        <path d={collapsed ? 'M13 10l2 2-2 2' : 'M16 10l-2 2 2 2'} />
-      </svg>
-    </button>
-  )
-  // Ingeklapt is de zijbalk helemaal weg; je apps staan dan op het bureaublad (HomeShortcuts).
-  if (collapsed) return null
-  return (
-    <aside style={{ width: SIDEBAR_WIDTH }} className="nx-sidebar flex shrink-0 flex-col gap-4 overflow-y-auto border-r border-nx-border/60 p-3">
-      <div className="flex items-start justify-between gap-2 pt-1 pl-2">
-        <div>
-          <NexusMark />
-          <p className="mt-0.5 text-xs text-nx-muted">{active.name} Mode</p>
-        </div>
-        {toggle}
-      </div>
-      <nav aria-label="Apps" className="space-y-2">
-        {groupApps(apps).map((group) => {
-          const open = !folded.includes(group.id)
-          return (
-            <section key={group.id} aria-label={group.title}>
-              <button
-                type="button"
-                aria-expanded={open}
-                onClick={() => toggleGroup(group.id)}
-                className="flex w-full items-center justify-between rounded-md px-2 py-1 text-left text-xs font-semibold text-nx-muted hover:text-nx-text"
-              >
-                {group.title}
-                <span aria-hidden="true" className={`transition ${open ? 'rotate-90' : ''}`}>
-                  ›
-                </span>
-              </button>
-              {open && (
-                <ul className="mt-0.5 space-y-0.5">
-                  {group.apps.map((app) => (
-                    <li key={app.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenApp(app.id)}
-                        data-trace="left"
-                        className="group flex w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-nx-surface-2"
-                      >
-                        <span className="text-nx-muted group-hover:text-nx-accent [&>svg]:size-[18px]">
-                          <app.icon />
-                        </span>
-                        {app.title}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )
-        })}
-      </nav>
-    </aside>
-  )
-}
-
-
-/**
- * Met de zijbalk ingeklapt staan je apps op het bureaublad, onder de titel: per groep een rij
- * icoontjes. Zo blijft de ruimte naast je vensters helemaal vrij.
+ * Op het bureaublad, onder de titel: je favorieten en de apps die je het vaakst opent. Alle apps
+ * staan onder het NEXUS-teken (Start); daar zet je met de ster een app bij je favorieten.
  */
 function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
+  const favorites = useFavorites()
+  const usage = useUsage()
+  const byId = new Map(apps.map((a) => [a.id, a]))
+  const favoriteApps = favorites.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
+  const used = mostUsed(
+    usage,
+    apps.filter((a) => !favorites.includes(a.id)),
+    8,
+  )
+  const rows = [
+    { id: 'favorites', title: 'Favorieten', apps: favoriteApps },
+    { id: 'used', title: 'Meest gebruikt', apps: used },
+  ].filter((r) => r.apps.length > 0)
   return (
-    <nav aria-label="Apps" className="flex flex-wrap gap-x-6 gap-y-3">
-      {groupApps(apps).map((group) => (
-        <section key={group.id} aria-label={group.title}>
-          <h2 className="mb-1 text-xs font-semibold text-nx-muted">{group.title}</h2>
+    <nav aria-label="Apps" className="flex flex-wrap items-end gap-x-6 gap-y-3">
+      {rows.map((row) => (
+        <section key={row.id} aria-label={row.title}>
+          <h2 className="mb-1 text-xs font-semibold text-nx-muted">{row.title}</h2>
           <ul className="nx-glass flex flex-wrap gap-0.5 rounded-lg border border-nx-border p-1">
-            {group.apps.map((app) => (
+            {row.apps.map((app) => (
               <li key={app.id}>
                 <button
                   type="button"
@@ -188,6 +117,10 @@ function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: 
           </ul>
         </section>
       ))}
+      <p className="pb-2.5 text-xs text-nx-muted">
+        {rows.length === 0 ? 'Al je apps staan onder het NEXUS-teken linksonder. ' : 'Alle apps: het NEXUS-teken linksonder. '}
+        Met de ster zet je een app bij je favorieten.
+      </p>
     </nav>
   )
 }

@@ -16,10 +16,26 @@ export async function startWithEverything(page: Page): Promise<void> {
 
 export const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1000) < 768
 
-/** The app buttons of the shell that is showing: the sidebar on a computer, the grid on a phone. */
-/** The buttons that open an app; on the desktop the group headings (which fold) are left out. */
-export function appButtons(page: Page) {
-  return isMobile(page) ? page.getByRole('group', { name: 'Apps' }).getByRole('button') : page.getByRole('navigation', { name: 'Apps' }).locator('button:not([aria-expanded])')
+/** On a phone: the grid of apps. On the desktop all apps are under the NEXUS mark (Start). */
+async function showApps(page: Page) {
+  if (isMobile(page)) return page.getByRole('group', { name: 'Apps' })
+  const menu = page.getByRole('menu', { name: 'Startmenu' })
+  if (!(await menu.isVisible())) await page.getByRole('button', { name: 'Start', exact: true }).click()
+  return menu
+}
+
+/** Opens one app the way you would: from the grid on a phone, from Start on the desktop. */
+export async function openApp(page: Page, title: string) {
+  const apps = await showApps(page)
+  await apps.getByRole(isMobile(page) ? 'button' : 'menuitem', { name: title, exact: true }).click()
+}
+
+/** The names of every app you can open. */
+export async function appTitles(page: Page): Promise<string[]> {
+  const apps = await showApps(page)
+  const names = await apps.getByRole(isMobile(page) ? 'button' : 'menuitem').allInnerTexts()
+  if (!isMobile(page)) await page.keyboard.press('Escape')
+  return names.map((t) => t.trim()).filter(Boolean)
 }
 
 /** Collects errors that escape to the page; console noise (a missing API in preview) is not one. */

@@ -24,6 +24,58 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-11-24',
+    title: 'Favorieten in de taakbalk',
+    items: [
+      'Zet je favoriete apps in de taakbalk: open het NEXUS-teken (Start) en klik op de ster bij een app, of klik er met de rechtermuisknop op. Een app die open staat, krijgt er een koperen punt onder.',
+      'Op je bureaublad staan nu je favorieten en de apps die je het vaakst opent. Alle apps vind je onder het NEXUS-teken.',
+      'Vinkjes, keuzerondjes en schuifjes, zoals bij je gewoontes, staan in de kleur van NEXUS: koper in Pulse, groen in Focus.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'Rustige, vloeiende beweging',
+    items: [
+      'Vensters, het Start-menu en de rondleiding komen nu zacht tevoorschijn in plaats van plots te verschijnen. Meldingen onderaan schuiven omhoog, het voorstel van Spaces schuift van boven binnen.',
+      'Zoeken (Ctrl+K) en Snel vastleggen openen bewust nog altijd meteen: die gebruik je vaak met het toetsenbord.',
+      'De schakelaars in Control Center glijden nu, zoals die in Instellingen.',
+      'Het Start-menu past altijd op je scherm: met veel apps kan je erin scrollen, en het zoekveld bovenaan blijft zichtbaar.',
+      'Vraag je in je systeem om minder beweging, dan gebeurt alles meteen.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'Een donkergroen app-icoon, overal hetzelfde',
+    items: [
+      'Het icoon van NEXUS is nu een koperen N op donkergroen, de kleuren van NEXUS zelf, op je gsm, je horloge en je laptop. Na de volgende update van de app zie je het nieuwe icoon; soms moet je de app daarvoor opnieuw installeren.',
+      'Ook het kleine teken in de statusbalk van je gsm en horloge is het nieuwe NEXUS-teken.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'Een veiligere database en kleine verbeteringen',
+    items: [
+      'Je database is beter beveiligd en sneller. Draai in Account › Database-check de nieuwe stap "Database veiliger en sneller".',
+      'Op een aanraakscherm reageren knoppen meteen, zonder grijze flits. Keuzelijsten volgen nu ook in Pulse het thema.',
+      'Codes van vrienden, teams en studiegroepen krijgen geen rode kronkellijn van de spellingcontrole meer.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'De klok loopt gelijk',
+    items: [
+      'De klok in de taakbalk, op het dashboard en de wereldklok springen nu meteen naar de nieuwe minuut, in plaats van tot een minuut achter te lopen. Kom je terug naar NEXUS na een ander tabblad of slaapstand, dan staat de klok meteen juist.',
+    ],
+  },
+  {
+    date: '2026-11-24',
+    title: 'Geen zijbalk meer, en een nieuw NEXUS-teken',
+    items: [
+      'De zijbalk is weg. Je apps staan op je bureaublad, onder de titel, per groep in een rij. Zo hebben je vensters altijd de volle breedte.',
+      'Een nieuw NEXUS-teken: een N getekend als koperspoor tussen twee soldeerpunten. Je ziet het bovenaan je bureaublad, op de Start-knop in de taakbalk en als icoon van de app.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een nieuw uiterlijk: de werkbank',
     items: [
       'NEXUS ziet er anders uit. Focus is nu een lichte werkbank met soldeermasker-groen, Pulse een donkere printplaat met koperen accenten. Je eigen accentkleur blijft werken.',

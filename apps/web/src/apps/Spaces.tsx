@@ -11,7 +11,6 @@ import {
   type AppId,
   type Space,
 } from '@nexus/core'
-import { sidebarWidth } from '../desktop/Desktop'
 import { TASKBAR_HEIGHT } from '../desktop/Taskbar'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { newSpace, openLayout, saveLayout, switchToSpace } from '../spaces/actions'
@@ -192,7 +191,7 @@ function Templates({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const use = (t: (typeof SPACE_TEMPLATES)[number]) => {
     try {
-      const area = { width: window.innerWidth - sidebarWidth(), height: window.innerHeight - TASKBAR_HEIGHT }
+      const area = { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }
       const id = newSpace({ name: t.name, icon: t.icon, profileId: t.profileId, windows: tileWindows(t.apps, area) })
       const space = liveSpaces(spacesStore.getSnapshot()).find((s) => s.id === id)
       if (space && windows) switchToSpace(space, windows.dispatch)
@@ -260,7 +259,7 @@ function Layout() {
         type="button"
         className={button}
         onClick={() => {
-          const area = { width: window.innerWidth - sidebarWidth(), height: window.innerHeight - TASKBAR_HEIGHT }
+          const area = { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }
           windows.dispatch({ type: 'restore', windows: tileWindows(open.map((w) => w.appId), area).map((w) => ({ ...w, title: appName(w.appId) })) })
         }}
       >

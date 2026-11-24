@@ -1,12 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
-import { startWithEverything, trackErrors } from './helpers'
+import { openApp, startWithEverything, trackErrors } from './helpers'
 
 // Spaces and windows are the computer's layout; the phone shows one app at a time.
 test.skip(({ isMobile }) => isMobile, 'Vensters en Spaces zijn voor de computer')
 
-const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Apps' })
 const open = async (page: Page, title: string) => {
-  await sidebar(page).getByRole('button', { name: title, exact: true }).click()
+  await openApp(page, title)
   const win = page.getByRole('dialog', { name: title })
   await expect(win).toBeVisible()
   return win
