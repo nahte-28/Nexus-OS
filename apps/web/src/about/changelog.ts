@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Je agenda open op het dashboard, en een doorzichtige zijbalk',
+    items: [
+      'Nieuw op het dashboard: Agenda deze week. Je ziet je lessen, afspraken, Google Agenda, deadlines en herinneringen van de komende zeven dagen naast elkaar, met vandaag in de kleur van je profiel. Klik op een dag om de Agenda te openen.',
+      'Je krijgt deze widget er vanzelf bij, groot en bovenaan. Via Indeling aanpassen kan je hem verplaatsen, groter of kleiner maken of verbergen.',
+      'De zijbalk is nu doorzichtig, zodat je achtergrond erdoor schijnt.',
+      'Ingeklapt staan de icoontjes netjes onder elkaar, zonder schuifbalk ernaast. Scrollen kan nog altijd met je muiswiel.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een dashboard dat je scherm vult, en dat je zelf indeelt',
     items: [
       'Op een groot scherm vult het dashboard nu de hele ruimte: tot zes kolommen naast elkaar, en de widgets worden hoger tot het scherm vol is. Lege plekken vullen ze vanzelf op.',

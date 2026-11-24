@@ -50,4 +50,12 @@ describe('Workspace Studio 2.0 dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Notitie bewaren' }))
     expect(screen.getByText('Bewaard in Notities')).toBeTruthy()
   })
+
+  it('shows the week of the Agenda, open on the dashboard', () => {
+    profilesStore.updateProfile(active().id, { widgets: ['agenda_week'], layout: {} })
+    render(<Dashboard onOpenApp={() => {}} />)
+    expect(screen.getByText('Agenda deze week')).toBeTruthy()
+    expect(screen.getByRole('listitem', { name: 'Vandaag' })).toBeTruthy()
+    expect(screen.getByRole('listitem', { name: 'Morgen' })).toBeTruthy()
+  })
 })

@@ -84,7 +84,11 @@ describe('dashboard layout', () => {
     const old = JSON.parse(JSON.stringify({ ...state, schema: 14 }))
     old.profiles.school.widgets = ['next_class', 'deadlines', 'notes']
     const back = parseProfilesState(old)
-    expect(back.profiles.school.widgets).toEqual(['profile', 'next_class', 'deadlines', 'notes', 'quick_note', 'clock', 'shortcuts'])
+    expect(back.profiles.school.widgets).toEqual(['profile', 'next_class', 'agenda_week', 'deadlines', 'notes', 'quick_note', 'clock', 'shortcuts'])
     expect(parseProfilesState(JSON.parse(JSON.stringify(back))).profiles.school.widgets).toEqual(back.profiles.school.widgets)
+    // A copy from before the agenda widget gets it after the profile card, once.
+    const v15 = JSON.parse(JSON.stringify({ ...state, schema: 15 }))
+    v15.profiles.personal.widgets = ['profile', 'notes']
+    expect(parseProfilesState(v15).profiles.personal.widgets).toEqual(['profile', 'agenda_week', 'notes'])
   })
 })
