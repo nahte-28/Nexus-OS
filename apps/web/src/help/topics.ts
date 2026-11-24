@@ -129,7 +129,7 @@ export const HELP: Record<AppId, HelpTopic> = {
   },
   settings: {
     summary: 'Thema, meldingen, back-up, de rondleiding en welke apps je ziet.',
-    tips: ['Apps aan/uit: zet uit wat je niet gebruikt. De app verdwijnt dan overal, maar je gegevens blijven bewaard.', 'Back-up maakt één bestand met al je gegevens, dat je later terugzet. De automatische back-up doet dat elke week zelf en bewaart het in Bestanden.', 'Rondleiding starten toont de uitleg van het begin opnieuw.'],
+    tips: ['Apps aan/uit: zet uit wat je niet gebruikt. De app verdwijnt dan overal, maar je gegevens blijven bewaard.', 'Back-up maakt één bestand met al je gegevens, dat je later terugzet. De automatische back-up doet dat elke week zelf en bewaart het in Bestanden.', 'Rondleiding starten toont de uitleg van het begin opnieuw.', 'Spotify: koppel je account (Premium nodig) en kies een playlist voor studeren en een voor gamen. Start je de focustimer of een Gaming-sessie, dan begint de muziek; in een pauze pauzeert ze. In de Windows- of Linux-app plak je de koppelcode die je in de browser krijgt.'],
   },
   developer: {
     summary: 'Logboek en technische informatie, alleen zichtbaar in ontwikkelaarsmodus.',
@@ -211,6 +211,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Je voert alles zelf in: NEXUS koppelt geen gameplatform en leest niets uit.',
       'Noteer na het spelen een sessie; Statistieken toont je speeltijd per week en per game.',
+      'Met Spotify gekoppeld (Instellingen › Spotify) start je gamingplaylist zodra je de Gaming-timer start, ook vanaf je horloge.',
       'Builds bewaren een loadout of instellingen met tags, en kopieer je met één klik.',
       'Met een plan in uren per week waarschuwt de app vanaf 80 % en als je erover gaat.',
       'Op het dashboard van Gaming start je de timer: het profiel Gaming staat aan tot je stopt, en de sessie komt vanzelf in je logboek.',

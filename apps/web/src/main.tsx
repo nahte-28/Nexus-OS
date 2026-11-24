@@ -30,6 +30,18 @@ openCaptureFromUrl()
 openJoinFromUrl()
 // A friend link (/vriend/<code>) opens Vrienden with the code filled in.
 openFriendFromUrl()
+// Back from logging in to Spotify (/spotify?code=…): finish the link and show Instellingen.
+if (window.location.pathname === '/spotify') {
+  void Promise.all([import('./spotify/spotify'), import('./shell/openApp')]).then(([{ finishSpotifyLogin }, { openApp }]) =>
+    finishSpotifyLogin().then(() => {
+      let tries = 40
+      const open = () => {
+        if (!openApp('settings') && --tries > 0) setTimeout(open, 250)
+      }
+      open()
+    }),
+  )
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
