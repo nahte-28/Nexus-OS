@@ -85,7 +85,7 @@ export function Marketplace() {
               return (
                 <li key={item.id} className="flex flex-col gap-2 rounded-lg border border-nx-border p-3">
                   <div className="flex items-start gap-2">
-                    {item.kind === 'theme' && <span aria-hidden className="mt-1 size-5 shrink-0 rounded-full border-4" style={{ background: ACCENTS[item.accent][item.theme][0], borderColor: item.theme === 'pulse' ? '#0b1020' : '#f1f5f9' }} />}
+                    {item.kind === 'theme' && <span aria-hidden className="mt-1 size-5 shrink-0 rounded-full border-4" style={{ background: ACCENTS[item.accent][item.theme][0], borderColor: item.theme === 'pulse' ? '#0c1310' : '#e5e9e5' }} />}
                     <div className="min-w-0">
                       <p className="font-medium">{item.title}</p>
                       <p className="text-xs text-nx-muted">

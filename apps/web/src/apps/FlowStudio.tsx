@@ -276,7 +276,7 @@ function Templates({ onUse }: { onUse: (template: FlowTemplate) => void }) {
       {FLOW_TEMPLATES.map((t) => (
         <li key={t.id} className={`${card} flex flex-col gap-2`}>
           <div>
-            <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">{t.category}</p>
+            <p className="text-xs font-semibold text-nx-accent">{t.category}</p>
             <p className="font-medium">{t.title}</p>
             <p className="text-nx-muted">{t.description}</p>
           </div>

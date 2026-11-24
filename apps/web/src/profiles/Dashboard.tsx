@@ -65,7 +65,8 @@ function greeting(now: number): string {
 }
 
 /** The home screen of the active profile: a greeting, then its widgets, which you can move and resize. */
-export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; compact?: boolean }) {
+/** shortcuts: je apps, getoond onder de titel wanneer de zijbalk ingeklapt is. */
+export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { onOpenApp: OpenApp; compact?: boolean; shortcuts?: ReactNode }) {
   const { state, active } = useProfiles()
   const now = useMinute()
   const devHub = useFeature('devHub')
@@ -100,6 +101,8 @@ export function Dashboard({ onOpenApp, compact = false }: { onOpenApp: OpenApp; 
           </button>
         )}
       </header>
+
+      {shortcuts}
 
       <Welcome />
 
@@ -191,8 +194,8 @@ function Welcome() {
 
 function Card({ children, title }: { children: ReactNode; title?: string }) {
   return (
-    <div className="nx-glass h-full overflow-hidden rounded-2xl border border-nx-border p-4">
-      {title && <h2 className="mb-2 text-xs font-semibold tracking-wide text-nx-muted uppercase">{title}</h2>}
+    <div className="nx-glass h-full overflow-hidden rounded-xl border border-nx-border p-4">
+      {title && <h2 className="mb-2 text-[13px] font-semibold text-nx-muted">{title}</h2>}
       {children}
     </div>
   )
@@ -585,7 +588,7 @@ function AgendaWeek({ rows, now, onOpenApp }: { rows: number; now: number; onOpe
   return (
     <div className="nx-glass flex h-full flex-col overflow-hidden rounded-2xl border border-nx-border p-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold tracking-wide text-nx-muted uppercase">Agenda deze week</h2>
+        <h2 className="text-[13px] font-semibold text-nx-muted">Agenda deze week</h2>
         <button type="button" className={linkButton} onClick={() => onOpenApp('agenda')}>
           Agenda openen
         </button>
@@ -635,14 +638,17 @@ function ProfileWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">{active.name} Mode</p>
+          <p className="text-xs font-semibold text-nx-accent">{active.name} Mode</p>
           <p className="flex items-center gap-2 text-lg font-semibold">
             <Icon className="size-5 text-nx-accent" />
             {active.description}
           </p>
           <p className="text-sm text-nx-muted">{reasonText(reason, state)}</p>
         </div>
-        <span className="rounded-md bg-nx-accent px-2.5 py-1 text-xs font-semibold text-nx-accent-text">ACTIEF</span>
+        <span className="flex items-center gap-1.5 rounded-full border border-nx-border px-2.5 py-1 text-xs font-medium">
+          <span aria-hidden className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.18)]" />
+          Actief
+        </span>
       </div>
       <div className="mt-3 border-t border-nx-border pt-3">
         <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>

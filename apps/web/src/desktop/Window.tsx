@@ -123,7 +123,7 @@ export function Window({ win, focused }: Props) {
         onPointerDown={() => !focused && dispatch({ type: 'focus', id: win.id })}
         className={`nx-glass absolute flex flex-col overflow-hidden border ${
           win.maximized ? 'rounded-none' : 'rounded-xl'
-        } ${focused ? 'border-nx-accent/60' : 'border-nx-border'}`}
+        } border-nx-border ${focused ? '' : 'opacity-[0.97]'}`}
       >
         <header
           onPointerDown={startDrag('move')}
@@ -132,10 +132,12 @@ export function Window({ win, focused }: Props) {
           onPointerCancel={endDrag}
           onDoubleClick={() => dispatch({ type: 'toggleMaximize', id: win.id })}
           title="Sleep om te verplaatsen; naar de rand van het scherm om vast te zetten"
+          data-trace="top"
+          data-on={focused}
           className="flex h-10 shrink-0 cursor-default touch-none items-center gap-2 border-b border-nx-border bg-nx-surface-2 pr-1 pl-3 select-none"
         >
           <app.icon className={`size-4 ${focused ? 'text-nx-accent' : 'text-nx-muted'}`} />
-          <h2 className="flex-1 truncate text-sm font-medium">{win.title}</h2>
+          <h2 className={`flex-1 truncate text-sm ${focused ? 'font-semibold' : 'font-medium text-nx-muted'}`}>{win.title}</h2>
           <TitleButton label="Minimaliseren" onClick={() => dispatch({ type: 'minimize', id: win.id })}>
             <path d="M5 12h14" />
           </TitleButton>

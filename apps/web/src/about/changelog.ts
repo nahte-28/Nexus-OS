@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Een nieuw uiterlijk: de werkbank',
+    items: [
+      'NEXUS ziet er anders uit. Focus is nu een lichte werkbank met soldeermasker-groen, Pulse een donkere printplaat met koperen accenten. Je eigen accentkleur blijft werken.',
+      'Een nieuw lettertype dat beter leest op kleine schermen, en rustigere titels zonder hoofdletters.',
+      'Wat actief is krijgt een koperen spoor met een soldeerpunt: het venster vooraan, het geopende venster in de taakbalk, de app onder je cursor in de zijbalk en het tabblad onderaan op je telefoon.',
+      'Het profiel op je dashboard toont nu met een groen lampje dat het actief is.',
+      'Klap je de zijbalk in, dan verdwijnt hij helemaal en staan je apps op je bureaublad, per groep onder de titel. Met de knop links in de taakbalk haal je de zijbalk terug.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Je agenda open op het dashboard, en een doorzichtige zijbalk',
     items: [
       'Nieuw op het dashboard: Agenda deze week. Je ziet je lessen, afspraken, Google Agenda, deadlines en herinneringen van de komende zeven dagen naast elkaar, met vandaag in de kleur van je profiel. Klik op een dag om de Agenda te openen.',

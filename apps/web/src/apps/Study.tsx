@@ -103,7 +103,7 @@ function Focus() {
   return (
     <>
       <section aria-label="Focustimer" className="space-y-3 rounded-2xl border border-nx-border bg-nx-surface-2 p-6 text-center">
-        <p className="text-xs font-semibold tracking-wide text-nx-accent uppercase">
+        <p className="text-xs font-semibold text-nx-accent">
           {PHASE_LABELS[timer.phase]} · ronde {Math.min(timer.round + (timer.phase === 'focus' ? 1 : 0), 99)}
         </p>
         <p className="font-mono text-6xl tabular-nums" aria-live="off" role="timer">

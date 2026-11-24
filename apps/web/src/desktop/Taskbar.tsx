@@ -10,24 +10,40 @@ import { useWindows } from '../state/WindowsContext'
 import { SearchButton } from '../search/SearchButton'
 import { CaptureButton } from '../capture/QuickCaptureHost'
 import { StartMenu } from './StartMenu'
+import { toggleSidebar, useSidebarCollapsed } from './sidebarGroups'
 
 export const TASKBAR_HEIGHT = 52
 
 export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => void; onSearch: () => void }) {
   const { state, dispatch } = useWindows()
   const [startOpen, setStartOpen] = useState(false)
+  const sidebarHidden = useSidebarCollapsed()
 
   return (
     <footer
       style={{ height: TASKBAR_HEIGHT }}
       className="nx-glass absolute inset-x-0 bottom-0 z-[10000] flex items-center gap-1 border-t border-nx-border px-2"
     >
+      {sidebarHidden && (
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label="Zijbalk tonen"
+          title="Zijbalk tonen"
+          className="grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text"
+        >
+          <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M9 4v16M13 10l2 2-2 2" />
+          </svg>
+        </button>
+      )}
       <button
         type="button"
         aria-label="Start"
         aria-expanded={startOpen}
         onClick={() => setStartOpen((v) => !v)}
-        className={`grid size-10 place-items-center rounded-lg ${startOpen ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-accent hover:bg-nx-surface-2'}`}
+        className={`grid size-10 place-items-center rounded-md ${startOpen ? 'bg-nx-accent text-nx-accent-text' : 'text-nx-text hover:bg-nx-surface-2 hover:text-nx-accent'}`}
       >
         <GridIcon />
       </button>
@@ -44,11 +60,12 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
               type="button"
               aria-pressed={active}
               onClick={() => dispatch(active ? { type: 'minimize', id: win.id } : { type: 'focus', id: win.id })}
-              className={`flex h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm ${
+              data-trace="bottom"
+              className={`flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm ${
                 active ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'
               } ${win.minimized ? 'opacity-60' : ''}`}
             >
-              <app.icon className="size-4 text-nx-accent" />
+              <app.icon className={`size-4 ${active ? 'text-nx-accent' : 'text-nx-muted'}`} />
               {win.title}
             </button>
           )

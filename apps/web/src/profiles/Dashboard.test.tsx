@@ -44,7 +44,7 @@ describe('Workspace Studio 2.0 dashboard', () => {
     const id = active().id
     profilesStore.updateProfile(id, { widgets: ['profile', 'clock', 'quick_note', 'shortcuts'], layout: {} })
     render(<Dashboard onOpenApp={() => {}} />)
-    expect(screen.getByText('ACTIEF')).toBeTruthy()
+    expect(screen.getByText('Actief')).toBeTruthy()
     expect(screen.getByText('Snelkoppelingen')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Snelle notitie' }), { target: { value: 'Boeken terugbrengen' } })
     fireEvent.click(screen.getByRole('button', { name: 'Notitie bewaren' }))

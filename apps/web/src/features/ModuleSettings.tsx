@@ -59,7 +59,7 @@ export function ModuleSettings() {
 function Group({ id, title, children }: { id: AppGroupId | 'extra'; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={`apps-${id}`} className="space-y-2">
-      <h3 id={`apps-${id}`} className="text-xs font-semibold tracking-wide text-nx-muted uppercase">
+      <h3 id={`apps-${id}`} className="text-xs font-semibold text-nx-muted">
         {title}
       </h3>
       <ul className="space-y-2">{children}</ul>

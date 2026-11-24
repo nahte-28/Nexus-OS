@@ -54,8 +54,8 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#0b1020',
-        theme_color: '#0b1020',
+        background_color: '#0c1310',
+        theme_color: '#0c1310',
         // Snelle notitie: long-press the app icon, or share text from another app to NEXUS.
         shortcuts: [
           { name: 'Snelle notitie', short_name: 'Notitie', url: '/snel', icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }] },
