@@ -43,6 +43,8 @@ export const WIDGET_APP: Partial<Record<WidgetId, AppId>> = {
   notifications: 'notifications',
   devices: 'devices',
   finance: 'finance',
+  habits: 'habits',
+  quick_note: 'notes',
 }
 
 /** The widgets whose app is on. */

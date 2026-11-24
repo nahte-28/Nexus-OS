@@ -91,3 +91,34 @@ test('Time Machine shows the change, restores and can undo the restore', async (
   await expect(check.getByText('Weg ermee').first()).toBeVisible()
   expect(errors).toEqual([])
 })
+
+test('dashboard: widgets verslepen met de muis, en een venster vastklikken aan de rand', async ({ page }) => {
+  await startWithEverything(page)
+  const later = page.getByRole('region', { name: 'Welkom' }).getByRole('button', { name: 'Later' })
+  if (await later.isVisible()) await later.click()
+  await page.getByRole('button', { name: 'Indeling aanpassen' }).click()
+  const widgets = page.locator('[data-widget]')
+  const first = await widgets.first().getAttribute('data-widget')
+  const second = widgets.nth(1)
+  const lastId = await second.getAttribute('data-widget')
+  const from = (await second.boundingBox())!
+  const to = (await widgets.first().boundingBox())!
+  await page.mouse.move(from.x + 30, from.y + 12)
+  await page.mouse.down()
+  await page.mouse.move(to.x + 30, to.y + 40, { steps: 8 })
+  await page.mouse.up()
+  await expect(widgets.first()).toHaveAttribute('data-widget', lastId!)
+  await expect(widgets.nth(1)).toHaveAttribute('data-widget', first!)
+  await page.getByRole('button', { name: 'Klaar' }).click()
+
+  const win = await open(page, 'Notities')
+  const head = (await win.locator('header').boundingBox())!
+  await page.mouse.move(head.x + 120, head.y + 15)
+  await page.mouse.down()
+  const main = (await page.getByRole('main', { name: 'Bureaublad' }).boundingBox())!
+  await page.mouse.move(main.x + 2, main.y + 300, { steps: 8 })
+  await page.mouse.up()
+  const snapped = (await win.boundingBox())!
+  expect(Math.round(snapped.x)).toBe(Math.round(main.x))
+  expect(Math.abs(snapped.width - main.width / 2)).toBeLessThan(2)
+})

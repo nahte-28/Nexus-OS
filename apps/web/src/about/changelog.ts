@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Een dashboard dat je scherm vult, en dat je zelf indeelt',
+    items: [
+      'Op een groot scherm vult het dashboard nu de hele ruimte: tot zes kolommen naast elkaar, en de widgets worden hoger tot het scherm vol is. Lege plekken vullen ze vanzelf op.',
+      'Met "Indeling aanpassen" (rechtsboven) sleep je widgets naar een andere plek en maak je ze groter of kleiner met de hoek rechtsonder, tot zes breed en vier hoog. Slepen werkt nu ook in de Windows-app en met je vinger. Ook de kaart met je profiel en "Volgende les" kan je nu verplaatsen.',
+      'Nieuwe widgets die je zelf kan toevoegen: Klok, Snelle notitie, Snelkoppelingen naar je apps en Gewoontes vandaag. Grote widgets tonen meer deadlines, notities en meldingen.',
+      'Vensters kan je aan elke rand en hoek groter of kleiner maken. Sleep een venster naar de linker- of rechterrand om het op de helft van het scherm te zetten, of naar boven om het schermvullend te maken.',
+      'NEXUS onthoudt waar je een venster liet en hoe groot het was, en opent het daar de volgende keer weer.',
+      'De Agenda (en Project Hub, Flow Studio, Teams en de Browser) openen nu ook op een laptopscherm schermvullend.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Wijzigingen in Google Agenda komen sneller door',
     items: [
       'Pas je in Google Agenda een afspraak aan, verplaats je ze of verwijder je ze, dan volgt NEXUS nu binnen een kwartier in plaats van na enkele uren. Kom je terug naar NEXUS of open je de Agenda, dan haalt NEXUS je agenda meteen opnieuw op.',
