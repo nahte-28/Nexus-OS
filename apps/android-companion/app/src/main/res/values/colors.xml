@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Het groen van NEXUS (accent van het thema Focus). -->
+    <!-- Het groen van NEXUS (accent van het thema Focus), voor meldingen. -->
     <color name="nexus_green">#17704C</color>
-    <!-- App-icoon: wit teken op groen. -->
-    <color name="nexus_background">@color/nexus_green</color>
-    <color name="nexus_accent">#FFFFFF</color>
+    <!-- App-icoon: koperen teken op een donkergroene printplaat, zoals het thema Pulse. -->
+    <color name="nexus_background">#12291F</color>
+    <color name="nexus_accent">#E9A35B</color>
 </resources>
