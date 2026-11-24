@@ -200,31 +200,14 @@ describe('App shell', () => {
     expect(screen.getByText(/^NEXUS OS v\d+\.\d+$/)).toBeTruthy()
   })
 
-  it('folds a group of the sidebar away and keeps it folded', () => {
+  it('shows the apps on the home screen, without a sidebar, and opens them from there', () => {
     mockViewport(false)
     renderApp()
-    const nav = screen.getByRole('navigation', { name: 'Apps' })
-    const header = within(nav).getByRole('button', { name: /^Planning/ })
-    expect(header.getAttribute('aria-expanded')).toBe('true')
-    fireEvent.click(header)
-    expect(within(nav).queryByRole('button', { name: 'Agenda' })).toBeNull()
-    expect(localStorage.getItem('nexus.sidebar.folded')).toBe('["planning"]')
-    fireEvent.click(header)
-    expect(within(nav).getByRole('button', { name: 'Agenda' })).toBeTruthy()
-  })
-
-  it('hides the sidebar and puts the apps on the home screen instead', () => {
-    mockViewport(false)
-    renderApp()
-    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk inklappen' }))
-    expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('1')
-    expect(screen.queryByRole('button', { name: 'Zijbalk inklappen' })).toBeNull()
+    expect(screen.queryByRole('complementary')).toBeNull()
     const home = within(screen.getByRole('region', { name: 'Dashboard' })).getByRole('navigation', { name: 'Apps' })
+    expect(within(home).getByRole('region', { name: 'Planning' })).toBeTruthy()
     fireEvent.click(within(home).getByRole('button', { name: 'Agenda' }))
     expect(screen.getByRole('dialog', { name: 'Agenda' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Zijbalk tonen' }))
-    expect(localStorage.getItem('nexus.sidebar.collapsed')).toBe('0')
-    expect(within(screen.getByRole('navigation', { name: 'Apps' })).getByRole('button', { name: /^Planning/ })).toBeTruthy()
   })
 
   it('switches profile, which changes the apps and the theme', () => {
@@ -285,14 +268,14 @@ describe('App shell', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Apps & widgets' }))
     fireEvent.click(within(screen.getByRole('list', { name: 'Apps' })).getByRole('button', { name: 'Meldingen omhoog' }))
     const nav = screen.getByRole('navigation', { name: 'Apps' })
-    const names = (group: string) => within(within(nav).getByRole('region', { name: group })).getAllByRole('button').map((b) => b.textContent)
-    // The sidebar is in groups; the profile's order stays inside each group.
+    const names = (group: string) => within(within(nav).getByRole('region', { name: group })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))
+    // The apps on the home screen are in groups; the profile's order stays inside each group.
     expect(profilesStore.getSnapshot().state.profiles.personal.apps.slice(8, 11)).toEqual(['insights', 'notifications', 'finance'])
-    expect(names('School').slice(1, 4)).toEqual(['Studie', 'Cijfers', 'Leerkaarten'])
-    expect(names('Planning').slice(1, 4)).toEqual(['Agenda', 'Notities', 'Bestanden'])
-    expect(names('Persoonlijk').slice(1, 5)).toEqual(['Gewoontes', 'Dagboek', 'Inzichten', 'Financiën'])
+    expect(names('School').slice(0, 3)).toEqual(['Studie', 'Cijfers', 'Leerkaarten'])
+    expect(names('Planning').slice(0, 3)).toEqual(['Agenda', 'Notities', 'Bestanden'])
+    expect(names('Persoonlijk').slice(0, 4)).toEqual(['Gewoontes', 'Dagboek', 'Inzichten', 'Financiën'])
     // (Ontwikkelaar may still show from the developer-mode test above.)
-    expect(names('Systeem').filter((t) => t !== 'Ontwikkelaar').slice(1, 3)).toEqual(['Meldingen', 'Apparaten'])
+    expect(names('Systeem').filter((t) => t !== 'Ontwikkelaar').slice(0, 2)).toEqual(['Meldingen', 'Apparaten'])
 
     fireEvent.click(screen.getByRole('tab', { name: 'Uiterlijk' }))
     fireEvent.click(screen.getByRole('radio', { name: 'Groen' }))

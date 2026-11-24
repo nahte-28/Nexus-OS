@@ -25,7 +25,7 @@ const EDGES: Array<{ edge: ResizeEdge; className: string }> = [
   { edge: 'se', className: 'bottom-0 right-0 size-4 cursor-nwse-resize' },
 ]
 
-/** The desktop area the windows live in (next to the sidebar, above the taskbar). */
+/** The desktop area the windows live in (above the taskbar). */
 function areaOf(el: HTMLElement): DOMRect {
   return (el.closest('main') ?? document.body).getBoundingClientRect()
 }
