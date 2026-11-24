@@ -1,4 +1,5 @@
 import { NexusMark } from '../shell/NexusMark'
+import { useMinute } from '../state/useNow'
 import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import {
   activeHabits,
@@ -51,15 +52,6 @@ type OpenApp = (id: AppId) => void
 const STUDY_PROMPTS = ['Maak een studieplanning voor mijn deadlines', 'Overhoor me over mijn laatste notitie']
 
 /** Re-renders every minute, so "next class" and greetings stay current. */
-function useMinute(): number {
-  const [now, setNow] = useState(Date.now)
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 60_000)
-    return () => clearInterval(t)
-  }, [])
-  return now
-}
-
 function greeting(now: number): string {
   const h = new Date(now).getHours()
   return h < 6 ? 'Goedenacht' : h < 12 ? 'Goedemorgen' : h < 18 ? 'Goedemiddag' : 'Goedenavond'

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { AppId } from '@nexus/core'
 import { getApp } from '../apps/registry'
 import { BellIcon, CloudIcon } from '../apps/icons'
@@ -10,6 +10,7 @@ import { useWindows } from '../state/WindowsContext'
 import { SearchButton } from '../search/SearchButton'
 import { CaptureButton } from '../capture/QuickCaptureHost'
 import { StartMenu } from './StartMenu'
+import { useMinute } from '../state/useNow'
 import { NexusGlyph } from '../shell/NexusMark'
 
 export const TASKBAR_HEIGHT = 52
@@ -75,11 +76,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
 }
 
 function Clock() {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 15_000)
-    return () => clearInterval(t)
-  }, [])
+  const now = new Date(useMinute())
   return (
     <time dateTime={now.toISOString()} className="px-3 text-right text-xs leading-tight text-nx-muted tabular-nums">
       <span className="block text-sm text-nx-text">{now.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span>
