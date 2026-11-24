@@ -22,7 +22,7 @@ export function OfflineBanner({ bottom }: { bottom: number }) {
   return (
     <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-50 flex justify-center px-3" style={{ bottom }}>
       {!online && (
-        <p className="nx-glass max-w-md rounded-full border border-nx-border px-4 py-1.5 text-center text-xs shadow">
+        <p className="nx-glass nx-enter-toast-up max-w-md rounded-full border border-nx-border px-4 py-1.5 text-center text-xs shadow">
           <span className="font-semibold">Offline.</span> Alles op dit toestel blijft werken; sync, NEXUS AI en Connect gaan verder zodra je weer online bent.
         </p>
       )}

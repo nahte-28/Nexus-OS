@@ -26,7 +26,7 @@ export function SpaceSuggestion() {
 
   if (!offer) return null
   return (
-    <div role="status" className="nx-glass absolute top-3 left-1/2 z-[60] flex max-w-[90%] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-nx-border px-4 py-2 text-sm shadow-lg">
+    <div role="status" className="nx-glass nx-enter-toast-down absolute top-3 left-1/2 z-[60] flex max-w-[90%] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-nx-border px-4 py-2 text-sm shadow-lg">
       <span>
         Profiel {active.name} staat aan. Je Space {offer.icon} {offer.name} openen?
       </span>

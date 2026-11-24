@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-24',
+    title: 'Rustige, vloeiende beweging',
+    items: [
+      'Vensters, het Start-menu en de rondleiding komen nu zacht tevoorschijn in plaats van plots te verschijnen. Meldingen onderaan schuiven omhoog, het voorstel van Spaces schuift van boven binnen.',
+      'Zoeken (Ctrl+K) en Snel vastleggen openen bewust nog altijd meteen: die gebruik je vaak met het toetsenbord.',
+      'De schakelaars in Control Center glijden nu, zoals die in Instellingen.',
+      'Het Start-menu past altijd op je scherm: met veel apps kan je erin scrollen, en het zoekveld bovenaan blijft zichtbaar.',
+      'Vraag je in je systeem om minder beweging, dan gebeurt alles meteen.',
+    ],
+  },
+  {
+    date: '2026-11-24',
     title: 'Een donkergroen app-icoon, overal hetzelfde',
     items: [
       'Het icoon van NEXUS is nu een koperen N op donkergroen, de kleuren van NEXUS zelf, op je gsm, je horloge en je laptop. Na de volgende update van de app zie je het nieuwe icoon; soms moet je de app daarvoor opnieuw installeren.',
