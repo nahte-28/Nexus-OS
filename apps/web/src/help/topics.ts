@@ -212,6 +212,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Je voert alles zelf in: NEXUS koppelt geen gameplatform en leest niets uit.',
       'Noteer na het spelen een sessie; Statistieken toont je speeltijd per week en per game.',
       'Met Spotify gekoppeld (Instellingen › Spotify) start je gamingplaylist zodra je de Gaming-timer start, ook vanaf je horloge.',
+      'Discord-status: in de Windows- of Linux-app zien je vrienden op Discord wat je speelt zolang de Gaming-timer loopt, als Discord op die pc open staat. Aan- of uitzetten, en of de naam van de game te zien is, doe je in Instellingen › Discord.',
       'Builds bewaren een loadout of instellingen met tags, en kopieer je met één klik.',
       'Met een plan in uren per week waarschuwt de app vanaf 80 % en als je erover gaat.',
       'Op het dashboard van Gaming start je de timer: het profiel Gaming staat aan tot je stopt, en de sessie komt vanzelf in je logboek.',

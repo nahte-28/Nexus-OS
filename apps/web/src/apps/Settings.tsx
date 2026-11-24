@@ -3,6 +3,7 @@ import { THEMES } from '@nexus/core'
 import { BackupSection } from '../backup/BackupSection'
 import { ModuleSettings } from '../features/ModuleSettings'
 import { SpotifySettings } from '../spotify/SpotifySettings'
+import { DiscordSettings } from '../gaming/DiscordSettings'
 import { startTour } from '../onboarding/Tour'
 import { setDeveloperMode, useDeveloperMode } from '../devtools/log'
 import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
@@ -50,6 +51,7 @@ export function Settings() {
         </button>
       </fieldset>
       <SpotifySettings />
+      <DiscordSettings />
       <BackupSection />
       <BetaSettings />
       <ModuleSettings />
