@@ -3,6 +3,7 @@ import { mergeFirstSync, parseProfilesState, type ProfilesState } from '@nexus/c
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from '../state/storage'
 import { profilesStore, type ProfilesStore } from './store'
+import { watchSetting } from '../sync/settingsChannel'
 
 const KEY = 'profiles'
 /** The account this device last synced profiles with; a new account means a first sync. */
@@ -193,10 +194,8 @@ export function startProfilesSync(client: SupabaseClient | null, store: Profiles
   document.addEventListener('visibilitychange', onVisible)
   window.addEventListener('online', now)
   const poll = setInterval(now, POLL_MS)
-  const channel = client
-    .channel('settings-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_settings' }, now)
-    .subscribe()
+  // Shared with every other synced document; wakes profiles only when the profiles row changes.
+  const unwatch = watchSetting(client, KEY, now)
 
   return () => {
     clearTimeout(debounce)
@@ -205,6 +204,6 @@ export function startProfilesSync(client: SupabaseClient | null, store: Profiles
     data.subscription.unsubscribe()
     document.removeEventListener('visibilitychange', onVisible)
     window.removeEventListener('online', now)
-    void client.removeChannel(channel)
+    unwatch()
   }
 }

@@ -2,6 +2,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { refreshChannels, registerChannel, reportSync } from '../offline/channels'
 import { logEvent } from '../devtools/log'
 import { readStorage, writeStorage } from './storage'
+import { watchSetting } from '../sync/settingsChannel'
 
 /**
  * A small document that lives on this device (localStorage) and, with an account, in one row of
@@ -230,10 +231,13 @@ export function startDocSync<T extends { revision: number }>(
   const onVisible = () => document.visibilityState === 'visible' && now()
   document.addEventListener('visibilitychange', onVisible)
   window.addEventListener('online', now)
+  // Another device changed this document: sync now, not at the next poll.
+  const unwatch = watchSetting(client, options.key, now)
   const poll = setInterval(now, 5 * 60_000)
   return () => {
     clearTimeout(debounce)
     clearInterval(poll)
+    unwatch()
     unsubscribe()
     unregister()
     data.subscription.unsubscribe()

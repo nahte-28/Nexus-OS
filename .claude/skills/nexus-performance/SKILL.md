@@ -24,7 +24,8 @@ before and after any change that could slow it down.
 - **Tree-shaking**: `@nexus/core` has `"sideEffects": false`; keep core modules free of
   top-level side effects (no work at import time).
 - **Batched sync**: `pullSetting` groups everything requested within `PULL_BATCH_MS` (20 ms)
-  into one `select ... in (keys)`; each document syncs once per sign-in, polls every 5 minutes,
+  into one `select ... in (keys)`; each document syncs once per sign-in, wakes through the one shared realtime channel
+  (`watchSetting` in `sync/settingsChannel.ts`) when its row changes elsewhere, polls every 5 minutes,
   and on return to NEXUS. Don't add per-document polling loops.
 - **Motion**: only `opacity`/`transform`, no `transition-all`, no layout animation; window drag
   and dashboard drag use pointer events (HTML5 drag-and-drop fails in Tauri on Windows).
