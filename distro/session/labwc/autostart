@@ -6,3 +6,5 @@ for agent in /usr/libexec/polkit-mate-authentication-agent-1 /usr/lib/mate-polki
     break
   fi
 done
+# In VirtualBox: the clipboard shared with the computer around it (copy there, paste in NEXUS).
+[ -x /usr/lib/nexus-session/vbox-clipboard ] && /usr/lib/nexus-session/vbox-clipboard >/dev/null 2>&1 &

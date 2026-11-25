@@ -1,0 +1,14 @@
+#!/bin/sh
+# Shows in the build log whether VBoxClient (shared clipboard in VirtualBox) finds all its
+# libraries in this system; a missing one only costs the shared clipboard, so this never fails.
+for f in /opt/nexus-vbox/bin/VBoxClient /opt/nexus-vbox/bin/vboxwl; do
+  [ -x "$f" ] || continue
+  missing=$(ldd "$f" 2>/dev/null | grep 'not found' || true)
+  if [ -n "$missing" ]; then
+    echo "Ontbrekende bibliotheken voor $f:"
+    echo "$missing"
+  else
+    echo "$f: alle bibliotheken aanwezig"
+  fi
+done
+exit 0

@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Plakken in NEXUS OS in VirtualBox',
+    items: [
+      'Wat je op je eigen pc kopieert, plak je nu ook in NEXUS OS in VirtualBox, bijvoorbeeld je e-mailadres en wachtwoord bij Account. Zet daarvoor in het VM-venster Apparaten › Gedeeld klembord op Bidirectioneel.',
+      'Het werkt ook andersom: wat je in NEXUS kopieert, plak je op je pc. Werk VirtualBox op je pc bij naar de nieuwste versie als het niet meteen lukt.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Je lessen in Google Agenda',
     items: [
       'In Profielen › Lesrooster maak je onder "In Google Agenda zetten" een geheime agendalink. Voeg die in Google Agenda toe via Andere agenda\'s › + › Via URL, en je lessen uit NEXUS staan ook daar, in een agenda die NEXUS heet.',
