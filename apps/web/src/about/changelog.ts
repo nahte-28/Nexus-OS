@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Meteen bijgewerkt op al je apparaten',
+    items: [
+      'Vink je een gewoonte af op je gsm, of pas je een doel, cijfer of contact aan, dan staat dat binnen enkele seconden op je laptop als NEXUS daar openstaat. Vroeger kon dat tot vijf minuten duren.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'NEXUS start sneller op je gsm',
     items: [
       'Bij het opstarten laadt NEXUS niet langer de code van Teams, Vrienden en Darts mee; die komt pas als je ze nodig hebt. Op een trage gsm staat je startscherm daardoor ongeveer een tiende sneller klaar.',
