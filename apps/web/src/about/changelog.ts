@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'NEXUS start sneller op je gsm',
+    items: [
+      'Bij het opstarten laadt NEXUS niet langer de code van Teams, Vrienden en Darts mee; die komt pas als je ze nodig hebt. Op een trage gsm staat je startscherm daardoor ongeveer een tiende sneller klaar.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Alle apps voelen hetzelfde aan',
     items: [
       'Tabbladen zien er in elke app hetzelfde uit, met het koperen lijntje onder het tabblad waar je bent. Met de pijltjestoetsen ga je van tabblad naar tabblad, met Home en End naar het eerste en laatste.',

@@ -4,7 +4,7 @@ import { useDeveloperMode } from '../devtools/log'
 import { isLinuxApp, openWebApp } from '../platform/desktop'
 import { useFlowStudioEnabled } from '../flows/store'
 import { useAppSwitches, useFeatureSwitches } from '../features/store'
-import { useIsAdmin } from '../admin/admin'
+import { useIsAdmin } from '../admin/flag'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { AccountIcon, AlarmIcon, BellIcon, BookIcon, CalendarIcon, FolderIcon, CodeIcon, GradesIcon, HabitIcon,
   CardsIcon, ChartIcon, JournalIcon, WalletIcon, DevicesIcon, FlowIcon, HelpIcon, InboxIcon, SpacesIcon, HistoryIcon, BridgeIcon, BulbIcon, PuzzleIcon, InfoIcon, LayersIcon, NotesIcon, QuickNoteIcon, SettingsIcon, SunIcon, BoardIcon, LibraryIcon, FlaskIcon, GamepadIcon, SparkIcon, TeamIcon, ControlIcon, TimerIcon, ShieldIcon, OfflineIcon, StoreIcon, DartsIcon, GoalIcon, ClockIcon, CalculatorIcon, WeatherIcon, ContactsIcon, GlobeIcon, TerminalIcon, SlidersIcon, FriendsIcon, AdminIcon } from './icons'
