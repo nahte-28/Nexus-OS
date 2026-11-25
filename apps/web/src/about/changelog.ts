@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Je gegevens op dit toestel beter bewaard',
+    items: [
+      'NEXUS vraagt je browser nu om je gegevens te bewaren, ook als je schijf bijna vol raakt. Chrome en Edge beslissen dat zelf; Firefox vraagt het je één keer.',
+      'Zit de opslag van je browser vol, dan zegt NEXUS het meteen in plaats van je wijziging stil te verliezen. In het Offline-centrum zie je hoeveel ruimte NEXUS gebruikt en of je browser alles bewaart.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Bijwerken met één knop',
     items: [
       'Staat er een nieuwe versie van NEXUS klaar in je browser of op je gsm, dan krijg je onderaan een melding. Met "Bijwerken" schakel je meteen over; zelf vernieuwen hoeft niet meer.',

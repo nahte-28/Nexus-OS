@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { agoText, OFFLINE_LEVEL_LABELS, OFFLINE_MODULES, offlineSummary, type OfflineLevel, type SyncOutcome } from '@nexus/core'
+import { useEffect, useState } from 'react'
+import { agoText, storageSummary, OFFLINE_LEVEL_LABELS, OFFLINE_MODULES, offlineSummary, type OfflineLevel, type SyncOutcome } from '@nexus/core'
 import { clearHistory, syncAll, useOffline } from '../offline/channels'
 import { openApp } from '../shell/openApp'
 import { useOnline } from '../shell/OfflineBanner'
 import { useNow } from '../state/useNow'
 import { useSync } from '../sync/SyncContext'
+import { refreshEstimate, requestPersistence, useStorageFacts } from '../state/storageHealth'
 
 const TABS = ['Overzicht', 'Wachtrij', 'Samengevoegd', 'Geschiedenis', 'Per app'] as const
 type Tab = (typeof TABS)[number]
@@ -84,6 +85,7 @@ export function OfflineCenter() {
                 </button>
               )}
             </div>
+            <StorageCard />
             {channels.length > 0 && (
               <ul className="space-y-1" aria-label="Onderdelen die syncen">
                 {channels.map((c) => (
@@ -185,6 +187,37 @@ export function OfflineCenter() {
           </section>
         )}
       </div>
+    </div>
+  )
+}
+
+/** How full this device's storage is, whether the browser keeps it, and a failed save if any. */
+function StorageCard() {
+  const facts = useStorageFacts()
+  const [asked, setAsked] = useState<string | null>(null)
+  useEffect(() => void refreshEstimate(), [])
+  const summary = storageSummary(facts)
+  const ask = async () => {
+    const kept = await requestPersistence()
+    setAsked(kept ? 'Je browser bewaart nu alles van NEXUS.' : 'Je browser zei nee. Installeer NEXUS als app of meld je aan, dan staat alles ook online.')
+  }
+  return (
+    <div className={`rounded-lg border p-3 ${summary.level === 'full' || summary.level === 'warn' ? 'border-nx-accent' : 'border-nx-border'}`} aria-label="Opslag op dit toestel" role="group">
+      <p className="font-medium">{summary.title}</p>
+      {summary.ratio !== null && summary.level !== 'full' && (
+        <div className="my-2 h-1.5 overflow-hidden rounded-full bg-nx-surface-2" role="meter" aria-label="Gebruikte opslag" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(summary.ratio * 100)}>
+          <div className="h-full rounded-full bg-nx-accent" style={{ width: `${Math.max(2, summary.ratio * 100)}%` }} />
+        </div>
+      )}
+      <p className="text-xs text-nx-muted">{summary.detail}</p>
+      {facts.persisted === false && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" className={small} onClick={() => void ask()}>
+            Vraag de browser om alles te bewaren
+          </button>
+          {asked && <span role="status" className="text-xs">{asked}</span>}
+        </div>
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { getApp, useVisibleApps } from '../apps/registry'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { UpdatePrompt } from '../shell/UpdatePrompt'
+import { StorageNotice } from '../shell/StorageNotice'
 import { AskName } from '../shell/AskName'
 import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
@@ -84,6 +85,7 @@ export function MobileShell() {
       <QuickCaptureHost />
       <OfflineBanner bottom={80} />
       <UpdatePrompt bottom={80} />
+      <StorageNotice bottom={80} />
       <Suspense fallback={null}>
         <WhatsNew bottom={80} />
       </Suspense>

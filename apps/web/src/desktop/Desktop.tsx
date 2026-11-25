@@ -4,6 +4,7 @@ import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { UpdatePrompt } from '../shell/UpdatePrompt'
+import { StorageNotice } from '../shell/StorageNotice'
 import { AskName } from '../shell/AskName'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
@@ -70,6 +71,7 @@ export function Desktop() {
       <QuickCaptureHost />
       <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
       <UpdatePrompt bottom={TASKBAR_HEIGHT + 8} />
+      <StorageNotice bottom={TASKBAR_HEIGHT + 8} />
       <Suspense fallback={null}>
         <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
       </Suspense>

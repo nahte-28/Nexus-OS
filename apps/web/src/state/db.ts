@@ -1,3 +1,5 @@
+import { reportWriteFailure } from './storageHealth'
+
 /** Minimal IndexedDB wrapper: one object store per collection plus a key/value "meta" store. */
 
 const DB_NAME = 'nexus'
@@ -37,9 +39,14 @@ export function openDb(): Promise<IDBDatabase> {
 
 function done(tx: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
+    const fail = () => {
+      // A full disk aborts the transaction with QuotaExceededError: tell the shell, not only the caller.
+      reportWriteFailure(tx.error, [...tx.objectStoreNames].join(', '))
+      reject(tx.error)
+    }
     tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-    tx.onabort = () => reject(tx.error)
+    tx.onerror = fail
+    tx.onabort = fail
   })
 }
 
