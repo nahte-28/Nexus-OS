@@ -70,6 +70,24 @@ describe('App shell', () => {
     expect(screen.queryByRole('dialog', { name: 'Notities' })).toBeNull()
   })
 
+  it('switches, minimizes and closes windows with the keyboard', async () => {
+    mockViewport(false)
+    renderApp()
+    for (const name of ['Notities', 'Rekenmachine']) {
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+      fireEvent.click(await screen.findByRole('menuitem', { name }))
+    }
+    const front = () => within(screen.getByRole('navigation', { name: 'Geopende vensters' })).getByRole('button', { pressed: true }).textContent?.trim()
+    expect(front()).toBe('Rekenmachine')
+    fireEvent.keyDown(window, { key: '²', code: 'Backquote', altKey: true })
+    expect(front()).toBe('Notities')
+    fireEvent.keyDown(window, { key: 'ArrowDown', altKey: true, shiftKey: true })
+    expect(screen.queryByRole('dialog', { name: 'Notities' })).toBeNull()
+    expect(front()).toBe('Rekenmachine')
+    fireEvent.keyDown(window, { key: 'W', code: 'KeyW', altKey: true, shiftKey: true })
+    expect(screen.queryByRole('dialog', { name: 'Rekenmachine' })).toBeNull()
+  })
+
   it('brings the open windows back after a restart, the front one still in front', async () => {
     mockViewport(false)
     const first = renderApp()

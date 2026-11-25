@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Vensters met het toetsenbord',
+    items: [
+      'Alt+² (de toets links van 1; Alt+` op een QWERTY-toetsenbord) gaat naar het volgende venster, met Shift erbij naar het vorige. Een geminimaliseerd venster komt zo ook terug.',
+      'Alt+Shift+← of → klikt het venster vast aan de linker- of rechterhelft, Alt+Shift+↑ maximaliseert, Alt+Shift+↓ minimaliseert en Alt+Shift+W sluit het. Alle sneltoetsen staan in Snel vastleggen › Sneltoetsen.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Je vensters komen terug',
     items: [
       'Herlaad je NEXUS of start je de Windows-app opnieuw, dan staan je vensters weer open waar je ze liet, ook geminimaliseerd of gemaximaliseerd, en het venster dat vooraan stond, staat weer vooraan.',
