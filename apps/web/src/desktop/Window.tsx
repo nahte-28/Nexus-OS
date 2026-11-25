@@ -122,9 +122,9 @@ export function Window({ win, focused }: Props) {
         hidden={win.minimized}
         style={style}
         onPointerDown={() => !focused && dispatch({ type: 'focus', id: win.id })}
-        className={`nx-glass nx-enter-window absolute flex flex-col overflow-hidden border ${
+        className={`nx-window nx-enter-window absolute flex flex-col overflow-hidden border ${
           win.maximized ? 'rounded-none' : 'rounded-xl'
-        } border-nx-border ${focused ? '' : 'opacity-[0.97]'}`}
+        } border-nx-border`}
       >
         <header
           onPointerDown={startDrag('move')}

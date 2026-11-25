@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Vensters zonder doorschijnen',
+    items: [
+      'Vensters op het bureaublad zijn nu helemaal dekkend, in Focus en in Pulse: de tekst van je dashboard schijnt niet meer door wat je aan het lezen bent. Welk venster vooraan staat, zie je aan de titel en het koperen lijntje.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'NEXUS start sneller op je gsm',
     items: [
       'Bij het opstarten laadt NEXUS niet langer de code van Teams, Vrienden en Darts mee; die komt pas als je ze nodig hebt. Op een trage gsm staat je startscherm daardoor ongeveer een tiende sneller klaar.',
