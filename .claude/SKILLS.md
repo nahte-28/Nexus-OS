@@ -57,6 +57,20 @@ repo; install them per machine with the commands at the bottom (checked 2026-11-
   `codebase-design` skill that isn't installed. Use only when Ethan asks for a refactor review;
   never rewrite working modules on its say-so.
 
+## Added 2026-11-25 (Product Excellence)
+
+| Skill | Use for | Note |
+|---|---|---|
+| impeccable (pbakaus) | critique, polish, delight, animate of a screen | One skill now (`--skill impeccable`; the old names critique/polish/delight/animate no longer exist). Its launcher downloads a binary; if it fails, read PRODUCT/DESIGN context directly. Its "replace the visual world" mode does not apply: refinement only, `nexus-design-system` wins. |
+| extract-design-system | writing the Werkbank tokens down as a DESIGN.md | Read-only on the code; the source of truth stays `index.css` + `nexus-design-system`. |
+| micro-interaction (iart-ai) | press feedback, list add/remove, small transitions | Use the motion tokens in `index.css` (`--ease-out`), only `opacity`/`transform`, no animation on keyboard-opened UI (search, quick capture). |
+| web-quality-audit, performance, core-web-vitals, accessibility, best-practices (addyosmani) | audits with Lighthouse and the e2e axe run | Measure first (Lighthouse on `vite preview`, note it is uncompressed). Startup rules in `nexus-performance` win over their generic budgets. |
+| charting (mthines) | charts in Inzichten, Cijfers, dashboard widgets | `nx-*` colours only; empty states for no data. |
+| i18n (tartinerlabs) | consistent Dutch (nl-BE), dates and numbers | NEXUS is nl-BE only; do not add a multi-language framework unless Ethan asks. |
+| mcp-builder (anthropics) | a NEXUS MCP server for AI assistants | Security first: `nexus-security`, read-only scopes, explicit consent per scope. |
+
+The analysis that used these is in [docs/product-excellence.md](../docs/product-excellence.md).
+
 ## Install (per machine, optional)
 
 ```bash
@@ -81,3 +95,15 @@ npx skills add mattpocock/skills --skill improve-codebase-architecture
 
 In the Claude cloud sessions superpowers, frontend-design and skill-creator are already
 available as plugins.
+npx skills add pbakaus/impeccable --skill impeccable
+npx skills add arvindrk/extract-design-system --skill extract-design-system
+npx skills add iart-ai/web-animation-skills --skill micro-interaction
+npx skills add addyosmani/web-quality-skills --skill web-quality-audit
+npx skills add addyosmani/web-quality-skills --skill performance
+npx skills add addyosmani/web-quality-skills --skill core-web-vitals
+npx skills add addyosmani/web-quality-skills --skill accessibility
+npx skills add addyosmani/web-quality-skills --skill best-practices
+npx skills add mthines/agent-skills --skill charting
+npx skills add tartinerlabs/skills --skill i18n
+npx skills add anthropics/skills --skill mcp-builder
+```
