@@ -77,8 +77,11 @@ import { startSafetyNet } from './safety/plan'
 import { startReminderScheduler } from './reminders/store'
 import { startUpdateChecks } from './platform/update'
 import { supabase } from './sync/supabase'
+import { startStorageHealth } from './state/storageHealth'
 
 
+// Ask the browser to keep NEXUS' data when the disk runs low, and learn how full storage is.
+startStorageHealth()
 // Automations run as long as NEXUS is open somewhere on this device.
 startReminderScheduler(reminderDelivery(defaultEngine))
 // Flow Studio's automations, under the same rule: only while NEXUS is open on this device.
