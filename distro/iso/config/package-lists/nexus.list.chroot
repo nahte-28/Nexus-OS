@@ -9,6 +9,11 @@ xdg-desktop-portal-gtk
 fonts-noto-core
 fonts-noto-color-emoji
 adwaita-icon-theme
+# Libraries of VBoxClient (shared clipboard in VirtualBox, see distro/iso/vbox-additions.sh)
+libx11-6
+libxrandr2
+libxt6t64
+libxmu6
 
 # Sound, brightness, network, power
 pipewire-audio

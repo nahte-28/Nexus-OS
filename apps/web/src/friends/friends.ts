@@ -121,7 +121,9 @@ export function myFriendLink(code: string): string {
 }
 
 export const pendingFriend = (): string | null => readStorage(PENDING_KEY) || null
-export const clearPendingFriend = (): void => writeStorage(PENDING_KEY, '')
+export const clearPendingFriend = (): void => {
+  writeStorage(PENDING_KEY, '')
+}
 
 /** NEXUS was opened with a friend link (/vriend/ABCD-EFGH): keeps the code and opens Vrienden. */
 export function openFriendFromUrl(location: Pick<Location, 'pathname' | 'hash'> = window.location): boolean {

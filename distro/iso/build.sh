@@ -25,6 +25,15 @@ install -D -m 644 "$session/nexus.desktop" "$inc/usr/share/wayland-sessions/nexu
 install -D -m 755 "$session/nexus-session" "$inc/usr/bin/nexus-session"
 install -D -m 755 "$session/keep-nexus" "$inc/usr/lib/nexus-session/keep-nexus"
 install -D -m 755 "$session/nexus-system-upgrade" "$inc/usr/libexec/nexus-system-upgrade"
+install -D -m 755 "$session/vbox-clipboard" "$inc/usr/lib/nexus-session/vbox-clipboard"
+# Shared clipboard in VirtualBox: VBoxClient from the Guest Additions (vbox-additions.sh), when
+# that download worked; without it the ISO still builds, only without the shared clipboard.
+if [ -n "${NEXUS_VBOX_DIR:-}" ] && [ -x "$NEXUS_VBOX_DIR/bin/VBoxClient" ]; then
+  mkdir -p "$inc/opt/nexus-vbox"
+  cp -r "$NEXUS_VBOX_DIR/." "$inc/opt/nexus-vbox/"
+else
+  echo "Zonder VirtualBox Guest Additions: geen gedeeld klembord in VirtualBox."
+fi
 for f in rc.xml menu.xml environment autostart; do
   install -D -m 644 "$session/labwc/$f" "$inc/usr/share/nexus-session/labwc/$f"
 done

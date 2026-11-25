@@ -13,6 +13,37 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Minimaliseren onthoudt waar je was',
+    items: [
+      'Minimaliseer je een venster op het bureaublad, dan blijft alles staan zoals je het liet: half getypte tekst, waar je gescrold had en een timer die loopt. Klik het in de taakbalk terug en je gaat verder waar je stopte.',
+    ],
+  },
+  {
+    date: '2026-11-25',
+    title: 'Je gegevens op dit toestel beter bewaard',
+    items: [
+      'NEXUS vraagt je browser nu om je gegevens te bewaren, ook als je schijf bijna vol raakt. Chrome en Edge beslissen dat zelf; Firefox vraagt het je één keer.',
+      'Zit de opslag van je browser vol, dan zegt NEXUS het meteen in plaats van je wijziging stil te verliezen. In het Offline-centrum zie je hoeveel ruimte NEXUS gebruikt en of je browser alles bewaart.',
+    ],
+  },
+  {
+    date: '2026-11-25',
+    title: 'Bijwerken met één knop',
+    items: [
+      'Staat er een nieuwe versie van NEXUS klaar in je browser of op je gsm, dan krijg je onderaan een melding. Met "Bijwerken" schakel je meteen over; zelf vernieuwen hoeft niet meer.',
+      'NEXUS herlaadt niet meer vanzelf terwijl je bezig bent. Kies je "Later", dan werk je verder en krijg je de nieuwe versie bij de volgende start.',
+    ],
+  },
+  {
+    date: '2026-11-25',
+    title: 'Plakken in NEXUS OS in VirtualBox',
+    items: [
+      'Wat je op je eigen pc kopieert, plak je nu ook in NEXUS OS in VirtualBox, bijvoorbeeld je e-mailadres en wachtwoord bij Account. Zet daarvoor in het VM-venster Apparaten › Gedeeld klembord op Bidirectioneel.',
+      'Het werkt ook andersom: wat je in NEXUS kopieert, plak je op je pc. Werk VirtualBox op je pc bij naar de nieuwste versie als het niet meteen lukt.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Je lessen in Google Agenda',
     items: [
       'In Profielen › Lesrooster maak je onder "In Google Agenda zetten" een geheime agendalink. Voeg die in Google Agenda toe via Andere agenda\'s › + › Via URL, en je lessen uit NEXUS staan ook daar, in een agenda die NEXUS heet.',

@@ -43,7 +43,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // A new version waits for "Bijwerken" in the popup (shell/UpdatePrompt.tsx).
+      registerType: 'prompt',
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'NEXUS OS',
@@ -76,6 +77,8 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Shows web-push notifications, also when NEXUS is closed (see public/push-sw.js).
         importScripts: ['push-sw.js'],
+        // The very first install takes over the open page at once, so it works offline right away.
+        clientsClaim: true,
       },
     }),
   ],

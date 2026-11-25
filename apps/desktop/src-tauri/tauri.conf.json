@@ -46,6 +46,7 @@
           "/usr/share/wayland-sessions/nexus.desktop": "../../../distro/session/nexus.desktop",
           "/usr/bin/nexus-session": "../../../distro/session/nexus-session",
           "/usr/lib/nexus-session/keep-nexus": "../../../distro/session/keep-nexus",
+          "/usr/lib/nexus-session/vbox-clipboard": "../../../distro/session/vbox-clipboard",
           "/usr/libexec/nexus-system-upgrade": "../../../distro/session/nexus-system-upgrade",
           "/usr/share/nexus-session/labwc/rc.xml": "../../../distro/session/labwc/rc.xml",
           "/usr/share/nexus-session/labwc/menu.xml": "../../../distro/session/labwc/menu.xml",
