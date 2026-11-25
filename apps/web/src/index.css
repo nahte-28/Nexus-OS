@@ -36,6 +36,8 @@
   --nx-hole: rgb(19 29 24 / 0.13);
   --nx-rail: rgb(23 112 76 / 0.16);
   --nx-surface: #fbfcfa;
+  /* App windows: always solid, so the desktop never shows through a window. */
+  --nx-window: #fbfcfa;
   --nx-surface-2: #eef2ee;
   --nx-border: #cdd5cf;
   --nx-text: #131d18;
@@ -53,6 +55,7 @@
   --nx-hole: rgb(230 236 229 / 0.07);
   --nx-rail: rgb(233 163 91 / 0.14);
   --nx-surface: rgb(19 28 24 / 0.94);
+  --nx-window: rgb(19 28 24);
   --nx-surface-2: rgb(33 46 40 / 0.78);
   --nx-border: rgb(230 236 229 / 0.11);
   --nx-text: #e6ebe5;
@@ -105,6 +108,12 @@ h3 {
   background: var(--nx-surface);
   backdrop-filter: blur(var(--nx-blur));
   -webkit-backdrop-filter: blur(var(--nx-blur));
+  box-shadow: var(--nx-shadow);
+}
+
+/* An app window: a solid sheet, so text on the desktop never shows through what you read. */
+.nx-window {
+  background: var(--nx-window);
   box-shadow: var(--nx-shadow);
 }
 
