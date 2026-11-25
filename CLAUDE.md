@@ -42,7 +42,8 @@ Testing Library, Playwright + axe. `packages/core`: pure TypeScript-logica met t
   Vermijd plpgsql `select … into` in publieke functies.
 - **Beveiliging**: nooit Supabase-, VAPID-, push- of AI-geheimen in code, logs of chat; alleen de
   anon/publishable key en publieke client-ID's mogen in de bundel. Meldingsinhoud alleen
-  end-to-end versleuteld. NEXUS AI doet niets zonder goedkeuring per actie.
+  end-to-end versleuteld. NEXUS AI doet niets zonder goedkeuring per actie, tenzij de
+  gebruiker zelf "altijd toestaan" koos voor die actie (zijn verantwoordelijkheid; intrekbaar in AI-privacy).
 - **Modules**: registreren in `core/modules.ts` (`MODULES`), `features.ts`, `windows.ts`,
   `apps/registry.tsx`, `apps/web/e2e/helpers.ts`; nieuwe documentsleutels ook in de back-up
   (`BACKUP_DOCS`). Zie `nexus-module-builder`.
