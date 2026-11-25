@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Minimaliseren onthoudt waar je was',
+    items: [
+      'Minimaliseer je een venster op het bureaublad, dan blijft alles staan zoals je het liet: half getypte tekst, waar je gescrold had en een timer die loopt. Klik het in de taakbalk terug en je gaat verder waar je stopte.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Je gegevens op dit toestel beter bewaard',
     items: [
       'NEXUS vraagt je browser nu om je gegevens te bewaren, ook als je schijf bijna vol raakt. Chrome en Edge beslissen dat zelf; Firefox vraagt het je één keer.',

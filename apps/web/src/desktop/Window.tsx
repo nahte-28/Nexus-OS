@@ -94,15 +94,13 @@ export function Window({ win, focused }: Props) {
     if (d.last !== d.rect) rememberPlace(win.appId, d.last)
   }
 
-  if (win.minimized) return null
-
   const style = win.maximized
     ? { inset: 0, zIndex: win.z }
     : { left: win.rect.x, top: win.rect.y, width: win.rect.width, height: win.rect.height, zIndex: win.z }
 
   return (
     <>
-      {snap && (
+      {snap && !win.minimized && (
         <div
           aria-hidden
           data-testid="snap-preview"
@@ -116,9 +114,12 @@ export function Window({ win, focused }: Props) {
           }}
         />
       )}
+      {/* Minimized stays mounted, only hidden: what you typed, the scroll position and running
+          timers are still there when you bring the window back. */}
       <section
         role="dialog"
         aria-label={win.title}
+        hidden={win.minimized}
         style={style}
         onPointerDown={() => !focused && dispatch({ type: 'focus', id: win.id })}
         className={`nx-glass nx-enter-window absolute flex flex-col overflow-hidden border ${
