@@ -12,6 +12,7 @@ De .deb van NEXUS installeert alles:
 | `nexus.desktop` | `/usr/share/wayland-sessions/` (de keuze op het aanmeldscherm) |
 | `nexus-session` | `/usr/bin/` (zet de omgeving en start labwc) |
 | `keep-nexus` | `/usr/lib/nexus-session/` (start NEXUS opnieuw als het stopt) |
+| `vbox-clipboard` | `/usr/lib/nexus-session/` (gedeeld klembord in VirtualBox, als VBoxClient er is) |
 | `labwc/` | `/usr/share/nexus-session/labwc/` (sneltoetsen, menu, toetsenbord, wachtwoordvenster bij opstarten) |
 
 labwc en een terminal (foot) staan bij de aanbevolen pakketten: `sudo apt install ./nexus-os.deb`
