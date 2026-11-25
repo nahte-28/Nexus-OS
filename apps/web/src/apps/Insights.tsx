@@ -32,7 +32,7 @@ export function Insights() {
   return (
     <div className="h-full space-y-5 overflow-y-auto p-4 text-sm">
       <div>
-        <h2 className="text-lg font-semibold">Inzichten</h2>
+        <h2 className="sr-only">Inzichten</h2>
         <p className="text-nx-muted">Hoe je laatste acht weken liepen, uit Studie, Gewoontes, Dagboek, Agenda, Leerkaarten en Cijfers. Alles wordt op dit apparaat berekend.</p>
       </div>
       <section aria-label="Deze week" className="grid grid-cols-2 gap-2 sm:grid-cols-4">

@@ -22,6 +22,7 @@ import { changeTask } from '../teams/taskQueue'
 import { useOutbox } from '../offline/outbox'
 import { QueuedMessages } from '../offline/QueuedMessages'
 import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/TaskCommentsPanel'
+import { NeedsAccount } from '../ui/EmptyState'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -134,7 +135,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
     }
   }
 
-  if (!groups) return <p className="text-nx-muted">Een studiegroep werkt met een account. Deze versie van NEXUS heeft geen verbinding met Supabase.</p>
+  if (!groups) return <NeedsAccount what="Een studiegroep" />
   if (me === null) return <p className="text-nx-muted">Meld je aan in Account om een studiegroep te maken of er lid van te worden.</p>
   if (me === undefined || (list === null && !problem)) return <p className="text-nx-muted">Laden…</p>
 

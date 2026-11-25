@@ -34,6 +34,7 @@ import { onReveal, takeReveal } from '../search/reveal'
 import { lifeStore } from '../life/store'
 import { projectHubStore, projectHubSyncProblem, useProjectHub } from '../projecthub/store'
 import { readStorage, writeStorage } from '../state/storage'
+import { Tabs } from '../ui/Tabs'
 
 const TABS = ['Overzicht', 'Bord', 'Tijdlijn', 'Activiteit'] as const
 type Tab = (typeof TABS)[number]
@@ -110,13 +111,7 @@ export function ProjectHub() {
           </select>
         )}
         {project && (
-          <div role="tablist" aria-label="Project Hub" className="flex gap-1 overflow-x-auto">
-            {TABS.map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`shrink-0 rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
-                {t}
-              </button>
-            ))}
-          </div>
+          <Tabs tabs={TABS} value={tab} onChange={setTab} label="Project Hub" variant="inline" />
         )}
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">

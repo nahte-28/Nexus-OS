@@ -31,6 +31,7 @@ import { focusMinutes, focusStore } from '../study/timer'
 import { StudyGroupTab } from './StudyGroup'
 import { Together } from '../study/Together'
 import { ExamBlock } from '../study/ExamBlock'
+import { Tabs } from '../ui/Tabs'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -73,20 +74,7 @@ export function Study() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Focus')
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" className="flex gap-1 border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Studie" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{tab === 'Focus' ? <Focus /> : tab === 'Examens' ? <Exams onPlan={() => setTab('Planning')} /> : tab === 'Blok' ? <ExamBlock /> : tab === 'Planning' ? <Planning /> : tab === 'Groep' ? <StudyGroupTab /> : <Together />}</div>
     </div>
   )

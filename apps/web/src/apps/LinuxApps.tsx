@@ -3,6 +3,7 @@ import { logEvent } from '../devtools/log'
 import { isLinuxApp } from '../platform/desktop'
 import { filterLinuxApps, openLinuxApp, store, useLinuxApps, useNexusSession, type StoreApp } from '../platform/session'
 import { TerminalIcon } from './icons'
+import { Tabs } from '../ui/Tabs'
 
 /** The apps installed on this Linux computer; each opens as its own window. */
 function OnComputer() {
@@ -202,22 +203,11 @@ export function LinuxApps() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Op deze computer')
   if (!isLinuxApp) return <p className="p-4 text-sm text-nx-muted">Linux-apps zie je alleen in de Linux-app van NEXUS.</p>
   return (
-    <div className="flex h-full flex-col gap-3 p-4 text-sm">
-      <div role="tablist" aria-label="Linux-apps" className="flex flex-wrap gap-1">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            type="button"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`rounded-lg px-3 py-1.5 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'text-nx-muted hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
+    <div className="flex h-full flex-col text-sm">
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Linux-apps" />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
+        {tab === 'Op deze computer' ? <OnComputer /> : <Store />}
       </div>
-      {tab === 'Op deze computer' ? <OnComputer /> : <Store />}
     </div>
   )
 }

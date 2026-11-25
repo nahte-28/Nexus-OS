@@ -7,6 +7,7 @@ import { apiBase, desktopAppName, isDesktopApp } from '../platform/desktop'
 import { makePushSetup, pushConfigSql, type PushSetup } from '../push/setup'
 import { remindersStore } from '../reminders/store'
 import { useSync } from '../sync/SyncContext'
+import { Tabs } from '../ui/Tabs'
 
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2'
 const TABS = ['Systeem', 'Logboek', 'AI', 'Web-push'] as const
@@ -17,20 +18,7 @@ export function Developer() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Systeem')
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" className="flex gap-1 border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Ontwikkelaar" />
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {tab === 'Systeem' && <SystemTab />}
         {tab === 'Logboek' && <LogTab />}

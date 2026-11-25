@@ -26,9 +26,9 @@ export function Reminders() {
   const [error, setError] = useState<string | null>(null)
 
   return (
-    <div className="space-y-4 p-4 text-sm">
+    <div className="mx-auto max-w-3xl space-y-4 p-4 text-sm">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Herinneringen</h2>
+        <h2 className="sr-only">Herinneringen</h2>
         <p className="text-nx-muted">
           Ze gaan af zolang NEXUS ergens open is op dit apparaat
           {isDesktopApp ? ', ook als het venster in het systeemvak zit' : '; de Windows-app in het systeemvak is daarvoor het handigst'}.

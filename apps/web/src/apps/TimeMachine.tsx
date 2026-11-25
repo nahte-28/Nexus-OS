@@ -20,6 +20,7 @@ import {
 import { readStorage, writeStorage } from '../state/storage'
 import { captureScope, restorePart, restoreSnapshot, takeSnapshot, timeMachineStore, useTimeMachine, type RestoreResult } from '../timemachine/store'
 import { APPS } from './registry'
+import { Tabs } from '../ui/Tabs'
 
 const TABS = ['Herstelpunten', 'Geschiedenis', 'Herstellen', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
@@ -43,20 +44,7 @@ export function TimeMachine() {
   }
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" aria-label="Time Machine" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`shrink-0 rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Time Machine" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {tab === 'Herstelpunten' ? (
           <Snapshots

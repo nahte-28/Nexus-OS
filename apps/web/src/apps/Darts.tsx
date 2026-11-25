@@ -82,6 +82,7 @@ import { CheckoutProofs } from '../darts/Proofs'
 import { PhotoScoreButton, type PhotoScore } from '../darts/PhotoScore'
 import { savePhoto, storeProof } from '../darts/photos'
 import { readStorage, writeStorage } from '../state/storage'
+import { Tabs } from '../ui/Tabs'
 
 const TABS = ['Spelen', 'Online', 'Oefenen', 'Geschiedenis', 'Statistieken', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
@@ -1250,31 +1251,17 @@ export function Darts() {
   })
   const problem = useSyncExternalStore(dartsSyncProblem.subscribe, dartsSyncProblem.getSnapshot)
   return (
-    <div className="flex h-full flex-col gap-3 overflow-auto p-4 text-sm">
-      <div role="tablist" aria-label="Darts" className="flex flex-wrap gap-1">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            type="button"
-            aria-selected={tab === t}
-            className={`${small} ${tab === t ? 'bg-nx-surface-2 font-medium' : ''}`}
-            onClick={() => {
-              setTab(t)
-              writeStorage(TAB_KEY, t)
-            }}
-          >
-            {t}
-          </button>
-        ))}
+    <div className="flex h-full flex-col text-sm">
+      <Tabs tabs={TABS} value={tab} onChange={(t) => { setTab(t); writeStorage(TAB_KEY, t) }} label="Darts" />
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-auto p-4 [&>*]:w-full [&>*]:max-w-4xl">
+        {problem && <p role="alert">{problem}</p>}
+        {tab === 'Spelen' && <Play />}
+        {tab === 'Online' && <Online />}
+        {tab === 'Oefenen' && <Practice />}
+        {tab === 'Geschiedenis' && <History />}
+        {tab === 'Statistieken' && <Stats />}
+        {tab === 'Instellingen' && <Settings />}
       </div>
-      {problem && <p role="alert">{problem}</p>}
-      {tab === 'Spelen' && <Play />}
-      {tab === 'Online' && <Online />}
-      {tab === 'Oefenen' && <Practice />}
-      {tab === 'Geschiedenis' && <History />}
-      {tab === 'Statistieken' && <Stats />}
-      {tab === 'Instellingen' && <Settings />}
     </div>
   )
 }

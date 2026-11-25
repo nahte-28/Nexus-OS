@@ -73,14 +73,14 @@ export function Goals() {
   const [adding, setAdding] = useState(goals.length === 0)
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto p-4 text-sm">
+    <div className="h-full overflow-y-auto"><div className="mx-auto max-w-3xl space-y-4 p-4 text-sm">
       {problem?.startsWith('setup:') && (
         <p className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">
           Je doelen staan alleen op dit apparaat: de database is nog niet bijgewerkt. Voer <code className="font-mono text-xs">{problem.slice(6)}</code> uit in de SQL Editor van Supabase, of kijk in Account › Database-check.
         </p>
       )}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">Doelen</h2>
+        <h2 className="sr-only">Doelen</h2>
         {!adding && goals.length < MAX_GOALS && (
           <button type="button" className={primaryButton} onClick={() => setAdding(true)}>
             Doel toevoegen
@@ -109,7 +109,7 @@ export function Goals() {
           </ul>
         </section>
       )}
-    </div>
+    </div></div>
   )
 }
 

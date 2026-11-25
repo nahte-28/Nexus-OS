@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { logEvent } from '../devtools/log'
 import { isLinuxApp } from '../platform/desktop'
 import { sessionPower } from '../platform/session'
+import { Tabs } from '../ui/Tabs'
 import {
   SCALES,
   modeLabel,
@@ -476,27 +477,16 @@ export function System() {
   const [tab, setTab] = useState<Tab>('Wifi')
   if (!isLinuxApp) return <p className="p-4 text-sm text-nx-muted">Systeeminstellingen zie je alleen in de Linux-app van NEXUS.</p>
   return (
-    <div className="flex h-full flex-col gap-3 overflow-auto p-4 text-sm">
-      <div role="tablist" aria-label="Systeem" className="flex flex-wrap gap-1">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            type="button"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`rounded-lg px-3 py-1.5 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'text-nx-muted hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" aria-label={tab}>
-        {tab === 'Wifi' && <WifiPanel />}
-        {tab === 'Geluid' && <SoundPanel />}
-        {tab === 'Beeld' && <DisplayPanel />}
-        {tab === 'Bluetooth' && <BluetoothPanel />}
-        {tab === 'Updates' && <UpdatesPanel />}
+    <div className="flex h-full flex-col text-sm">
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Systeem" />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
+        <div role="tabpanel" aria-label={tab}>
+          {tab === 'Wifi' && <WifiPanel />}
+          {tab === 'Geluid' && <SoundPanel />}
+          {tab === 'Beeld' && <DisplayPanel />}
+          {tab === 'Bluetooth' && <BluetoothPanel />}
+          {tab === 'Updates' && <UpdatesPanel />}
+        </div>
       </div>
     </div>
   )
