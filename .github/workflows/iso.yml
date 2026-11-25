@@ -53,6 +53,15 @@ jobs:
           v="1.$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y%m%d%H%M -- distro/apt)"
           distro/apt/make-updates-deb.sh nexus-os.asc "$v" .
           echo "UPDATES_DEB=/w/nexus-os-updates_${v}_all.deb" >> "$GITHUB_ENV"
+      - name: Download the VirtualBox Guest Additions (shared clipboard)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xorriso >/dev/null
+          # Best effort: without them the ISO still works, only without the shared clipboard.
+          if distro/iso/vbox-additions.sh vbox; then
+            echo "NEXUS_VBOX_DIR=/w/vbox" >> "$GITHUB_ENV"
+          else
+            echo "::warning::De VirtualBox Guest Additions konden niet gedownload worden: deze ISO deelt het klembord met VirtualBox niet."
+          fi
       - name: Check that every package exists in Debian 13
         run: |
           grep -v '^\s*#' distro/iso/config/package-lists/*.list.chroot | grep -v '^\s*$' > packages.txt
@@ -67,7 +76,7 @@ jobs:
         run: |
           version="1.0.${{ github.run_number }}"
           echo "ISO_VERSION=$version" >> "$GITHUB_ENV"
-          docker run --rm --privileged -v "$PWD:/w" -w /w debian:trixie sh -c '
+          docker run --rm --privileged -e NEXUS_VBOX_DIR="${NEXUS_VBOX_DIR:-}" -v "$PWD:/w" -w /w debian:trixie sh -c '
             apt-get update -qq && apt-get install -y -qq live-build >/dev/null
             distro/iso/build.sh /w/nexus-os.deb '"$version"' '"${UPDATES_DEB:-}"
           sudo chown -R "$(id -u)" distro/iso/out
@@ -107,7 +116,7 @@ jobs:
           body: |
             NEXUS OS als eigen besturingssysteem: Debian 13 met NEXUS als bureaublad (met ${{ env.NEXUS_TAG }}).
 
-            **Uitproberen in VirtualBox:** nieuwe machine, type Linux / Debian (64-bit), 4 GB geheugen, 2 processors, grafisch VMSVGA, en kies dit ISO-bestand als opticale schijf. Start ze: NEXUS opent vanzelf.
+            **Uitproberen in VirtualBox:** nieuwe machine, type Linux / Debian (64-bit), 4 GB geheugen, 2 processors, grafisch VMSVGA, en kies dit ISO-bestand als opticale schijf. Start ze: NEXUS opent vanzelf. Kopiëren op je pc en plakken in NEXUS: zet in het VM-venster Apparaten › Gedeeld klembord op Bidirectioneel.
 
             **Van een usb-stick:** zet het ISO-bestand op een stick met balenaEtcher of Rufus (dd-modus) of kopieer het naar een Ventoy-stick, en start de pc van de stick (F12, F2 of Esc bij het opstarten). Start hij niet van de stick, zet dan Secure Boot uit in de BIOS.
 

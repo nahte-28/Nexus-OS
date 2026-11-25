@@ -1,0 +1,30 @@
+#!/bin/sh
+# Shares the clipboard with the computer around a VirtualBox machine (VirtualBox: Apparaten ›
+# Gedeeld klembord › Bidirectioneel). Started by labwc's autostart; does nothing outside
+# VirtualBox or without the VirtualBox Guest Additions (VBoxClient).
+log() { command -v systemd-cat >/dev/null && echo "$*" | systemd-cat -t nexus-session; }
+command -v systemd-detect-virt >/dev/null || exit 0
+[ "$(systemd-detect-virt 2>/dev/null)" = oracle ] || exit 0
+# The NEXUS ISO brings its own copy (/opt/nexus-vbox); Debian's package or Oracle's own Guest
+# Additions (from the Guest Additions cd) work too.
+vbc=""
+for c in /opt/nexus-vbox/bin/VBoxClient "$(command -v VBoxClient 2>/dev/null)" /opt/VBoxGuestAdditions-*/bin/VBoxClient; do
+  if [ -n "$c" ] && [ -x "$c" ]; then vbc="$c"; break; fi
+done
+if [ -z "$vbc" ]; then
+  log "VirtualBox zonder Guest Additions: geen gedeeld klembord"
+  exit 0
+fi
+# VBoxClient's Wayland clipboard starts helpers (vboxwl) from its own folder.
+PATH="$(dirname "$vbc"):$PATH"
+export PATH
+help=$("$vbc" --help 2>&1 || true)
+# Newer Guest Additions (7.2.18 and later) share the Wayland clipboard with --session-type,
+# 7.1 used --wayland; older ones only know X11, which reaches NEXUS through Xwayland.
+case "$help" in
+  *--session-type*) set -- --clipboard --session-type wayland ;;
+  *--wayland*) set -- --wayland ;;
+  *) set -- --clipboard ;;
+esac
+log "Gedeeld klembord van VirtualBox: $vbc $*"
+exec "$vbc" --foreground "$@"
