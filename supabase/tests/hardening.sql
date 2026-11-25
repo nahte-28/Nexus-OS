@@ -13,7 +13,7 @@ begin
   if not has_function_privilege('anon', 'public.is_study_group_member(uuid)', 'execute') then raise exception 'hulpfunctie van rijbeveiliging is weg voor anon'; end if;
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
     where s.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'execute')
-      and p.proname <> all (array['message_reply_keys', 'message_reply', 'push_action', 'are_friends', 'is_study_group_member',
+      and p.proname <> all (array['message_reply_keys', 'message_reply', 'push_action', 'agenda_feed', 'are_friends', 'is_study_group_member',
         'study_group_can_edit', 'study_group_can_manage', 'study_group_role', 'is_nexus_admin', 'note_share_right']);
   if n > 0 then raise exception '% SECURITY DEFINER-functies nog open voor anon', n; end if;
 

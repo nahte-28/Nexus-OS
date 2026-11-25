@@ -26,6 +26,7 @@ import {
   WIDGET_TITLES,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
+import { GoogleFeed } from '../agenda/GoogleFeed'
 import { APPS } from './registry'
 import { useAppSwitches, useFeatureSwitches } from '../features/store'
 import { fetchProfilesServerView, type ProfilesServerView } from '../flows/sync'
@@ -261,6 +262,7 @@ function Timetable() {
       <CalendarLink />
       <GoogleLink />
       <ExtraCalendars />
+      <GoogleFeed />
 
       <form
         className="space-y-2 border-t border-nx-border pt-4"
