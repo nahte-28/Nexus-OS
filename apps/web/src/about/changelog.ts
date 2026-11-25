@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Bijwerken met één knop',
+    items: [
+      'Staat er een nieuwe versie van NEXUS klaar in je browser of op je gsm, dan krijg je onderaan een melding. Met "Bijwerken" schakel je meteen over; zelf vernieuwen hoeft niet meer.',
+      'NEXUS herlaadt niet meer vanzelf terwijl je bezig bent. Kies je "Later", dan werk je verder en krijg je de nieuwe versie bij de volgende start.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Plakken in NEXUS OS in VirtualBox',
     items: [
       'Wat je op je eigen pc kopieert, plak je nu ook in NEXUS OS in VirtualBox, bijvoorbeeld je e-mailadres en wachtwoord bij Account. Zet daarvoor in het VM-venster Apparaten › Gedeeld klembord op Bidirectioneel.',

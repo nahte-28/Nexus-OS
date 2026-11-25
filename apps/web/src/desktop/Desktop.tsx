@@ -3,6 +3,7 @@ import { openRect, type AppId } from '@nexus/core'
 import { SpaceSuggestion } from '../spaces/Suggestion'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
+import { UpdatePrompt } from '../shell/UpdatePrompt'
 import { AskName } from '../shell/AskName'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
 import { Dashboard } from '../profiles/Dashboard'
@@ -68,6 +69,7 @@ export function Desktop() {
       <Tour onOpenApp={openApp} />
       <QuickCaptureHost />
       <OfflineBanner bottom={TASKBAR_HEIGHT + 8} />
+      <UpdatePrompt bottom={TASKBAR_HEIGHT + 8} />
       <Suspense fallback={null}>
         <WhatsNew bottom={TASKBAR_HEIGHT + 8} />
       </Suspense>

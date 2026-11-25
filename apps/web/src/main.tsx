@@ -11,13 +11,25 @@ import { openCaptureFromUrl } from './capture/open'
 import { openJoinFromUrl } from './teams/joinLink'
 import { openFriendFromUrl } from './friends/friends'
 import { isDesktopApp } from './platform/desktop'
+import { CHECK_EVERY_MS, connectServiceWorker, updateReady } from './shell/swUpdate'
 import { startProfileClock } from './profiles/store'
 import { SyncProvider } from './sync/SyncContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import './index.css'
 
 // The Windows app ships its files with it; the offline service worker is only for the browser.
-if (!isDesktopApp) registerSW({ immediate: true })
+// A new version waits until you choose "Bijwerken" in the popup, so nothing reloads under your hands.
+if (!isDesktopApp) {
+  connectServiceWorker(
+    registerSW({
+      immediate: true,
+      onNeedRefresh: updateReady,
+      onRegisteredSW: (_url, registration) => {
+        if (registration) setInterval(() => void registration.update(), CHECK_EVERY_MS)
+      },
+    }),
+  )
+}
 // School Mode and the other profiles follow their schedule while NEXUS runs.
 startProfileClock()
 
