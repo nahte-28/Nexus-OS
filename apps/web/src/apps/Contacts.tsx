@@ -5,6 +5,7 @@ import {
 } from '@nexus/core'
 import { contactsStore, contactsSyncProblem, useContacts } from '../contacts/store'
 import { readStorage, writeStorage } from '../state/storage'
+import { Tabs } from '../ui/Tabs'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -217,18 +218,14 @@ export function Contacts() {
   })
   const problem = useSyncExternalStore(contactsSyncProblem.subscribe, contactsSyncProblem.getSnapshot)
   return (
-    <div className="flex h-full flex-col gap-3 overflow-auto p-4 text-sm">
-      <div role="tablist" aria-label="Contacten" className="flex flex-wrap gap-1">
-        {TABS.map((t) => (
-          <button key={t} role="tab" type="button" aria-selected={tab === t} className={`${small} ${tab === t ? 'bg-nx-surface-2 font-medium' : ''}`} onClick={() => { setTab(t); writeStorage(TAB_KEY, t) }}>
-            {t}
-          </button>
-        ))}
+    <div className="flex h-full flex-col text-sm">
+      <Tabs tabs={TABS} value={tab} onChange={(t) => { setTab(t); writeStorage(TAB_KEY, t) }} label="Contacten" />
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-auto p-4 [&>*]:w-full [&>*]:max-w-4xl">
+        {problem && <p role="alert">{problem}</p>}
+        {tab === 'Contacten' && <List />}
+        {tab === 'Verjaardagen' && <Birthdays />}
+        {tab === 'Instellingen' && <Settings />}
       </div>
-      {problem && <p role="alert">{problem}</p>}
-      {tab === 'Contacten' && <List />}
-      {tab === 'Verjaardagen' && <Birthdays />}
-      {tab === 'Instellingen' && <Settings />}
     </div>
   )
 }

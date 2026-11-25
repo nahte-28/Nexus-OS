@@ -47,6 +47,7 @@ import { CommentsButton, TaskCommentThread, useCommentCounts } from '../teams/Ta
 import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
 import { PresenceDot, usePresence } from '../presence/PresenceDot'
 import { profilesStore, useProfiles } from '../profiles/store'
+import { NeedsAccount } from '../ui/EmptyState'
 
 const TABS = ['Projecten', 'Chat', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
@@ -196,7 +197,7 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
     }
   }
 
-  if (!api) return <p className="p-4 text-sm text-nx-muted">Teams werkt met een account. Deze versie van NEXUS heeft geen verbinding met Supabase.</p>
+  if (!api) return <NeedsAccount what="Teams" className="m-4" />
   if (me === null) return <p className="p-4 text-sm text-nx-muted">Meld je aan in Account om een team te maken of erbij te komen.</p>
   if (me === undefined || (list === null && !problem)) return <p className="p-4 text-sm text-nx-muted">Laden…</p>
 

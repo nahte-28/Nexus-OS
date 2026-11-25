@@ -83,7 +83,7 @@ export function Account() {
   if (state.status === 'unconfigured') {
     return (
       <div className="space-y-2 p-4 text-sm leading-relaxed">
-        <h2 className="text-lg font-semibold">Account</h2>
+        <h2 className="sr-only">Account</h2>
         <p>Synchronisatie is nog niet ingesteld voor deze installatie.</p>
         <p className="text-nx-muted">
           Je notities staan veilig op dit apparaat en werken volledig offline. Zodra er een account gekoppeld is, worden
@@ -167,7 +167,7 @@ export function Account() {
   return (
     <div className="space-y-4 p-4 text-sm">
       <div>
-        <h2 className="text-lg font-semibold">Account</h2>
+        <h2 className="sr-only">Account</h2>
         <p className="text-nx-muted">Aangemeld als {state.email}</p>
       </div>
       <div className="rounded-lg border border-nx-border p-3">

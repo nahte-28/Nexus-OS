@@ -14,6 +14,7 @@ import { onReveal, takeReveal } from '../search/reveal'
 import { MyStatus } from '../presence/MyStatus'
 import { defaultPresence, PresenceDot, usePresence } from '../presence/PresenceDot'
 import type { Presence } from '../presence/presence'
+import { NeedsAccount } from '../ui/EmptyState'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -109,7 +110,7 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
     }
   }
 
-  if (!api) return <p className="p-4 text-sm text-nx-muted">Vrienden werkt met een account. Deze versie van NEXUS heeft geen verbinding met Supabase.</p>
+  if (!api) return <NeedsAccount what="Vrienden" className="m-4" />
   if (me === null) return <p className="p-4 text-sm text-nx-muted">Meld je aan in Account om vrienden toe te voegen.</p>
   if (me === undefined || profile === undefined) return <p className="p-4 text-sm text-nx-muted">Laden…</p>
 

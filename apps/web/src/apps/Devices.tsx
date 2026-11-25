@@ -5,6 +5,7 @@ import { isDesktopApp } from '../platform/desktop'
 import { phonesOf, type DeviceView } from '../connect/engine'
 import { disableWebPush, enableWebPush, pushOnHere, pushSupported } from '../push/subscribe'
 import { MessagePushSettings } from '../push/MessagePushSettings'
+import { NeedsAccount } from '../ui/EmptyState'
 
 const RELEASES_URL = 'https://github.com/nahte-28/Nexus-OS/releases'
 
@@ -52,7 +53,7 @@ export function Devices() {
 
   if (state.status !== 'ready') {
     const body: Record<Exclude<typeof state.status, 'ready'>, ReactNode> = {
-      unconfigured: <p>Apparaten koppelen werkt met een account. Stel eerst synchronisatie in.</p>,
+      unconfigured: <NeedsAccount what="Apparaten koppelen" />,
       'signed-out': <p>Meld je aan in de Account-app om dit apparaat te koppelen.</p>,
       starting: <p role="status">Bezig met koppelen…</p>,
       'setup-needed': (
@@ -83,7 +84,7 @@ export function Devices() {
     }
     return (
       <div className="space-y-3 p-4 text-sm leading-relaxed">
-        <h2 className="text-lg font-semibold">Apparaten</h2>
+        <h2 className="sr-only">Apparaten</h2>
         {intro}
         {body[state.status]}
       </div>
@@ -98,7 +99,7 @@ export function Devices() {
   return (
     <div className="space-y-4 p-4 text-sm">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Apparaten</h2>
+        <h2 className="sr-only">Apparaten</h2>
         {intro}
       </div>
 

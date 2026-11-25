@@ -42,8 +42,8 @@ export function Assistant() {
 
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div className="flex items-center justify-between gap-2 border-b border-nx-border px-3 py-2">
-        <h2 className="font-semibold">NEXUS AI</h2>
+      <div className="flex items-center justify-end gap-2 border-b border-nx-border px-3 py-2">
+        <h2 className="sr-only">NEXUS AI</h2>
         <div className="flex flex-wrap gap-2">
           {view === 'chat' && state.items.length > 0 && (
             <button type="button" className={button} disabled={state.busy} onClick={() => assistant.reset()}>
