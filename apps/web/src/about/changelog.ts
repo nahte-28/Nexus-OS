@@ -21,6 +21,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-11-25',
+    title: 'Je vensters komen terug',
+    items: [
+      'Herlaad je NEXUS of start je de Windows-app opnieuw, dan staan je vensters weer open waar je ze liet, ook geminimaliseerd of gemaximaliseerd, en het venster dat vooraan stond, staat weer vooraan.',
+      'Is je scherm nu kleiner, dan schuift NEXUS de vensters zo dat je de titelbalk altijd kunt pakken. Apps die je intussen uitzette, blijven dicht.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Meteen bijgewerkt op al je apparaten',
     items: [
       'Vink je een gewoonte af op je gsm, of pas je een doel, cijfer of contact aan, dan staat dat binnen enkele seconden op je laptop als NEXUS daar openstaat. Vroeger kon dat tot vijf minuten duren.',

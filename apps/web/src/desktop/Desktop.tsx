@@ -16,6 +16,7 @@ import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { placeOf } from './windowPlaces'
 import { useWindowKeys } from './windowKeys'
+import { useWindowSession } from './session'
 import { useFavorites } from '../controlcenter/store'
 import { mostUsed, usageStore, useUsage } from '../apps/usage'
 
@@ -45,6 +46,9 @@ export function Desktop() {
     },
     [dispatch, state.windows.length],
   )
+
+  // The windows that were open last time come back first; links that open an app land on top.
+  useWindowSession(state, dispatch, apps, desktopArea)
 
   // Switch, place and close windows with the keyboard.
   useWindowKeys(state, dispatch, desktopArea)

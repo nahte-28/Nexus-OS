@@ -88,6 +88,23 @@ describe('App shell', () => {
     expect(screen.queryByRole('dialog', { name: 'Rekenmachine' })).toBeNull()
   })
 
+  it('brings the open windows back after a restart, the front one still in front', async () => {
+    mockViewport(false)
+    const first = renderApp()
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Notities' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rekenmachine' }))
+    await waitFor(() => expect(localStorage.getItem('nexus.windows.session')).toContain('calculator'))
+    first.unmount()
+
+    renderApp()
+    expect(await screen.findByRole('dialog', { name: 'Notities' })).toBeTruthy()
+    expect(await screen.findByRole('dialog', { name: 'Rekenmachine' })).toBeTruthy()
+    const taskbar = within(screen.getByRole('navigation', { name: 'Geopende vensters' }))
+    expect(taskbar.getAllByRole('button').map((b) => b.textContent?.trim())).toEqual(['Notities', 'Rekenmachine'])
+  })
+
   it('keeps what you typed when a window is minimized and brought back', async () => {
     mockViewport(false)
     renderApp()
