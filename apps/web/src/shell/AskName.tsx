@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FRIEND_NAME_MAX } from '@nexus/core'
-import { Friends } from '../friends/friends'
+import type { Friends } from '../friends/friends'
 import { profilesStore } from '../profiles/store'
 import { readStorage, writeStorage } from '../state/storage'
 import { loadSupabase, supabaseConfigured } from '../sync/config'
@@ -14,7 +14,10 @@ interface AuthEvents {
 /** The real account, loaded with the Supabase library after the first screen. */
 async function loadDefault(): Promise<{ api: Api; auth: AuthEvents } | null> {
   const client = await loadSupabase()
-  return client ? { api: new Friends(client), auth: client.auth } : null
+  if (!client) return null
+  // The Vrienden code loads with the Supabase library, after the first screen.
+  const { Friends } = await import('../friends/friends')
+  return { api: new Friends(client), auth: client.auth }
 }
 
 const laterKey = (user: string) => `nexus.askName.${user}`

@@ -1,11 +1,9 @@
-import { useSyncExternalStore } from 'react'
 import { parseAdminOverview, type AdminOverview } from '@nexus/core'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { readStorage, writeStorage } from '../state/storage'
+import { setAdmin } from './flag'
 import { friendError } from '../friends/friends'
 
 export const ADMIN_MIGRATION = 'supabase/migrations/20261113240000_admin.sql'
-const KEY = 'nexus.admin'
 
 /** A Dutch message for Beheer; 'setup:<file>' asks for the SQL. */
 export function adminError(error: { code?: string; message?: string } | null | undefined): string {
@@ -31,24 +29,7 @@ export class Admin {
   }
 }
 
-// Whether this account is an admin, remembered so Beheer is in the sidebar right after a start.
-let admin = readStorage(KEY) === 'on'
-const listeners = new Set<() => void>()
-export function setAdmin(on: boolean): void {
-  if (on === admin) return
-  admin = on
-  writeStorage(KEY, on ? 'on' : 'off')
-  listeners.forEach((l) => l())
-}
-export function useIsAdmin(): boolean {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l)
-      return () => listeners.delete(l)
-    },
-    () => admin,
-  )
-}
+export { setAdmin, useIsAdmin } from './flag'
 
 /** Asks the database once per sign-in whether you are an admin; signed out you never are. */
 export function startAdminCheck(client: SupabaseClient | null): () => void {

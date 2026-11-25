@@ -1,12 +1,9 @@
-import { actionTarget, deadlinesOf, markDone, PRACTICE_LABELS, watchMatch, watchMatchId, watchPractice, watchPracticeId, type ActionPayload } from '@nexus/core'
+import { actionTarget, deadlinesOf, markDone, type ActionPayload } from '@nexus/core'
 import { habitsStore } from '../habits/store'
 import { lifeStore } from '../life/store'
 import { logEvent } from '../devtools/log'
 import { focusStore } from '../study/timer'
 import { applyWatchGaming } from '../gaming/timer'
-import { dartsStore } from '../darts/store'
-import { applyWatchOnlineVisit } from '../darts/watch'
-import { applyWatchTogether } from '../study/watch'
 
 /**
  * Carries out what was done on another device: a deadline or habit ticked off on the watch (marking
@@ -17,26 +14,9 @@ import { applyWatchTogether } from '../study/watch'
  */
 export async function applyAction(action: ActionPayload): Promise<void> {
   if (action.action === 'gaming') return applyWatchGaming(action.op, action.at)
-  if (action.action === 'darts') {
-    const state = dartsStore.getSnapshot()
-    if (state.matches.some((m) => m.id === watchMatchId(action.id))) return
-    const match = watchMatch(action, state.settings.me, action.at)
-    if (!match) return
-    dartsStore.update((s) => ({ ...s, matches: [match, ...s.matches.filter((m) => m.id !== match.id)] }))
-    logEvent('connect', `Darts-leg van het horloge bijgeteld (${match.mode})`)
-    return
-  }
-  if (action.action === 'darts_practice') {
-    const state = dartsStore.getSnapshot()
-    if (state.practice.some((p) => p.id === watchPracticeId(action.id))) return
-    const round = watchPractice(action, action.at)
-    if (!round) return
-    dartsStore.update((s) => ({ ...s, practice: [round, ...s.practice.filter((p) => p.id !== round.id)] }))
-    logEvent('connect', `${PRACTICE_LABELS[round.game]} van het horloge bijgeteld`)
-    return
-  }
-  if (action.action === 'darts_online') return applyWatchOnlineVisit(action)
-  if (action.action === 'together') return applyWatchTogether(action)
+  // Darts and studying together load only when the watch sends such an action, not at startup.
+  if (action.action === 'darts' || action.action === 'darts_practice' || action.action === 'darts_online') return (await import('./dartsActions')).applyDartsAction(action)
+  if (action.action === 'together') return (await import('../study/watch')).applyWatchTogether(action)
   if (action.action === 'focus') {
     focusStore.addLog({ at: action.at, minutes: action.minutes, task: action.task || 'Focus op het horloge' })
     logEvent('connect', `Focusronde van ${action.minutes} min op het horloge bijgeteld`)
