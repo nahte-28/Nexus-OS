@@ -12,6 +12,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-25',
+    title: 'Je lessen in Google Agenda',
+    items: [
+      'In Profielen › Lesrooster maak je onder "In Google Agenda zetten" een geheime agendalink. Voeg die in Google Agenda toe via Andere agenda\'s › + › Via URL, en je lessen uit NEXUS staan ook daar, in een agenda die NEXUS heet.',
+      'Wat al in je Google Agenda staat, laat NEXUS weg: je krijgt alleen de lessen die er nog ontbraken, niets dubbel. Kies of ook je afspraken en deadlines uit NEXUS meegaan.',
+      'Verandert of komt er een les bij, dan volgt Google vanzelf, al kijkt Google maar om de paar uur. Liever één keer in je eigen agenda? Download dan een .ics-bestand om te importeren.',
+    ],
+  },
+  {
     date: '2026-11-24',
     title: 'Wat moet ik halen op mijn volgende examen?',
     items: [

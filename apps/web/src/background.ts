@@ -69,6 +69,7 @@ import { isFeatureOn, onFeaturesChange } from './features/store'
 import { startFinanceAlerts, startFinanceSync } from './finance/store'
 import { startLifeSync } from './life/sync'
 import { startCalendarSync } from './profiles/calendar'
+import { startAgendaFeed } from './agenda/feed'
 import { startProfilesSync } from './profiles/sync'
 import { reminderDelivery } from './reminders/deliver'
 import { startWebPush } from './push/subscribe'
@@ -89,6 +90,8 @@ startWebPush(defaultEngine)
 // The Windows app looks for a newer version itself; the browser version updates through its service worker.
 startUpdateChecks()
 startCalendarSync()
+// Agenda in Google: with a link, the lessons and appointments follow to Google Agenda.
+startAgendaFeed()
 // With an account, profiles and the calendar link follow you to every device.
 startProfilesSync(supabase)
 // Flows, their settings and run history too; each event still runs on one device only.

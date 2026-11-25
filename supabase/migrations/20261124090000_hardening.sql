@@ -14,7 +14,7 @@ do $$
 declare
   f record;
   -- Met een eenmalige code, zonder login (api/push-reply.ts, api/push-action.ts).
-  token_based text[] := array['message_reply_keys', 'message_reply', 'push_action'];
+  token_based text[] := array['message_reply_keys', 'message_reply', 'push_action', 'agenda_feed'];
   -- Gebruikt in rijbeveiliging: anon moet ze kunnen oproepen om gewoon niets te zien.
   policy_helpers text[] := array['are_friends', 'is_study_group_member', 'study_group_can_edit', 'study_group_can_manage',
     'study_group_role', 'is_nexus_admin', 'note_share_right'];
