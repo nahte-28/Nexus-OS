@@ -15,6 +15,7 @@ import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { placeOf } from './windowPlaces'
+import { useWindowKeys } from './windowKeys'
 import { useFavorites } from '../controlcenter/store'
 import { mostUsed, usageStore, useUsage } from '../apps/usage'
 
@@ -22,6 +23,9 @@ import { mostUsed, usageStore, useUsage } from '../apps/usage'
 // After an update; it carries the whole changelog, so it loads after the first screen.
 const WhatsNew = lazy(() => import('../shell/WhatsNew').then((m) => ({ default: m.WhatsNew })))
 const SearchPalette = lazy(() => import('../search/SearchPalette').then((m) => ({ default: m.SearchPalette })))
+
+/** The part of the screen windows live in, above the taskbar. */
+const desktopArea = () => ({ width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT })
 
 export function Desktop() {
   const { state, dispatch } = useWindows()
@@ -41,6 +45,9 @@ export function Desktop() {
     },
     [dispatch, state.windows.length],
   )
+
+  // Switch, place and close windows with the keyboard.
+  useWindowKeys(state, dispatch, desktopArea)
 
   // Deep links from other apps (the Inbox) open windows here.
   useEffect(() => {

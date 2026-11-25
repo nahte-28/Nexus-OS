@@ -13,6 +13,7 @@ import {
   type CaptureTarget,
   type CaptureTemplate,
   type InboxCapture,
+  WINDOW_SHORTCUTS,
 } from '@nexus/core'
 import { saveCapture } from '../capture/QuickCapture'
 import { capturesStore, capturesSyncProblem, useCaptures } from '../capture/hub'
@@ -264,6 +265,7 @@ const SHORTCUTS: Array<[string, string]> = [
   ['Ctrl+Enter', 'Bewaren in Snelle notitie'],
   ['Esc', 'Snelle notitie sluiten'],
   ['Ctrl+K', 'Zoeken in NEXUS, ook in je notities'],
+  ...WINDOW_SHORTCUTS,
 ]
 
 function ShortcutsTab() {

@@ -146,6 +146,7 @@ export const HELP: Record<AppId, HelpTopic> = {
       'Een template (Studeren, Examens, Geld en planning) zet meteen de juiste apps naast elkaar.',
       'Een gewijzigde indeling geldt pas als je ze bewaart; tot dan kan je terug naar de bewaarde.',
       'Wisselen sluit je vensters, maar je notities en andere gegevens zijn al bewaard.',
+      'Vensters met het toetsenbord: Alt+² (de toets links van 1) naar het volgende venster, Alt+Shift+← of → om vast te klikken, Alt+Shift+↑ om te maximaliseren, Alt+Shift+↓ om te minimaliseren en Alt+Shift+W om te sluiten. Alle sneltoetsen staan in Snel vastleggen › Sneltoetsen.',
     ],
   },
   inbox: {
