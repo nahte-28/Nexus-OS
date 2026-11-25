@@ -5,6 +5,7 @@ import { addMarketItem, removeMarketItem, useMarket } from '../marketplace/store
 import { useProfiles } from '../profiles/store'
 import { openApp } from '../shell/openApp'
 import { ACCENTS } from '../theme/accents'
+import { Tabs } from '../ui/Tabs'
 
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const primary = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
@@ -34,13 +35,7 @@ export function Marketplace() {
 
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" aria-label="Soort" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-        {[{ id: 'all' as const, label: 'Alles' }, ...MARKET_KINDS].map((k) => (
-          <button key={k.id} type="button" role="tab" aria-selected={kind === k.id} onClick={() => setKind(k.id)} className={`shrink-0 rounded-md px-3 py-1 ${kind === k.id ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
-            {k.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={[{ id: 'all' as const, label: 'Alles' }, ...MARKET_KINDS]} value={kind} onChange={setKind} label="Soort" />
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         <p className="text-nx-muted">Alles hier is gemaakt door NEXUS en zit al in de app: er wordt niets van anderen gedownload. Widgets draaien afgeschermd, met alleen de permissies die je goedkeurt.</p>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Zoeken" aria-label="Zoeken in de Marketplace" className={`${field} max-w-72`} />

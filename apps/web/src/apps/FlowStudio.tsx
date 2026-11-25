@@ -41,6 +41,7 @@ import { appName, currentContext, defaultEffects, runNow } from '../flows/runner
 import { flowsStore, useFlowRuns, useFlows, type FlowRun } from '../flows/store'
 import { clearFlowRuns, fetchFlowsServerStatus, flowsSyncOn, flowsSyncStatus, setFlowsSyncOn, type FlowsServerStatus } from '../flows/sync'
 import { profilesStore } from '../profiles/store'
+import { Tabs } from '../ui/Tabs'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -137,21 +138,12 @@ export function FlowStudio() {
   }
   return (
     <div className="flex h-full flex-col text-sm">
-      <div role="tablist" aria-label="Flow Studio" className="flex shrink-0 gap-1 overflow-x-auto border-b border-nx-border px-3 pt-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`shrink-0 rounded-t-md px-3 py-2 ${tab === t.id ? 'border-b-2 border-nx-accent font-medium' : 'text-nx-muted'}`}
-          >
-            {t.label}
-            {t.id === 'builder' && draft.dirty ? ' •' : ''}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={TABS.map((t) => ({ id: t.id, label: t.id === 'builder' && draft.dirty ? `${t.label} •` : t.label }))}
+        value={tab}
+        onChange={setTab}
+        label="Flow Studio"
+      />
       <div className="min-h-0 flex-1 overflow-auto p-4" role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label}>
         {tab === 'flows' && <MyFlows onEdit={edit} onNew={() => edit(newFlow())} />}
         {tab === 'templates' && <Templates onUse={(t) => edit(newFlow(t.flow))} />}

@@ -19,6 +19,7 @@ import { useFeature } from '../features/store'
 import { PlatformHealth } from '../integration/PlatformHealth'
 import { onReveal, takeReveal } from '../search/reveal'
 import { readStorage, writeStorage } from '../state/storage'
+import { Tabs } from '../ui/Tabs'
 
 const TABS = ['Projecten', 'SDK', 'Sandbox', 'Reviews', 'Platform Health'] as const
 type Tab = (typeof TABS)[number]
@@ -67,20 +68,7 @@ export function DeveloperHub() {
   }, [])
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" aria-label="Developer Hub" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-        {tabs.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={shown === t}
-            onClick={() => setTab(t)}
-            className={`shrink-0 rounded-md px-3 py-1 ${shown === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={tabs} value={shown} onChange={setTab} label="Developer Hub" />
       {/* Focusable so the keyboard can scroll a tab without buttons, like Platform Health. */}
       <div tabIndex={0} role="tabpanel" aria-label={shown} className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 outline-none focus-visible:ring-2 focus-visible:ring-nx-accent">
         {shown === 'Platform Health' ? (

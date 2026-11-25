@@ -48,6 +48,7 @@ import { TeamChatPanel, useTeamChat } from '../teams/TeamChatPanel'
 import { PresenceDot, usePresence } from '../presence/PresenceDot'
 import { profilesStore, useProfiles } from '../profiles/store'
 import { NeedsAccount } from '../ui/EmptyState'
+import { Tabs } from '../ui/Tabs'
 
 const TABS = ['Projecten', 'Chat', 'Leden', 'Uitnodigingen', 'Instellingen'] as const
 type Tab = (typeof TABS)[number]
@@ -282,18 +283,24 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
         )}
       </div>
       {team && (
-        <div role="tablist" aria-label="Teams" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-          {tabs.map((t) => (
-            <button key={t} type="button" role="tab" aria-selected={shown === t} onClick={() => setTab(t)} className={`shrink-0 rounded-md px-3 py-1 ${shown === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
-              {t}
-              {t === 'Chat' && shown !== 'Chat' && chatState.unread > 0 && (
-                <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${chatState.unread} ongelezen`}>
-                  {chatState.unread > 99 ? '99+' : chatState.unread}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          tabs={tabs.map((t) => ({
+            id: t,
+            label: (
+              <>
+                {t}
+                {t === 'Chat' && shown !== 'Chat' && chatState.unread > 0 && (
+                  <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${chatState.unread} ongelezen`}>
+                    {chatState.unread > 99 ? '99+' : chatState.unread}
+                  </span>
+                )}
+              </>
+            ),
+          }))}
+          value={shown}
+          onChange={setTab}
+          label="Teams"
+        />
       )}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>}

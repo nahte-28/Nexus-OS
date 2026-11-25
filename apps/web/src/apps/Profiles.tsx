@@ -35,6 +35,7 @@ import { chooseFor, profilesStore, useProfileHistory, useProfiles, type ChoiceDu
 import { profilesSyncMode, profilesSyncStatus, setProfilesSyncMode, type SyncMode } from '../profiles/sync'
 import { ACCENTS } from '../theme/accents'
 import { daysLabel, PROFILE_ICONS, reasonText } from '../profiles/ui'
+import { Tabs } from '../ui/Tabs'
 
 const field = 'min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -64,20 +65,7 @@ export function Profiles() {
   const [editing, setEditing] = useState<ProfileId>(active.id)
   return (
     <div className="flex h-full flex-col text-sm">
-      <div role="tablist" aria-label="Profielen" className="flex shrink-0 gap-1 overflow-x-auto border-b border-nx-border px-3 pt-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`shrink-0 rounded-t-md px-3 py-2 ${tab === t.id ? 'border-b-2 border-nx-accent font-medium' : 'text-nx-muted'}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label="Profielen" />
       <div className="min-h-0 flex-1 overflow-auto p-4" role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label}>
         {tab === 'overview' && <Overview />}
         {tab === 'timetable' && <Timetable />}

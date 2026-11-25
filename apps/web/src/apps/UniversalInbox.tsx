@@ -17,6 +17,7 @@ import { inboxDeviceName, inboxRulesProblem, inboxStore, inboxSyncProblem, useIn
 import { openApp } from '../shell/openApp'
 import { readStorage, writeStorage } from '../state/storage'
 import { useNow } from '../state/useNow'
+import { Tabs } from '../ui/Tabs'
 
 const TABS: Array<{ id: InboxView; title: string }> = [
   { id: 'inbox', title: 'Inbox' },
@@ -71,24 +72,23 @@ export function UniversalInbox() {
 
   return (
     <div className="flex h-full min-h-0 flex-col text-sm">
-      <div role="tablist" aria-label="Inbox" className="flex gap-1 overflow-x-auto border-b border-nx-border px-3 py-2">
-        {TABS.map((t) => {
+      <Tabs
+        tabs={TABS.map((t) => {
           const count = t.id === 'inbox' ? unreadCount(items, now) : inboxView(items, t.id, now).length
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={`shrink-0 rounded-md px-3 py-1 ${tab === t.id ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}
-            >
-              {t.title}
-              {count > 0 && <span className="ml-1 text-xs text-nx-muted">{count}</span>}
-            </button>
-          )
+          return {
+            id: t.id,
+            label: (
+              <>
+                {t.title}
+                {count > 0 && <span className="ml-1 text-xs text-nx-muted">{count}</span>}
+              </>
+            ),
+          }
         })}
-      </div>
+        value={tab}
+        onChange={setTab}
+        label="Inbox"
+      />
       <div className="flex flex-wrap items-center gap-2 border-b border-nx-border px-3 py-2">
         <select aria-label="Bron" value={source} onChange={(e) => setSource(e.target.value as EventSource | '')} className={select}>
           <option value="">Alle bronnen</option>

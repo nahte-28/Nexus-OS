@@ -15,6 +15,7 @@ import { MyStatus } from '../presence/MyStatus'
 import { defaultPresence, PresenceDot, usePresence } from '../presence/PresenceDot'
 import type { Presence } from '../presence/presence'
 import { NeedsAccount } from '../ui/EmptyState'
+import { Tabs } from '../ui/Tabs'
 
 const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface px-2 py-1.5 outline-none'
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
@@ -166,18 +167,25 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
         )
       ) : (
         <>
-          <div role="tablist" aria-label="Vrienden" className="flex gap-1">
-            {(['Vrienden', 'Berichten'] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-md px-3 py-1 ${tab === t ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>
-                {t}
-                {t === 'Berichten' && systemUnread > 0 && (
-                  <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${systemUnread} nieuw van NEXUS`}>
-                    {systemUnread}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            variant="inline"
+            tabs={(['Vrienden', 'Berichten'] as const).map((t) => ({
+              id: t,
+              label: (
+                <>
+                  {t}
+                  {t === 'Berichten' && systemUnread > 0 && (
+                    <span className="ml-1 rounded-full bg-nx-accent px-1.5 text-xs text-nx-accent-text" aria-label={`${systemUnread} nieuw van NEXUS`}>
+                      {systemUnread}
+                    </span>
+                  )}
+                </>
+              ),
+            }))}
+            value={tab}
+            onChange={setTab}
+            label="Vrienden"
+          />
           {tab === 'Berichten' ? (
             dms ? <Messages dms={dms} me={me.id} friends={list} sealed={sealed} system={birthdays} openFriend={openFriend} /> : null
           ) : (

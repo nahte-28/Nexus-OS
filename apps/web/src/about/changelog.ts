@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Alle apps voelen hetzelfde aan',
+    items: [
+      'Tabbladen zien er in elke app hetzelfde uit, met het koperen lijntje onder het tabblad waar je bent. Met de pijltjestoetsen ga je van tabblad naar tabblad, met Home en End naar het eerste en laatste.',
+      'Apps die een account nodig hebben, zeggen dat overal op dezelfde manier, met een knop naar Account. Lege lijsten zeggen wat je kunt doen, en brede schermen tonen formulieren niet meer uitgerekt over de hele breedte.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Minimaliseren onthoudt waar je was',
     items: [
       'Minimaliseer je een venster op het bureaublad, dan blijft alles staan zoals je het liet: half getypte tekst, waar je gescrold had en een timer die loopt. Klik het in de taakbalk terug en je gaat verder waar je stopte.',
