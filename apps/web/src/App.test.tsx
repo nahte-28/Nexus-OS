@@ -70,6 +70,21 @@ describe('App shell', () => {
     expect(screen.queryByRole('dialog', { name: 'Notities' })).toBeNull()
   })
 
+  it('keeps what you typed when a window is minimized and brought back', async () => {
+    mockViewport(false)
+    renderApp()
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Rekenmachine' }))
+    const sum = (await screen.findByLabelText('Berekening')) as HTMLInputElement
+    fireEvent.change(sum, { target: { value: '12+30' } })
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Rekenmachine' })).getByRole('button', { name: 'Minimaliseren' }))
+    expect(screen.queryByRole('dialog', { name: 'Rekenmachine' })).toBeNull()
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Geopende vensters' })).getByRole('button', { name: /Rekenmachine/ }))
+    const back = within(screen.getByRole('dialog', { name: 'Rekenmachine' })).getByLabelText('Berekening') as HTMLInputElement
+    expect(back).toBe(sum)
+    expect(back.value).toBe('12+30')
+  })
+
   it('saves notes to the device database', async () => {
     mockViewport(false)
     renderApp()
