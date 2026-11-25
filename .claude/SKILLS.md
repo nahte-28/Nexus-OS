@@ -91,10 +91,6 @@ npx skills add obra/superpowers --skill writing-plans
 npx skills add obra/superpowers --skill requesting-code-review
 npx skills add vercel-labs/skills --skill find-skills
 npx skills add mattpocock/skills --skill improve-codebase-architecture
-```
-
-In the Claude cloud sessions superpowers, frontend-design and skill-creator are already
-available as plugins.
 npx skills add pbakaus/impeccable --skill impeccable
 npx skills add arvindrk/extract-design-system --skill extract-design-system
 npx skills add iart-ai/web-animation-skills --skill micro-interaction
@@ -107,3 +103,6 @@ npx skills add mthines/agent-skills --skill charting
 npx skills add tartinerlabs/skills --skill i18n
 npx skills add anthropics/skills --skill mcp-builder
 ```
+
+In the Claude cloud sessions superpowers, frontend-design and skill-creator are already
+available as plugins.
