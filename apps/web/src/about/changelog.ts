@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-25',
+    title: 'Bijwerken met één knop',
+    items: [
+      'Staat er een nieuwe versie van NEXUS klaar in je browser of op je gsm, dan krijg je onderaan een melding. Met "Bijwerken" schakel je meteen over; zelf vernieuwen hoeft niet meer.',
+      'NEXUS herlaadt niet meer vanzelf terwijl je bezig bent. Kies je "Later", dan werk je verder en krijg je de nieuwe versie bij de volgende start.',
+    ],
+  },
+  {
+    date: '2026-11-25',
     title: 'Je lessen in Google Agenda',
     items: [
       'In Profielen › Lesrooster maak je onder "In Google Agenda zetten" een geheime agendalink. Voeg die in Google Agenda toe via Andere agenda\'s › + › Via URL, en je lessen uit NEXUS staan ook daar, in een agenda die NEXUS heet.',

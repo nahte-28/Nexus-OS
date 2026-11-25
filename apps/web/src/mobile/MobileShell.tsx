@@ -3,6 +3,7 @@ import { groupApps, type AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
+import { UpdatePrompt } from '../shell/UpdatePrompt'
 import { AskName } from '../shell/AskName'
 import { AppView } from '../apps/AppView'
 import { BackIcon, GridIcon } from '../apps/icons'
@@ -82,6 +83,7 @@ export function MobileShell() {
       <Tour onOpenApp={switchTo} />
       <QuickCaptureHost />
       <OfflineBanner bottom={80} />
+      <UpdatePrompt bottom={80} />
       <Suspense fallback={null}>
         <WhatsNew bottom={80} />
       </Suspense>
