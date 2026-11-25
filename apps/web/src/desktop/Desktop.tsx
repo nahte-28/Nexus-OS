@@ -15,6 +15,7 @@ import { useSearchShortcut } from '../search/SearchButton'
 import { Taskbar, TASKBAR_HEIGHT } from './Taskbar'
 import { Window } from './Window'
 import { placeOf } from './windowPlaces'
+import { useWindowSession } from './session'
 import { useFavorites } from '../controlcenter/store'
 import { mostUsed, usageStore, useUsage } from '../apps/usage'
 
@@ -41,6 +42,9 @@ export function Desktop() {
     },
     [dispatch, state.windows.length],
   )
+
+  // The windows that were open last time come back first; links that open an app land on top.
+  useWindowSession(state, dispatch, apps, () => ({ width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }))
 
   // Deep links from other apps (the Inbox) open windows here.
   useEffect(() => {

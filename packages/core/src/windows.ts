@@ -37,7 +37,7 @@ export type WindowAction =
   /** Places a window at once (snapped to half the screen, or resized from an edge); it is no longer maximized. */
   | { type: 'setRect'; id: string; rect: Rect }
   /** Replaces every window at once, e.g. when switching to a Space; the last one gets focus. */
-  | { type: 'restore'; windows: Array<{ appId: AppId; title: string; rect: Rect; minimized: boolean; maximized: boolean }> }
+  | { type: 'restore'; windows: Array<{ appId: AppId; title: string; rect: Rect; minimized: boolean; maximized: boolean; layer?: number }> }
 
 export const MIN_WINDOW_WIDTH = 280
 export const MIN_WINDOW_HEIGHT = 180
@@ -78,7 +78,8 @@ export function windowsReducer(state: WindowsState, action: WindowAction): Windo
       return { windows: [...state.windows, win], focusedId: id, nextZ: state.nextZ + 1, nextId: state.nextId + 1 }
     }
     case 'restore': {
-      const windows = action.windows.map((w, i) => ({ ...w, id: `win-${state.nextId + i}`, z: state.nextZ + i }))
+      // In list order (the taskbar's); [layer] says how far to the front (0 = back), else list order.
+      const windows = action.windows.map(({ layer, ...w }, i) => ({ ...w, id: `win-${state.nextId + i}`, z: state.nextZ + (layer ?? i) }))
       return { windows, focusedId: topVisible(windows), nextZ: state.nextZ + windows.length, nextId: state.nextId + windows.length }
     }
     case 'close': {
