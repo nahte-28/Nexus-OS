@@ -159,6 +159,19 @@ pub async fn install_update(app: AppHandle, url: String) -> Result<(), String> {
         .bytes()
         .await
         .map_err(|e| format!("Downloaden mislukt: {e}"))?;
+    // A build that knows the release key runs only an installer that key signed.
+    if let Some(key) = crate::signature::public_key() {
+        let signature = client()?
+            .get(format!("{url}.sig"))
+            .send()
+            .await
+            .and_then(|r| r.error_for_status())
+            .map_err(|_| "Deze update is niet ondertekend. NEXUS installeert ze niet.".to_string())?
+            .text()
+            .await
+            .map_err(|e| format!("Downloaden mislukt: {e}"))?;
+        crate::signature::verify(key, &bytes, &signature)?;
+    }
     match kind {
         Kind::WindowsSetup => {
             let path = std::env::temp_dir().join("nexus-os-update-setup.exe");

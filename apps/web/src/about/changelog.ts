@@ -20,6 +20,13 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-11-26',
+    title: 'Veiligere updates voor de Windows- en Linux-app',
+    items: [
+      'De Windows- en Linux-app kunnen nu nagaan of een update echt van NEXUS komt: elke installer krijgt een handtekening, en een app met de sleutel installeert alleen een update waarvan de handtekening klopt. Dat werkt zodra de sleutel ingesteld is (zie de README).',
+    ],
+  },
+  {
+    date: '2026-11-26',
     title: 'Flows die iets aanmaken',
     items: [
       'In Flow Studio kan een flow nu een notitie maken, een herinnering zetten of een deadline toevoegen. Bijvoorbeeld: een dag voor een deadline een herinnering "Begin aan {titel}" over een uur.',
