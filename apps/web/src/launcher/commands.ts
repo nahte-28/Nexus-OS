@@ -1,12 +1,10 @@
 import { gameForWatch, parseDeadline, parseReminder, type AppId, type CommandValues, type ProfileId } from '@nexus/core'
+import { createDeadline, createNote, createReminder } from '../actions/create'
 import { logEvent } from '../devtools/log'
 import { gamingStore } from '../gaming/store'
 import { startGaming } from '../gaming/timer'
-import { lifeStore } from '../life/store'
 import { chooseFor } from '../profiles/store'
-import { remindersStore } from '../reminders/store'
 import { reveal } from '../search/reveal'
-import { notesStore } from '../state/notesStore'
 import { focusStore } from '../study/timer'
 
 /** What a command did: a message to show, and the app to open (if any). */
@@ -23,22 +21,21 @@ const local = (value: string) => Date.parse(value)
  */
 export const COMMAND_HANDLERS: Record<string, (values: CommandValues, now: number) => Promise<CommandOutcome>> = {
   'note.new': async (values) => {
-    const id = notesStore.add()
     const title = (values.title ?? '').trim().slice(0, 200)
-    if (title) notesStore.update(id, { title })
+    const id = createNote({ title })
     reveal('notes', id)
     return { message: title ? `Notitie "${title}" gemaakt.` : 'Notitie gemaakt.', open: 'notes' }
   },
   'reminder.new': async (values, now) => {
     const parsed = parseReminder({ title: values.title, at: local(values.at ?? ''), repeat: 'none', target: 'phone' }, now)
     if (!parsed.ok) throw new Error(parsed.error)
-    await remindersStore.add(parsed.value, now)
+    await createReminder(parsed.value, now)
     return { message: `Herinnering "${parsed.value.title}" gezet.` }
   },
   'deadline.new': async (values, now) => {
     const parsed = parseDeadline({ title: values.title, dueAt: local(values.dueAt ?? '') })
     if (!parsed.ok) throw new Error(parsed.error)
-    const id = await lifeStore.addDeadline(parsed.value, now)
+    const id = await createDeadline(parsed.value, now)
     reveal('agenda', id)
     return { message: `Deadline "${parsed.value.title}" toegevoegd.` }
   },

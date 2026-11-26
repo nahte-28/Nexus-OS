@@ -33,6 +33,8 @@ import {
   type FlowTrigger,
   type ProfileId,
   type TriggerType,
+  MAX_CREATE_DAYS,
+  MAX_CREATE_MINUTES,
 } from '@nexus/core'
 import { useConnect } from '../connect/ConnectContext'
 import { builderView, setBuilderView, type BuilderView } from '../flows/canvas'
@@ -689,6 +691,59 @@ function ActionEditor({ action, onChange }: { action: FlowAction; onChange: (a: 
             </select>
           </label>
         </>
+      )}
+      {(action.type === 'note.create' || action.type === 'reminder.create' || action.type === 'deadline.create') && (
+        <label className="flex min-w-40 flex-1 flex-col gap-1">
+          Titel
+          <input
+            className={field}
+            value={action.title}
+            maxLength={action.type === 'note.create' ? 200 : 120}
+            placeholder="Bv. Begin aan {titel}"
+            onChange={(e) => onChange({ ...action, title: e.target.value })}
+          />
+        </label>
+      )}
+      {action.type === 'note.create' && (
+        <label className="flex min-w-40 flex-1 flex-col gap-1">
+          Tekst
+          <input className={field} value={action.body} maxLength={5000} onChange={(e) => onChange({ ...action, body: e.target.value })} />
+        </label>
+      )}
+      {action.type === 'reminder.create' && (
+        <>
+          <label className="flex flex-col gap-1">
+            Over (minuten)
+            <input
+              type="number"
+              min={1}
+              max={MAX_CREATE_MINUTES}
+              className={`${field} w-28`}
+              value={action.inMinutes}
+              onChange={(e) => onChange({ ...action, inMinutes: Math.round(Number(e.target.value)) })}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            Waar
+            <select className={field} value={action.target} onChange={(e) => onChange({ ...action, target: e.target.value as typeof action.target })}>
+              <option value="phone">Ook op gsm en horloge</option>
+              <option value="this_device">Alleen op dit apparaat</option>
+            </select>
+          </label>
+        </>
+      )}
+      {action.type === 'deadline.create' && (
+        <label className="flex flex-col gap-1">
+          Over (dagen)
+          <input
+            type="number"
+            min={0}
+            max={MAX_CREATE_DAYS}
+            className={`${field} w-28`}
+            value={action.inDays}
+            onChange={(e) => onChange({ ...action, inDays: Math.round(Number(e.target.value)) })}
+          />
+        </label>
       )}
       {action.type === 'wait' && (
         <label className="flex flex-col gap-1">
