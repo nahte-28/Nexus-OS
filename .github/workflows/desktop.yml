@@ -15,6 +15,11 @@ on:
       - apps/web/src/platform/**
       - .github/workflows/desktop.yml
 
+# The public half of the release key goes into the app at build time (signature.rs); an empty
+# variable builds an app that accepts unsigned updates, as before.
+env:
+  NEXUS_UPDATE_PUBLIC_KEY: ${{ vars.NEXUS_UPDATE_PUBLIC_KEY }}
+
 jobs:
   build:
     runs-on: windows-latest
@@ -53,6 +58,12 @@ jobs:
       - run: npm run build -w @nexus/desktop
       - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
       - run: cp apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe nexus-os-setup.exe
+      # Signed with the release key, so the app installs only updates from this pipeline
+      # (signature.rs). Without the secret nothing is signed and updates work as before.
+      - name: Sign the installer
+        env:
+          NEXUS_UPDATE_SIGNING_KEY: ${{ secrets.NEXUS_UPDATE_SIGNING_KEY }}
+        run: node apps/desktop/scripts/sign-update.mjs nexus-os-setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: nexus-os-windows
@@ -64,7 +75,9 @@ jobs:
           tag_name: desktop-v1.0.${{ github.run_number }}
           name: NEXUS OS voor Windows 1.0.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          files: nexus-os-setup.exe
+          files: |
+            nexus-os-setup.exe
+            nexus-os-setup.exe.sig
           body: |
             Download `nexus-os-setup.exe` en voer het uit. Een nieuwe versie installeert over de vorige heen.
             Vanaf 0.8 werkt NEXUS zichzelf bij: Instellingen > Windows > Zoeken naar updates, of de knop "Bijwerken" in de taakbalk.
@@ -115,6 +128,10 @@ jobs:
         run: |
           cp apps/desktop/src-tauri/target/release/bundle/deb/*.deb nexus-os.deb
           cp apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage nexus-os.AppImage
+      - name: Sign the Linux files
+        env:
+          NEXUS_UPDATE_SIGNING_KEY: ${{ secrets.NEXUS_UPDATE_SIGNING_KEY }}
+        run: node apps/desktop/scripts/sign-update.mjs nexus-os.deb nexus-os.AppImage
       - uses: actions/upload-artifact@v4
         with:
           name: nexus-os-linux
@@ -131,6 +148,8 @@ jobs:
           files: |
             nexus-os.deb
             nexus-os.AppImage
+            nexus-os.deb.sig
+            nexus-os.AppImage.sig
           append_body: true
           body: |
 
