@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-26',
+    title: 'Minder SQL voor nieuwe apps',
+    items: [
+      'Na één laatste stap in Account › Database-check ("Nieuwe apps syncen zonder eigen SQL") syncen nieuwe apps hun gegevens zonder dat je daarvoor nog SQL hoeft uit te voeren.',
+    ],
+  },
+  {
+    date: '2026-11-26',
     title: 'Flows die iets aanmaken',
     items: [
       'In Flow Studio kan een flow nu een notitie maken, een herinnering zetten of een deadline toevoegen. Bijvoorbeeld: een dag voor een deadline een herinnering "Begin aan {titel}" over een uur.',
