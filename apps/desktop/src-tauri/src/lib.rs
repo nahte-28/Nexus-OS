@@ -5,6 +5,7 @@ use tauri::{AppHandle, Manager, WindowEvent};
 mod browser;
 mod discord;
 mod session;
+mod shortcut;
 mod signature;
 mod store;
 mod system;
@@ -80,6 +81,9 @@ pub fn run() {
             discord::discord_clear
         ])
         .setup(|app| {
+            // Ctrl+Shift+Space from any program: Snelle notitie.
+            #[cfg(desktop)]
+            shortcut::setup(app, show_main)?;
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;

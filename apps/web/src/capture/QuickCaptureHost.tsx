@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react'
 import { QuickNoteIcon } from '../apps/icons'
+import { isDesktopApp } from '../platform/desktop'
 import { captureState, openCapture } from './open'
 
 // Small on purpose: the shell needs only this; the Snelle notitie window loads the first time it opens.
@@ -14,9 +15,27 @@ export function useCaptureShortcut() {
       }
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    // In the Windows/Linux app the same Ctrl+Shift+Space works from any program (shortcut.rs).
+    let stop: (() => void) | undefined
+    let gone = false
+    if (isDesktopApp) {
+      void import('@tauri-apps/api/event').then(({ listen }) =>
+        listen(QUICK_CAPTURE_EVENT, () => openCapture()).then((unlisten) => {
+          if (gone) unlisten()
+          else stop = unlisten
+        }),
+      )
+    }
+    return () => {
+      gone = true
+      stop?.()
+      document.removeEventListener('keydown', onKey)
+    }
   }, [])
 }
+
+/** Sent by the desktop app when Ctrl+Shift+Space is pressed in another program. */
+export const QUICK_CAPTURE_EVENT = 'nexus-quick-capture'
 
 export function CaptureButton({ className = '' }: { className?: string }) {
   return (
