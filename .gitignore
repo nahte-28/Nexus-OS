@@ -14,3 +14,4 @@ apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 apps/web/test-results/
 apps/web/playwright-report/
+nexus-update-key.txt

@@ -109,7 +109,14 @@ Kan de companion niet op je gsm (bijvoorbeeld door ouderlijk toezicht), open NEX
 - Sluit je het venster, dan blijft NEXUS in het systeemvak draaien en krijg je Windows-meldingen van je gsm. Afsluiten doe je via het icoon in het systeemvak.
 - In Instellingen kun je NEXUS laten starten met Windows; het start dan stil in het systeemvak.
 - Inloggen gaat met e-mail en wachtwoord. "Wachtwoord vergeten?" stuurt een link die in de browser opent; daar kies je een nieuw wachtwoord.
-- De installer is nog niet digitaal ondertekend. Windows SmartScreen waarschuwt daarom; kies "Meer informatie" en "Toch uitvoeren".
+- De installer is nog niet digitaal ondertekend bij Microsoft. Windows SmartScreen waarschuwt daarom; kies "Meer informatie" en "Toch uitvoeren".
+- **Ondertekende updates**: de pipeline ondertekent elke installer (`nexus-os-setup.exe`, `.deb`, `.AppImage`) met een eigen ed25519-sleutel en zet `<bestand>.sig` ernaast. Een app die met de publieke sleutel gebouwd is, installeert alleen updates met een geldige handtekening (`apps/desktop/src-tauri/src/signature.rs`). Eenmalig instellen:
+  1. Op je eigen pc, in de map van de repository: `node apps/desktop/scripts/make-update-key.mjs`. Dat maakt `nexus-update-key.txt` (geheim, staat in `.gitignore`) en toont de publieke sleutel.
+  2. GitHub › Settings › Secrets and variables › Actions › **Secrets**: `NEXUS_UPDATE_SIGNING_KEY` = de inhoud van `nexus-update-key.txt`.
+  3. Zelfde pagina › **Variables**: `NEXUS_UPDATE_PUBLIC_KEY` = de getoonde publieke sleutel.
+  4. Bewaar `nexus-update-key.txt` veilig (wachtwoordbeheerder) of verwijder het. Wie het heeft, kan updates maken die elke NEXUS-app installeert.
+
+  Zonder die twee waarden werkt alles zoals vroeger (niet ondertekend). De eerste release met de sleutel is nog een gewone update; vanaf de app die daarna draait, wordt elke update gecontroleerd.
 
 Lokaal bouwen: installeer Rust en de [Tauri-vereisten](https://tauri.app/start/prerequisites/), zet de Supabase-waarden in `apps/web/.env.local` en voer `npm run dev -w @nexus/desktop` (ontwikkelen) of `npm run build -w @nexus/desktop` (installer) uit.
 

@@ -5,6 +5,7 @@ use tauri::{AppHandle, Manager, WindowEvent};
 mod browser;
 mod discord;
 mod session;
+mod signature;
 mod store;
 mod system;
 mod update;
