@@ -4,6 +4,8 @@
  */
 import { isTime, localClock, PROFILE_IDS, type ProfileId } from './profiles'
 import type { AppId } from './windows'
+import { parseDeadline } from './life'
+import { parseReminder } from './reminders'
 
 export type TriggerType =
   | 'schedule.at_time'
@@ -15,7 +17,7 @@ export type TriggerType =
   | 'finance.expense_added'
   | 'manual'
 export type ConditionType = 'profile.is_active' | 'local_time.in_range' | 'network.online'
-export type ActionType = 'profile.activate' | 'notification.send' | 'app.open_prompt' | 'update.prompt' | 'wait'
+export type ActionType = 'profile.activate' | 'notification.send' | 'app.open_prompt' | 'update.prompt' | 'note.create' | 'reminder.create' | 'deadline.create' | 'wait'
 
 export type ProfileDuration = 'until-change' | 'hour' | 'today'
 export type NotifyTarget = 'this_device' | 'phone'
@@ -43,6 +45,12 @@ export type FlowAction =
   | { type: 'notification.send'; title: string; text: string; target: NotifyTarget }
   | { type: 'app.open_prompt'; app: AppId }
   | { type: 'update.prompt' }
+  /** Makes a note; {titel} and the other words from the trigger are filled in. */
+  | { type: 'note.create'; title: string; body: string }
+  /** Sets a reminder [inMinutes] after the action runs. */
+  | { type: 'reminder.create'; title: string; inMinutes: number; target: NotifyTarget }
+  /** Adds a deadline [inDays] after the action runs, at the same time of day. */
+  | { type: 'deadline.create'; title: string; inDays: number }
   /** Waits [minutes] before the next action; the run goes on later, also after a restart. */
   | { type: 'wait'; minutes: number }
 
@@ -126,6 +134,9 @@ export const ACTION_LABELS: Record<ActionType, string> = {
   'notification.send': 'Melding sturen',
   'app.open_prompt': 'Voorstellen om een app te openen',
   'update.prompt': 'Voorstellen om de update te installeren',
+  'note.create': 'Notitie maken',
+  'reminder.create': 'Herinnering zetten',
+  'deadline.create': 'Deadline toevoegen',
   wait: 'Wachten',
 }
 export const TRIGGER_TYPES = Object.keys(TRIGGER_LABELS) as TriggerType[]
@@ -176,6 +187,12 @@ export function defaultAction(type: ActionType): FlowAction {
       return { type, app: 'klashub' }
     case 'update.prompt':
       return { type }
+    case 'note.create':
+      return { type, title: '', body: '' }
+    case 'reminder.create':
+      return { type, title: '', inMinutes: 60, target: 'phone' }
+    case 'deadline.create':
+      return { type, title: '', inDays: 7 }
     case 'wait':
       return { type, minutes: 10 }
   }
@@ -235,6 +252,19 @@ export function validateFlow(flow: FlowDefinition): string | null {
       if (a.target !== 'this_device' && a.target !== 'phone') return 'Kies waar de melding heen gaat.'
     }
     if (a.type === 'app.open_prompt' && !PROMPT_APPS.includes(a.app)) return 'Kies een app.'
+    if (a.type === 'note.create') {
+      if (!a.title.trim() || a.title.length > 200) return 'Een notitie heeft een korte titel nodig.'
+      if (a.body.length > 5000) return 'De tekst van de notitie is te lang.'
+    }
+    if (a.type === 'reminder.create') {
+      if (!a.title.trim() || a.title.length > 120) return 'Een herinnering heeft een korte titel nodig.'
+      if (!(Number.isInteger(a.inMinutes) && a.inMinutes >= 1 && a.inMinutes <= MAX_CREATE_MINUTES)) return 'Zet de herinnering tussen 1 minuut en 30 dagen later.'
+      if (a.target !== 'this_device' && a.target !== 'phone') return 'Kies waar de herinnering komt.'
+    }
+    if (a.type === 'deadline.create') {
+      if (!a.title.trim() || a.title.length > 120) return 'Een deadline heeft een korte titel nodig.'
+      if (!(Number.isInteger(a.inDays) && a.inDays >= 0 && a.inDays <= MAX_CREATE_DAYS)) return 'Zet de deadline tussen vandaag en een jaar later.'
+    }
     if (a.type === 'wait' && !(Number.isInteger(a.minutes) && a.minutes >= 1 && a.minutes <= MAX_WAIT_MINUTES)) return 'Wacht tussen 1 minuut en 12 uur.'
   }
   if (flow.actions[flow.actions.length - 1].type === 'wait') return 'Na een wachttijd moet nog een actie komen.'
@@ -311,6 +341,24 @@ export function conditionHolds(c: FlowCondition, ctx: FlowContext, timeZone: str
 /** The first condition that does not hold, or null when the flow may run. */
 export function failingCondition(flow: FlowDefinition, ctx: FlowContext): FlowCondition | null {
   return flow.conditions.find((c) => !conditionHolds(c, ctx, flow.timeZone)) ?? null
+}
+
+/** How far ahead a flow may set a reminder (30 days) or a deadline (a year). */
+export const MAX_CREATE_MINUTES = 30 * 24 * 60
+export const MAX_CREATE_DAYS = 365
+
+/**
+ * What a create action makes when it runs at [now], with the words of the trigger filled in, checked
+ * by the same rules as the Herinneringen and Agenda forms, NEXUS AI and Ctrl+K.
+ */
+export function noteFromAction(a: Extract<FlowAction, { type: 'note.create' }>, vars: Record<string, string>): { title: string; body: string } {
+  return { title: fillText(a.title, vars).trim().slice(0, 200), body: fillText(a.body, vars) }
+}
+export function reminderFromAction(a: Extract<FlowAction, { type: 'reminder.create' }>, vars: Record<string, string>, now: number) {
+  return parseReminder({ title: fillText(a.title, vars), at: now + a.inMinutes * 60_000, repeat: 'none', target: a.target }, now)
+}
+export function deadlineFromAction(a: Extract<FlowAction, { type: 'deadline.create' }>, vars: Record<string, string>, now: number) {
+  return parseDeadline({ title: fillText(a.title, vars), dueAt: now + a.inDays * 24 * 60 * 60_000 })
 }
 
 /** Fills in {titel}, {apparaat}, {tijd} and {versie} from the event. */
@@ -421,6 +469,12 @@ export function describeAction(a: FlowAction, vars: Record<string, string> = {},
       return `Voorstellen om ${appName(a.app)} te openen`
     case 'update.prompt':
       return 'Voorstellen om de update te installeren'
+    case 'note.create':
+      return `Notitie "${fillText(a.title, vars)}" maken`
+    case 'reminder.create':
+      return `Herinnering "${fillText(a.title, vars)}" over ${waitLabel(a.inMinutes)}`
+    case 'deadline.create':
+      return `Deadline "${fillText(a.title, vars)}" ${a.inDays === 0 ? 'vandaag' : a.inDays === 1 ? 'morgen' : `over ${a.inDays} dagen`}`
     case 'wait':
       return `${waitLabel(a.minutes)} wachten`
   }

@@ -12,6 +12,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-26',
+    title: 'Flows die iets aanmaken',
+    items: [
+      'In Flow Studio kan een flow nu een notitie maken, een herinnering zetten of een deadline toevoegen. Bijvoorbeeld: een dag voor een deadline een herinnering "Begin aan {titel}" over een uur.',
+      'Die acties volgen dezelfde regels als Herinneringen, de Agenda, Ctrl+K en NEXUS AI, dus wat daar niet mag (zoals een tijdstip in het verleden) mag hier ook niet.',
+    ],
+  },
+  {
     date: '2026-11-25',
     title: 'Vensters met het toetsenbord',
     items: [

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  deadlineFromAction,
+  defaultAction,
+  noteFromAction,
+  reminderFromAction,
+  type FlowAction,
   emptyRuntime,
   fillText,
   FLOW_TEMPLATES,
@@ -244,5 +249,32 @@ describe('flow sync merge', () => {
     for (let v = 2; v < 14; v++) long = recordVersion(long, flow({ version: v, name: `v${v}` }), flow({ version: v + 1, name: `v${v + 1}` }), v)
     expect(long).toHaveLength(10)
     expect(long[0].version).toBe(13)
+  })
+})
+
+describe('flow actions that make something', () => {
+  const now = at('2026-11-26T08:00:00+01:00')
+  const vars = { titel: 'Verslag labo' }
+
+  it('fills in the trigger words and checks with the same rules as the apps', () => {
+    expect(noteFromAction({ type: 'note.create', title: 'Notities: {titel}', body: 'Voor {titel}' }, vars)).toEqual({ title: 'Notities: Verslag labo', body: 'Voor Verslag labo' })
+    const reminder = reminderFromAction({ type: 'reminder.create', title: 'Begin aan {titel}', inMinutes: 90, target: 'phone' }, vars, now)
+    expect(reminder.ok && reminder.value).toMatchObject({ title: 'Begin aan Verslag labo', at: now + 90 * 60_000, repeat: 'none', target: 'phone' })
+    const deadline = deadlineFromAction({ type: 'deadline.create', title: '{titel} nalezen', inDays: 2 }, vars, now)
+    expect(deadline.ok && deadline.value).toMatchObject({ title: 'Verslag labo nalezen', dueAt: now + 2 * 24 * 60 * 60_000 })
+  })
+
+  it('refuses empty titles and times out of range', () => {
+    const make = (action: FlowAction) => validateFlow(flow({ actions: [action] }))
+    expect(make({ type: 'note.create', title: ' ', body: '' })).toBe('Een notitie heeft een korte titel nodig.')
+    expect(make({ type: 'reminder.create', title: 'x', inMinutes: 0, target: 'phone' })).toBe('Zet de herinnering tussen 1 minuut en 30 dagen later.')
+    expect(make({ type: 'deadline.create', title: 'x', inDays: 400 })).toBe('Zet de deadline tussen vandaag en een jaar later.')
+    expect(make({ type: 'deadline.create', title: 'Taak', inDays: 0 })).toBeNull()
+  })
+
+  it('describes them in plain Dutch for the run history', () => {
+    expect(describeAction({ type: 'reminder.create', title: '{titel}', inMinutes: 120, target: 'phone' }, vars)).toBe('Herinnering "Verslag labo" over 2 uur')
+    expect(describeAction({ type: 'deadline.create', title: 'Taak', inDays: 1 })).toBe('Deadline "Taak" morgen')
+    expect(defaultAction('note.create')).toEqual({ type: 'note.create', title: '', body: '' })
   })
 })

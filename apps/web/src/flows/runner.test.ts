@@ -19,6 +19,9 @@ function effects(): FlowEffects & { calls: string[] } {
     activateProfile: (p, d) => void calls.push(`profile:${p}:${d}`),
     notify: async (title, _text, target) => void calls.push(`notify:${title}:${target}`),
     prompt: (p) => void calls.push(`prompt:${p.kind}:${p.app ?? ''}`),
+    createNote: (n) => (calls.push(`note:${n.title}`), 'n1'),
+    createReminder: async (r) => (calls.push(`reminder:${r.title}:${r.at}:${r.target}`), 'r1'),
+    createDeadline: async (d) => (calls.push(`deadline:${d.title}:${d.dueAt}`), 'd1'),
   }
 }
 
@@ -60,6 +63,23 @@ describe('flow runner', () => {
     const runs = await tickFlows(ctx({ deadlines: [{ id: 'r', title: 'Labo', at: now + 30 * 60_000 }] }), fx, store)
     expect(fx.notify).toHaveBeenCalledWith('Binnen een uur: Labo', 'Om 09:01.', 'phone', expect.stringMatching(/^flow:deadline-reminder\|deadline:r@\d+\|0$/))
     expect(runs[0]).toMatchObject({ status: 'failed', steps: [{ status: 'failed', detail: 'Geen gsm gekoppeld.' }] })
+  })
+
+  it('makes a note, a reminder and a deadline with the words of the trigger', async () => {
+    store.save(
+      fromTemplate('deadline-reminder', {
+        actions: [
+          { type: 'note.create', title: 'Plan: {titel}', body: '' },
+          { type: 'reminder.create', title: 'Begin aan {titel}', inMinutes: 15, target: 'this_device' },
+          { type: 'deadline.create', title: '{titel} nalezen', inDays: 1 },
+        ],
+      }),
+    )
+    const fx = effects()
+    const runs = await tickFlows(ctx({ deadlines: [{ id: 'r', title: 'Labo', at: now + 30 * 60_000 }] }), fx, store)
+    expect(runs[0].status).toBe('ok')
+    expect(fx.calls).toEqual(['note:Plan: Labo', `reminder:Begin aan Labo:${now + 15 * 60_000}:this_device`, `deadline:Labo nalezen:${now + 24 * 60 * 60_000}`])
+    expect(runs[0].steps.map((s) => s.action)).toEqual(['Notitie "Plan: Labo" maken', 'Herinnering "Begin aan Labo" over 15 min', 'Deadline "Labo nalezen" morgen'])
   })
 
   it('does nothing while paused, and a manual run still checks pause', async () => {

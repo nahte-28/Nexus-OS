@@ -65,6 +65,9 @@ function effects(sync: FlowsSync, device: string): FlowEffects & { calls: string
     activateProfile: (p) => void calls.push(`profile:${p}`),
     notify: async (title) => void calls.push(`notify:${title}`),
     prompt: (p) => void calls.push(`prompt:${p.kind}`),
+    createNote: () => 'n1',
+    createReminder: async () => 'r1',
+    createDeadline: async () => 'd1',
     claim: (run: FlowRun) => claimFlowRun(run, sync),
     deviceName: () => device,
   }

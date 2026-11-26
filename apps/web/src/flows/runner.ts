@@ -1,4 +1,9 @@
 import {
+  deadlineFromAction,
+  noteFromAction,
+  reminderFromAction,
+  type DeadlineDraft,
+  type ReminderDraft,
   financeFlowFacts,
   openDeadlines,
   DEFAULT_TIMEOUT_SECONDS,
@@ -28,6 +33,7 @@ import { remindersStore } from '../reminders/store'
 import type { ConnectEngine } from '../connect/engine'
 import { showLocalNotification } from '../platform/notify'
 import { addPrompt, type FlowPrompt } from './prompts'
+import { createDeadline, createNote, createReminder } from '../actions/create'
 import { claimFlowRun } from './sync'
 import { FLOWS_STORAGE_KEY, flowsStore, flowStudioEnabled, type FlowRun, type FlowSettings, type FlowStepResult, type FlowsStore } from './store'
 
@@ -41,6 +47,10 @@ export interface FlowEffects {
   /** [ref] ties it to the phone's safety net, so the phone shows it once. */
   notify(title: string, text: string, target: NotifyTarget, ref?: string): Promise<void>
   prompt(prompt: FlowPrompt): void
+  /** Makes a note, reminder or deadline (actions/create.ts); returns its id. */
+  createNote(note: { title: string; body: string }): string
+  createReminder(draft: ReminderDraft, now: number): Promise<string>
+  createDeadline(draft: DeadlineDraft, now: number): Promise<string>
   /**
    * Asks the account whether this device may run the event: false when another device already
    * did. Without an account or connection the answer is yes, so flows keep working offline.
@@ -165,6 +175,21 @@ async function runAction(
     case 'update.prompt':
       effects.prompt({ id: `${flow.id}|${event.id}|${index}`, flowName: flow.name, kind: 'update', at: now })
       return
+    case 'note.create':
+      effects.createNote(noteFromAction(action, event.vars))
+      return
+    case 'reminder.create': {
+      const parsed = reminderFromAction(action, event.vars, now)
+      if (!parsed.ok) throw new Error(parsed.error)
+      await effects.createReminder(parsed.value, now)
+      return
+    }
+    case 'deadline.create': {
+      const parsed = deadlineFromAction(action, event.vars, now)
+      if (!parsed.ok) throw new Error(parsed.error)
+      await effects.createDeadline(parsed.value, now)
+      return
+    }
     case 'wait':
       // runActions stops at a wait block before it gets here.
       return
@@ -329,6 +354,9 @@ export function defaultEffects(connect: ConnectEngine): FlowEffects {
       const what = prompt.kind === 'update' ? 'de update installeren' : `${appName(prompt.app ?? '')} openen`
       void showLocalNotification(prompt.flowName, `Voorstel: ${what}. Open NEXUS om te kiezen.`, prompt.id)
     },
+    createNote,
+    createReminder,
+    createDeadline,
     claim: claimFlowRun,
     deviceName() {
       const state = connect.getSnapshot()
