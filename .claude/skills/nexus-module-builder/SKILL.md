@@ -39,7 +39,8 @@ Core (`packages/core/src`)
 Web (`apps/web/src`)
 7. `<domain>/store.ts`: `new DocStore<T>('nexus.<domain>', parse<X>)`, a `use<X>()` hook via
    `useSyncExternalStore`, `start<X>Sync` with `startDocSync` (key, parse, merge, migration
-   path, problem, Dutch label). Device-only data uses `readStorage`/`writeStorage` instead.
+   path, problem, Dutch label). A **new** synced document uses `key: docKey('<name>')` and
+   `migration: SETTINGS_DOCS_MIGRATION` from core: no SQL needed (see step 13). Device-only data uses `readStorage`/`writeStorage` instead.
 8. `background.ts`: call `start<X>Sync(supabase, () => isFeatureOn('<id>'), onFeaturesChange)`.
 9. `apps/<Name>.tsx` (+ `<Name>.test.tsx`) and register it in `apps/registry.tsx` with
    `load('<Name>', () => import('./<Name>'))` and an `APPS` entry (id, Dutch title, icon from
@@ -51,9 +52,10 @@ Web (`apps/web/src`)
     (`startWithEverything`), so the smoke test opens it.
 
 SQL (only if it syncs or has tables)
-13. New migration `supabase/migrations/<yyyymmddhhmmss>_<name>.sql`. A new `user_settings`
-    key means re-creating `user_settings_key_check` with **all** existing keys plus the new one
-    (copy the list from the latest migration that sets it), `not valid`.
+13. A synced document needs **no migration**: use `docKey('<name>')` (`doc.<name>`, allowed since
+    `20261126110000_settings_docs.sql`; at most 64 rows per account). Do not add names to
+    `user_settings_key_check` any more. Only new tables, functions or sharing rules need a
+    migration `supabase/migrations/<yyyymmddhhmmss>_<name>.sql`.
 14. Follow the SQL workflow in CLAUDE.md (project-files copy, `alles-in-een-keer.sql`,
     `supabase/tests/run.sh`, SQL Editor steps for Ethan).
 

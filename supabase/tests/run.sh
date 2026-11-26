@@ -39,6 +39,7 @@ psql -f "$here/admin_users.sql"
 psql -f "$here/birthdays.sql"
 psql -f "$here/task_assigned_push.sql"
 psql -f "$here/agenda_feed.sql"
+psql -f "$here/settings_docs.sql"
 psql -f "$here/hardening.sql"
 # Every migration may run again (Database-check pastes them all at once), also with the test data above.
 for file in "$here"/../migrations/*.sql; do

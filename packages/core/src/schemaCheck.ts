@@ -68,6 +68,7 @@ export const SCHEMA_STEPS: SchemaStep[] = [
   { file: '20261120090000_task_assigned_push.sql', label: 'Teams: melding als je een taak krijgt', needs: [{ fn: 'team_task_assigned_push' }] },
   { file: '20261124090000_hardening.sql', label: 'Database veiliger en sneller (aanbevolen)', needs: [{ fn: 'nexus_hardening_version' }] },
   { file: '20261125090000_agenda_feed.sql', label: 'Lessen en afspraken in Google Agenda', needs: [{ table: 'agenda_feeds' }, { fn: 'agenda_feed' }] },
+  { file: '20261126110000_settings_docs.sql', label: 'Nieuwe apps syncen zonder eigen SQL', needs: [{ fn: 'nexus_settings_docs_version' }] },
 ]
 
 /** What nexus_schema_status() returns. */

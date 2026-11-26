@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-26',
+    title: 'Minder SQL voor nieuwe apps',
+    items: [
+      'Na één laatste stap in Account › Database-check ("Nieuwe apps syncen zonder eigen SQL") syncen nieuwe apps hun gegevens zonder dat je daarvoor nog SQL hoeft uit te voeren.',
+    ],
+  },
+  {
+    date: '2026-11-26',
     title: 'Veiligere updates voor de Windows- en Linux-app',
     items: [
       'De Windows- en Linux-app kunnen nu nagaan of een update echt van NEXUS komt: elke installer krijgt een handtekening, en een app met de sleutel installeert alleen een update waarvan de handtekening klopt. Dat werkt zodra de sleutel ingesteld is (zie de README).',
