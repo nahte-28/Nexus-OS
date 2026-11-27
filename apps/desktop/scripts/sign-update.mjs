@@ -10,13 +10,29 @@ import { readFileSync, writeFileSync } from 'node:fs'
 
 const PKCS8_ED25519 = Buffer.from('302e020100300506032b657004220420', 'hex')
 
-const seedHex = (process.env.NEXUS_UPDATE_SIGNING_KEY ?? '').trim()
+// Tolerates what a copy-paste into the GitHub secret often adds: a byte order mark (Notepad,
+// PowerShell), line breaks or spaces, surrounding quotes, or the "NEXUS_UPDATE_SIGNING_KEY="
+// prefix. The key itself is never printed, only what is wrong with it.
+function cleanSeed(raw) {
+  return raw
+    .replace(/^﻿/, '')
+    .replace(/^\s*NEXUS_UPDATE_SIGNING_KEY\s*[=:]\s*/i, '')
+    .replace(/\s+/g, '')
+    .replace(/^["']|["']$/g, '')
+}
+
+const seedHex = cleanSeed(process.env.NEXUS_UPDATE_SIGNING_KEY ?? '')
 if (!seedHex) {
   console.log('NEXUS_UPDATE_SIGNING_KEY is not set: the installers are not signed.')
   process.exit(0)
 }
 if (!/^[0-9a-f]{64}$/i.test(seedHex)) {
-  console.error('NEXUS_UPDATE_SIGNING_KEY must be 64 hex characters (see make-update-key.mjs).')
+  const bad = seedHex.replace(/[0-9a-f]/gi, '').length
+  console.error(
+    `NEXUS_UPDATE_SIGNING_KEY must be 64 hex characters (see make-update-key.mjs); ` +
+      `it has ${seedHex.length} characters, ${bad} of them not hex. ` +
+      'Paste only the line from nexus-update-key.txt into the secret.',
+  )
   process.exit(1)
 }
 
