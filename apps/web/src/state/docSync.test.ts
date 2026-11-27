@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createProblem, DocStore, startDocSync } from './docStore'
+import { createProblem, DocStore, startDocSync, syncDoc } from './docStore'
 
 interface Doc {
   revision: number
@@ -69,5 +69,42 @@ describe('startDocSync', () => {
     expect(remote.pulls.mock.calls.length).toBe(before + 1)
     expect(store.getSnapshot().items).toEqual(['a', 'b'])
     stop()
+  })
+})
+
+describe('syncDoc', () => {
+  interface Map {
+    revision: number
+    items: Record<string, { text: string; at: number }>
+  }
+  const keepMine = (a: Map, b: Map): Map => ({ revision: Math.max(a.revision, b.revision), items: { ...b.items, ...a.items } })
+
+  it('does not write a new revision when the account holds the same copy in another key order', async () => {
+    // What Postgres hands back: jsonb sorts keys by length, so "at" comes before "text".
+    const account = { revision: 5, items: { b: { at: 2, text: 'B' }, a: { at: 1, text: 'A' } } }
+    const pushes: number[] = []
+    const remote = {
+      pull: () => Promise.resolve(structuredClone(account)),
+      push: (state: Map) => {
+        pushes.push(state.revision)
+        return Promise.resolve(true)
+      },
+    }
+    const store = new DocStore<Map>('nexus.test.order', (raw) => (raw as Map) ?? { revision: 0, items: {} })
+    store.adopt({ revision: 5, items: { a: { text: 'A', at: 1 }, b: { text: 'B', at: 2 } } })
+    expect(await syncDoc(store, remote, keepMine)).toBe(5)
+    expect(await syncDoc(store, remote, keepMine)).toBe(5)
+    expect(pushes).toEqual([])
+  })
+
+  it('still pushes a reordered list', async () => {
+    const remote = {
+      pull: () => Promise.resolve({ revision: 3, items: ['a', 'b'] }),
+      push: vi.fn(() => Promise.resolve(true)),
+    }
+    const store = new DocStore<Doc>('nexus.test.list', parse)
+    store.adopt({ revision: 4, items: ['b', 'a'] })
+    expect(await syncDoc(store, remote, (a) => a)).toBe(5)
+    expect(remote.push).toHaveBeenCalledTimes(1)
   })
 })

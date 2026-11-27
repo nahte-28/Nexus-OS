@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-27',
+    title: 'Rustiger synchroniseren',
+    items: [
+      'Een document dat al gelijk was op je apparaten, kon telkens opnieuw gesynchroniseerd worden zolang NEXUS openstond. Dat stopt nu: NEXUS synct alleen nog als er echt iets veranderd is, wat je batterij en je mobiele data spaart.',
+    ],
+  },
+  {
+    date: '2026-11-27',
     title: 'Startmenu 2.0',
     items: [
       'Start (het NEXUS-teken) is vernieuwd: bovenaan het NEXUS-teken en je profiel, daaronder een groot zoekveld.',

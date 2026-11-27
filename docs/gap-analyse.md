@@ -179,8 +179,8 @@ uitbreidbaarheid.
 | R8 | **Eén actieregister** in core; AI en Ctrl+K erop overzetten; flows krijgen de maak-acties | Z5 | Middel |
 | R9 | **Ondertekende desktop-updates** (Tauri updater-plugin of eigen handtekeningcontrole) | Z8 | Middel |
 | R10 | **Globale sneltoets + `nexus://`** in de desktop-app | Ontbrekend 6 | Klein |
-| R11 | **Flows met tijdtrigger op de server** | Z7 | Groot |
-| R12 | **Twee-apparatentest** in CI tegen een lokale Supabase | Testgat sync | Middel |
+| R11 | **Flows met tijdtrigger op de server**: bestond al (`20261030090000_flows_server.sql`, profiel kiezen op een vast tijdstip; meldingen via het vangnet). Notitie, deadline en herinnering op de server bewust niet gebouwd (Ethan, 2026-11-27) | Z7 | Klaar |
+| R12 | **Twee-apparatentest** in CI tegen een lokale Supabase (job `sync`, `apps/web/src/sync/twoDevices.supabase.ts`) | Testgat sync | Middel |
 | R13 | **Grote apps opsplitsen** (Finance, Agenda, Darts) wanneer je ze toch aanpast | Z9 | Doorlopend |
 | R14 | **NEXUS MCP-server** bovenop het actieregister (P2-F) | Pas zinvol na R8 | Middel |
 

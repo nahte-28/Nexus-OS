@@ -56,3 +56,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: supabase/tests/run.sh postgresql://postgres:postgres@localhost:5432/postgres
+
+  sync:
+    # Two devices on one account against a real local Supabase (Auth, PostgREST, Realtime, every
+    # migration): a change shows on the other device through realtime, edits on both merge, and
+    # another account sees nothing (apps/web/src/sync/twoDevices.supabase.ts).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.4.0
+      - name: Start a local Supabase with every migration
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
+      - name: Two-device sync test
+        run: |
+          # The local stack's own demo keys, not the live project's.
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|PUBLISHABLE_KEY)=')"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="${PUBLISHABLE_KEY:-$ANON_KEY}" npm run test:sync -w @nexus/web
+      - if: failure()
+        run: supabase status && docker ps -a

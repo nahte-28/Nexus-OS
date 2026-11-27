@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "test:sync": "vitest run --config vitest.sync.config.ts",
     "e2e": "playwright test"
   },
   "dependencies": {
