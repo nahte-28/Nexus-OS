@@ -12,6 +12,16 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-11-27',
+    title: 'Taakbalk 2.0',
+    items: [
+      'De taakbalk is compacter en rustiger: Start en je snelknoppen, dan je vastgepinde favorieten, dan je geopende vensters, telkens gescheiden door een dun lijntje.',
+      'Het venster vooraan valt meer op, en een favoriet die vooraan staat kleurt mee. Geminimaliseerde vensters zijn gedempt.',
+      'Meldingen, synchronisatie, een update en de klok staan samen in één statusblok rechts. Een lichtje op de wolk toont of alles gesynchroniseerd is.',
+      'Op een smal scherm (768 tot 1000 pixels) worden vensternamen korter en daarna icoontjes, zodat al je vensters zichtbaar blijven.',
+    ],
+  },
+  {
     date: '2026-11-26',
     title: 'Minder SQL voor nieuwe apps',
     items: [

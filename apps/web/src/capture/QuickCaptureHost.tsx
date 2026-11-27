@@ -25,7 +25,7 @@ export function CaptureButton({ className = '' }: { className?: string }) {
       aria-label="Snelle notitie (Alt+N)"
       title="Snelle notitie (Alt+N)"
       onClick={() => openCapture()}
-      className={`grid size-10 place-items-center rounded-lg text-nx-muted hover:bg-nx-surface-2 ${className}`}
+      className={`grid size-9 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-text ${className}`}
     >
       <QuickNoteIcon className="size-5" />
     </button>
