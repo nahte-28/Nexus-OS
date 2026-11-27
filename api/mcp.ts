@@ -84,7 +84,9 @@ function dataFor(token: string, timeZone: string, profiles: ReturnType<typeof pa
       return rows.map((r) => toLifeItem({ ...r.data, id: r.id, kind: r.kind, updatedAt: Number(r.updated_at), deletedAt: null })).filter((i): i is LifeItem => i !== null)
     },
     async timetable() {
-      return { calendarEvents: profiles.calendarEvents, lessons: profiles.lessons, googleEvents: profiles.googleEvents }
+      // The extra calendars of Profielen (family, work, ...) show like Google Agenda, as in the Agenda app.
+      const extra = profiles.extraCalendars.flatMap((c) => profiles.extraEvents[c.id]?.events ?? [])
+      return { calendarEvents: profiles.calendarEvents, lessons: profiles.lessons, googleEvents: [...profiles.googleEvents, ...extra] }
     },
     async notes() {
       const rows = await db.get<NoteRow>('notes?select=id,title,body,updated_at,deleted_at&deleted_at=is.null&order=updated_at.desc&limit=1000')
