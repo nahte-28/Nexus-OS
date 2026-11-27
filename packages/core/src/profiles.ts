@@ -2,7 +2,7 @@
  * NEXUS Profiles: a profile changes the theme, the visible apps, the dashboard widgets and how
  * loud notifications are, never open work. Pure logic, no storage or clocks of its own.
  */
-import { parseLayout, type WidgetLayout } from './dashboardLayout'
+import { parseLayout, WIDGET_IDS, type WidgetLayout } from './dashboardLayout'
 import { CALENDAR_HOSTS, icsUrl, isCalendarEvent, MAX_EXTRA_CALENDARS, SCHOOL_TIME_ZONE, type CalendarEvent } from './calendar'
 import type { ThemeId } from './theme'
 import type { AppId } from './windows'
@@ -33,6 +33,11 @@ export interface Profile {
   widgets: WidgetId[]
   /** Workspace Studio 2.0: width and height of each dashboard widget; missing means 1 by 1. */
   layout?: WidgetLayout
+  /**
+   * Widgets this profile hides on one kind of device only, e.g. no clock on the phone. The order
+   * and sizes stay shared; [widgets] is everything the profile has on at least one device.
+   */
+  hiddenOn?: Partial<Record<DashboardDevice, WidgetId[]>>
   /** Only important NEXUS notifications pop up; the rest still lands in Meldingen. */
   quietNonEssential: boolean
   /** Phone apps whose notifications still pop up while quiet, e.g. "Smartschool". */
@@ -697,6 +702,7 @@ export function parseProfilesState(raw: unknown): ProfilesState {
         allowApps: Array.isArray(merged.allowApps) ? merged.allowApps.filter((a) => typeof a === 'string').slice(0, 50) : [],
         accent: ACCENT_IDS.includes(merged.accent as AccentId) ? merged.accent : null,
         layout: parseLayout(merged.layout),
+        hiddenOn: parseHiddenOn(merged.hiddenOn),
         hidden: Array.isArray(merged.hidden) ? [...new Set(merged.hidden.filter((a): a is AppId => typeof a === 'string'))].slice(0, 100) : [],
       }
     }
@@ -988,15 +994,56 @@ export const WORK_PROFILE: Pick<Profile, 'name' | 'description' | 'apps' | 'widg
   widgets: ['today', 'agenda_week', 'deadlines', 'notes', 'notifications', 'habits', 'quick_note', 'profile', 'clock', 'shortcuts'],
 }
 
+/** The two dashboards of a profile: the computer (desktop, Windows, Linux) and the phone. */
+export type DashboardDevice = 'pc' | 'phone'
+
+function parseHiddenOn(raw: unknown): Partial<Record<DashboardDevice, WidgetId[]>> {
+  if (typeof raw !== 'object' || raw === null) return {}
+  const out: Partial<Record<DashboardDevice, WidgetId[]>> = {}
+  for (const device of ['pc', 'phone'] as const) {
+    const list = (raw as Record<string, unknown>)[device]
+    if (Array.isArray(list)) {
+      const ids = [...new Set(list.filter((w): w is WidgetId => WIDGET_IDS.includes(w as WidgetId)))]
+      if (ids.length > 0) out[device] = ids
+    }
+  }
+  return out
+}
+
+/** The widgets a profile shows on [device], in the shared order. */
+export const widgetsOnDevice = (profile: Pick<Profile, 'widgets' | 'hiddenOn'>, device: DashboardDevice): WidgetId[] =>
+  profile.widgets.filter((w) => !profile.hiddenOn?.[device]?.includes(w))
+
+/** Hides a widget on one device; when it is then on no device at all, it leaves the profile. */
+export function hideWidgetOn(profile: Pick<Profile, 'widgets' | 'hiddenOn'>, device: DashboardDevice, id: WidgetId): Pick<Profile, 'widgets' | 'hiddenOn'> {
+  const other: DashboardDevice = device === 'pc' ? 'phone' : 'pc'
+  const hiddenOn = { ...profile.hiddenOn }
+  if (hiddenOn[other]?.includes(id)) {
+    // Gone everywhere: drop it from the list, so Toevoegen offers it like any other widget.
+    hiddenOn[other] = hiddenOn[other]!.filter((w) => w !== id)
+    return { widgets: profile.widgets.filter((w) => w !== id), hiddenOn }
+  }
+  hiddenOn[device] = [...(hiddenOn[device] ?? []).filter((w) => w !== id), id]
+  return { widgets: profile.widgets, hiddenOn }
+}
+
+/** Shows a widget on one device: a new one comes last and only there, a hidden one comes back. */
+export function showWidgetOn(profile: Pick<Profile, 'widgets' | 'hiddenOn'>, device: DashboardDevice, id: WidgetId): Pick<Profile, 'widgets' | 'hiddenOn'> {
+  const other: DashboardDevice = device === 'pc' ? 'phone' : 'pc'
+  const hiddenOn = { ...profile.hiddenOn, [device]: (profile.hiddenOn?.[device] ?? []).filter((w) => w !== id) }
+  if (profile.widgets.includes(id)) return { widgets: profile.widgets, hiddenOn }
+  return { widgets: [...profile.widgets, id], hiddenOn: { ...hiddenOn, [other]: [...(hiddenOn[other] ?? []), id] } }
+}
+
 /**
  * Dashboard 2.0: the widgets a profile starts with, in the order that reads best (your day, the
  * week and deadlines first, small helpers last), and no own sizes. "Standaardindeling" in
  * Indeling aanpassen puts a dashboard back to this; nothing changes a dashboard by itself.
  */
-export function defaultDashboard(state: ProfilesState, id: ProfileId): Pick<Profile, 'widgets' | 'layout'> {
+export function defaultDashboard(state: ProfilesState, id: ProfileId): Pick<Profile, 'widgets' | 'layout' | 'hiddenOn'> {
   const working = state.about.role !== null && state.about.role !== 'student'
   const widgets = id === 'school' && working ? WORK_PROFILE.widgets : DEFAULT_PROFILES[id].widgets
-  return { widgets: working ? widgets.filter((w) => w !== 'klashub' && w !== 'next_class' && w !== 'ai_study') : [...widgets], layout: {} }
+  return { widgets: working ? widgets.filter((w) => w !== 'klashub' && w !== 'next_class' && w !== 'ai_study') : [...widgets], layout: {}, hiddenOn: {} }
 }
 
 /**

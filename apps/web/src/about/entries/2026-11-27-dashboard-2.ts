@@ -8,5 +8,6 @@ export default {
     'Welkom en de voorstellen van Flow Studio zijn slanke regels met het koperen spoor, in plaats van grote kaarten.',
     'Wat je nu nodig hebt valt op: Mijn dag, de week, deadlines en je volgende les staan hoger op het bord met een soldeerpunt voor de titel. Klok, notities, snelkoppelingen en de profielkaart liggen er rustig en vlak naast.',
     'Elk profiel heeft een nieuwe standaardindeling: je dag bovenaan, de week en deadlines naast elkaar eronder, de kleine helpers onderaan. Je eigen indeling blijft zoals ze is; wil je de nieuwe, kies dan in Indeling aanpassen voor Standaardindeling (en Ongedaan maken als het toch niet bevalt).',
+    'Je gsm en je computer kunnen elk hun eigen widgets tonen, bijvoorbeeld geen klok en snelkoppelingen op je gsm maar wel op je laptop. Kies in Indeling aanpassen Pc of Gsm: Verbergen en Toevoegen gelden dan alleen voor dat toestel. De volgorde blijft gedeeld.',
   ],
 } satisfies ChangelogEntry

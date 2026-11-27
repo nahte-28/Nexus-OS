@@ -24,9 +24,12 @@ import {
   WIDGET_IDS,
   WIDGET_TITLES,
   defaultDashboard,
+  hideWidgetOn,
+  showWidgetOn,
+  widgetsOnDevice,
+  type Profile,
   widgetTier,
   type WidgetTier,
-  type WidgetLayout,
   type WidgetSize,
 } from '@nexus/core'
 import { WIDGET_APP, alive, appOn, budgetStatus, widgetsOn, gameTimerMinutes, gamingWeek, liveGames, goalProgress, monthOf, nextCalendarEvent, nextLesson, noteTitle, openDeadlines, appointmentsOf, nextOccurrence, upcomingPayments, needsAbout, type AppId, type WidgetId } from '@nexus/core'
@@ -339,9 +342,12 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
     if (!editing) setPreview('pc')
   }, [editing])
   // A widget goes with its app: switched off in Apps aan/uit, it is not on the dashboard either.
-  const shown = widgetsOn(active.widgets, appSwitches)
   const layout = active.layout ?? {}
   const phone = compact || (editing && preview === 'gsm')
+  // The phone and the computer can each hide widgets the other one shows.
+  const device = phone ? 'phone' : 'pc'
+  const onDevice = widgetsOnDevice(active, device)
+  const shown = widgetsOn(onDevice, appSwitches)
   const cols = phone ? 1 : columnsFor(width ?? (typeof window === 'undefined' ? 1200 : window.innerWidth))
   const packed = packWidgets(
     shown.map((id) => ({ id, size: sizeOf(layout, id, active.id) })),
@@ -353,13 +359,14 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
   const room = useRoomBelow(list, [editing, preview, rows, width])
   // On a computer the rows share the height of the screen, so the dashboard fills it.
   const rowHeight = room === null ? null : Math.round(Math.min(ROW_MAX_PX, Math.max(ROW_MIN_PX, (room - GAP_PX * (rows - 1)) / Math.max(1, rows))))
-  const save = (patch: { widgets?: WidgetId[]; layout?: WidgetLayout }) => profilesStore.updateProfile(active.id, patch)
+  const save = (patch: Partial<Pick<Profile, 'widgets' | 'layout' | 'hiddenOn'>>) => profilesStore.updateProfile(active.id, patch)
   const move = (id: WidgetId, to: number) => save({ widgets: moveWidget(active.widgets, shown, id, to) })
-  const [undo, setUndo] = useState<{ widgets: WidgetId[]; layout: WidgetLayout } | null>(null)
+  const [undo, setUndo] = useState<Pick<Profile, 'widgets' | 'layout' | 'hiddenOn'> | null>(null)
   useEffect(() => setUndo(null), [editing, active.id])
   const standard = defaultDashboard(state, active.id)
-  const isStandard = standard.widgets.join() === active.widgets.join() && Object.keys(layout).length === 0
-  const hidden = WIDGET_IDS.filter((w) => !active.widgets.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')) && appOn(appSwitches, WIDGET_APP[w] ?? 'settings'))
+  const isStandard =
+    standard.widgets.join() === active.widgets.join() && Object.keys(layout).length === 0 && !active.hiddenOn?.pc?.length && !active.hiddenOn?.phone?.length
+  const hidden = WIDGET_IDS.filter((w) => !onDevice.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')) && appOn(appSwitches, WIDGET_APP[w] ?? 'settings'))
 
   /** Drag with the pointer (mouse, pen or touch): also works in the Windows app, where drag-and-drop of the page is off. */
   const startMove = (id: WidgetId) => (e: ReactPointerEvent<HTMLElement>) => {
@@ -425,7 +432,8 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
                 count={shown.length}
                 onMove={(to) => move(w, to)}
                 onSize={(next) => save({ layout: setSize(layout, w, next, active.id) })}
-                onHide={() => save({ widgets: active.widgets.filter((x) => x !== w) })}
+                hideLabel={phone ? 'Verbergen op gsm' : 'Verbergen op pc'}
+                onHide={() => save(hideWidgetOn(active, device, w))}
               />
             )}
           </li>
@@ -440,7 +448,7 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
         <div className="space-y-2 rounded-2xl border border-nx-border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-nx-muted">
-              Sleep een widget naar een andere plek, of sleep de hoek rechtsonder om hem breder of hoger te maken. Dit geldt voor het profiel {active.name} en gaat mee naar je andere apparaten.
+              Sleep een widget naar een andere plek, of sleep de hoek rechtsonder om hem breder of hoger te maken. Dit geldt voor het profiel {active.name} en gaat mee naar je andere apparaten. Verbergen en Toevoegen gelden alleen voor {preview === 'gsm' ? 'je gsm' : 'je pc'}: kies hiernaast Pc of Gsm om de andere indeling te maken.
             </p>
             <div role="radiogroup" aria-label="Voorbeeld" className="flex gap-1">
               {(['pc', 'gsm'] as const).map((p) => (
@@ -478,7 +486,7 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
                 disabled={isStandard}
                 title="Je dag, de week en deadlines bovenaan, zoals NEXUS het voor dit profiel voorstelt"
                 onClick={() => {
-                  setUndo({ widgets: active.widgets, layout })
+                  setUndo({ widgets: active.widgets, layout, hiddenOn: active.hiddenOn ?? {} })
                   save(standard)
                 }}
               >
@@ -488,9 +496,9 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
           </div>
           {hidden.length > 0 && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className="text-nx-muted">Toevoegen:</span>
+              <span className="text-nx-muted">{preview === 'gsm' ? 'Toevoegen op gsm:' : 'Toevoegen op pc:'}</span>
               {hidden.map((w) => (
-                <button key={w} type="button" className={small} onClick={() => save({ widgets: [...active.widgets, w] })}>
+                <button key={w} type="button" className={small} onClick={() => save(showWidgetOn(active, device, w))}>
                   + {WIDGET_TITLES[w]}
                 </button>
               ))}
@@ -519,6 +527,7 @@ function EditFrame({
   onMove,
   onSize,
   onHide,
+  hideLabel,
 }: {
   id: WidgetId
   size: WidgetSize
@@ -529,6 +538,7 @@ function EditFrame({
   onMove: (to: number) => void
   onSize: (size: WidgetSize) => void
   onHide: () => void
+  hideLabel: string
 }) {
   const title = WIDGET_TITLES[id]
   const frame = useRef<HTMLDivElement>(null)
@@ -567,7 +577,7 @@ function EditFrame({
             +↕
           </button>
           <button type="button" className={small} aria-label={`${title} verbergen`} onClick={onHide}>
-            Verbergen
+            {hideLabel}
           </button>
         </div>
         <span
