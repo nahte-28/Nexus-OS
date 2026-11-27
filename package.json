@@ -9,10 +9,10 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @nexus/web",
-    "build": "npm run build -w @nexus/web",
+    "build": "node scripts/bundle-api-core.mjs && npm run build -w @nexus/web",
     "preview": "npm run preview -w @nexus/web",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p api"
+    "typecheck": "npm run typecheck --workspaces --if-present && node scripts/bundle-api-core.mjs && tsc -p api"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",
