@@ -117,7 +117,8 @@ test('dashboard: widgets verslepen met de muis, en een venster vastklikken aan d
   const main = (await page.getByRole('main', { name: 'Bureaublad' }).boundingBox())!
   await page.mouse.move(main.x + 2, main.y + 300, { steps: 8 })
   await page.mouse.up()
+  // The window glides into place (about 0.2 s), so wait for it to land.
+  await expect.poll(async () => Math.round((await win.boundingBox())!.x)).toBe(Math.round(main.x))
   const snapped = (await win.boundingBox())!
-  expect(Math.round(snapped.x)).toBe(Math.round(main.x))
   expect(Math.abs(snapped.width - main.width / 2)).toBeLessThan(2)
 })

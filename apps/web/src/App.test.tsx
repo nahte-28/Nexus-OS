@@ -120,6 +120,28 @@ describe('App shell', () => {
     expect(back.value).toBe('12+30')
   })
 
+  it('closes a window after a short fade, unless you open it again meanwhile', async () => {
+    mockViewport(false)
+    renderApp()
+    const openCalc = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Rekenmachine' }))
+    }
+    openCalc()
+    const win = await screen.findByRole('dialog', { name: 'Rekenmachine' })
+    expect(win.dataset.front).toBe('true')
+    fireEvent.click(within(win).getByRole('button', { name: 'Sluiten' }))
+    // Fading out: already out of reach, still on screen for a moment.
+    expect(screen.queryByRole('dialog', { name: 'Rekenmachine' })).toBeNull()
+    expect(win.dataset.leaving).toBe('close')
+    openCalc()
+    expect(screen.getByRole('dialog', { name: 'Rekenmachine' })).toBe(win)
+    await new Promise((r) => setTimeout(r, 250))
+    expect(screen.getByRole('dialog', { name: 'Rekenmachine' })).toBe(win)
+    fireEvent.click(within(win).getByRole('button', { name: 'Sluiten' }))
+    await waitFor(() => expect(win.isConnected).toBe(false))
+  })
+
   it('saves notes to the device database', async () => {
     mockViewport(false)
     renderApp()
