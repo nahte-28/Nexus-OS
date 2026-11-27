@@ -3,6 +3,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager, WindowEvent};
 
 mod browser;
+mod deeplink;
 mod discord;
 mod session;
 mod shortcut;
@@ -27,7 +28,9 @@ fn show_main(app: &AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         // A second launch (e.g. from the Start menu) brings the running window back instead.
+        // With "deep-link", a second launch with a nexus:// link hands the link to this one.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -35,8 +38,10 @@ pub fn run() {
         ))
         .manage(browser::BrowserState::default())
         .manage(discord::DiscordState::default())
+        .manage(deeplink::DeepLinkState::default())
         .invoke_handler(tauri::generate_handler![
             update::check_update,
+            deeplink::deep_link_take,
             update::install_update,
             web::open_in_browser_command,
             browser::browser_open,
@@ -84,6 +89,9 @@ pub fn run() {
             // Ctrl+Shift+Space from any program: Snelle notitie.
             #[cfg(desktop)]
             shortcut::setup(app, show_main)?;
+            // nexus:// links from a browser, a shortcut or another program.
+            #[cfg(desktop)]
+            deeplink::setup(app, show_main)?;
             let open = MenuItem::with_id(app, "open", "NEXUS openen", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Afsluiten", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;

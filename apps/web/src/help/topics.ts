@@ -195,6 +195,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     tips: [
       'Kies in Snelle notitie (Alt+N of Ctrl+Shift+Spatie) "Later sorteren" en sorteer het in Te sorteren naar een notitie, deadline of herinnering.',
       'In de Windows- en Linux-app werkt Ctrl+Shift+Spatie ook als je in een ander programma bezig bent: NEXUS komt naar voren met Snelle notitie open.',
+      'Een snelkoppeling of bladwijzer naar nexus://snel opent Snelle notitie in de Windows- en Linux-app; nexus://snel?text=… vult de tekst al in.',
       'Sjablonen zetten tekst en soort klaar voor wat je vaak bewaart.',
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
