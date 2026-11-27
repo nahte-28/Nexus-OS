@@ -4,9 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 // Werkbank Design System 2.0: colours come from the nx-* tokens so Focus and Pulse both work.
 // The Agenda's calendar colours are picked by the user and may use the Tailwind palette.
-// The dashboard follows once Dashboard 2.0 (#231) is merged, to keep the two PRs apart.
 const ROOT = join(__dirname)
-const ALLOWED = new Set(['apps/Agenda.tsx', 'profiles/Dashboard.tsx'])
+const ALLOWED = new Set(['apps/Agenda.tsx'])
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
