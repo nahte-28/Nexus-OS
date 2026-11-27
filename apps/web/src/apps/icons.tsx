@@ -441,3 +441,9 @@ export const GoalIcon = (p: SVGProps<SVGSVGElement>) => (
     <circle cx="12" cy="12" r="1" />
   </svg>
 )
+
+export const UpdateIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base} {...p}>
+    <path d="M12 4v10M8 10l4 4 4-4M5 19h14" />
+  </svg>
+)
