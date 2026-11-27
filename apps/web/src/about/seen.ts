@@ -1,4 +1,5 @@
-import { CHANGELOG, type ChangelogEntry } from './changelog'
+import type { ChangelogEntry } from './changelog'
+import { ENTRIES as CHANGELOG } from './whatsNew'
 
 /** The newest "Wat is er nieuw" entry this device already showed, so an update is shown once. */
 const KEY = 'nexus.changelog.seen'

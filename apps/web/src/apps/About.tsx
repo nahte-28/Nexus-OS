@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CHANGELOG } from '../about/changelog'
+import { ENTRIES as CHANGELOG } from '../about/whatsNew'
 import { markChangelogSeen } from '../about/seen'
 
 /** Major and minor only, e.g. "1.0" for 1.0.3. */
