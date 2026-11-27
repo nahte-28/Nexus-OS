@@ -111,6 +111,13 @@ h3 {
   box-shadow: var(--nx-shadow);
 }
 
+/* A strip of the same board inside a panel (the head of Start): only the holes, fainter, no rail. */
+.nx-board {
+  background-color: var(--nx-surface-2);
+  background-image: radial-gradient(circle at 9px 9px, var(--nx-hole) 1.1px, transparent 1.6px);
+  background-size: 18px 18px;
+}
+
 /* An app window: a solid sheet, so text on the desktop never shows through what you read. */
 .nx-window {
   background: var(--nx-window);
