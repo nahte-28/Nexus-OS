@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { columnsFor, defaultSizeOf, fillGaps, moveWidget, packWidgets, parseLayout, resizeBy, rowsOf, setSize, sizeFromDrag, sizeOf, spanOn, widgetAt, widgetTier } from './dashboardLayout'
-import { applyRole, defaultDashboard, defaultProfilesState, parseProfilesState } from './profiles'
+import { applyRole, defaultDashboard, defaultProfilesState, hideWidgetOn, parseProfilesState, showWidgetOn, widgetsOnDevice, type Profile } from './profiles'
 
 describe('dashboard layout', () => {
   it('keeps sizes within the grid and does not store the default', () => {
@@ -36,10 +36,29 @@ describe('dashboard layout', () => {
       expect(packed.find((p) => p.id === 'agenda_week')).toMatchObject({ x: 0, y: 1 })
       expect(packed.find((p) => p.id === 'deadlines')).toMatchObject({ x: 4, y: 1 })
     }
-    expect(defaultDashboard(state, 'school')).toEqual({ widgets: state.profiles.school.widgets, layout: {} })
+    expect(defaultDashboard(state, 'school')).toEqual({ widgets: state.profiles.school.widgets, layout: {}, hiddenOn: {} })
     const working = applyRole(state, 'work')
     expect(defaultDashboard(working, 'school').widgets).not.toContain('klashub')
     expect(defaultDashboard(working, 'school').widgets[0]).toBe('today')
+  })
+
+  it('shows other widgets on the phone than on the computer', () => {
+    let p: Pick<Profile, 'widgets' | 'hiddenOn'> = { widgets: ['today', 'clock', 'shortcuts'], hiddenOn: {} }
+    p = hideWidgetOn(p, 'phone', 'clock')
+    expect(widgetsOnDevice(p, 'phone')).toEqual(['today', 'shortcuts'])
+    expect(widgetsOnDevice(p, 'pc')).toEqual(['today', 'clock', 'shortcuts'])
+    // Hidden on both: it leaves the profile.
+    p = hideWidgetOn(p, 'pc', 'clock')
+    expect(p.widgets).toEqual(['today', 'shortcuts'])
+    expect(p.hiddenOn).toEqual({ phone: [] })
+    // Added on the computer: only there.
+    p = showWidgetOn(p, 'pc', 'notes')
+    expect(widgetsOnDevice(p, 'pc')).toContain('notes')
+    expect(widgetsOnDevice(p, 'phone')).not.toContain('notes')
+    p = showWidgetOn(p, 'phone', 'notes')
+    expect(widgetsOnDevice(p, 'phone')).toContain('notes')
+    const parsed = parseProfilesState({ schema: 17, profiles: { school: { hiddenOn: { phone: ['clock', 'weird', 'clock'], pc: 'x' } } } })
+    expect(parsed.profiles.school.hiddenOn).toEqual({ phone: ['clock'] })
   })
 
   it('reads stored layouts and drops what it does not know', () => {

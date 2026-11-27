@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
+import { widgetsOnDevice } from '@nexus/core'
 import { profilesStore } from './store'
 
 const active = () => profilesStore.getSnapshot().active
@@ -24,10 +25,12 @@ describe('Workspace Studio 2.0 dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apparaten naar voren' }))
     expect(active().widgets).toEqual(['deadlines', 'devices', 'notes'])
 
+    // Hidden on the computer only; Toevoegen brings it back in its place.
     fireEvent.click(screen.getByRole('button', { name: 'Apparaten verbergen' }))
-    expect(active().widgets).toEqual(['deadlines', 'notes'])
+    expect(widgetsOnDevice(active(), 'pc')).toEqual(['deadlines', 'notes'])
+    expect(widgetsOnDevice(active(), 'phone')).toEqual(['deadlines', 'devices', 'notes'])
     fireEvent.click(screen.getByRole('button', { name: '+ Apparaten' }))
-    expect(active().widgets).toEqual(['deadlines', 'notes', 'devices'])
+    expect(widgetsOnDevice(active(), 'pc')).toEqual(['deadlines', 'devices', 'notes'])
 
     fireEvent.click(screen.getByRole('radio', { name: 'Gsm' }))
     const phone = screen.getByLabelText('Voorbeeld op de gsm')
@@ -51,6 +54,23 @@ describe('Workspace Studio 2.0 dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ongedaan maken' }))
     expect(active().widgets).toEqual(['clock', 'notes'])
     expect(active().layout).toEqual({ notes: { w: 3, h: 1 } })
+  })
+
+  it('keeps a different set of widgets on the phone than on the computer', () => {
+    profilesStore.updateProfile(active().id, { widgets: ['deadlines', 'clock', 'shortcuts'], layout: {}, hiddenOn: {} })
+    const { unmount } = render(<Dashboard onOpenApp={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Indeling aanpassen' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Gsm' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Klok verbergen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Snelkoppelingen verbergen' }))
+    expect(screen.getByText('Toevoegen op gsm:')).toBeTruthy()
+    expect(widgetsOnDevice(active(), 'phone')).toEqual(['deadlines'])
+    expect(widgetsOnDevice(active(), 'pc')).toEqual(['deadlines', 'clock', 'shortcuts'])
+    unmount()
+    // The phone itself shows only what is left there.
+    render(<Dashboard compact onOpenApp={() => {}} />)
+    expect(document.querySelector('[data-widget="clock"]')).toBeNull()
+    expect(document.querySelector('[data-widget="deadlines"]')).toBeTruthy()
   })
 
   it('dashboard 2.0: main widgets stand out, side widgets stay calm', () => {
