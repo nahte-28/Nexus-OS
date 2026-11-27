@@ -42,6 +42,8 @@ openCaptureFromUrl()
 openJoinFromUrl()
 // A friend link (/vriend/<code>) opens Vrienden with the code filled in.
 openFriendFromUrl()
+// Windows/Linux app: nexus:// links from a browser, a shortcut or another program.
+if (isDesktopApp) void import('./platform/deepLinks').then((m) => m.startDeepLinks())
 // Back from logging in to Spotify (/spotify?code=…): finish the link and show Instellingen.
 if (window.location.pathname === '/spotify') {
   void Promise.all([import('./spotify/spotify'), import('./shell/openApp')]).then(([{ finishSpotifyLogin }, { openApp }]) =>
