@@ -19,7 +19,7 @@ export interface McpData {
   timeZone: string
   newId(): string
   lifeItems(): Promise<LifeItem[]>
-  /** The school calendar, the typed-in timetable and a linked Google Agenda, from Profielen. */
+  /** The school calendar, the typed-in timetable, and Google Agenda plus the extra calendars, from Profielen. */
   timetable(): Promise<{ calendarEvents: CalendarEvent[]; lessons: Lesson[]; googleEvents: CalendarEvent[] }>
   /** Notes that are not deleted, newest first. */
   notes(): Promise<Note[]>
@@ -111,7 +111,7 @@ export const MCP_TOOLS: Tool[] = [
   {
     name: 'list_agenda',
     title: 'Agenda bekijken',
-    description: 'Lessen (schoolkalender of lesrooster), deadlines, afspraken en Google Agenda van een of meer dagen, in tijdsvolgorde. Herinneringen staan alleen op het toestel en zijn hier niet te zien.',
+    description: 'Lessen (schoolkalender of lesrooster), deadlines, afspraken, Google Agenda en de extra agenda\'s uit Profielen van een of meer dagen, in tijdsvolgorde. Herinneringen staan alleen op het toestel en zijn hier niet te zien.',
     inputSchema: {
       type: 'object',
       properties: {
