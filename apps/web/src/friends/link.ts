@@ -24,13 +24,18 @@ export const clearPendingFriend = (): void => {
 export function openFriendFromUrl(location: Pick<Location, 'pathname' | 'hash'> = window.location): boolean {
   const code = friendCodeFromPath(location.pathname)
   if (!code) return false
+  history.replaceState(history.state, '', `/${location.hash}`)
+  startFriend(code)
+  return true
+}
+
+/** Keeps the friend [code] and opens Vrienden with it filled in (also nexus://vriend). */
+export function startFriend(code: string): void {
   writeStorage(PENDING_KEY, code)
   setFeature('friends', true)
-  history.replaceState(history.state, '', `/${location.hash}`)
   let tries = 40
   const open = () => {
     if (!openApp('friends') && --tries > 0) setTimeout(open, 250)
   }
   open()
-  return true
 }

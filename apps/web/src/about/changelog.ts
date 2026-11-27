@@ -24,6 +24,14 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-11-27',
+    title: 'nexus://-links in de Windows- en Linux-app',
+    items: [
+      'Een link als nexus://app/agenda opent die app in NEXUS, ook vanuit je browser, een snelkoppeling op het bureaublad of een ander programma. Draait NEXUS al, dan komt het naar voren.',
+      'nexus://snel?text=… opent Snelle notitie met die tekst al ingevuld; bewaren doe je zelf. nexus://join/<code> en nexus://vriend/<code> vullen een uitnodiging of vriendcode in, die je nog bevestigt.',
+    ],
+  },
+  {
+    date: '2026-11-27',
     title: 'Taakbalk 2.0',
     items: [
       'De taakbalk is compacter en rustiger: Start en je snelknoppen, dan je vastgepinde favorieten, dan je geopende vensters, telkens gescheiden door een dun lijntje.',
