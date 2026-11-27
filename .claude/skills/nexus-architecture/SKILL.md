@@ -22,8 +22,10 @@ apps/web/src        React 19 + Vite 8 + Tailwind 4 PWA. One folder per domain (a
                     teams/, ...) for stores and hooks; apps/ holds the app windows (Goals.tsx) and
                     registry.tsx; desktop/ the window manager UI; mobile/ the phone layout;
                     profiles/ the dashboard and widgets; state/ DocStore, storage, IndexedDB.
-api/                Vercel serverless functions (ai, calendar, cards, darts, push*, review, study,
-                    weather). Files starting with _ are shared helpers, not routes.
+api/                Vercel serverless functions (ai, calendar, cards, darts, mcp, push*, review, study,
+                    weather). Files starting with _ are shared helpers, not routes. The Hobby plan
+                    allows at most 12 functions per deployment (there are 12): add a route to an
+                    existing function (a rewrite in vercel.json) instead of a new file.
 supabase/migrations Idempotent SQL, one file per feature, timestamp-named.
 supabase/tests      run.sh runs every migration twice on plain Postgres, then RLS tests.
 apps/desktop        Tauri 2 shell (src-tauri/src/*.rs: browser, discord, session, system, update).

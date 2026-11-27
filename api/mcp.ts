@@ -139,9 +139,31 @@ export async function POST(request: Request): Promise<Response> {
   }
 }
 
-/** No server-to-client stream: every answer comes back on the POST itself. */
-export function GET(): Response {
+/**
+ * OAuth protected resource metadata (RFC 9728), served at /.well-known/oauth-protected-resource
+ * through a rewrite in vercel.json: tells an MCP client to log in with NEXUS's Supabase Auth. It
+ * lives in this function because the Hobby plan allows 12 functions per deployment.
+ */
+function resourceMetadata(request: Request): Response {
+  const origin = new URL(request.url).origin
+  return Response.json(
+    {
+      resource: `${origin}/api/mcp`,
+      authorization_servers: [`${supabase().url}/auth/v1`],
+      bearer_methods_supported: ['header'],
+      resource_name: 'NEXUS OS',
+      resource_documentation: `${origin}/`,
+    },
+    { headers: { 'cache-control': 'public, max-age=3600' } },
+  )
+}
+
+/** GET is only the metadata above; there is no server-to-client stream, answers come on the POST. */
+export function GET(request: Request): Response {
+  if (new URL(request.url).searchParams.has('resource-metadata')) return resourceMetadata(request)
   return new Response('Gebruik POST', { status: 405, headers: { Allow: 'POST' } })
 }
 
-export const DELETE = GET
+export function DELETE(): Response {
+  return new Response('Gebruik POST', { status: 405, headers: { Allow: 'POST' } })
+}
