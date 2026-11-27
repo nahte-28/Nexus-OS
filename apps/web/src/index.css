@@ -45,6 +45,10 @@
   --nx-accent: #17704c;
   --nx-accent-text: #ffffff;
   --nx-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 1px 2px rgb(19 29 24 / 0.06), 0 12px 28px -12px rgb(19 29 24 / 0.18);
+  /* App windows: the one in front sits higher (bigger, softer shadow) than the ones behind it. */
+  --nx-shadow-window: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 1px 2px rgb(19 29 24 / 0.05), 0 8px 20px -12px rgb(19 29 24 / 0.16);
+  --nx-shadow-window-front: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 2px 4px rgb(19 29 24 / 0.06), 0 12px 24px -10px rgb(19 29 24 / 0.14),
+    0 32px 64px -24px rgb(19 29 24 / 0.32);
   --nx-blur: 0px;
 }
 
@@ -63,6 +67,8 @@
   --nx-accent: #e9a35b;
   --nx-accent-text: #1b1005;
   --nx-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -16px rgb(0 0 0 / 0.7);
+  --nx-shadow-window: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 10px 24px -14px rgb(0 0 0 / 0.6);
+  --nx-shadow-window-front: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 4px 10px -4px rgb(0 0 0 / 0.45), 0 36px 72px -24px rgb(0 0 0 / 0.9);
   --nx-blur: 12px;
 }
 
@@ -122,6 +128,63 @@ h3 {
 .nx-window {
   background: var(--nx-window);
   box-shadow: var(--nx-shadow);
+}
+
+/*
+ * Vensters 2.0. Het venster vooraan ligt hoger (een diepere schaduw), heeft een rand met een vleugje
+ * accent en het koperspoor bovenaan. De vensters erachter liggen plat op de werkbank: kleinere
+ * schaduw, gewone rand, gedempte titelbalk. Zo zie je bij overlappende vensters meteen wat actief is.
+ */
+.nx-appwindow {
+  border-color: var(--nx-border);
+  box-shadow: var(--nx-shadow-window);
+  transform-origin: 50% 40%;
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+}
+.nx-appwindow[data-front='true'] {
+  border-color: color-mix(in srgb, var(--nx-accent) 32%, var(--nx-border));
+  box-shadow: var(--nx-shadow-window-front);
+}
+.nx-appwindow[data-max='true'] {
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Sluiten: zakt een beetje weg en vervaagt, sneller dan openen. */
+.nx-appwindow[data-leaving='close'] {
+  opacity: 0;
+  transform: scale(0.97);
+  transition-duration: 140ms;
+  pointer-events: none;
+}
+/* Minimaliseren: krimpt naar de taakbalk; terughalen komt er weer uit. */
+.nx-appwindow[data-leaving='minimize'] {
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transform: translateY(40px) scale(0.9);
+  pointer-events: none;
+}
+.nx-appwindow[data-from='taskbar'] {
+  transform-origin: 50% 100%;
+  @starting-style {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+}
+
+/* De icoonchip in de titelbalk: een klein onderdeel op het bord. */
+.nx-titlechip {
+  border: 1px solid var(--nx-border);
+  background: var(--nx-surface);
+}
+[data-front='true'] .nx-titlechip {
+  border-color: color-mix(in srgb, var(--nx-accent) 45%, var(--nx-border));
+  color: var(--nx-accent);
 }
 
 /*

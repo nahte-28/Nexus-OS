@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { CHANGELOG } from '../about/changelog'
+import { ENTRIES as CHANGELOG } from '../about/whatsNew'
 import { About } from './About'
 
 describe('Over NEXUS', () => {
