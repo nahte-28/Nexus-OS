@@ -60,11 +60,11 @@ export function Admin({ api = defaultApi, birthdays = defaultBirthdays }: { api?
         </button>
       </div>
       {problem?.startsWith('setup:') ? (
-        <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+        <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
           Beheer heeft nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
         </p>
       ) : (
-        problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>
+        problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>
       )}
       {!data && !problem && <p className="text-nx-muted">Laden…</p>}
       {data && (
@@ -84,7 +84,7 @@ export function Admin({ api = defaultApi, birthdays = defaultBirthdays }: { api?
               <ul className="flex flex-wrap gap-1.5">
                 {data.online.map((p, i) => (
                   <li key={`${p.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-full border border-nx-border px-2.5 py-1 text-xs">
-                    <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${p.state === 'busy' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                    <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${p.state === 'busy' ? 'bg-nx-warning' : 'bg-nx-success'}`} />
                     {p.name}
                     {p.state === 'busy' && <span className="text-nx-muted">(bezet)</span>}
                   </li>
@@ -195,7 +195,7 @@ function Accounts({ data }: { data: AdminOverview }) {
                 <tr key={`${u.name}-${i}`} className="border-t border-nx-border">
                   <td className="py-1 pr-2">
                     <span className="inline-flex items-center gap-1.5">
-                      <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${u.online ? 'bg-emerald-500' : 'bg-nx-border'}`} />
+                      <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${u.online ? 'bg-nx-success' : 'bg-nx-border'}`} />
                       {u.name}
                     </span>
                   </td>

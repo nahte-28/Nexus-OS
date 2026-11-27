@@ -200,7 +200,7 @@ export function FlowCanvas({ flow, onChange, editors }: { flow: FlowDefinition; 
             const d = parseDragged(e.dataTransfer.getData(DRAG_TYPE))
             if (d?.from === 'canvas') remove(d.lane, d.index)
           }}
-          className={`rounded-lg border-2 border-dashed p-3 text-center text-sm ${over === 'bin' ? 'border-red-500 text-red-500' : 'border-nx-border text-nx-muted'}`}
+          className={`rounded-lg border-2 border-dashed p-3 text-center text-sm ${over === 'bin' ? 'border-nx-danger text-nx-danger' : 'border-nx-border text-nx-muted'}`}
         >
           Sleep hierheen om weg te halen
         </div>

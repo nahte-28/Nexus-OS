@@ -169,7 +169,7 @@ function SyncBadge({ onOpen }: { onOpen: () => void }) {
   const label = statusText(state)
   const light =
     state.status === 'error'
-      ? 'bg-red-500'
+      ? 'bg-nx-danger'
       : state.status === 'synced' && state.pending === 0
         ? 'bg-nx-accent'
         : state.status === 'syncing'
@@ -181,7 +181,7 @@ function SyncBadge({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label={`Synchronisatie: ${label}`}
       title={label}
-      className={`relative grid size-8 place-items-center rounded-md hover:bg-nx-surface hover:text-nx-text ${state.status === 'error' ? 'text-red-500' : 'text-nx-muted'}`}
+      className={`relative grid size-8 place-items-center rounded-md hover:bg-nx-surface hover:text-nx-text ${state.status === 'error' ? 'text-nx-danger' : 'text-nx-muted'}`}
     >
       <CloudIcon className="size-[18px]" />
       <span aria-hidden className={`absolute right-1.5 bottom-1.5 size-1.5 rounded-full ring-2 ring-nx-surface-2 ${light}`} />

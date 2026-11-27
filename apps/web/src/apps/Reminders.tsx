@@ -74,7 +74,7 @@ export function Reminders() {
           </select>
         </div>
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}
@@ -98,7 +98,7 @@ export function Reminders() {
                   {REPEAT_LABELS[r.repeat]} · {TARGET_LABELS[r.target]}
                 </p>
               </div>
-              <button type="button" className={`${button} text-red-500`} onClick={() => void remindersStore.remove(r.id)}>
+              <button type="button" className={`${button} text-nx-danger`} onClick={() => void remindersStore.remove(r.id)}>
                 Verwijderen
               </button>
             </li>

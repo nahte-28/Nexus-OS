@@ -362,7 +362,7 @@ function CommandForm({ command, onBack, onClose, onDone }: { command: LauncherCo
         {previewCommand(command, values)}
       </p>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

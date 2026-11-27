@@ -28,9 +28,9 @@ import { Tabs } from '../ui/Tabs'
 
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const LEVEL: Record<CheckLevel, { dot: string; label: string }> = {
-  warn: { dot: 'bg-amber-500', label: 'let op' },
-  info: { dot: 'bg-sky-500', label: 'ter info' },
-  ok: { dot: 'bg-emerald-500', label: 'in orde' },
+  warn: { dot: 'bg-nx-warning', label: 'let op' },
+  info: { dot: 'bg-nx-info', label: 'ter info' },
+  ok: { dot: 'bg-nx-success', label: 'in orde' },
 }
 const PLATFORM: Record<string, string> = { web: 'Browser', desktop: 'pc-app', android: 'Android' }
 const day = (t: number) => new Date(t).toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -352,7 +352,7 @@ export function Sentinel() {
                     <span>
                       {AUDIT_LABELS[e.action]}
                       {e.target && <span className="text-nx-muted"> · {e.target}</span>}
-                      {e.outcome === 'failed' && <span className="text-red-600 dark:text-red-400"> · mislukt</span>}
+                      {e.outcome === 'failed' && <span className="text-nx-danger dark:text-nx-danger"> · mislukt</span>}
                     </span>
                     <time className="text-xs text-nx-muted" dateTime={new Date(e.at).toISOString()}>
                       {moment(e.at)}

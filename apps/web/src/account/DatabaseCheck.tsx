@@ -57,7 +57,7 @@ export function DatabaseCheck({
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           Nakijken lukte niet: {error}
         </p>
       )}

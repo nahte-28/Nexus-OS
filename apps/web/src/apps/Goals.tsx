@@ -30,10 +30,10 @@ const smallButton = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
 
 const TONE: Record<GoalStatus, string> = {
-  reached: 'border-green-600 text-green-700 dark:text-green-400',
+  reached: 'border-nx-success text-nx-success dark:text-nx-success',
   on_track: 'border-nx-accent text-nx-accent',
-  behind: 'border-amber-500 text-amber-700 dark:text-amber-400',
-  missed: 'border-red-500 text-red-700 dark:text-red-400',
+  behind: 'border-nx-warning text-nx-warning dark:text-nx-warning',
+  missed: 'border-nx-danger text-nx-danger dark:text-nx-danger',
   empty: 'border-nx-border text-nx-muted',
 }
 

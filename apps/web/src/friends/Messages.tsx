@@ -53,13 +53,13 @@ export function Messages({ dms, me, friends, sealed, system = null, openFriend =
   return (
     <div className="space-y-3">
       {setup ? (
-        <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+        <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
           Privéberichten hebben nog een stap in de database nodig: voer eenmalig <code>{problem!.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
         </p>
       ) : (
-        problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>
+        problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>
       )}
-      {!sealed && <p className="rounded-md border border-amber-500/40 p-2 text-xs">Privéberichten worden versleuteld met de sleutel van dit toestel in NEXUS Connect. Die is nog niet klaar: kijk bij Apparaten.</p>}
+      {!sealed && <p className="rounded-md border border-nx-warning/40 p-2 text-xs">Privéberichten worden versleuteld met de sleutel van dit toestel in NEXUS Connect. Die is nog niet klaar: kijk bij Apparaten.</p>}
       {friend ? (
         <Conversation dms={dms} me={me} friend={friend} all={all} setAll={setAll} onBack={() => setOpen(null)} setProblem={setProblem} />
       ) : (
@@ -184,13 +184,13 @@ function Conversation({
             <li key={m.id} className={`group flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
               <div className="flex max-w-[85%] items-center gap-1">
                 {mine && (
-                  <button type="button" aria-label={`Bericht van ${when(m.createdAt)} verwijderen`} className="rounded px-1 text-xs text-nx-muted opacity-0 hover:text-red-600 focus:opacity-100 group-hover:opacity-100" onClick={() => void dms.remove(m.id).then(() => setAll((old) => old.filter((o) => o.id !== m.id)), (err: unknown) => setProblem(message(err)))}>
+                  <button type="button" aria-label={`Bericht van ${when(m.createdAt)} verwijderen`} className="rounded px-1 text-xs text-nx-muted opacity-0 hover:text-nx-danger focus:opacity-100 group-hover:opacity-100" onClick={() => void dms.remove(m.id).then(() => setAll((old) => old.filter((o) => o.id !== m.id)), (err: unknown) => setProblem(message(err)))}>
                     ✕
                   </button>
                 )}
                 <p className={`whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 ${m.text === null ? 'italic text-nx-muted' : ''} ${mine ? 'bg-nx-accent text-nx-accent-text' : 'bg-nx-surface-2'}`}>{m.text ?? UNREADABLE}</p>
               </div>
-              <span className="px-1 text-[11px] text-nx-muted">
+              <span className="px-1 text-2xs text-nx-muted">
                 {when(m.createdAt)}
                 {mine && m === last && m.readAt !== null && ' · gelezen'}
               </span>

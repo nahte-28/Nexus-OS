@@ -138,11 +138,11 @@ export function Friends({ api = defaultApi, dms = defaultDms, presenceApi = defa
   return (
     <div className="h-full space-y-4 overflow-y-auto p-4 text-sm">
       {setup ? (
-        <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+        <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
           Vrienden heeft nog een stap in de database nodig: voer eenmalig <code>{problem!.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
         </p>
       ) : (
-        problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>
+        problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>
       )}
       {notice && <p role="status" className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">{notice}</p>}
 

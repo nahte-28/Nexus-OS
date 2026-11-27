@@ -73,7 +73,7 @@ export function Devices() {
       ),
       error: (
         <div className="space-y-2">
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             Koppelen mislukt: {state.error}
           </p>
           <button type="button" className={button} onClick={() => void run('reconnect', () => engine.refreshDevices())}>
@@ -191,7 +191,7 @@ export function Devices() {
       )}
 
       {message && (
-        <p role={message.error ? 'alert' : 'status'} className={message.error ? 'text-red-500' : 'text-nx-muted'}>
+        <p role={message.error ? 'alert' : 'status'} className={message.error ? 'text-nx-danger' : 'text-nx-muted'}>
           {message.text}
         </p>
       )}
@@ -284,7 +284,7 @@ function DeviceRow({
             Naam wijzigen
           </button>
         )}
-        <button type="button" className={`${button} text-red-500`} disabled={busy !== null} onClick={onRevoke}>
+        <button type="button" className={`${button} text-nx-danger`} disabled={busy !== null} onClick={onRevoke}>
           Intrekken
         </button>
       </div>

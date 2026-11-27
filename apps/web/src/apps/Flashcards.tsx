@@ -127,7 +127,7 @@ function DeckView({ id, onBack, onPractice, onMake, onDuel }: { id: string; onBa
         <button type="button" className={button} onClick={onMake}>
           Kaarten maken met NEXUS AI
         </button>
-        <button type="button" className={`${button} text-red-500`} onClick={() => window.confirm(`Stapel "${deck.name}" en al haar kaarten verwijderen?`) && (removeDeck(id), onBack())}>
+        <button type="button" className={`${button} text-nx-danger`} onClick={() => window.confirm(`Stapel "${deck.name}" en al haar kaarten verwijderen?`) && (removeDeck(id), onBack())}>
           Stapel verwijderen
         </button>
       </div>
@@ -191,7 +191,7 @@ function CardRow({ card, now, editing, onEdit }: { card: Flashcard; now: number;
         >
           Bewaren
         </button>
-        <button type="button" className={`${smallButton} text-red-500`} onClick={() => removeCard(card.id)}>
+        <button type="button" className={`${smallButton} text-nx-danger`} onClick={() => removeCard(card.id)}>
           Verwijderen
         </button>
       </div>
@@ -270,7 +270,7 @@ function Practice({ deckId, onDone }: { deckId?: string; onDone: () => void }) {
       ) : (
         <div role="group" aria-label="Hoe goed wist je het?" className="grid grid-cols-4 gap-2">
           {GRADES.map((g, i) => (
-            <button key={g} type="button" className={`${button} flex flex-col items-center ${g === 'again' ? 'text-red-500' : ''}`} onClick={() => answer(g)} title={`Toets ${i + 1}`}>
+            <button key={g} type="button" className={`${button} flex flex-col items-center ${g === 'again' ? 'text-nx-danger' : ''}`} onClick={() => answer(g)} title={`Toets ${i + 1}`}>
               <span className="font-medium">{GRADE_LABELS[g]}</span>
               <span className="text-xs text-nx-muted">{intervalLabel(nextInterval(card, g))}</span>
             </button>
@@ -368,7 +368,7 @@ function Make({ deckId, onDone }: { deckId?: string; onDone: (deckId?: string) =
         </fieldset>
       )}
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

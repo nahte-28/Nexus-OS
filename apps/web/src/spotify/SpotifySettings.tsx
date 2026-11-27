@@ -31,7 +31,7 @@ export function SpotifySettings() {
       <legend className="mb-2 text-sm font-semibold text-nx-muted">Spotify</legend>
       <p className="text-nx-muted">Focusmuziek: start je de focustimer in Studie, dan speelt Spotify je studeerplaylist. Start je een Gaming-sessie, ook vanaf je horloge, dan je gamingplaylist. Je hebt Spotify Premium nodig.</p>
       {problem && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {problem}
         </p>
       )}
@@ -50,7 +50,7 @@ export function SpotifySettings() {
                 Koppelen
               </button>
             </div>
-            {note && <p className="text-red-500">{note}</p>}
+            {note && <p className="text-nx-danger">{note}</p>}
           </div>
         ) : (
           <button type="button" className={primary} onClick={() => void startSpotifyLogin()}>
@@ -80,7 +80,7 @@ export function SpotifySettings() {
                 Naar de Windows- of Linux-app
               </button>
             )}
-            <button type="button" className={`${button} text-red-500`} onClick={unlinkSpotify}>
+            <button type="button" className={`${button} text-nx-danger`} onClick={unlinkSpotify}>
               Ontkoppelen
             </button>
           </div>
@@ -130,7 +130,7 @@ function PlaylistChoice({ label, value, lists, onChange }: { label: string; valu
           Gebruiken
         </button>
       </div>
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-nx-danger">{error}</p>}
     </div>
   )
 }

@@ -33,7 +33,7 @@ export function usePresence(api: Presence | null = defaultPresence): { presence:
   return { presence, now }
 }
 
-const colour = { online: 'bg-emerald-500', busy: 'bg-amber-500', offline: 'bg-nx-border' } as const
+const colour = { online: 'bg-nx-success', busy: 'bg-nx-warning', offline: 'bg-nx-border' } as const
 
 /** A dot with the status in words next to it (or only for screen readers when [compact]). */
 export function PresenceDot({ entry, now, compact = false }: { entry: PresenceEntry | undefined; now: number; compact?: boolean }) {

@@ -144,7 +144,7 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
               type="button"
               aria-pressed={listening}
               onClick={listen}
-              className={`flex items-center gap-1.5 rounded-full border border-nx-border px-3 py-1 ${listening ? 'bg-red-600 font-medium text-white' : 'hover:bg-nx-surface-2'}`}
+              className={`flex items-center gap-1.5 rounded-full border border-nx-border px-3 py-1 ${listening ? 'bg-nx-danger-strong font-medium text-white' : 'hover:bg-nx-surface-2'}`}
             >
               <MicIcon className="size-4" />
               {listening ? 'Stoppen' : 'Inspreken'}
@@ -202,7 +202,7 @@ function CaptureDialog({ initial, dictate }: { initial: string; dictate: boolean
         {kind !== 'note' && kind !== 'later' && parsed.title && parsed.title !== text.trim().split('\n')[0] && <p className="text-nx-muted">Titel: {parsed.title}</p>}
         {saved && <p role="status">{saved}</p>}
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}

@@ -277,7 +277,7 @@ function Send({ link, onSent }: { link: BridgeLink; onSent: () => void }) {
         {busy ? 'Versturen…' : 'Versturen'}
       </button>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

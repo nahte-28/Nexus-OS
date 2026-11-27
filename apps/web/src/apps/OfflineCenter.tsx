@@ -12,7 +12,7 @@ const TABS = ['Overzicht', 'Wachtrij', 'Samengevoegd', 'Geschiedenis', 'Per app'
 type Tab = (typeof TABS)[number]
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const primary = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const LEVEL_DOT: Record<OfflineLevel, string> = { full: 'bg-emerald-500', partial: 'bg-amber-500', online: 'bg-nx-border' }
+const LEVEL_DOT: Record<OfflineLevel, string> = { full: 'bg-nx-success', partial: 'bg-nx-warning', online: 'bg-nx-border' }
 const OUTCOME: Record<SyncOutcome, string> = { ok: 'Gelukt', failed: 'Mislukt', merged: 'Samengevoegd' }
 const moment = (t: number) => new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -86,7 +86,7 @@ export function OfflineCenter() {
                 {channels.map((c) => (
                   <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-nx-border px-3 py-2">
                     <span>{c.label}</span>
-                    <span className={`text-xs ${c.error ? 'text-red-600 dark:text-red-400' : 'text-nx-muted'}`}>
+                    <span className={`text-xs ${c.error ? 'text-nx-danger dark:text-nx-danger' : 'text-nx-muted'}`}>
                       {c.error ? `Probleem: ${c.error}` : c.pending > 0 ? `${c.pending} wacht` : `bijgewerkt ${agoText(c.lastOkAt, now)}`}
                     </span>
                   </li>
@@ -147,7 +147,7 @@ export function OfflineCenter() {
                   {runs.map((r) => (
                     <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-nx-border px-3 py-2">
                       <span>
-                        {r.label} · <span className={r.outcome === 'failed' ? 'text-red-600 dark:text-red-400' : ''}>{OUTCOME[r.outcome]}</span>
+                        {r.label} · <span className={r.outcome === 'failed' ? 'text-nx-danger dark:text-nx-danger' : ''}>{OUTCOME[r.outcome]}</span>
                         {r.detail && <span className="text-nx-muted"> · {r.detail}</span>}
                       </span>
                       <time className="text-xs text-nx-muted" dateTime={new Date(r.at).toISOString()}>

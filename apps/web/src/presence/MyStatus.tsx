@@ -39,7 +39,7 @@ export function MyStatus({ api }: { api: Presence }) {
   if (mine === undefined) return null
   if (problem?.startsWith('setup:'))
     return (
-      <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+      <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
         Wie is er online heeft nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
       </p>
     )
@@ -59,7 +59,7 @@ export function MyStatus({ api }: { api: Presence }) {
   return (
     <section className="space-y-2 rounded-lg border border-nx-border p-3">
       <h3 className="font-medium">Jouw status</h3>
-      {problem && <p role="alert" className="text-xs text-red-600">{problem}</p>}
+      {problem && <p role="alert" className="text-xs text-nx-danger">{problem}</p>}
       <div role="radiogroup" aria-label="Jouw status" className="flex flex-wrap gap-1">
         {(Object.keys(LABELS) as PresenceState[]).map((s) => (
           <button key={s} type="button" role="radio" aria-checked={state === s} disabled={busy} onClick={() => save(s, note)} className={`rounded-md border border-nx-border px-2.5 py-1 text-xs ${state === s ? 'bg-nx-surface-2 font-medium' : 'hover:bg-nx-surface-2'}`}>

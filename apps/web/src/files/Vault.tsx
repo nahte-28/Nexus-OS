@@ -149,7 +149,7 @@ export function VaultFiles({ open, run }: VaultActions) {
                 <button type="button" className={smallButton} aria-expanded={details === e.file.id} onClick={() => setDetails(details === e.file.id ? null : e.file.id)}>
                   Details
                 </button>
-                <button type="button" className={`${smallButton} text-red-600 dark:text-red-400`} onClick={() => run(async () => change((s) => trashFile(s, e.file.id, Date.now())))}>
+                <button type="button" className={`${smallButton} text-nx-danger dark:text-nx-danger`} onClick={() => run(async () => change((s) => trashFile(s, e.file.id, Date.now())))}>
                   Naar prullenbak
                 </button>
               </div>
@@ -437,7 +437,7 @@ export function VaultTrash({ run }: Pick<VaultActions, 'run'>) {
               </button>
               <button
                 type="button"
-                className={`${smallButton} text-red-600 dark:text-red-400`}
+                className={`${smallButton} text-nx-danger dark:text-nx-danger`}
                 onClick={() => window.confirm(`"${e.file.name}" en al zijn versies nu voorgoed verwijderen, ook op je andere apparaten?`) && run(() => deleteForGood(versionsOf(vault, files, e.file.id).map((v) => v.id)))}
               >
                 Voorgoed verwijderen

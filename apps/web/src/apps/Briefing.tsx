@@ -77,7 +77,7 @@ export function Briefing() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Dagbriefing" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             De geschiedenis synct nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
@@ -196,7 +196,7 @@ function Schedule({ briefing }: { briefing: BriefingData }) {
                 {entryLabel(e)}
                 {e.detail ? ` · ${e.detail}` : ''}
               </span>
-              {overlap && <span className="block text-xs text-amber-700 dark:text-amber-300">Overlapt met {overlap.join(', ')}</span>}
+              {overlap && <span className="block text-xs text-nx-warning dark:text-nx-warning">Overlapt met {overlap.join(', ')}</span>}
             </span>
           </li>
         )
@@ -224,7 +224,7 @@ function PriorityList({ items, label, day }: { items: BriefingPriority[]; label:
       {items.map((p) => (
         <li key={p.id} className="flex items-start justify-between gap-2">
           <span className="min-w-0">
-            <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${p.kind === 'overdue' ? 'bg-red-500/15 text-red-700 dark:text-red-300' : 'bg-nx-surface-2 text-nx-muted'}`}>{PRIORITY_LABELS[p.kind]}</span>
+            <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${p.kind === 'overdue' ? 'bg-nx-danger/15 text-nx-danger dark:text-nx-danger' : 'bg-nx-surface-2 text-nx-muted'}`}>{PRIORITY_LABELS[p.kind]}</span>
             {p.title}
             <span className="block text-xs text-nx-muted">{p.detail}</span>
           </span>

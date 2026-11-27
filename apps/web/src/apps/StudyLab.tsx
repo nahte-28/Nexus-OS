@@ -86,7 +86,7 @@ export function StudyLab() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Study Lab" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             Syncen lukt nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
@@ -199,7 +199,7 @@ function Subjects({ state }: { state: StudyLabState }) {
           + Vak
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       {subjects.length === 0 && <p className="text-nx-muted">Nog geen vakken.</p>}
       <ul className="space-y-3">
         {subjects.map((s) => (
@@ -272,7 +272,7 @@ function SubjectCard({ subject, state, decks, deckInfo }: { subject: StudySubjec
           + Onderwerp
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
     </li>
   )
 }
@@ -357,7 +357,7 @@ function Practice({ state, subjects }: { state: StudyLabState; subjects: StudySu
                 type="button"
                 disabled={revealed !== null}
                 onClick={() => setRevealed(i)}
-                className={`block w-full rounded-lg border p-2 text-left ${right ? 'border-green-600 bg-green-500/10' : picked ? 'border-red-600 bg-red-500/10' : 'border-nx-border hover:bg-nx-surface-2'}`}
+                className={`block w-full rounded-lg border p-2 text-left ${right ? 'border-nx-success bg-nx-success/10' : picked ? 'border-nx-danger bg-nx-danger/10' : 'border-nx-border hover:bg-nx-surface-2'}`}
               >
                 {c}
               </button>
@@ -457,7 +457,7 @@ function Questions({ state, subjects }: { state: StudyLabState; subjects: StudyS
         <button type="submit" className={primaryButton}>
           Vraag bewaren
         </button>
-        {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       </form>
       {list.length === 0 ? <p className="text-nx-muted">Nog geen vragen voor {subject.name}.</p> : (
         <ul aria-label="Vragen" className="divide-y divide-nx-border rounded-lg border border-nx-border">
@@ -507,7 +507,7 @@ function Sessions({ state, subjects }: { state: StudyLabState; subjects: StudySu
           Sessie noteren
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       {state.sessions.length === 0 ? <p className="text-nx-muted">Nog geen sessies. De focustimer in Studie telt apart; hier noteer je wat je per vak deed.</p> : (
         <ul aria-label="Sessies" className="space-y-1">
           {state.sessions.slice(0, 50).map((x) => (

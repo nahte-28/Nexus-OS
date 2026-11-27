@@ -150,11 +150,11 @@ export function TaskCommentThread({
   return (
     <div className="space-y-2 rounded-md border border-nx-border bg-nx-surface-2/50 p-2 text-sm">
       {problem?.startsWith('setup:') ? (
-        <p role="alert" className="text-xs text-amber-700 dark:text-amber-300">
+        <p role="alert" className="text-xs text-nx-warning dark:text-nx-warning">
           Opmerkingen hebben nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
         </p>
       ) : (
-        problem && <p role="alert" className="text-xs text-red-600">{problem}</p>
+        problem && <p role="alert" className="text-xs text-nx-danger">{problem}</p>
       )}
       {comments === null && !problem && <p className="text-xs text-nx-muted">Laden…</p>}
       {comments?.length === 0 && <p className="text-xs text-nx-muted">Nog geen opmerkingen. Typ @ om iemand van het team te vermelden.</p>}
@@ -166,7 +166,7 @@ export function TaskCommentThread({
               {(c.userId === me || teamCan(role, 'manage')) && (
                 <button
                   type="button"
-                  className="ml-2 opacity-0 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                  className="ml-2 opacity-0 hover:text-nx-danger focus:opacity-100 group-hover:opacity-100"
                   aria-label={`Opmerking van ${when(c.createdAt)} verwijderen`}
                   onClick={() =>
                     void api.remove(c.id).then(

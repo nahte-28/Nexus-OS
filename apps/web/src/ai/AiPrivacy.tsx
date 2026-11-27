@@ -108,7 +108,7 @@ export function ApprovalHistory({ initial = 'all', extra = [] }: { initial?: App
             <li key={e.id} className="rounded-lg border border-nx-border p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-medium">{e.label}</span>
-                <span className={`text-xs ${NO.has(e.outcome) ? 'text-red-500' : 'text-nx-muted'}`}>{OUTCOME_LABELS[e.outcome]}</span>
+                <span className={`text-xs ${NO.has(e.outcome) ? 'text-nx-danger' : 'text-nx-muted'}`}>{OUTCOME_LABELS[e.outcome]}</span>
               </div>
               <p className="text-xs">{e.detail}</p>
               <p className="text-xs text-nx-muted">
