@@ -46,7 +46,7 @@ describe('Linux-apps', () => {
     expect(await screen.findByRole('menuitem', { name: 'Firefox' })).toBeTruthy()
     fireEvent.click(await screen.findByRole('menuitem', { name: 'Uitschakelen' }))
     expect(calls.some(([c]) => c === 'session_power')).toBe(false)
-    fireEvent.click(screen.getByRole('button', { name: 'Ja' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Ja' }))
     await waitFor(() => expect(calls).toContainEqual(['session_power', { action: 'poweroff' }]))
   })
 

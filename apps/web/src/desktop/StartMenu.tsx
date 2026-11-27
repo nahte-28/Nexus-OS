@@ -79,8 +79,6 @@ export function StartMenu({ onClose, onOpenApp, onSearch }: Props) {
   return (
     <div
       ref={ref}
-      role="menu"
-      aria-label="Startmenu"
       onKeyDown={onMenuKeyDown}
       className="nx-window nx-enter-menu absolute bottom-full left-2 mb-2 flex h-[min(42rem,calc(100dvh-4.5rem))] w-[min(36rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-xl border border-nx-border"
     >
@@ -116,161 +114,165 @@ export function StartMenu({ onClose, onOpenApp, onSearch }: Props) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
-        {q ? (
-          <>
-            <Section title="Apps" count={results.length}>
-              {results.length > 0 ? (
-                <ul className="space-y-0.5">
-                  {results.map((app, i) => (
-                    <li key={app.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => onOpenApp(app.id)}
-                        className={`flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2 ${i === 0 ? 'bg-nx-surface-2' : ''}`}
-                      >
-                        <AppTile app={app} />
-                        <span className="min-w-0 flex-1 truncate font-medium">{app.title}</span>
-                        <span className="shrink-0 text-xs text-nx-muted">{GROUP_TITLE.get(APP_GROUP[app.id])}</span>
-                        {i === 0 && <Kbd>Enter</Kbd>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-1 text-sm text-nx-muted">Geen apps met “{query.trim()}”.</p>
+      {/* The search box sits above the menu: a menu may only hold menu items and their groups. */}
+      <div role="menu" aria-label="Startmenu" className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
+          {q ? (
+            <>
+              <Section title="Apps" count={results.length}>
+                {results.length > 0 ? (
+                  <ul role="none" className="space-y-0.5">
+                    {results.map((app, i) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => onOpenApp(app.id)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2 ${i === 0 ? 'bg-nx-surface-2' : ''}`}
+                        >
+                          <AppTile app={app} />
+                          <span className="min-w-0 flex-1 truncate font-medium">{app.title}</span>
+                          <span className="shrink-0 text-xs text-nx-muted">{GROUP_TITLE.get(APP_GROUP[app.id])}</span>
+                          {i === 0 && <Kbd>Enter</Kbd>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-1 text-sm text-nx-muted">Geen apps met “{query.trim()}”.</p>
+                )}
+              </Section>
+              {linuxResults.length > 0 && (
+                <Section title="Linux-apps">
+                  <ul role="none" className="space-y-0.5">
+                    {linuxResults.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => openLinux(app.id)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-md border border-nx-border bg-nx-surface-2">
+                            <TerminalIcon className="size-4 text-nx-accent" />
+                          </span>
+                          <span className="truncate">{app.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
               )}
-            </Section>
-            {linuxResults.length > 0 && (
-              <Section title="Linux-apps">
-                <ul className="space-y-0.5">
-                  {linuxResults.map((app) => (
-                    <li key={app.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => openLinux(app.id)}
-                        className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
-                      >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-md border border-nx-border bg-nx-surface-2">
-                          <TerminalIcon className="size-4 text-nx-accent" />
-                        </span>
-                        <span className="truncate">{app.name}</span>
-                      </button>
-                    </li>
+              {onSearch && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={searchEverywhere}
+                  className="flex w-full items-center gap-3 rounded-lg border border-dashed border-nx-border px-2 py-2 text-left text-sm hover:bg-nx-surface-2"
+                >
+                  <span className="grid size-8 shrink-0 place-items-center rounded-md bg-nx-surface-2">
+                    <SearchIcon className="size-4 text-nx-accent" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">Zoek overal naar “{query.trim()}”</span>
+                    <span className="block text-xs text-nx-muted">Notities, bestanden, agenda en herinneringen</span>
+                  </span>
+                  <Kbd>Ctrl K</Kbd>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <Section title="Favorieten">
+                {favoriteApps.length > 0 ? (
+                  <ul role="none" className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-1.5">
+                    {favoriteApps.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          aria-label={`${app.title} (favoriet)`}
+                          onClick={() => onOpenApp(app.id)}
+                          data-trace="bottom"
+                          className="nx-lift flex w-full flex-col items-center gap-1.5 rounded-lg border border-nx-border bg-nx-surface-2 px-1.5 pt-3 pb-2.5 text-xs font-medium hover:border-nx-accent"
+                        >
+                          <app.icon aria-hidden className="size-6 text-nx-accent" />
+                          <span className="w-full truncate text-center">{app.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-1 text-sm text-nx-muted">Nog geen favorieten. Zet er een met de ster bij Alle apps.</p>
+                )}
+              </Section>
+              {recentApps.length > 0 && (
+                <Section title="Recent">
+                  <ul role="none" className="flex flex-wrap gap-1">
+                    {recentApps.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          aria-label={`${app.title} (recent)`}
+                          onClick={() => onOpenApp(app.id)}
+                          className="flex h-8 items-center gap-2 rounded-md border border-nx-border px-2.5 text-[13px] hover:bg-nx-surface-2"
+                        >
+                          <app.icon aria-hidden className="size-4 text-nx-muted" />
+                          {app.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              <Section title="Alle apps" count={visible.length}>
+                <ul role="none" className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-0.5">
+                  {visible.map((app) => (
+                    <AllAppsItem key={app.id} app={app} favorite={favorites.includes(app.id)} onOpen={() => onOpenApp(app.id)} />
                   ))}
                 </ul>
               </Section>
-            )}
-            {onSearch && (
+            </>
+          )}
+        </div>
+
+        {(live || session) && (
+          <div role="group" aria-label="Systeem" className="shrink-0 space-y-2 border-t border-nx-border bg-nx-surface-2 px-3 py-2">
+            {live && (
               <button
                 type="button"
                 role="menuitem"
-                onClick={searchEverywhere}
-                className="flex w-full items-center gap-3 rounded-lg border border-dashed border-nx-border px-2 py-2 text-left text-sm hover:bg-nx-surface-2"
+                onClick={() => installNexusOs().then(onClose, (err) => setError(String(err)))}
+                className="w-full rounded-lg bg-nx-accent px-3 py-2 text-left text-sm font-medium text-nx-accent-text"
               >
-                <span className="grid size-8 shrink-0 place-items-center rounded-md bg-nx-surface-2">
-                  <SearchIcon className="size-4 text-nx-accent" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">Zoek overal naar “{query.trim()}”</span>
-                  <span className="block text-xs text-nx-muted">Notities, bestanden, agenda en herinneringen</span>
-                </span>
-                <Kbd>Ctrl K</Kbd>
+                NEXUS OS installeren
+                <span className="block text-xs font-normal opacity-80">Je draait nu vanaf de usb-stick. Wachtwoord: live</span>
               </button>
             )}
-          </>
-        ) : (
-          <>
-            <Section title="Favorieten">
-              {favoriteApps.length > 0 ? (
-                <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-1.5">
-                  {favoriteApps.map((app) => (
-                    <li key={app.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        aria-label={`${app.title} (favoriet)`}
-                        onClick={() => onOpenApp(app.id)}
-                        data-trace="bottom"
-                        className="nx-lift flex w-full flex-col items-center gap-1.5 rounded-lg border border-nx-border bg-nx-surface-2 px-1.5 pt-3 pb-2.5 text-xs font-medium hover:border-nx-accent"
-                      >
-                        <app.icon aria-hidden className="size-6 text-nx-accent" />
-                        <span className="w-full truncate text-center">{app.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-1 text-sm text-nx-muted">Nog geen favorieten. Zet er een met de ster bij Alle apps.</p>
-              )}
-            </Section>
-            {recentApps.length > 0 && (
-              <Section title="Recent">
-                <ul className="flex flex-wrap gap-1">
-                  {recentApps.map((app) => (
-                    <li key={app.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        aria-label={`${app.title} (recent)`}
-                        onClick={() => onOpenApp(app.id)}
-                        className="flex h-8 items-center gap-2 rounded-md border border-nx-border px-2.5 text-[13px] hover:bg-nx-surface-2"
-                      >
-                        <app.icon aria-hidden className="size-4 text-nx-muted" />
-                        {app.title}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-            <Section title="Alle apps" count={visible.length} label="Alle apps">
-              <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-0.5">
-                {visible.map((app) => (
-                  <AllAppsItem key={app.id} app={app} favorite={favorites.includes(app.id)} onOpen={() => onOpenApp(app.id)} />
-                ))}
-              </ul>
-            </Section>
-          </>
+            {session && <PowerRow onError={setError} />}
+          </div>
         )}
       </div>
-
-      {(error || live || session) && (
-        <div className="shrink-0 space-y-2 border-t border-nx-border bg-nx-surface-2 px-3 py-2">
-          {error && (
-            <p role="alert" className="text-sm text-red-500">
-              {error}
-            </p>
-          )}
-          {live && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => installNexusOs().then(onClose, (err) => setError(String(err)))}
-              className="w-full rounded-lg bg-nx-accent px-3 py-2 text-left text-sm font-medium text-nx-accent-text"
-            >
-              NEXUS OS installeren
-              <span className="block text-xs font-normal opacity-80">Je draait nu vanaf de usb-stick. Wachtwoord: live</span>
-            </button>
-          )}
-          {session && <PowerRow onError={setError} />}
-        </div>
+      {error && (
+        <p role="alert" className="shrink-0 border-t border-nx-border px-3 py-2 text-sm text-red-500">
+          {error}
+        </p>
       )}
     </div>
   )
 }
 
-/** A heading with a thin rule after it, then its items. `label` makes it a named group (tests and screen readers). */
-function Section({ title, count, label, children }: { title: string; count?: number; label?: string; children: ReactNode }) {
+/** A named group: a heading with a thin rule after it, then its items. */
+function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
-    <section role={label ? 'group' : undefined} aria-label={label}>
-      <h2 className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold text-nx-muted">
+    <section role="group" aria-label={title}>
+      {/* The group carries the name; a menu may not hold headings. */}
+      <div aria-hidden className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold text-nx-muted">
         {title}
         {count !== undefined && <span className="font-normal tabular-nums">{count}</span>}
-        <span aria-hidden className="h-px flex-1 bg-nx-border" />
-      </h2>
+        <span className="h-px flex-1 bg-nx-border" />
+      </div>
       {children}
     </section>
   )
@@ -290,7 +292,7 @@ const Kbd = ({ children }: { children: ReactNode }) => (
 
 function AllAppsItem({ app, favorite, onOpen }: { app: AppDefinition; favorite: boolean; onOpen: () => void }) {
   return (
-    <li className="group relative">
+    <li role="none" className="group relative">
       <button
         type="button"
         role="menuitem"
@@ -307,7 +309,8 @@ function AllAppsItem({ app, favorite, onOpen }: { app: AppDefinition; favorite: 
       {app.id !== 'controlcenter' && (
         <button
           type="button"
-          aria-pressed={favorite}
+          role="menuitemcheckbox"
+          aria-checked={favorite}
           aria-label={favorite ? `${app.title} uit je favorieten` : `${app.title} bij je favorieten`}
           title={favorite ? 'Uit je favorieten (taakbalk en bureaublad)' : 'Bij je favorieten (taakbalk en bureaublad)'}
           onClick={() => favoritesStore.toggle(app.id)}
@@ -340,10 +343,10 @@ function PowerRow({ onError }: { onError: (error: string) => void }) {
   return ask ? (
     <div className="flex items-center gap-2 text-sm">
       <span className="flex-1">{ask.confirm}</span>
-      <button type="button" onClick={() => run(ask.action)} className="rounded-lg bg-nx-accent px-3 py-1 font-medium text-nx-accent-text">
+      <button type="button" role="menuitem" onClick={() => run(ask.action)} className="rounded-lg bg-nx-accent px-3 py-1 font-medium text-nx-accent-text">
         Ja
       </button>
-      <button type="button" onClick={() => setAsking(null)} className="rounded-lg border border-nx-border px-3 py-1 hover:bg-nx-surface">
+      <button type="button" role="menuitem" onClick={() => setAsking(null)} className="rounded-lg border border-nx-border px-3 py-1 hover:bg-nx-surface">
         Nee
       </button>
     </div>
