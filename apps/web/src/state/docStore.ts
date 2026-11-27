@@ -113,6 +113,18 @@ export function createDocRemote<T extends { revision: number }>(client: Supabase
   }
 }
 
+/**
+ * JSON with object keys sorted and the revision left out. Postgres (jsonb) hands objects back with
+ * its own key order, so plain JSON.stringify would call two equal copies different: every sync
+ * then wrote a new revision, which woke the other devices (and this one) through realtime, again
+ * and again. Lists keep their order: a reordered list is a real change.
+ */
+function sameContent(value: unknown): string {
+  const walk = (x: unknown): unknown =>
+    Array.isArray(x) ? x.map(walk) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).filter(([k]) => k !== 'revision').sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => [k, walk(v)])) : x
+  return JSON.stringify(walk(value))
+}
+
 /** JSON that ignores the revision and the order of lists, to tell whether two copies hold the same. */
 function canonical(value: unknown): string {
   const walk = (x: unknown): unknown =>
@@ -130,7 +142,7 @@ export async function syncDoc<T extends { revision: number }>(store: DocStore<T>
       continue
     }
     const merged = merge(local, theirs)
-    const same = (a: T, b: T) => JSON.stringify({ ...a, revision: 0 }) === JSON.stringify({ ...b, revision: 0 })
+    const same = (a: T, b: T) => sameContent(a) === sameContent(b)
     if (same(merged, theirs)) {
       if (!same(local, theirs) || local.revision !== theirs.revision) store.adopt(theirs)
       return theirs.revision
