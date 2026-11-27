@@ -25,8 +25,13 @@ Defined in `apps/web/src/index.css` (read its comments before changing anything)
 - Components use **only** the tokens, as Tailwind classes: `bg-nx-bg`, `bg-nx-surface`,
   `bg-nx-surface-2`, `border-nx-border`, `text-nx-text`, `text-nx-muted`, `bg-nx-accent`,
   `text-nx-accent-text`. No raw hex, no `dark:` variants, no Tailwind palette colours
-  (`bg-blue-500`), so Focus and Pulse switch cleanly. A status colour that is not a token
-  (red for an error) is acceptable only where existing apps already do the same.
+  (`bg-blue-500`), so Focus and Pulse switch cleanly.
+- Status colours are tokens too (Werkbank 2.0), AA on every surface in both themes:
+  `text-nx-danger` / `text-nx-warning` / `text-nx-success` / `text-nx-info` for text, icons and
+  dots (`bg-nx-success` for a dot, `bg-nx-danger/10` + `border-nx-danger/40` for an error box),
+  and `bg-nx-danger-strong text-white` for a destructive button. `werkbank.test.ts` fails on a
+  palette colour; only the user-picked calendar colours in the Agenda are exempt.
+- Type: Tailwind's scale plus `text-2xs` (11px) for badges and small labels; no `text-[11px]`.
 - Radius follows hierarchy: buttons `rounded-md`, cards `rounded-lg`, windows `rounded-xl`.
 - Font: Schibsted Grotesk Variable, body 15px / 1.5. Don't add fonts.
 - Motion: `--ease-out` for entering/leaving, `--ease-in-out` for moving on screen; only
