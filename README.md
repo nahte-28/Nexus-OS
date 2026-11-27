@@ -139,6 +139,19 @@ De gedeelde sleutel instellen (optioneel), in Vercel bij Settings > Environment 
 
 Daarna opnieuw deployen. De Windows-app gebruikt dezelfde functie op `nexus-os-lime.vercel.app`. Lokaal draait `/api/ai` alleen met `vercel dev`.
 
+## NEXUS voor Claude (MCP-server)
+
+`/api/mcp` is een MCP-server: Claude of een andere assistent met MCP kan er met jouw toestemming in NEXUS werken. Hij kan je agenda bekijken (lessen uit je schoolkalender of lesrooster, deadlines, afspraken en Google Agenda), je notities zoeken en lezen, en notities, deadlines en afspraken toevoegen. Toevoegen gebruikt dezelfde controles als de formulieren en NEXUS AI (`parseDeadline`, `parseAppointment`), en de assistent vraagt per actie je akkoord. Herinneringen staan alleen op het toestel en zijn er dus niet. Logica: `packages/core/src/mcp.ts`; de functie zelf: `api/mcp.ts`.
+
+Inloggen gaat met OAuth 2.1 via Supabase Auth. Je logt in met je NEXUS-account en kiest op het scherm `/oauth/consent` of je de assistent toegang geeft. Elke lees- en schrijfactie gaat naar Supabase met die login, dus de RLS laat alleen je eigen gegevens door; een servicesleutel is er niet voor nodig. `/.well-known/oauth-protected-resource` (`api/oauth-resource.ts`) vertelt de assistent waar hij inlogt. Gekoppelde assistenten zie je in NEXUS AI › Wat NEXUS AI mag zien › Gekoppelde assistenten; daar trek je de toegang weer in.
+
+Eenmalig instellen in Supabase (Authentication › OAuth Server):
+1. Zet **OAuth 2.1 Server** aan.
+2. Vul bij **Authorization Path** `/oauth/consent` in. Controleer dat **Site URL** (Authentication › URL Configuration) `https://nexus-os-lime.vercel.app` is.
+3. Zet **Allow Dynamic OAuth Apps** (dynamische registratie) aan, zodat Claude zichzelf kan aanmelden.
+
+Daarna in Claude: Instellingen › Connectors › Aangepaste connector toevoegen › URL `https://nexus-os-lime.vercel.app/api/mcp`. De functies in `api/` laden core als bundel (`api/_core.js`, gemaakt door `scripts/bundle-api-core.mjs` bij `npm run build`; niet in git).
+
 ## Herinneringen en ontwikkelaarstools
 
 **Herinneringen** zijn de eerste automatisering: een melding op een tijdstip, eenmalig, elke dag of elke week, alleen op dit apparaat of ook op je gsm en horloge (versleuteld via NEXUS Connect). Ze staan lokaal in IndexedDB en werken dus offline; ze gaan af zolang NEXUS open is op dat apparaat, en wat gemist werd gaat af bij de volgende start. De Windows-app in het systeemvak is daarom de beste plek. Ook NEXUS AI kan herinneringen plannen.
