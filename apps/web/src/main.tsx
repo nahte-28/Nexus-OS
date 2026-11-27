@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
@@ -11,6 +11,7 @@ import { openCaptureFromUrl } from './capture/open'
 import { openJoinFromUrl } from './teams/joinLink'
 import { openFriendFromUrl } from './friends/link'
 import { isDesktopApp } from './platform/desktop'
+import { CONSENT_PATH, hasPendingConsent } from './oauth/pending'
 import { CHECK_EVERY_MS, connectServiceWorker, updateReady } from './shell/swUpdate'
 import { startProfileClock } from './profiles/store'
 import { SyncProvider } from './sync/SyncContext'
@@ -42,6 +43,8 @@ openCaptureFromUrl()
 openJoinFromUrl()
 // A friend link (/vriend/<code>) opens Vrienden with the code filled in.
 openFriendFromUrl()
+// Signed in after an assistant asked to connect (NEXUS MCP-server): back to its consent screen.
+if (hasPendingConsent()) void import('./oauth/pending').then((m) => m.resumePendingConsent())
 // Windows/Linux app: nexus:// links from a browser, a shortcut or another program.
 if (isDesktopApp) void import('./platform/deepLinks').then((m) => m.startDeepLinks())
 // Back from logging in to Spotify (/spotify?code=…): finish the link and show Instellingen.
@@ -57,24 +60,36 @@ if (window.location.pathname === '/spotify') {
   )
 }
 
+// An assistant asks to use NEXUS (MCP-server): only the consent screen, not the desktop.
+const consent = window.location.pathname === CONSENT_PATH
+const OAuthConsent = lazy(() => import('./oauth/OAuthConsent').then((m) => ({ default: m.OAuthConsent })))
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <SyncProvider>
-        <ConnectProvider>
-          <ErrorBoundary name="NEXUS">
-            <App />
-          </ErrorBoundary>
-        </ConnectProvider>
-      </SyncProvider>
+      {consent ? (
+        <Suspense fallback={null}>
+          <OAuthConsent />
+        </Suspense>
+      ) : (
+        <SyncProvider>
+          <ConnectProvider>
+            <ErrorBoundary name="NEXUS">
+              <App />
+            </ErrorBoundary>
+          </ConnectProvider>
+        </SyncProvider>
+      )}
     </ThemeProvider>
   </StrictMode>,
 )
 
 // Syncing, reminders and notices start right after the first screen; they are not needed to draw it.
 const startBackground = () => void import('./background')
-if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(startBackground, { timeout: 1500 })
-else setTimeout(startBackground, 200)
-
-// Once NEXUS has started, fetch the apps' code in the background so opening one is instant.
-window.setTimeout(() => void preloadApps(), 4000)
+// Nothing of that runs on the consent screen.
+if (!consent) {
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(startBackground, { timeout: 1500 })
+  else setTimeout(startBackground, 200)
+  // Once NEXUS has started, fetch the apps' code in the background so opening one is instant.
+  window.setTimeout(() => void preloadApps(), 4000)
+}

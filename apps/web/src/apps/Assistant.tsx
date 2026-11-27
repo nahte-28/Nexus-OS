@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { AiContextSettings, ApprovalHistory } from '../ai/AiPrivacy'
+import { ConnectedAssistants } from '../oauth/ConnectedAssistants'
 import { OwnKeySettings } from '../ai/OwnKeySettings'
 import { assistant, bindTheme } from '../ai/runtime'
 import type { ChatItem, ToolRequest } from '../ai/session'
@@ -74,6 +75,7 @@ export function Assistant() {
       ) : view === 'privacy' ? (
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-3">
           <AiContextSettings />
+          <ConnectedAssistants />
           <section className="space-y-2">
             <h3 className="font-medium">Geschiedenis van goedkeuringen</h3>
             <ApprovalHistory initial="ai" />
