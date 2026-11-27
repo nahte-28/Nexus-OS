@@ -36,7 +36,7 @@ const startMenu = () => {
 const closeStart = () => {
   if (screen.queryByRole('menu', { name: 'Startmenu' })) fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 }
-const startApps = () => startMenu().getAllByRole('menuitem').map((b) => b.textContent?.trim())
+const startApps = () => within(startMenu().getByRole('group', { name: 'Alle apps' })).getAllByRole('menuitem').map((b) => b.textContent?.trim())
 
 /** Profiles are only switched in the Profielen app. */
 const chooseProfile = (name: string) => {

@@ -21,7 +21,8 @@ async function showApps(page: Page) {
   if (isMobile(page)) return page.getByRole('group', { name: 'Apps' })
   const menu = page.getByRole('menu', { name: 'Startmenu' })
   if (!(await menu.isVisible())) await page.getByRole('button', { name: 'Start', exact: true }).click()
-  return menu
+  // Favourites and Recent repeat some apps; Alle apps has each one once.
+  return menu.getByRole('group', { name: 'Alle apps' })
 }
 
 /** Opens one app the way you would: from the grid on a phone, from Start on the desktop. */

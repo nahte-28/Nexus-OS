@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-27',
+    title: 'Startmenu 2.0',
+    items: [
+      'Start (het NEXUS-teken) is vernieuwd: bovenaan het NEXUS-teken en je profiel, daaronder een groot zoekveld.',
+      'Je favorieten staan apart als grote tegels, en onder Recent vind je de apps die je het laatst opende.',
+      'Alle apps staan eronder in de volgorde van je profiel. Met de ster zet je er een bij je favorieten.',
+      'Typ je iets, dan zie je meteen de passende apps met hun groep. Enter opent de eerste, en met "Zoek overal" zoek je verder in je notities, bestanden, agenda en herinneringen.',
+      'Met de pijltjestoetsen loop je door alles wat je kunt openen.',
+    ],
+  },
+  {
+    date: '2026-11-27',
     title: 'Taakbalk 2.0',
     items: [
       'De taakbalk is compacter en rustiger: Start en je snelknoppen, dan je vastgepinde favorieten, dan je geopende vensters, telkens gescheiden door een dun lijntje.',

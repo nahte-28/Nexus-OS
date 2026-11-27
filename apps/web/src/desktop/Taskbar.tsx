@@ -23,7 +23,7 @@ export const TASKBAR_HEIGHT = 48
  * The bar is a size container: on narrow screens (768-1000px) window labels shrink and then become
  * icons, and the date leaves the clock, so nothing wraps or scrolls before it has to.
  */
-export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => void; onSearch: () => void }) {
+export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => void; onSearch: (query?: string) => void }) {
   const { state, dispatch } = useWindows()
   const [startOpen, setStartOpen] = useState(false)
   const focused = state.windows.find((w) => w.id === state.focusedId && !w.minimized)
@@ -42,7 +42,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
       >
         <NexusGlyph className="size-5" />
       </button>
-      <SearchButton onClick={onSearch} className="shrink-0" />
+      <SearchButton onClick={() => onSearch()} className="shrink-0" />
       <CaptureButton className="shrink-0" />
       <Favorites onOpenApp={onOpenApp} focusedApp={focused?.appId} />
 
@@ -76,6 +76,7 @@ export function Taskbar({ onOpenApp, onSearch }: { onOpenApp: (id: AppId) => voi
       {startOpen && (
         <StartMenu
           onClose={() => setStartOpen(false)}
+          onSearch={onSearch}
           onOpenApp={(id) => {
             onOpenApp(id)
             setStartOpen(false)
