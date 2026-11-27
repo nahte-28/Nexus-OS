@@ -17,8 +17,9 @@ import { useCircuitMotion } from './circuitSetting'
 
 /** Calm pace: a pulse crosses about 110px a second (Pulse) or 80px (Focus). */
 const SPEED = { focus: 80, pulse: 110 } as const
-/** At most this many pulses at once; Focus is quieter. */
+/** At most this many pulses at once; Focus is quieter, and a phone (quiet) quieter still. */
 const PULSES = { focus: 3, pulse: 5 } as const
+const QUIET_PULSES = { focus: 1, pulse: 2 } as const
 
 function useSize(ref: React.RefObject<HTMLElement | null>): { width: number; height: number } {
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -77,7 +78,8 @@ function pulseFrames(trace: CircuitTrace, travel: number): Keyframe[] {
   return frames
 }
 
-export function CircuitFlow() {
+/** [quiet]: the phone, with fewer pulses (smaller screen, battery). */
+export function CircuitFlow({ quiet = false }: { quiet?: boolean }) {
   const box = useRef<HTMLDivElement>(null)
   const { width, height } = useSize(box)
   const { theme } = useTheme()
@@ -91,13 +93,13 @@ export function CircuitFlow() {
   const pulses = useMemo(() => {
     const random = seededRandom(width * 31 + height)
     const long = layout.traces.filter((t) => t.length >= 6 * 18)
-    const picked = [...long].sort(() => random() - 0.5).slice(0, PULSES[theme])
+    const picked = [...long].sort(() => random() - 0.5).slice(0, (quiet ? QUIET_PULSES : PULSES)[theme])
     return picked.map((trace) => {
       const travel = (trace.length / SPEED[theme]) * 1000
       const rest = 5000 + random() * 11000
       return { trace, duration: travel + rest, travel: travel / (travel + rest), delay: random() * 9000, pad: layout.pads.findIndex((p) => p === trace.points[trace.points.length - 1]) }
     })
-  }, [layout, theme, width, height])
+  }, [layout, theme, width, height, quiet])
 
   const moving = enabled && !reduced
   useEffect(() => {
@@ -134,7 +136,7 @@ export function CircuitFlow() {
   }, [pulses, moving])
 
   return (
-    <div ref={box} aria-hidden="true" className="nx-circuit pointer-events-none absolute inset-0" data-testid="circuit-flow">
+    <div ref={box} aria-hidden="true" className="nx-circuit pointer-events-none absolute inset-0" data-quiet={quiet || undefined} data-testid="circuit-flow">
       {width > 0 && (
         <svg width={width} height={height} className="block">
           <g className="nx-circuit-traces">

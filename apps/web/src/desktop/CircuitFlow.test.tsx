@@ -25,7 +25,7 @@ afterEach(() => {
   setCircuitMotion(true)
 })
 
-const draw = () => render(<ThemeProvider><CircuitFlow /></ThemeProvider>).container
+const draw = (quiet = false) => render(<ThemeProvider><CircuitFlow quiet={quiet} /></ThemeProvider>).container
 
 describe('CircuitFlow', () => {
   it('draws the traces and pads behind everything, hidden from screen readers and the mouse', () => {
@@ -46,5 +46,14 @@ describe('CircuitFlow', () => {
     const c = draw()
     expect(c.querySelectorAll('.nx-circuit-pulse')).toHaveLength(0)
     expect(c.querySelectorAll('.nx-circuit-traces path').length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('is quieter on the phone: fainter traces and fewer pulses', () => {
+    const full = draw().querySelectorAll('.nx-circuit-pulse').length
+    cleanup()
+    const box = draw(true).querySelector('[data-testid="circuit-flow"]')!
+    expect(box.hasAttribute('data-quiet')).toBe(true)
+    expect(box.querySelectorAll('.nx-circuit-pulse').length).toBeGreaterThan(0)
+    expect(box.querySelectorAll('.nx-circuit-pulse').length).toBeLessThan(full)
   })
 })

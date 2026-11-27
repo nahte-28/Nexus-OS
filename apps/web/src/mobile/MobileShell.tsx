@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { groupApps, type AppId } from '@nexus/core'
 import { getApp, useVisibleApps } from '../apps/registry'
+import { CircuitFlow } from '../desktop/CircuitFlow'
 import { setAppOpener } from '../shell/openApp'
 import { OfflineBanner } from '../shell/OfflineBanner'
 import { UpdatePrompt } from '../shell/UpdatePrompt'
@@ -63,8 +64,9 @@ export function MobileShell() {
   }
 
   return (
-    <div className="nx-wallpaper flex h-full flex-col">
-      <header className="nx-glass nx-safe-top flex h-14 shrink-0 items-center gap-2 border-b border-nx-border px-2">
+    <div className="nx-wallpaper relative flex h-full flex-col">
+      <CircuitFlow quiet />
+      <header className="nx-glass nx-safe-top relative flex h-14 shrink-0 items-center gap-2 border-b border-nx-border px-2">
         {app ? (
           <button type="button" aria-label="Terug" onClick={goHome} className="grid size-11 place-items-center rounded-lg">
             <BackIcon />
@@ -91,7 +93,7 @@ export function MobileShell() {
       </Suspense>
       <AskName top={72} />
 
-      <main className="min-h-0 flex-1 overflow-auto">
+      <main className="relative min-h-0 flex-1 overflow-auto">
         {app ? (
           <div className="nx-glass h-full">
             <ErrorBoundary key={app.id} name={app.title}>
@@ -124,7 +126,7 @@ export function MobileShell() {
         )}
       </main>
 
-      <nav aria-label="Navigatie" className="nx-glass nx-safe-bottom flex shrink-0 justify-around border-t border-nx-border">
+      <nav aria-label="Navigatie" className="nx-glass nx-safe-bottom relative flex shrink-0 justify-around border-t border-nx-border">
         <NavButton label="Apps" active={!app} onClick={goHome}>
           <GridIcon />
         </NavButton>

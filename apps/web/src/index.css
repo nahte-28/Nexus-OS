@@ -179,6 +179,13 @@ h3 {
   --nx-circuit-line: color-mix(in srgb, var(--nx-accent) 20%, transparent);
   --nx-circuit-pad: color-mix(in srgb, var(--nx-accent) 60%, transparent);
 }
+/* On a phone the tiles fill most of the screen and the traces run behind them: fainter there. */
+.nx-circuit[data-quiet] {
+  --nx-circuit-line: color-mix(in srgb, var(--nx-accent) 8%, transparent);
+}
+[data-theme='pulse'] .nx-circuit[data-quiet] {
+  --nx-circuit-line: color-mix(in srgb, var(--nx-accent) 11%, transparent);
+}
 .nx-circuit-traces path {
   fill: none;
   stroke: var(--nx-circuit-line);
