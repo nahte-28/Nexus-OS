@@ -7,6 +7,7 @@ import { UpdatePrompt } from '../shell/UpdatePrompt'
 import { StorageNotice } from '../shell/StorageNotice'
 import { AskName } from '../shell/AskName'
 import { getApp, useVisibleApps, type AppDefinition } from '../apps/registry'
+import { CircuitFlow } from './CircuitFlow'
 import { Dashboard } from '../profiles/Dashboard'
 import { useWindows } from '../state/WindowsContext'
 import { QuickCaptureHost, useCaptureShortcut } from '../capture/QuickCaptureHost'
@@ -62,6 +63,7 @@ export function Desktop() {
 
   return (
     <div className="nx-wallpaper relative h-full overflow-hidden">
+      <CircuitFlow />
       <div className="absolute inset-x-0 top-0 flex" style={{ bottom: TASKBAR_HEIGHT }}>
         <main className="relative min-w-0 flex-1 overflow-hidden" aria-label="Bureaublad">
           <div className="h-full overflow-auto">

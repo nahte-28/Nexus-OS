@@ -10,6 +10,7 @@ import { setFlowStudioEnabled, useFlowStudioEnabled } from '../flows/store'
 import { desktopAppName, desktopOsName, isAutostartEnabled, isDesktopApp, setAutostart } from '../platform/desktop'
 import { checkForUpdate, installUpdate, useUpdate } from '../platform/update'
 import { useTheme } from '../theme/ThemeContext'
+import { setCircuitMotion, useCircuitMotion } from '../desktop/circuitSetting'
 
 export function Settings() {
   const { theme, setTheme } = useTheme()
@@ -42,6 +43,7 @@ export function Settings() {
         </div>
       </fieldset>
       <p className="text-sm text-nx-muted">Je keuze wordt bewaard en geldt direct, zonder dat open vensters sluiten.</p>
+      <CircuitSettings />
       {isDesktopApp && <WindowsSettings />}
       <fieldset className="space-y-2 border-t border-nx-border pt-4 text-sm">
         <legend className="mb-2 text-sm font-semibold text-nx-muted">Rondleiding</legend>
@@ -56,6 +58,22 @@ export function Settings() {
       <BetaSettings />
       <ModuleSettings />
       <DeveloperSettings />
+    </div>
+  )
+}
+
+function CircuitSettings() {
+  const moving = useCircuitMotion()
+  return (
+    <div className="space-y-1">
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={moving} onChange={(e) => setCircuitMotion(e.target.checked)} className="accent-[var(--nx-accent)]" />
+        Bewegende printplaat op het bureaublad
+      </label>
+      <p className="text-sm text-nx-muted">
+        Af en toe loopt er een lichtje over de koperen sporen. Uit betekent stilstaande sporen. Op dit toestel; met &quot;beweging beperken&quot; in je systeem
+        staat het altijd stil.
+      </p>
     </div>
   )
 }
