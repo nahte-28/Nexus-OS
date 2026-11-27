@@ -4,8 +4,8 @@ import { defineConfig } from 'vitest/config'
 // Not part of `npm test`: it needs a running stack.
 export default defineConfig({
   test: {
-    environment: 'jsdom',
-    setupFiles: ['src/test-setup.ts'],
+    environment: 'node',
+    setupFiles: ['src/sync/syncTestSetup.ts'],
     include: ['src/**/*.supabase.ts'],
     testTimeout: 60_000,
     hookTimeout: 60_000,
