@@ -60,7 +60,7 @@ SQL (only if it syncs or has tables)
     `supabase/tests/run.sh`, SQL Editor steps for Ethan).
 
 Release notes
-15. Entry at the top of `apps/web/src/about/changelog.ts` (Dutch, for the user, date of merge).
+15. Changelog entry as its own file `apps/web/src/about/entries/<date>-<slug>.ts` (Dutch, for the user, date of merge; format in `about/whatsNew.ts`). Never add to `changelog.ts`.
 
 ## Extending an existing module
 

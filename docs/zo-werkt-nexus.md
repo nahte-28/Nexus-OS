@@ -86,7 +86,7 @@ Focusmuziek met Spotify · Taken automatisch inplannen · Mijn dag bovenaan je d
 in de taakbalk · Rustige, vloeiende beweging · Een donkergroen app-icoon · Een veiligere database ·
 De klok loopt gelijk · Geen zijbalk meer en een nieuw NEXUS-teken · Een nieuw uiterlijk: de werkbank.
 
-De volledige lijst staat in `apps/web/src/about/changelog.ts`.
+De volledige lijst staat in `apps/web/src/about/entries/` (één bestand per wijziging) en, voor de oudere regels, in `apps/web/src/about/changelog.ts`.
 
 ## Hoe het in elkaar zit (kort)
 

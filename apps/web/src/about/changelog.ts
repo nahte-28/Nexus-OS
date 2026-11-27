@@ -1,7 +1,7 @@
 /**
- * "Wat is er nieuw" on the Over NEXUS page. Every change that reaches NEXUS gets an entry here,
- * newest first, in the same pull request (see CLAUDE.md). Written for the person using NEXUS:
- * what they can do now, not how it was built.
+ * The older "Wat is er nieuw" entries of the Over NEXUS page. New ones go in their own file in
+ * ./entries (see whatsNew.ts and CLAUDE.md), so pull requests no longer collide here. Written for
+ * the person using NEXUS: what they can do now, not how it was built.
  */
 export interface ChangelogEntry {
   /** Day the change was merged, YYYY-MM-DD. */

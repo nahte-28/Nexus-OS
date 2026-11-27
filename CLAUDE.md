@@ -5,7 +5,7 @@ nexus-os-lime.vercel.app), een Windows- en Linux-app (Tauri), een Android-compan
 OS-horloge-app en een eigen Linux-distro. Alles werkt lokaal eerst en synct via Supabase.
 
 - Schrijf in het Nederlands (antwoorden, interface, commits). Commits kort en in kleine letters.
-- Elke PR die iets verandert voor wie NEXUS gebruikt, zet bovenaan `apps/web/src/about/changelog.ts` een regel bij (nieuwste eerst, datum van samenvoegen): die verschijnt onder "Wat is er nieuw" op de pagina Over NEXUS. Gevraagd door Ethan op 2026-11-07.
+- Elke PR die iets verandert voor wie NEXUS gebruikt, krijgt een changelog-regel als eigen bestand `apps/web/src/about/entries/<datum>-<korte-naam>.ts` (`export default { date, title, items } satisfies ChangelogEntry`, datum van samenvoegen; voorbeeld in `about/whatsNew.ts`). Die verschijnt onder "Wat is er nieuw" op de pagina Over NEXUS. Gevraagd door Ethan op 2026-11-07. Zet geen nieuwe regels meer in `changelog.ts`: één bestand per PR voorkomt conflicten tussen PR's (Ethan, 2026-11-27).
 
 ## Skills
 
