@@ -20,6 +20,17 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     date: '2026-11-27',
+    title: 'Startmenu 2.0',
+    items: [
+      'Start (het NEXUS-teken) is vernieuwd: bovenaan het NEXUS-teken en je profiel, daaronder een groot zoekveld.',
+      'Je favorieten staan apart als grote tegels, en onder Recent vind je de apps die je het laatst opende.',
+      'Alle apps staan eronder in de volgorde van je profiel. Met de ster zet je er een bij je favorieten.',
+      'Typ je iets, dan zie je meteen de passende apps met hun groep. Enter opent de eerste, en met "Zoek overal" zoek je verder in je notities, bestanden, agenda en herinneringen.',
+      'Met de pijltjestoetsen loop je door alles wat je kunt openen.',
+    ],
+  },
+  {
+    date: '2026-11-27',
     title: 'nexus://-links in de Windows- en Linux-app',
     items: [
       'Een link als nexus://app/agenda opent die app in NEXUS, ook vanuit je browser, een snelkoppeling op het bureaublad of een ander programma. Draait NEXUS al, dan komt het naar voren.',

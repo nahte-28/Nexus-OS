@@ -46,9 +46,9 @@ const readTab = (): LauncherTab => {
  * Zoeken overal: one box over apps, notes, files, the agenda and reminders. With the Launcher module
  * on, it also shows what you opened recently and pinned, settings pages and commands.
  */
-export function SearchPalette({ onClose, onOpenApp }: { onClose: () => void; onOpenApp: (id: AppId) => void }) {
+export function SearchPalette({ onClose, onOpenApp, initialQuery = '' }: { onClose: () => void; onOpenApp: (id: AppId) => void; initialQuery?: string }) {
   const launcher = useFeature('launcher')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery)
   const [active, setActive] = useState(0)
   const [tab, setTabState] = useState<LauncherTab>(readTab)
   const [command, setCommand] = useState<LauncherCommand | null>(null)

@@ -36,7 +36,7 @@ const startMenu = () => {
 const closeStart = () => {
   if (screen.queryByRole('menu', { name: 'Startmenu' })) fireEvent.click(screen.getByRole('button', { name: 'Start' }))
 }
-const startApps = () => startMenu().getAllByRole('menuitem').map((b) => b.textContent?.trim())
+const startApps = () => within(startMenu().getByRole('group', { name: 'Alle apps' })).getAllByRole('menuitem').map((b) => b.textContent?.trim())
 
 /** Profiles are only switched in the Profielen app. */
 const chooseProfile = (name: string) => {
@@ -273,9 +273,9 @@ describe('App shell', () => {
     // What you open shows under Meest gebruikt; the star in Start makes an app a favourite.
     fireEvent.click(startMenu().getByRole('menuitem', { name: 'Gewoontes' }))
     expect(within(within(home).getByRole('region', { name: 'Meest gebruikt' })).getByRole('button', { name: 'Gewoontes' })).toBeTruthy()
-    fireEvent.click(startMenu().getByRole('button', { name: 'Gewoontes bij je favorieten' }))
+    fireEvent.click(startMenu().getByRole('menuitemcheckbox', { name: 'Gewoontes bij je favorieten' }))
     expect(within(screen.getByRole('navigation', { name: 'Favorieten' })).getByRole('button', { name: 'Gewoontes' })).toBeTruthy()
-    fireEvent.click(startMenu().getByRole('button', { name: 'Gewoontes uit je favorieten' }))
+    fireEvent.click(startMenu().getByRole('menuitemcheckbox', { name: 'Gewoontes uit je favorieten' }))
     closeStart()
     expect(within(screen.getByRole('navigation', { name: 'Favorieten' })).queryByRole('button', { name: 'Gewoontes' })).toBeNull()
   })
