@@ -27,14 +27,19 @@ export function clearPendingJoin(): void {
 export function openJoinFromUrl(location: Pick<Location, 'pathname' | 'hash'> = window.location): boolean {
   const code = joinCodeFromPath(location.pathname)
   if (!code) return false
+  history.replaceState(history.state, '', `/${location.hash}`)
+  startJoin(code)
+  return true
+}
+
+/** Keeps the invitation [code] until it is used, turns Teams on and opens it (also nexus://join). */
+export function startJoin(code: string): void {
   writeStorage(PENDING_KEY, code)
   setFeature('teams', true)
-  history.replaceState(history.state, '', `/${location.hash}`)
   // The shell registers how it opens apps once it is drawn.
   let tries = 40
   const open = () => {
     if (!openApp('teams') && --tries > 0) setTimeout(open, 250)
   }
   open()
-  return true
 }
