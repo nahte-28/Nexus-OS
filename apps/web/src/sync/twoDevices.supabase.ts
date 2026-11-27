@@ -57,9 +57,16 @@ async function device(name: string): Promise<Device> {
 async function until(what: string, check: () => boolean, ms = 15_000): Promise<void> {
   const end = Date.now() + ms
   while (!check()) {
-    if (Date.now() > end) throw new Error(`Niet gelukt binnen ${ms / 1000} s: ${what}`)
+    if (Date.now() > end) throw new Error(`Niet gelukt binnen ${ms / 1000} s: ${what}. ${await state()}`)
     await new Promise((r) => setTimeout(r, 100))
   }
+}
+
+/** What each device and the account hold, for a failure message. */
+async function state(): Promise<string> {
+  const { data } = devices.length ? await devices[0].client.from('user_settings').select('revision, value').eq('key', KEY) : { data: null }
+  const local = devices.map((d, i) => `apparaat ${i + 1}: revisie ${d.store.getSnapshot().revision}, ${JSON.stringify(d.store.getSnapshot().items)}`)
+  return [...local, `account: ${JSON.stringify(data)}`].join(' | ')
 }
 
 const add = (d: Device, id: string, text: string) => d.store.update((s) => ({ ...s, items: { ...s.items, [id]: { text, at: Date.now() } } }))
