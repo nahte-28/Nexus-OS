@@ -31,8 +31,9 @@ const desktopArea = () => ({ width: window.innerWidth, height: window.innerHeigh
 export function Desktop() {
   const { state, dispatch } = useWindows()
   const apps = useVisibleApps()
-  const [searching, setSearching] = useState(false)
-  const openSearch = useCallback(() => setSearching(true), [])
+  // null: closed; otherwise what to search for (empty from Ctrl+K, your words from Start).
+  const [searching, setSearching] = useState<string | null>(null)
+  const openSearch = useCallback((query = '') => setSearching(query), [])
   useSearchShortcut(openSearch)
   useCaptureShortcut()
 
@@ -73,9 +74,9 @@ export function Desktop() {
         </main>
       </div>
       <Taskbar onOpenApp={openApp} onSearch={openSearch} />
-      {searching && (
+      {searching !== null && (
         <Suspense fallback={null}>
-          <SearchPalette onClose={() => setSearching(false)} onOpenApp={openApp} />
+          <SearchPalette initialQuery={searching} onClose={() => setSearching(null)} onOpenApp={openApp} />
         </Suspense>
       )}
       <Tour onOpenApp={openApp} />

@@ -1,26 +1,48 @@
-import { useEffect, useRef, useState } from 'react'
-import type { AppId } from '@nexus/core'
-import { useVisibleApps } from '../apps/registry'
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { APP_GROUP, APP_GROUPS, type AppId } from '@nexus/core'
+import { useVisibleApps, type AppDefinition } from '../apps/registry'
 import { favoritesStore, useFavorites } from '../controlcenter/store'
-import { PowerIcon, TerminalIcon } from '../apps/icons'
+import { useRecentApps } from '../apps/usage'
+import { useProfiles } from '../profiles/store'
+import { NexusGlyph } from '../shell/NexusMark'
+import { PowerIcon, SearchIcon, TerminalIcon } from '../apps/icons'
 import { filterLinuxApps, installNexusOs, openLinuxApp, sessionPower, useLinuxApps, useLiveSystem, useNexusSession, type PowerAction } from '../platform/session'
 
 interface Props {
   onClose: () => void
   onOpenApp: (id: AppId) => void
+  /** Opens Zoeken overal (Ctrl+K) with what you typed here. */
+  onSearch?: (query: string) => void
 }
 
-export function StartMenu({ onClose, onOpenApp }: Props) {
+const RECENT_SHOWN = 6
+const GROUP_TITLE = new Map(APP_GROUPS.map((g) => [g.id, g.title]))
+
+/**
+ * Start 2.0: a header with the NEXUS mark and your profile, search on top, then your favourites,
+ * what you opened recently and all apps in the profile's order. Typing turns the body into results
+ * (apps, Linux apps, and a step to Zoeken overal). Arrow keys walk through everything you can open.
+ */
+export function StartMenu({ onClose, onOpenApp, onSearch }: Props) {
   const [query, setQuery] = useState('')
   const ref = useRef<HTMLDivElement>(null)
-  const results = useVisibleApps().filter((a) => a.title.toLowerCase().includes(query.trim().toLowerCase()))
+  const inputRef = useRef<HTMLInputElement>(null)
+  const visible = useVisibleApps()
+  const q = query.trim().toLowerCase()
+  const results = q ? visible.filter((a) => a.title.toLowerCase().includes(q)) : visible
   const linux = useLinuxApps()
   // Linux apps only show while searching, so the menu stays NEXUS's own.
-  const linuxResults = query.trim() ? filterLinuxApps(linux.apps, query).slice(0, 6) : []
+  const linuxResults = q ? filterLinuxApps(linux.apps, query).slice(0, 6) : []
   const session = useNexusSession()
   const favorites = useFavorites()
+  const recent = useRecentApps()
   const live = useLiveSystem()
+  const { state, active } = useProfiles()
   const [error, setError] = useState<string | null>(null)
+
+  const byId = new Map(visible.map((a) => [a.id, a]))
+  const favoriteApps = favorites.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []))
+  const recentApps = recent.filter((id) => !favorites.includes(id)).flatMap((id) => (byId.has(id) ? [byId.get(id)!] : [])).slice(0, RECENT_SHOWN)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -36,97 +58,270 @@ export function StartMenu({ onClose, onOpenApp }: Props) {
     }
   }, [onClose])
 
+  const openLinux = (id: string) => void openLinuxApp(id).then(onClose, (err) => setError(String(err)))
+  const searchEverywhere = () => {
+    onSearch?.(query.trim())
+    onClose()
+  }
+
+  // Up and down walk through every item you can open; up from the first one goes back to the search box.
+  const onMenuKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    const items = [...(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+    if (items.length === 0) return
+    const at = items.indexOf(document.activeElement as HTMLElement)
+    e.preventDefault()
+    if (e.key === 'ArrowDown') items[at < 0 ? 0 : Math.min(at + 1, items.length - 1)].focus()
+    else if (at <= 0) inputRef.current?.focus()
+    else items[at - 1].focus()
+  }
+
   return (
     <div
       ref={ref}
-      role="menu"
-      aria-label="Startmenu"
-      className="nx-glass nx-enter-menu absolute bottom-full left-2 mb-2 max-h-[calc(100dvh-4.5rem)] w-80 overflow-y-auto overscroll-contain rounded-xl border border-nx-border p-3"
+      onKeyDown={onMenuKeyDown}
+      className="nx-window nx-enter-menu absolute bottom-full left-2 mb-2 flex h-[min(42rem,calc(100dvh-4.5rem))] w-[min(36rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-xl border border-nx-border"
     >
-      <input
-        autoFocus
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter') return
-          if (results[0]) onOpenApp(results[0].id)
-          else if (linuxResults[0]) void openLinuxApp(linuxResults[0].id).then(onClose, (err) => setError(String(err)))
-        }}
-        placeholder="Zoek apps…"
-        aria-label="Zoek apps"
-        className="w-full rounded-lg border border-nx-border bg-nx-surface-2 px-3 py-2 text-sm outline-none placeholder:text-nx-muted"
-      />
-      <ul className="mt-3 grid grid-cols-3 gap-1">
-        {results.map((app) => {
-          const favorite = favorites.includes(app.id)
-          return (
-            <li key={app.id} className="group relative">
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => onOpenApp(app.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault()
-                  favoritesStore.toggle(app.id)
-                }}
-                className="flex w-full flex-col items-center gap-1 rounded-lg p-2 text-xs hover:bg-nx-surface-2"
-              >
-                <app.icon className="text-nx-accent" />
-                {app.title}
-              </button>
-              {app.id !== 'controlcenter' && (
-                <button
-                  type="button"
-                  aria-pressed={favorite}
-                  aria-label={favorite ? `${app.title} uit je favorieten` : `${app.title} bij je favorieten`}
-                  title={favorite ? 'Uit je favorieten (taakbalk en bureaublad)' : 'Bij je favorieten (taakbalk en bureaublad)'}
-                  onClick={() => favoritesStore.toggle(app.id)}
-                  className={`absolute top-0.5 right-0.5 grid size-6 place-items-center rounded-md text-sm leading-none hover:bg-nx-surface-2 focus-visible:opacity-100 ${
-                    favorite ? 'text-nx-accent' : 'text-nx-muted opacity-0 group-hover:opacity-100'
-                  }`}
-                >
-                  <span aria-hidden>{favorite ? '★' : '☆'}</span>
-                </button>
+      <div className="nx-board shrink-0 border-b border-nx-border px-4 pt-4 pb-3">
+        <div className="mb-3 flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-nx-accent text-nx-accent-text shadow-sm">
+            <NexusGlyph className="size-[22px]" />
+          </span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="text-[15px] font-extrabold tracking-[0.08em]">NEXUS</p>
+            <p className="truncate text-xs text-nx-muted">
+              {state.about.name ? `Hoi ${state.about.name} · ` : ''}Profiel {active.name}
+            </p>
+          </div>
+        </div>
+        <div className="relative">
+          <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-nx-muted" />
+          <input
+            ref={inputRef}
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return
+              if (q && results[0]) onOpenApp(results[0].id)
+              else if (linuxResults[0]) openLinux(linuxResults[0].id)
+              else if (q && onSearch) searchEverywhere()
+            }}
+            placeholder="Zoek een app…"
+            aria-label="Zoek apps"
+            className="h-10 w-full rounded-lg border border-nx-border bg-nx-surface pr-3 pl-9 text-sm outline-none placeholder:text-nx-muted"
+          />
+        </div>
+      </div>
+
+      {/* The search box sits above the menu: a menu may only hold menu items and their groups. */}
+      <div role="menu" aria-label="Startmenu" className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
+          {q ? (
+            <>
+              <Section title="Apps" count={results.length}>
+                {results.length > 0 ? (
+                  <ul role="none" className="space-y-0.5">
+                    {results.map((app, i) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => onOpenApp(app.id)}
+                          className={`flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2 ${i === 0 ? 'bg-nx-surface-2' : ''}`}
+                        >
+                          <AppTile app={app} />
+                          <span className="min-w-0 flex-1 truncate font-medium">{app.title}</span>
+                          <span className="shrink-0 text-xs text-nx-muted">{GROUP_TITLE.get(APP_GROUP[app.id])}</span>
+                          {i === 0 && <Kbd>Enter</Kbd>}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-1 text-sm text-nx-muted">Geen apps met “{query.trim()}”.</p>
+                )}
+              </Section>
+              {linuxResults.length > 0 && (
+                <Section title="Linux-apps">
+                  <ul role="none" className="space-y-0.5">
+                    {linuxResults.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => openLinux(app.id)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-md border border-nx-border bg-nx-surface-2">
+                            <TerminalIcon className="size-4 text-nx-accent" />
+                          </span>
+                          <span className="truncate">{app.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
               )}
-            </li>
-          )
-        })}
-        {results.length === 0 && linuxResults.length === 0 && <li className="col-span-3 p-2 text-sm text-nx-muted">Geen apps gevonden.</li>}
-      </ul>
-      {linuxResults.length > 0 && (
-        <>
-          <p className="mt-3 px-1 text-xs font-semibold text-nx-muted">Linux-apps</p>
-          <ul className="mt-1 space-y-0.5">
-            {linuxResults.map((app) => (
-              <li key={app.id}>
+              {onSearch && (
                 <button
                   type="button"
                   role="menuitem"
-                  onClick={() => void openLinuxApp(app.id).then(onClose, (err) => setError(String(err)))}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-nx-surface-2"
+                  onClick={searchEverywhere}
+                  className="flex w-full items-center gap-3 rounded-lg border border-dashed border-nx-border px-2 py-2 text-left text-sm hover:bg-nx-surface-2"
                 >
-                  <TerminalIcon className="size-4 shrink-0 text-nx-accent" />
-                  <span className="truncate">{app.name}</span>
+                  <span className="grid size-8 shrink-0 place-items-center rounded-md bg-nx-surface-2">
+                    <SearchIcon className="size-4 text-nx-accent" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">Zoek overal naar “{query.trim()}”</span>
+                    <span className="block text-xs text-nx-muted">Notities, bestanden, agenda en herinneringen</span>
+                  </span>
+                  <Kbd>Ctrl K</Kbd>
                 </button>
-              </li>
-            ))}
-          </ul>
-        </>
+              )}
+            </>
+          ) : (
+            <>
+              <Section title="Favorieten">
+                {favoriteApps.length > 0 ? (
+                  <ul role="none" className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-1.5">
+                    {favoriteApps.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          aria-label={`${app.title} (favoriet)`}
+                          onClick={() => onOpenApp(app.id)}
+                          data-trace="bottom"
+                          className="nx-lift flex w-full flex-col items-center gap-1.5 rounded-lg border border-nx-border bg-nx-surface-2 px-1.5 pt-3 pb-2.5 text-xs font-medium hover:border-nx-accent"
+                        >
+                          <app.icon aria-hidden className="size-6 text-nx-accent" />
+                          <span className="w-full truncate text-center">{app.title}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-1 text-sm text-nx-muted">Nog geen favorieten. Zet er een met de ster bij Alle apps.</p>
+                )}
+              </Section>
+              {recentApps.length > 0 && (
+                <Section title="Recent">
+                  <ul role="none" className="flex flex-wrap gap-1">
+                    {recentApps.map((app) => (
+                      <li key={app.id} role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          aria-label={`${app.title} (recent)`}
+                          onClick={() => onOpenApp(app.id)}
+                          className="flex h-8 items-center gap-2 rounded-md border border-nx-border px-2.5 text-[13px] hover:bg-nx-surface-2"
+                        >
+                          <app.icon aria-hidden className="size-4 text-nx-muted" />
+                          {app.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              <Section title="Alle apps" count={visible.length}>
+                <ul role="none" className="grid grid-cols-[repeat(auto-fill,minmax(5.75rem,1fr))] gap-0.5">
+                  {visible.map((app) => (
+                    <AllAppsItem key={app.id} app={app} favorite={favorites.includes(app.id)} onOpen={() => onOpenApp(app.id)} />
+                  ))}
+                </ul>
+              </Section>
+            </>
+          )}
+        </div>
+
+        {(live || session) && (
+          <div role="group" aria-label="Systeem" className="shrink-0 space-y-2 border-t border-nx-border bg-nx-surface-2 px-3 py-2">
+            {live && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => installNexusOs().then(onClose, (err) => setError(String(err)))}
+                className="w-full rounded-lg bg-nx-accent px-3 py-2 text-left text-sm font-medium text-nx-accent-text"
+              >
+                NEXUS OS installeren
+                <span className="block text-xs font-normal opacity-80">Je draait nu vanaf de usb-stick. Wachtwoord: live</span>
+              </button>
+            )}
+            {session && <PowerRow onError={setError} />}
+          </div>
+        )}
+      </div>
+      {error && (
+        <p role="alert" className="shrink-0 border-t border-nx-border px-3 py-2 text-sm text-red-500">
+          {error}
+        </p>
       )}
-      {error && <p role="alert" className="mt-2 text-sm text-red-500">{error}</p>}
-      {live && (
+    </div>
+  )
+}
+
+/** A named group: a heading with a thin rule after it, then its items. */
+function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
+  return (
+    <section role="group" aria-label={title}>
+      {/* The group carries the name; a menu may not hold headings. */}
+      <div aria-hidden className="mb-1.5 flex items-center gap-2 px-1 text-xs font-semibold text-nx-muted">
+        {title}
+        {count !== undefined && <span className="font-normal tabular-nums">{count}</span>}
+        <span className="h-px flex-1 bg-nx-border" />
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function AppTile({ app }: { app: AppDefinition }) {
+  return (
+    <span className="grid size-8 shrink-0 place-items-center rounded-md border border-nx-border bg-nx-surface">
+      <app.icon aria-hidden className="size-4 text-nx-accent" />
+    </span>
+  )
+}
+
+const Kbd = ({ children }: { children: ReactNode }) => (
+  <kbd className="shrink-0 rounded border border-nx-border bg-nx-surface px-1.5 py-0.5 font-sans text-[11px] text-nx-muted">{children}</kbd>
+)
+
+function AllAppsItem({ app, favorite, onOpen }: { app: AppDefinition; favorite: boolean; onOpen: () => void }) {
+  return (
+    <li role="none" className="group relative">
+      <button
+        type="button"
+        role="menuitem"
+        onClick={onOpen}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          favoritesStore.toggle(app.id)
+        }}
+        className="flex w-full flex-col items-center gap-1 rounded-lg px-1 py-2 text-xs hover:bg-nx-surface-2"
+      >
+        <app.icon aria-hidden className="size-5 text-nx-accent" />
+        <span className="w-full truncate text-center">{app.title}</span>
+      </button>
+      {app.id !== 'controlcenter' && (
         <button
           type="button"
-          role="menuitem"
-          onClick={() => installNexusOs().then(onClose, (err) => setError(String(err)))}
-          className="mt-3 w-full rounded-lg bg-nx-accent px-3 py-2 text-left text-sm font-medium text-nx-accent-text"
+          role="menuitemcheckbox"
+          aria-checked={favorite}
+          aria-label={favorite ? `${app.title} uit je favorieten` : `${app.title} bij je favorieten`}
+          title={favorite ? 'Uit je favorieten (taakbalk en bureaublad)' : 'Bij je favorieten (taakbalk en bureaublad)'}
+          onClick={() => favoritesStore.toggle(app.id)}
+          className={`absolute top-0.5 right-0.5 grid size-6 place-items-center rounded-md text-sm leading-none hover:bg-nx-surface focus-visible:opacity-100 ${
+            favorite ? 'text-nx-accent' : 'text-nx-muted opacity-0 group-hover:opacity-100'
+          }`}
         >
-          NEXUS OS installeren
-          <span className="block text-xs font-normal opacity-80">Je draait nu vanaf de usb-stick. Wachtwoord: live</span>
+          <span aria-hidden>{favorite ? '★' : '☆'}</span>
         </button>
       )}
-      {session && <PowerRow onError={setError} />}
-    </div>
+    </li>
   )
 }
 
@@ -145,34 +340,30 @@ function PowerRow({ onError }: { onError: (error: string) => void }) {
     setAsking(null)
     sessionPower(action).catch((err) => onError(String(err)))
   }
-  return (
-    <div className="mt-3 border-t border-nx-border pt-2">
-      {ask ? (
-        <div className="flex items-center gap-2 text-sm">
-          <span className="flex-1">{ask.confirm}</span>
-          <button type="button" onClick={() => run(ask.action)} className="rounded-lg bg-nx-accent px-3 py-1 font-medium text-nx-accent-text">
-            Ja
-          </button>
-          <button type="button" onClick={() => setAsking(null)} className="rounded-lg border border-nx-border px-3 py-1 hover:bg-nx-surface-2">
-            Nee
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-1">
-          <PowerIcon className="mr-1 size-4 text-nx-muted" />
-          {POWER.map((p) => (
-            <button
-              key={p.action}
-              type="button"
-              role="menuitem"
-              onClick={() => (p.confirm ? setAsking(p.action) : run(p.action))}
-              className="rounded-lg px-2 py-1 text-xs hover:bg-nx-surface-2"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
+  return ask ? (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="flex-1">{ask.confirm}</span>
+      <button type="button" role="menuitem" onClick={() => run(ask.action)} className="rounded-lg bg-nx-accent px-3 py-1 font-medium text-nx-accent-text">
+        Ja
+      </button>
+      <button type="button" role="menuitem" onClick={() => setAsking(null)} className="rounded-lg border border-nx-border px-3 py-1 hover:bg-nx-surface">
+        Nee
+      </button>
+    </div>
+  ) : (
+    <div className="flex flex-wrap items-center justify-end gap-1">
+      <PowerIcon aria-hidden className="mr-auto size-4 text-nx-muted" />
+      {POWER.map((p) => (
+        <button
+          key={p.action}
+          type="button"
+          role="menuitem"
+          onClick={() => (p.confirm ? setAsking(p.action) : run(p.action))}
+          className="rounded-lg px-2 py-1 text-xs hover:bg-nx-surface"
+        >
+          {p.label}
+        </button>
+      ))}
     </div>
   )
 }
