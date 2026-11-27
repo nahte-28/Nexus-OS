@@ -705,7 +705,7 @@ function DeviceSync() {
           </span>
         </label>
       </fieldset>
-      <p role="status" className={status.state === 'error' ? 'text-red-500' : 'text-nx-muted'}>
+      <p role="status" className={status.state === 'error' ? 'text-nx-danger' : 'text-nx-muted'}>
         {text[status.state]}
       </p>
     </div>

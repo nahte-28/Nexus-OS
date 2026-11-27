@@ -280,7 +280,7 @@ function Planning() {
       {plan && (
         <section aria-label="Voorstel" className="space-y-3">
           {plan.short.map((s) => (
-            <p key={s.taskId} role="alert" className="text-red-500">
+            <p key={s.taskId} role="alert" className="text-nx-danger">
               {s.title}: nog {s.minutes} min zonder plek voor de deadline. Maak meer tijd vrij of verlaag de schatting.
             </p>
           ))}
@@ -452,7 +452,7 @@ function Exams({ onPlan }: { onPlan: () => void }) {
                     {e.location && ` · ${e.location}`}
                   </span>
                 </span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${countdownLabel(e.at, now) === 'vandaag' || countdownLabel(e.at, now) === 'morgen' ? 'bg-red-500/15 text-red-600' : 'bg-nx-surface-2'}`}>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${countdownLabel(e.at, now) === 'vandaag' || countdownLabel(e.at, now) === 'morgen' ? 'bg-nx-danger/15 text-nx-danger' : 'bg-nx-surface-2'}`}>
                   {countdownLabel(e.at, now)}
                 </span>
               </div>

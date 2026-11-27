@@ -176,7 +176,7 @@ export function ExamBlock() {
         <section aria-label="Blokschema" className="space-y-3">
           <p className="font-medium">{blockSummary(plan)}</p>
           {plan.short.map((s) => (
-            <p key={s.examId} role="alert" className="text-red-500">
+            <p key={s.examId} role="alert" className="text-nx-danger">
               {s.course}: nog {hours(s.minutes)} zonder plek. Begin vroeger, studeer langer per dag of verlaag het aantal uur bij het examen.
             </p>
           ))}
@@ -193,7 +193,7 @@ export function ExamBlock() {
                 <h3 className="font-medium">{dayTitle(d.day)}</h3>
                 {d.kind === 'rest' && <p className="text-nx-muted">Rustdag</p>}
                 {d.exams.map((e) => (
-                  <p key={e.id} className="rounded-md bg-red-500/15 px-2 py-1.5 text-red-600">
+                  <p key={e.id} className="rounded-md bg-nx-danger/15 px-2 py-1.5 text-nx-danger">
                     {clock(e.at)} Examen {e.course}
                   </p>
                 ))}

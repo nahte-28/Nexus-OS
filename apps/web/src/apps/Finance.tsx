@@ -191,7 +191,7 @@ function Meter({ label, percent, over = false }: { label: string; percent: numbe
   const shown = Math.max(0, Math.min(100, percent))
   return (
     <div role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={shown} className="h-2 rounded-full bg-nx-surface-2">
-      <div className={`h-2 rounded-full ${over ? 'bg-red-500' : 'bg-nx-accent'}`} style={{ width: `${shown}%` }} />
+      <div className={`h-2 rounded-full ${over ? 'bg-nx-danger' : 'bg-nx-accent'}`} style={{ width: `${shown}%` }} />
     </div>
   )
 }
@@ -388,7 +388,7 @@ function TransactionForm({ initial, onDone }: { initial?: Transaction; onDone: (
         <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Omschrijving (optioneel)" aria-label="Omschrijving" className={field} />
       </div>
       {kind === 'refund' && <p className="text-xs text-nx-muted">Een terugbetaling verlaagt de uitgaven van haar categorie in plaats van als inkomen te tellen.</p>}
-      {amount.trim() !== '' && cents === null && <p className="text-xs text-red-500">Typ een bedrag zoals 4,50.</p>}
+      {amount.trim() !== '' && cents === null && <p className="text-xs text-nx-danger">Typ een bedrag zoals 4,50.</p>}
       <div className="flex gap-2">
         <button type="submit" className={primaryButton} disabled={cents === null}>
           {initial ? 'Bewaren' : 'Toevoegen'}
@@ -902,7 +902,7 @@ function Subscriptions({ openAt, openRecurringAt }: { openAt: number; openRecurr
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{s.name}</span>
                 <span className="block text-xs text-nx-muted">
-                  {money(s.amount)} {CYCLE_LABELS[s.cycle].toLowerCase()} · {s.next < today ? <span className="text-red-500">verlopen sinds {dayLabel(s.next)}</span> : `volgende ${dayLabel(s.next)}`}
+                  {money(s.amount)} {CYCLE_LABELS[s.cycle].toLowerCase()} · {s.next < today ? <span className="text-nx-danger">verlopen sinds {dayLabel(s.next)}</span> : `volgende ${dayLabel(s.next)}`}
                   {s.remindDays !== null && ' · 🔔'}
                 </span>
               </span>
@@ -1214,7 +1214,7 @@ function Advice() {
         {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{adviceNoteTitle(month)}".</span>}
       </div>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}
@@ -1264,12 +1264,12 @@ function Settings({ hidden, onHidden }: { hidden: boolean; onHidden: (v: boolean
       <Section title="Alles verwijderen">
         {cleared && <p role="status">Je financiële gegevens zijn verwijderd, ook op je andere apparaten zodra die synchroniseren.</p>}
         {confirm ? (
-          <div className="space-y-2 rounded-lg border border-red-500/60 p-3">
+          <div className="space-y-2 rounded-lg border border-nx-danger/60 p-3">
             <p>Dit verwijdert al je transacties, budgetten, spaardoelen en abonnementen op al je apparaten. Dat kan niet ongedaan worden. Exporteer eerst als je ze wilt bewaren.</p>
             <div className="flex gap-2">
               <button
                 type="button"
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white"
+                className="rounded-lg bg-nx-danger-strong px-3 py-1.5 text-sm font-medium text-white"
                 onClick={() => {
                   clearFinance()
                   setConfirm(false)
@@ -1356,7 +1356,7 @@ function ImportPanel({ onDone }: { onDone: (message: string | null) => void }) {
       </p>
       <input type="file" accept=".csv,text/csv,text/plain" aria-label="CSV-bestand van je bank" onChange={(e) => void load(e.target.files?.[0])} className="block text-sm" />
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}
@@ -1560,7 +1560,7 @@ function Shared({ openAt }: { openAt: number }) {
             <li key={friend.id} className={`${card} flex flex-wrap items-center gap-2`}>
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{friend.name}</span>
-                <span className={`block text-xs ${balance < 0 ? 'text-red-500' : 'text-nx-muted'}`}>
+                <span className={`block text-xs ${balance < 0 ? 'text-nx-danger' : 'text-nx-muted'}`}>
                   {balance > 0 ? `is je ${money(balance)} schuldig` : balance < 0 ? `je bent ${money(-balance)} schuldig` : 'jullie staan quitte'}
                 </span>
               </span>
@@ -1680,7 +1680,7 @@ function PaymentCalendarTab({ onTab }: { onTab: (t: Tab) => void }) {
                     {date && (
                       <>
                         <span className="block">{Number(date.slice(8))}</span>
-                        {byDay.has(date) && <span className={`block truncate tabular-nums ${total < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{money(total, true)}</span>}
+                        {byDay.has(date) && <span className={`block truncate tabular-nums ${total < 0 ? 'text-nx-danger dark:text-nx-danger' : 'text-nx-success dark:text-nx-success'}`}>{money(total, true)}</span>}
                       </>
                     )}
                   </td>

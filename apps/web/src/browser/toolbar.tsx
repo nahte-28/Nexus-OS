@@ -170,7 +170,7 @@ export function Toolbar() {
       </form>
       <div aria-label="Bladwijzerbalk" className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1 text-xs">
         {error ? (
-          <span role="alert" className="text-red-500">
+          <span role="alert" className="text-nx-danger">
             {error}
           </span>
         ) : browser.bookmarks.length === 0 ? (
@@ -196,7 +196,7 @@ function LatestDownload({ download, onError }: { download: BrowserDownload; onEr
         ⬇ {download.file}
       </span>
       {download.state === 'busy' && <span className="text-nx-muted">bezig…</span>}
-      {download.state === 'failed' && <span className="text-red-500">mislukt</span>}
+      {download.state === 'failed' && <span className="text-nx-danger">mislukt</span>}
       {download.state === 'done' && (
         <button type="button" className="underline" onClick={() => browserCommands.showDownload(download.id).catch((err) => onError(String(err)))}>
           Toon in map

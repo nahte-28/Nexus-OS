@@ -143,11 +143,11 @@ export function TeamChatPanel({ team, members, me, role, state }: { team: StudyG
   return (
     <div className="flex min-h-[18rem] flex-col gap-3">
       {state.problem?.startsWith('setup:') ? (
-        <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+        <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
           De teamchat heeft nog een stap in de database nodig: voer eenmalig <code>{state.problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
         </p>
       ) : (
-        state.problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{state.problem}</p>
+        state.problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{state.problem}</p>
       )}
       {state.more && (
         <button type="button" className="self-center rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2" onClick={() => void state.loadOlder()}>
@@ -172,7 +172,7 @@ export function TeamChatPanel({ team, members, me, role, state }: { team: StudyG
                         type="button"
                         aria-label={`Bericht van ${time(m.createdAt)} verwijderen`}
                         title="Verwijderen"
-                        className={`rounded px-1 text-xs text-nx-muted opacity-0 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 ${mine ? '' : 'order-last'}`}
+                        className={`rounded px-1 text-xs text-nx-muted opacity-0 hover:text-nx-danger focus:opacity-100 group-hover:opacity-100 ${mine ? '' : 'order-last'}`}
                         onClick={() => void state.remove(m.id)}
                       >
                         ✕

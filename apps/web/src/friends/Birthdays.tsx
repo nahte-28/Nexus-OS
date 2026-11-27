@@ -8,11 +8,11 @@ const when = (t: number) => new Date(t).toLocaleString('nl-BE', { weekday: 'shor
 
 function SetupHint({ problem, what }: { problem: string; what: string }) {
   return problem.startsWith('setup:') ? (
-    <p className="rounded-md border border-amber-500/40 p-2 text-xs text-amber-700 dark:text-amber-300">
+    <p className="rounded-md border border-nx-warning/40 p-2 text-xs text-nx-warning dark:text-nx-warning">
       {what} heeft nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
     </p>
   ) : (
-    <p role="alert" className="text-xs text-red-600">
+    <p role="alert" className="text-xs text-nx-danger">
       {problem}
     </p>
   )
@@ -101,7 +101,7 @@ export function SystemInbox({ api, onOpenFriend, canOpen }: { api: Birthdays; on
             <span className="min-w-0 flex-1">
               <span className="block font-medium">{m.title}</span>
               <span className="block text-sm">{m.body}</span>
-              <span className="block text-[11px] text-nx-muted">{when(m.createdAt)}</span>
+              <span className="block text-2xs text-nx-muted">{when(m.createdAt)}</span>
             </span>
             {m.kind === 'friend_birthday' && m.aboutUser && canOpen(m.aboutUser) && (
               <button type="button" className={small} onClick={() => onOpenFriend(m.aboutUser!)}>

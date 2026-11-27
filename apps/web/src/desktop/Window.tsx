@@ -279,7 +279,7 @@ function TitleButton({
       title={label}
       onClick={onClick}
       className={`grid h-7 w-8 place-items-center rounded-md text-nx-muted ${
-        danger ? 'hover:bg-red-600 hover:text-white' : 'hover:bg-nx-surface hover:text-nx-text'
+        danger ? 'hover:bg-nx-danger-strong hover:text-white' : 'hover:bg-nx-surface hover:text-nx-text'
       }`}
     >
       <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" aria-hidden>

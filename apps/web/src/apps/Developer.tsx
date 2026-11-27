@@ -82,7 +82,7 @@ function LogTab() {
       ) : (
         <ol className="font-mono text-xs" aria-label="Logboek">
           {shown.map((e) => (
-            <li key={e.id} className={`border-b border-nx-border py-1 ${e.error ? 'text-red-500' : ''}`}>
+            <li key={e.id} className={`border-b border-nx-border py-1 ${e.error ? 'text-nx-danger' : ''}`}>
               {new Date(e.at).toLocaleTimeString('nl-BE')} [{e.source}] {e.message}
             </li>
           ))}

@@ -76,7 +76,7 @@ function useSystemState<T>(load: (fresh: boolean) => Promise<T>) {
 
 function Problem({ text }: { text: string | null }) {
   return text ? (
-    <p role="alert" className="text-red-500">
+    <p role="alert" className="text-nx-danger">
       {text}
     </p>
   ) : null
@@ -424,7 +424,7 @@ function UpdatesPanel() {
       <div className={`${card} flex flex-col gap-2`}>
         <p className="font-medium">
           {state.pending.length === 0 ? 'Alles is bijgewerkt' : `${state.pending.length} ${state.pending.length === 1 ? 'update' : 'updates'} klaar`}
-          {security > 0 && <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-500">{security} voor beveiliging</span>}
+          {security > 0 && <span className="ml-2 rounded-full bg-nx-danger/15 px-2 py-0.5 text-xs text-nx-danger">{security} voor beveiliging</span>}
         </p>
         <p className="text-xs text-nx-muted">
           Beveiligingsupdates van Debian installeren elke dag vanzelf. De rest installeer je hier, met je wachtwoord.
@@ -459,7 +459,7 @@ function UpdatesPanel() {
             <li key={u.package} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1 hover:bg-nx-surface-2">
               <span className="truncate">
                 {u.package}
-                {u.security && <span className="ml-2 text-xs text-red-500">beveiliging</span>}
+                {u.security && <span className="ml-2 text-xs text-nx-danger">beveiliging</span>}
               </span>
               <span className="shrink-0 text-xs text-nx-muted">
                 {u.from} → {u.version}

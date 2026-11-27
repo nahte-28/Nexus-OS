@@ -111,7 +111,7 @@ export function AskName({ api: given, top = 12 }: { api?: Api | null; top?: numb
         </button>
       </form>
       {error && (
-        <p role="alert" className="mt-1 text-xs text-red-500">
+        <p role="alert" className="mt-1 text-xs text-nx-danger">
           {error}
         </p>
       )}

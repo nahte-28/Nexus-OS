@@ -288,12 +288,12 @@ function Restore({ picked, onPick }: { picked: string | null; onPick: (id: strin
         Herstellen
       </button>
       {result && (
-        <p role="status" className={result.ok ? '' : 'text-red-500'}>
+        <p role="status" className={result.ok ? '' : 'text-nx-danger'}>
           {result.ok ? `Hersteld: ${result.job.part ?? result.job.scopes.map((s) => SCOPE_NAMES[s]).join(', ')}.` : result.job.detail}
         </p>
       )}
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

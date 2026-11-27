@@ -116,7 +116,7 @@ export function ProjectHub() {
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             Syncen lukt nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
@@ -248,7 +248,7 @@ function Overview({ projectId, name, items }: { projectId: string; name: string;
             + Mijlpaal
           </button>
         </form>
-        {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       </section>
     </div>
   )
@@ -284,7 +284,7 @@ function Board({ projectId }: { projectId: string }) {
           + Taak
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {BOARD_COLUMNS.map((column, ci) => (
           <section key={column} aria-label={COLUMN_LABELS[column]} onDragOver={(e) => e.preventDefault()} onDrop={(e) => drop(e, column)} className="min-h-24 space-y-2 rounded-lg border border-nx-border bg-nx-surface-2/40 p-2">
@@ -300,9 +300,9 @@ function Board({ projectId }: { projectId: string }) {
                       {t.title}
                     </button>
                     <p className="text-xs text-nx-muted">
-                      {t.priority !== 'normal' && <span className={t.priority === 'high' ? 'text-red-700 dark:text-red-300' : ''}>{PRIORITY_NAMES[t.priority]} · </span>}
+                      {t.priority !== 'normal' && <span className={t.priority === 'high' ? 'text-nx-danger dark:text-nx-danger' : ''}>{PRIORITY_NAMES[t.priority]} · </span>}
                       {t.dueAt ? day(t.dueAt) : ''}
-                      {waits.length > 0 && <span className="block text-amber-700 dark:text-amber-300">Wacht op {waits.map((w) => w.title).join(', ')}</span>}
+                      {waits.length > 0 && <span className="block text-nx-warning dark:text-nx-warning">Wacht op {waits.map((w) => w.title).join(', ')}</span>}
                     </p>
                     <div className="flex gap-1">
                       <button type="button" className={small} disabled={ci === 0} aria-label={`${t.title} naar ${COLUMN_LABELS[BOARD_COLUMNS[ci - 1]] ?? ''}`} onClick={() => projectHubStore.update((s) => moveTask(s, t.id, BOARD_COLUMNS[ci - 1], Date.now()))}>
@@ -402,7 +402,7 @@ function TaskDetails({ task, onClose }: { task: HubTask; onClose: () => void }) 
         </button>
         {status && <span role="status" className="text-nx-muted">{status}</span>}
       </div>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
     </section>
   )
 }

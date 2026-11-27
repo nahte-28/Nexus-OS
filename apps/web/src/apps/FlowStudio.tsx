@@ -237,7 +237,7 @@ function MyFlows({ onEdit, onNew }: { onEdit: (flow: FlowDefinition) => void; on
                     <>
                       <button
                         type="button"
-                        className={`${button} border-red-500 text-red-500`}
+                        className={`${button} border-nx-danger text-nx-danger`}
                         onClick={() => {
                           flowsStore.remove(flow.id)
                           setDeleting(null)
@@ -792,7 +792,7 @@ function DryRun({ flow, error }: { flow: FlowDefinition; error: string | null })
       </div>
       <p className="text-xs text-nx-muted">Laat zien wat er nu zou gebeuren. Er wordt niets veranderd of verstuurd.</p>
       {error ? (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       ) : (
@@ -909,7 +909,7 @@ function Runs() {
             <li key={run.id} className={card}>
               <p className="flex flex-wrap justify-between gap-2">
                 <span className="font-medium">{run.flowName}</span>
-                <span className={run.status === 'failed' ? 'text-red-500' : 'text-nx-muted'}>
+                <span className={run.status === 'failed' ? 'text-nx-danger' : 'text-nx-muted'}>
                   {RUN_STATUS[run.status]}
                   {run.reason ? `: ${run.reason}` : ''}
                 </span>

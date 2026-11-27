@@ -21,9 +21,9 @@ import { useVisibleApps } from './registry'
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const toggle = 'flex items-center justify-between gap-2 rounded-lg border border-nx-border px-3 py-2 text-left hover:bg-nx-surface-2 disabled:opacity-50'
 const TONE: Record<CardTone, string> = {
-  ok: 'bg-emerald-500',
-  warn: 'bg-amber-500',
-  error: 'bg-red-500',
+  ok: 'bg-nx-success',
+  warn: 'bg-nx-warning',
+  error: 'bg-nx-danger',
   off: 'bg-nx-border',
 }
 const TONE_LABEL: Record<CardTone, string> = { ok: 'in orde', warn: 'let op', error: 'probleem', off: 'uit' }
@@ -100,7 +100,7 @@ export function ControlCenter() {
 
   return (
     <div className="h-full space-y-5 overflow-y-auto p-4 text-sm">
-      <p className={`rounded-lg border p-3 ${first ? (first.tone === 'error' ? 'border-red-500/40 bg-red-500/10' : 'border-amber-500/40 bg-amber-500/10') : 'border-emerald-500/40 bg-emerald-500/10'}`} role="status">
+      <p className={`rounded-lg border p-3 ${first ? (first.tone === 'error' ? 'border-nx-danger/40 bg-nx-danger/10' : 'border-nx-warning/40 bg-nx-warning/10') : 'border-nx-success/40 bg-nx-success/10'}`} role="status">
         {first ? (
           <>
             <span className="font-medium">{first.title}:</span> {first.value}. {first.detail}

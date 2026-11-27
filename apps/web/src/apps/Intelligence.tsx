@@ -122,7 +122,7 @@ function Card({ s, onDone }: { s: Suggestion; onDone: (m: string) => void }) {
         </button>
       </div>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

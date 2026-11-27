@@ -23,15 +23,15 @@ function statusText(r: CourseResult, target: number): { text: string; tone: stri
     case 'empty':
       return { text: 'Voeg de onderdelen van dit vak toe.', tone: 'text-nx-muted' }
     case 'passed':
-      return { text: 'Geslaagd', tone: 'text-green-600' }
+      return { text: 'Geslaagd', tone: 'text-nx-success' }
     case 'failed':
-      return { text: `Niet geslaagd: je hebt minstens ${PASS_MARK}/20 nodig`, tone: 'text-red-500' }
+      return { text: `Niet geslaagd: je hebt minstens ${PASS_MARK}/20 nodig`, tone: 'text-nx-danger' }
     case 'safe':
-      return { text: `Je haalt je doel van ${formatMark(target)} sowieso.`, tone: 'text-green-600' }
+      return { text: `Je haalt je doel van ${formatMark(target)} sowieso.`, tone: 'text-nx-success' }
     case 'impossible':
-      return { text: `Je doel van ${formatMark(target)} haal je niet meer, zelfs niet met 20/20 op de rest.`, tone: 'text-red-500' }
+      return { text: `Je doel van ${formatMark(target)} haal je niet meer, zelfs niet met 20/20 op de rest.`, tone: 'text-nx-danger' }
     default:
-      return { text: `Voor ${formatMark(target)} heb je gemiddeld ${formatMark(r.needed ?? 0)} nodig op de rest.`, tone: r.needed !== null && r.needed > 14 ? 'text-amber-600' : '' }
+      return { text: `Voor ${formatMark(target)} heb je gemiddeld ${formatMark(r.needed ?? 0)} nodig op de rest.`, tone: r.needed !== null && r.needed > 14 ? 'text-nx-warning' : '' }
   }
 }
 
@@ -187,7 +187,7 @@ function CourseEditor({ course, result }: { course: Course; result: CourseResult
         </tbody>
       </table>
       {result.totalWeight !== 100 && course.parts.length > 0 && (
-        <p className="text-xs text-amber-600">De onderdelen tellen samen voor {decimal(result.totalWeight)}% mee in plaats van 100%. NEXUS rekent met die verhouding.</p>
+        <p className="text-xs text-nx-warning">De onderdelen tellen samen voor {decimal(result.totalWeight)}% mee in plaats van 100%. NEXUS rekent met die verhouding.</p>
       )}
       <NextExam course={course} result={result} />
       <div className="flex flex-wrap gap-2">
@@ -198,7 +198,7 @@ function CourseEditor({ course, result }: { course: Course; result: CourseResult
         >
           + Onderdeel
         </button>
-        <button type="button" className={`${button} text-red-500`} onClick={() => changeCourse(course.id, (c) => ({ ...c, deletedAt: Date.now() }))}>
+        <button type="button" className={`${button} text-nx-danger`} onClick={() => changeCourse(course.id, (c) => ({ ...c, deletedAt: Date.now() }))}>
           Vak verwijderen
         </button>
       </div>
@@ -222,16 +222,16 @@ function NextExam({ course, result }: { course: Course; result: CourseResult }) 
   let tone = ''
   if (need.status === 'safe') {
     text = `Je haalt je doel van ${formatMark(course.target)} al, wat je ook haalt op ${part.name}.`
-    tone = 'text-green-600'
+    tone = 'text-nx-success'
   } else if (need.status === 'impossible') {
     text =
       others > 0 && need.minimum <= 20
         ? `Met ${formatMark(guess)} op de rest is zelfs ${part.max}/${part.max} op ${part.name} te weinig. Haal je meer op de rest, dan volstaat ${formatMark(need.minimum)}.`
         : `Je doel van ${formatMark(course.target)} haal je niet meer, zelfs niet met ${part.max}/${part.max} op ${part.name}.`
-    tone = 'text-red-500'
+    tone = 'text-nx-danger'
   } else {
     text = `Op ${part.name} heb je minstens ${out20 ? formatMark(need.needed) : `${decimal(need.neededRaw)}/${decimal(part.max)} (${formatMark(need.needed)})`} nodig.`
-    if (need.needed > 14) tone = 'text-amber-600'
+    if (need.needed > 14) tone = 'text-nx-warning'
   }
   return (
     <section aria-label="Wat moet ik halen" className="space-y-2 rounded-lg border border-nx-border bg-nx-surface p-3">

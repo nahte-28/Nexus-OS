@@ -136,7 +136,7 @@ export function BackupSection({
           </label>
         </div>
         {status && (
-          <p className={`text-xs ${status.ok ? 'text-nx-muted' : 'text-red-500'}`}>
+          <p className={`text-xs ${status.ok ? 'text-nx-muted' : 'text-nx-danger'}`}>
             Laatste poging hier, {when(status.at)}: {status.text}
           </p>
         )}
@@ -189,7 +189,7 @@ export function BackupSection({
       )}
       {notice && <p role="status">{notice}</p>}
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

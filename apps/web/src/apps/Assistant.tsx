@@ -168,7 +168,7 @@ function Item({ item }: { item: ChatItem }) {
       return <Bubble mine={false} text={item.text} />
     case 'notice':
       return (
-        <p role={item.error ? 'alert' : 'status'} className={item.error ? 'text-red-500' : 'text-nx-muted'}>
+        <p role={item.error ? 'alert' : 'status'} className={item.error ? 'text-nx-danger' : 'text-nx-muted'}>
           {item.text}
         </p>
       )
@@ -191,7 +191,7 @@ function ToolCard({ request }: { request: ToolRequest }) {
     <div className="space-y-2 rounded-lg border border-nx-border p-3" aria-label={`Actie: ${request.label}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{request.label}</span>
-        <span className={`text-xs ${request.status === 'failed' ? 'text-red-500' : 'text-nx-muted'}`}>
+        <span className={`text-xs ${request.status === 'failed' ? 'text-nx-danger' : 'text-nx-muted'}`}>
           {STATUS_TEXT[request.status]}
         </span>
       </div>

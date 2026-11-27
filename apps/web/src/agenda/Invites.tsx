@@ -21,7 +21,7 @@ function Problem({ text }: { text: string }) {
     )
   }
   return (
-    <p role="alert" className="text-sm text-red-500">
+    <p role="alert" className="text-sm text-nx-danger">
       {text}
     </p>
   )

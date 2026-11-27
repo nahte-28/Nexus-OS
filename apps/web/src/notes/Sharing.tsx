@@ -25,7 +25,7 @@ function Problem({ text }: { text: string }) {
     )
   }
   return (
-    <p role="alert" className="text-sm text-red-500">
+    <p role="alert" className="text-sm text-nx-danger">
       {text}
     </p>
   )
@@ -148,7 +148,7 @@ export function SharePanel({ note, sources = defaultSources }: { note: Note; sou
       {share && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="min-w-0 flex-1 text-xs text-nx-muted">{shareLine(share)}</p>
-          <button type="button" className={`${button} text-red-500`} disabled={busy} onClick={() => window.confirm('Stoppen met delen? Je eigen notitie blijft.') && void run(() => connection().api.remove(share.id))}>
+          <button type="button" className={`${button} text-nx-danger`} disabled={busy} onClick={() => window.confirm('Stoppen met delen? Je eigen notitie blijft.') && void run(() => connection().api.remove(share.id))}>
             Stoppen met delen
           </button>
         </div>

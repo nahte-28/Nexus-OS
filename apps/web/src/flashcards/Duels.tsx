@@ -21,7 +21,7 @@ function Problem({ text }: { text: string }) {
     )
   }
   return (
-    <p role="alert" className="text-sm text-red-500">
+    <p role="alert" className="text-sm text-nx-danger">
       {text}
     </p>
   )
@@ -203,7 +203,7 @@ export function DuelPlay({ id, onDone }: { id: string; onDone: () => void }) {
                 <p className="font-medium">
                   {mine === right ? '✓' : '✗'} {q.front}
                 </p>
-                {mine !== right && mine >= 0 && <p className="text-xs text-red-500">Jij: {q.options[mine]}</p>}
+                {mine !== right && mine >= 0 && <p className="text-xs text-nx-danger">Jij: {q.options[mine]}</p>}
                 {right >= 0 && <p className="text-xs text-nx-muted">Juist: {q.options[right]}</p>}
               </li>
             )

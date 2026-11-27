@@ -100,7 +100,7 @@ function UpdateSettings() {
         {update.status === 'current' && 'Je hebt de nieuwste versie.'}
         {update.status === 'available' && `Versie ${update.update.version} is beschikbaar.`}
         {update.status === 'installing' && `Versie ${update.update.version} wordt geïnstalleerd; NEXUS start zo opnieuw.`}
-        {update.status === 'error' && <span className="text-red-500">Updates zoeken lukte niet: {update.error}</span>}
+        {update.status === 'error' && <span className="text-nx-danger">Updates zoeken lukte niet: {update.error}</span>}
       </span>
       {update.status === 'available' ? (
         <button type="button" onClick={() => void installUpdate()} className="rounded-lg bg-nx-accent px-3 py-1.5 font-medium text-nx-accent-text">

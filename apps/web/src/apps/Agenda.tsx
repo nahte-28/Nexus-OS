@@ -205,7 +205,7 @@ function LinkedCalendars() {
         Vernieuwen
       </button>
       {errors.map(([id, error]) => (
-        <p key={id} role="alert" className="w-full text-red-500">
+        <p key={id} role="alert" className="w-full text-nx-danger">
           {names.get(id)}: {error}
         </p>
       ))}
@@ -258,8 +258,8 @@ function Overview({ onAdd }: { onAdd: (tab: 'Deadlines' | 'Afspraken') => void }
       <LinkedCalendars />
       <InviteInbox />
       {overdue.length > 0 && (
-        <section aria-label="Te laat" className="space-y-1 rounded-lg border border-red-500/40 p-3">
-          <h3 className="font-medium text-red-500">Te laat</h3>
+        <section aria-label="Te laat" className="space-y-1 rounded-lg border border-nx-danger/40 p-3">
+          <h3 className="font-medium text-nx-danger">Te laat</h3>
           <ul className="space-y-1">
             {overdue.map((d) => (
               <DeadlineLine key={d.id} deadline={d} project={projects.get(d.projectId ?? '')} />
@@ -330,8 +330,8 @@ function readView(): AgendaView {
 function blockClass(e: AgendaEntry, look: Map<string, CalendarSource>): string {
   const color = 'source' in e && e.source ? look.get(e.source)?.color : undefined
   if (color) return `${EDGE[color]} bg-nx-surface-2`
-  if (e.kind === 'deadline') return 'border-l-red-500 bg-red-500/10'
-  if (e.kind === 'reminder') return 'border-l-amber-500 bg-amber-500/10'
+  if (e.kind === 'deadline') return 'border-l-red-500 bg-nx-danger/10'
+  if (e.kind === 'reminder') return 'border-l-amber-500 bg-nx-warning/10'
   return 'border-l-nx-accent bg-nx-surface-2'
 }
 
@@ -406,7 +406,7 @@ function WeekGrid({ input, shown, look, projects, now, birthdays }: {
                     aria-label={`${time} ${b.entry.title}`}
                     aria-pressed={on}
                     onClick={() => setPicked(on ? null : { day: d, i })}
-                    className={`absolute overflow-hidden rounded border-l-4 px-1 text-left text-[11px] leading-tight ${blockClass(b.entry, look)} ${on ? 'ring-2 ring-nx-accent' : ''}`}
+                    className={`absolute overflow-hidden rounded border-l-4 px-1 text-left text-2xs leading-tight ${blockClass(b.entry, look)} ${on ? 'ring-2 ring-nx-accent' : ''}`}
                     style={{ top: `${b.top * 100}%`, height: `${b.height * 100}%`, left: `${(b.lane / b.lanes) * 100}%`, width: `${100 / b.lanes}%` }}
                   >
                     <span className="block truncate font-medium">{b.entry.title}</span>
@@ -522,7 +522,7 @@ function Entry({ entry, project, clashes, color }: { entry: AgendaEntry; project
         {entry.title}
         {series && <span className="text-nx-muted" title={repeatLabel(series.repeat!, series.startAt)}> 🔁</span>}
         {entry.detail && <span className="text-nx-muted"> · {entry.detail}</span>}
-        {clashes && clashes.length > 0 && <span className="block text-xs text-amber-600 dark:text-amber-400">Overlapt met {clashes.join(', ')}</span>}
+        {clashes && clashes.length > 0 && <span className="block text-xs text-nx-warning dark:text-nx-warning">Overlapt met {clashes.join(', ')}</span>}
       </span>
       {series && entry.kind === 'appointment' && (
         <button type="button" className="text-xs text-nx-muted underline" onClick={() => void skipOnce(series, entry.occurrence.date)}>
@@ -625,7 +625,7 @@ function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; pro
       />
       <div className="min-w-0 flex-1">
         <p className={done ? 'text-nx-muted line-through' : 'font-medium'}>{d.title}</p>
-        <p className={`text-xs ${late ? 'text-red-500' : 'text-nx-muted'}`}>
+        <p className={`text-xs ${late ? 'text-nx-danger' : 'text-nx-muted'}`}>
           {late ? 'Te laat · ' : ''}
           {when(d.dueAt)}
           {project ? ` · ${project.name}` : ''}
@@ -642,7 +642,7 @@ function DeadlineRow({ deadline: d, project, onEdit }: { deadline: Deadline; pro
       <button type="button" className={button} onClick={onEdit}>
         Bewerken
       </button>
-      <button type="button" className={`${button} text-red-500`} onClick={() => window.confirm(`"${d.title}" verwijderen?`) && void lifeStore.remove(d.id)}>
+      <button type="button" className={`${button} text-nx-danger`} onClick={() => window.confirm(`"${d.title}" verwijderen?`) && void lifeStore.remove(d.id)}>
         Verwijderen
       </button>
       {planning && !done && !late && <PlanDeadline deadline={d} onDone={() => setPlanning(false)} />}
@@ -694,7 +694,7 @@ function PlanDeadline({ deadline: d, onDone }: { deadline: Deadline; onDone: () 
         </ul>
       )}
       {plan.short.map((s) => (
-        <p key={s.taskId} role="alert" className="text-red-500">
+        <p key={s.taskId} role="alert" className="text-nx-danger">
           Nog {s.minutes} min zonder plek voor de deadline.
         </p>
       ))}
@@ -767,7 +767,7 @@ function DeadlineForm({ projects, editing, onDone }: { projects: Project[]; edit
       <RemindChoice value={remind} onChange={setRemind} />
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Notities (optioneel)" aria-label="Notities" className={field} />
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}
@@ -863,7 +863,7 @@ function AppointmentRow({ appointment: a, next, onEdit }: { appointment: Appoint
       </button>
       <button
         type="button"
-        className={`${button} text-red-500`}
+        className={`${button} text-nx-danger`}
         onClick={() => window.confirm(a.repeat ? `De hele reeks "${a.title}" verwijderen?` : `"${a.title}" verwijderen?`) && void lifeStore.remove(a.id)}
       >
         Verwijderen
@@ -948,13 +948,13 @@ function AppointmentForm({ editing, onDone }: { editing: Appointment | null; onD
       <RemindChoice value={remind} onChange={setRemind} />
       <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Notities (optioneel)" aria-label="Notities" className={field} />
       {clashes.length > 0 && (
-        <p role="status" className="text-amber-600 dark:text-amber-400">
+        <p role="status" className="text-nx-warning dark:text-nx-warning">
           Overlapt met {clashes.slice(0, 3).join('; ')}
           {clashes.length > 3 ? ` en nog ${clashes.length - 3} keer` : ''}. Je kan het toch opslaan.
         </p>
       )}
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}
@@ -1155,7 +1155,7 @@ function ProjectRow({ project: p, items }: { project: Project; items: LifeItem[]
         </button>
         <button
           type="button"
-          className={`${button} text-red-500`}
+          className={`${button} text-nx-danger`}
           onClick={() => window.confirm(`Project "${p.name}" verwijderen? De deadlines blijven, zonder project.`) && void lifeStore.remove(p.id)}
         >
           Verwijderen
@@ -1306,7 +1306,7 @@ function WeekReview() {
         {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{title}".</span>}
       </div>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}

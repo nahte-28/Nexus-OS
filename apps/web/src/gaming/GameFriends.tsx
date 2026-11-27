@@ -84,12 +84,12 @@ export function Friends({ state, apis = defaultApis }: { state: GamingState; api
   if (me === null) return <p className="text-nx-muted">Meld je aan in Account om met je teams te gamen.</p>
   if (problem?.startsWith('setup:')) {
     return (
-      <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+      <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
         Gamevrienden heeft nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
       </p>
     )
   }
-  if (me === undefined || teams === null) return problem ? <p role="alert" className="text-red-500">{problem}</p> : <p className="text-nx-muted">Laden…</p>
+  if (me === undefined || teams === null) return problem ? <p role="alert" className="text-nx-danger">{problem}</p> : <p className="text-nx-muted">Laden…</p>
   if (teams.length === 0) {
     return (
       <div className="space-y-2">
@@ -103,7 +103,7 @@ export function Friends({ state, apis = defaultApis }: { state: GamingState; api
   const now = Date.now()
   return (
     <div className="space-y-4">
-      {problem && <p role="alert" className="text-red-500">{problem}</p>}
+      {problem && <p role="alert" className="text-nx-danger">{problem}</p>}
       <p className="text-nx-muted">Je ziet wie uit je teams aan het gamen is, als ze dat delen, en plant samen een sessie. NEXUS leest niets uit een gameplatform: het komt van de Gaming-timer en wat jullie zelf invullen.</p>
       {teams.map((team) => (
         <TeamCard
@@ -254,7 +254,7 @@ function PlanForm({ state, onPlan }: { state: GamingState; onPlan: (game: string
       <button type="submit" className={primaryButton}>
         Sessie plannen
       </button>
-      {error && <p role="alert" className="text-red-500 sm:col-span-2">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger sm:col-span-2">{error}</p>}
     </form>
   )
 }

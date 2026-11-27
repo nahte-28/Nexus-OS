@@ -38,8 +38,8 @@ function OnComputer() {
           Vernieuwen
         </button>
       </div>
-      {failed && <p role="alert" className="text-red-500">{failed}</p>}
-      {error && <p role="alert" className="text-red-500">Apps ophalen lukte niet: {error}</p>}
+      {failed && <p role="alert" className="text-nx-danger">{failed}</p>}
+      {error && <p role="alert" className="text-nx-danger">Apps ophalen lukte niet: {error}</p>}
       {loading ? (
         <p className="text-nx-muted">Apps zoeken…</p>
       ) : (
@@ -162,7 +162,7 @@ function Store() {
       {busy === 'search' && results === null && <p className="text-nx-muted">De eerste keer haalt NEXUS de lijst van Flathub op; dat duurt even.</p>}
       {busy && busy !== 'search' && busy !== 'update' && <p className="text-nx-muted">Bezig; een grote app kan enkele minuten duren.</p>}
       {message && <p role="status">{message}</p>}
-      {failed && <p role="alert" className="text-red-500">{failed}</p>}
+      {failed && <p role="alert" className="text-nx-danger">{failed}</p>}
       {results && (
         <ul aria-label="Zoekresultaten" className="flex flex-col">
           {results.map(row)}

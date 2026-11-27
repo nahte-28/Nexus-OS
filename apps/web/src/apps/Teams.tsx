@@ -59,7 +59,7 @@ const field = 'w-full min-w-0 rounded-md border border-nx-border bg-nx-surface p
 const button = 'rounded-lg border border-nx-border px-3 py-1.5 text-sm hover:bg-nx-surface-2 disabled:opacity-60'
 const small = 'rounded-md border border-nx-border px-2 py-1 text-xs hover:bg-nx-surface-2 disabled:opacity-50'
 const primaryButton = 'rounded-lg bg-nx-accent px-3 py-1.5 text-sm font-medium text-nx-accent-text disabled:opacity-60'
-const danger = 'rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60'
+const danger = 'rounded-lg bg-nx-danger-strong px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60'
 const pill = 'rounded-full border border-nx-border px-2 py-0.5 text-xs text-nx-muted'
 const USES = [null, 1, 5, 10, 30] as const
 
@@ -78,7 +78,7 @@ const localInput = (t: number | null) => {
 
 function SetupHint({ problem }: { problem: string }) {
   return (
-    <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+    <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
       {problem.includes('class_teams') ? 'Klasteams hebben' : 'Teams heeft'} nog een stap in de database nodig: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
     </p>
   )
@@ -303,7 +303,7 @@ export function Teams({ api = defaultApi, chat = defaultChat, comments = default
         />
       )}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>}
+        {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>}
         {list?.length === 0 && !mode && (
           <p className="text-nx-muted">Je zit nog in geen team. Een team is een studiegroep met rollen en gedeelde projecten: maak er een, of sluit aan met de code die je kreeg.</p>
         )}
@@ -783,7 +783,7 @@ function TeamClass({ api, team, busy, run }: Omit<PartProps, 'role'>) {
           Opslaan
         </button>
       </div>
-      {!valid && <p className="text-xs text-red-500">Een klas is 2 tot 8 letters en cijfers, bv. 1IT3.</p>}
+      {!valid && <p className="text-xs text-nx-danger">Een klas is 2 tot 8 letters en cijfers, bv. 1IT3.</p>}
       <p className="text-xs text-nx-muted">
         Staat het team open, dan ziet iedereen die in NEXUS dezelfde klas invult de naam van het team en hoeveel leden het heeft, en kan hij met één tik aansluiten als lid. NEXUS kijkt niet na of iemand echt in die klas zit; zet het dicht als het team vol of klaar is.
       </p>
@@ -845,7 +845,7 @@ function ClassTeams({ api, displayName, setDisplayName, busy, onJoined }: { api:
         </button>
         <span className="text-xs text-nx-muted">Gaat mee met je profielen naar je andere apparaten.</span>
       </form>
-      {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="text-red-500">{problem}</p>}
+      {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="text-nx-danger">{problem}</p>}
       {klas && found && found.length === 0 && <p className="text-nx-muted">Nog geen teams open voor {klas}. Maak er een en zet het bij Instellingen open voor je klas.</p>}
       {klas && found && found.length > 0 && (
         <>

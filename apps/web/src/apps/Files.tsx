@@ -70,7 +70,7 @@ export function Files() {
           </p>
         )}
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}
@@ -155,7 +155,7 @@ function MyFiles({ view, study, run }: Actions) {
               <button type="button" className={smallButton} onClick={() => open(f.id, f.name, (o) => download(o.name, o.blob))}>
                 Downloaden
               </button>
-              <button type="button" className={`${smallButton} text-red-500`} onClick={() => window.confirm(`"${f.name}" verwijderen, ook op je andere apparaten?`) && run(() => filesStore.remove(f.id))}>
+              <button type="button" className={`${smallButton} text-nx-danger`} onClick={() => window.confirm(`"${f.name}" verwijderen, ook op je andere apparaten?`) && run(() => filesStore.remove(f.id))}>
                 Verwijderen
               </button>
             </li>
@@ -424,7 +424,7 @@ function Study({ opened, onClose }: { opened: Opened; onClose: () => void }) {
           {state === 'done' && <span className="text-nx-muted">Bewaard in Notities als "{studyNoteTitle(opened.name)}".</span>}
         </div>
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}

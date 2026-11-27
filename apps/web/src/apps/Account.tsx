@@ -156,7 +156,7 @@ export function Account() {
           </p>
         )}
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}
@@ -182,7 +182,7 @@ export function Account() {
             Laatst gesynchroniseerd om {new Date(state.lastSyncedAt).toLocaleTimeString('nl-BE')}
           </p>
         )}
-        {state.error && <p className="text-red-500">{state.error}</p>}
+        {state.error && <p className="text-nx-danger">{state.error}</p>}
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={() => void engine.syncNow()} className={primaryButton}>
@@ -222,7 +222,7 @@ export function Account() {
         </div>
         {notice && <p role="status">{notice}</p>}
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}

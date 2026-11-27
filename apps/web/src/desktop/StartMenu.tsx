@@ -255,7 +255,7 @@ export function StartMenu({ onClose, onOpenApp, onSearch }: Props) {
         )}
       </div>
       {error && (
-        <p role="alert" className="shrink-0 border-t border-nx-border px-3 py-2 text-sm text-red-500">
+        <p role="alert" className="shrink-0 border-t border-nx-border px-3 py-2 text-sm text-nx-danger">
           {error}
         </p>
       )}
@@ -287,7 +287,7 @@ function AppTile({ app }: { app: AppDefinition }) {
 }
 
 const Kbd = ({ children }: { children: ReactNode }) => (
-  <kbd className="shrink-0 rounded border border-nx-border bg-nx-surface px-1.5 py-0.5 font-sans text-[11px] text-nx-muted">{children}</kbd>
+  <kbd className="shrink-0 rounded border border-nx-border bg-nx-surface px-1.5 py-0.5 font-sans text-2xs text-nx-muted">{children}</kbd>
 )
 
 function AllAppsItem({ app, favorite, onOpen }: { app: AppDefinition; favorite: boolean; onOpen: () => void }) {

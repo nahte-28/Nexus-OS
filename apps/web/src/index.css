@@ -20,6 +20,15 @@
   --color-nx-muted: var(--nx-muted);
   --color-nx-accent: var(--nx-accent);
   --color-nx-accent-text: var(--nx-accent-text);
+  /* Status: text and icons on any surface (AA in Focus and Pulse); -strong is a fill with white text on it. */
+  --color-nx-danger: var(--nx-danger);
+  --color-nx-danger-strong: var(--nx-danger-strong);
+  --color-nx-warning: var(--nx-warning);
+  --color-nx-success: var(--nx-success);
+  --color-nx-info: var(--nx-info);
+  /* One small step under text-xs, for badges and taskbar labels. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
   --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* Hoeken volgen de hiërarchie: knoppen klein, kaarten iets ronder, vensters het rondst. */
@@ -44,6 +53,11 @@
   --nx-muted: #55645b;
   --nx-accent: #17704c;
   --nx-accent-text: #ffffff;
+  --nx-danger: #b42318;
+  --nx-danger-strong: #b42318;
+  --nx-warning: #8a5300;
+  --nx-success: #1a7346;
+  --nx-info: #1d6fa5;
   --nx-shadow: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 1px 2px rgb(19 29 24 / 0.06), 0 12px 28px -12px rgb(19 29 24 / 0.18);
   /* App windows: the one in front sits higher (bigger, softer shadow) than the ones behind it. */
   --nx-shadow-window: 0 1px 0 rgb(255 255 255 / 0.7) inset, 0 1px 2px rgb(19 29 24 / 0.05), 0 8px 20px -12px rgb(19 29 24 / 0.16);
@@ -66,6 +80,11 @@
   --nx-muted: #97a69c;
   --nx-accent: #e9a35b;
   --nx-accent-text: #1b1005;
+  --nx-danger: #f3877b;
+  --nx-danger-strong: #c2372b;
+  --nx-warning: #f0bd5a;
+  --nx-success: #6fcf97;
+  --nx-info: #7cc4f0;
   --nx-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -16px rgb(0 0 0 / 0.7);
   --nx-shadow-window: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 10px 24px -14px rgb(0 0 0 / 0.6);
   --nx-shadow-window-front: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 4px 10px -4px rgb(0 0 0 / 0.45), 0 36px 72px -24px rgb(0 0 0 / 0.9);

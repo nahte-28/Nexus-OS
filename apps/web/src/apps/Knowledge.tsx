@@ -87,7 +87,7 @@ export function Knowledge() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Kennis" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             Collecties en versies syncen nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
@@ -400,7 +400,7 @@ function Collections({ notes, state, onOpen }: { notes: Note[]; state: Knowledge
           + Collectie
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       {collections.length === 0 ? <p className="text-nx-muted">Nog geen collecties. Een collectie groepeert notities, bv. per vak.</p> : (
         <ul aria-label="Collecties" className="space-y-2">
           {collections.map((c) => {

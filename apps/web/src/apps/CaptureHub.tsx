@@ -52,7 +52,7 @@ export function CaptureHub() {
       />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             Syncen lukt nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
@@ -95,7 +95,7 @@ function CaptureTab({ onSorted }: { onSorted: () => void }) {
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={4000} aria-label="Wat wil je bewaren?" placeholder="bv. https://… of Idee: samenvatting per hoofdstuk" className={field} />
         {status && <p role="status">{status}</p>}
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}
@@ -133,7 +133,7 @@ function InboxTab({ items }: { items: InboxCapture[] }) {
   return (
     <>
       {error && (
-        <p role="alert" className="text-red-500">
+        <p role="alert" className="text-nx-danger">
           {error}
         </p>
       )}
@@ -161,7 +161,7 @@ function InboxTab({ items }: { items: InboxCapture[] }) {
                     Openen
                   </a>
                 )}
-                <button type="button" className={`${small} text-red-500`} onClick={() => capturesStore.update((s) => removeCapture(s, item.id, Date.now()))}>
+                <button type="button" className={`${small} text-nx-danger`} onClick={() => capturesStore.update((s) => removeCapture(s, item.id, Date.now()))}>
                   Weghalen
                 </button>
               </div>
@@ -215,7 +215,7 @@ function TemplatesTab({ templates }: { templates: CaptureTemplate[] }) {
         </div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} maxLength={4000} aria-label="Tekst" placeholder="bv. Verslag labo indienen vrijdag" className={field} />
         {error && (
-          <p role="alert" className="text-red-500">
+          <p role="alert" className="text-nx-danger">
             {error}
           </p>
         )}
@@ -248,7 +248,7 @@ function TemplatesTab({ templates }: { templates: CaptureTemplate[] }) {
               <button type="button" className={small} onClick={() => edit(t)}>
                 Bewerken
               </button>
-              <button type="button" className={`${small} text-red-500`} onClick={() => capturesStore.update((s) => removeTemplate(s, t.id, Date.now()))}>
+              <button type="button" className={`${small} text-nx-danger`} onClick={() => capturesStore.update((s) => removeTemplate(s, t.id, Date.now()))}>
                 Verwijderen
               </button>
             </li>

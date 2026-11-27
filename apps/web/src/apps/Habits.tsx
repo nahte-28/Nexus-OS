@@ -149,7 +149,7 @@ function HabitForm({ habit }: { habit: Habit }) {
       <input aria-label="Naam van de gewoonte" value={habit.name} onChange={(e) => set({ name: e.target.value })} className={field} />
       <DayPicker days={habit.days} onChange={(days) => days.length > 0 && set({ days })} />
       <Reminder remindAt={habit.remindAt} target={habit.target} onChange={set} />
-      <button type="button" className={`${smallButton} text-red-500`} onClick={() => set({ deletedAt: Date.now() })}>
+      <button type="button" className={`${smallButton} text-nx-danger`} onClick={() => set({ deletedAt: Date.now() })}>
         Gewoonte verwijderen
       </button>
     </div>

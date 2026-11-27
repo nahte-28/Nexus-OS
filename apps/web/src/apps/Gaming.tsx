@@ -75,12 +75,12 @@ export function Gaming() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} label="Gaming Companion" />
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {problem?.startsWith('setup:') && (
-          <p role="alert" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="alert" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             Syncen lukt nog niet: voer eenmalig <code>{problem.slice(6)}</code> uit in de SQL Editor van Supabase (of via Account › Database-check).
           </p>
         )}
         {(week.over || week.near) && (
-          <p role="status" className="rounded-md border border-amber-500/40 p-2 text-amber-700 dark:text-amber-300">
+          <p role="status" className="rounded-md border border-nx-warning/40 p-2 text-nx-warning dark:text-nx-warning">
             {week.over ? `Je speelde deze week al ${hours(week.minutes)}, meer dan je plan van ${hours(week.limit ?? 0)}.` : `Je zit op ${hours(week.minutes)} van je ${hours(week.limit ?? 0)} deze week.`}
           </p>
         )}
@@ -131,7 +131,7 @@ function Library({ state }: { state: GamingState }) {
           + Game
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       <select aria-label="Toon" value={filter} onChange={(e) => setFilter(e.target.value as GameStatus | '')} className={`${field} w-auto`}>
         <option value="">Alle games</option>
         {GAME_STATUSES.map((st) => (
@@ -221,7 +221,7 @@ function Sessions({ state, games }: { state: GamingState; games: Game[] }) {
           Sessie noteren
         </button>
       </form>
-      {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       {sessions.length === 0 ? <p className="text-nx-muted">Nog geen sessies.</p> : (
         <ul aria-label="Sessies" className="space-y-1">
           {sessions.slice(0, 100).map((x) => (
@@ -278,7 +278,7 @@ function Builds({ state, games }: { state: GamingState; games: Game[] }) {
         <button type="submit" className={primaryButton}>
           Build bewaren
         </button>
-        {error && <p role="alert" className="text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-nx-danger dark:text-nx-danger">{error}</p>}
       </form>
       {builds.length === 0 ? <p className="text-nx-muted">Nog geen builds voor {game.name}.</p> : (
         <ul aria-label="Builds" className="space-y-2">
@@ -327,7 +327,7 @@ function Stats({ state }: { state: GamingState }) {
               </g>
             )
           })}
-          {limit !== null && limit <= max && <line x1={0} x2={weeks.length * 40} y1={95 - (limit / max) * 90} y2={95 - (limit / max) * 90} strokeDasharray="4 3" className="stroke-current text-amber-500" />}
+          {limit !== null && limit <= max && <line x1={0} x2={weeks.length * 40} y1={95 - (limit / max) * 90} y2={95 - (limit / max) * 90} strokeDasharray="4 3" className="stroke-current text-nx-warning" />}
         </svg>
       </section>
       <section aria-label="Per game" className="space-y-1">

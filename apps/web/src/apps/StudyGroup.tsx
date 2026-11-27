@@ -185,7 +185,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
 
   return (
     <>
-      {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>}
+      {problem?.startsWith('setup:') ? <SetupHint problem={problem} /> : problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>}
       <p className="text-nx-muted">Deel je deadlines, examens en geplande studietijd met vrienden en zie wat zij moeten doen. Je kiest zelf wat je deelt; andere afspraken en je notities blijven privé.</p>
       {list && list.length > 1 && (
         <select value={group?.id ?? ''} onChange={(e) => pick(e.target.value)} aria-label="Studiegroep" className={field}>
@@ -378,7 +378,7 @@ export function StudyGroupTab({ groups = defaultGroups, comments = defaultCommen
               <>
                 <button
                   type="button"
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                  className="rounded-lg bg-nx-danger-strong px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
                   disabled={busy}
                   onClick={() =>
                     void run(async () => {

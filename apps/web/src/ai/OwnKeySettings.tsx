@@ -73,7 +73,7 @@ export function OwnKeySettings() {
           </button>
         </div>
       </form>
-      {problem && <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">{problem}</p>}
+      {problem && <p role="alert" className="rounded-lg border border-nx-danger/40 bg-nx-danger/10 p-3">{problem}</p>}
       {notice && <p role="status" className="rounded-lg border border-nx-border bg-nx-surface-2 p-3">{notice}</p>}
       <ol className="list-decimal space-y-1 pl-5 text-xs text-nx-muted">
         <li>Maak een account op console.anthropic.com en zet er tegoed op (Billing).</li>

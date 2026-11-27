@@ -9,9 +9,9 @@ import { useNow } from '../state/useNow'
 import { useSync } from '../sync/SyncContext'
 
 const LEVEL: Record<HealthLevel, { dot: string; label: string }> = {
-  ok: { dot: 'bg-emerald-500', label: 'In orde' },
-  warn: { dot: 'bg-amber-500', label: 'Let op' },
-  bad: { dot: 'bg-red-500', label: 'Probleem' },
+  ok: { dot: 'bg-nx-success', label: 'In orde' },
+  warn: { dot: 'bg-nx-warning', label: 'Let op' },
+  bad: { dot: 'bg-nx-danger', label: 'Probleem' },
 }
 const moment = (t: number) => new Date(t).toLocaleString('nl-BE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
@@ -86,7 +86,7 @@ export function PlatformHealth() {
                 </span>
                 <span className="block text-xs text-nx-muted">{[...new Set(data)].join(', ') || 'Geen eigen gegevens'}</span>
                 {m.manifest.schema && <span className="block break-all text-xs text-nx-muted">SQL: {m.manifest.schema}</span>}
-                {m.on && m.missingUses.length > 0 && <span className="block text-xs text-amber-700 dark:text-amber-400">Werkt beter met: {m.missingUses.map((u) => modules.find((x) => x.manifest.feature === u)?.title ?? u).join(', ')}</span>}
+                {m.on && m.missingUses.length > 0 && <span className="block text-xs text-nx-warning dark:text-nx-warning">Werkt beter met: {m.missingUses.map((u) => modules.find((x) => x.manifest.feature === u)?.title ?? u).join(', ')}</span>}
               </li>
             )
           })}
@@ -102,7 +102,7 @@ export function PlatformHealth() {
             {counts.map((c) => (
               <li key={c.source} className="rounded-md border border-nx-border px-2 py-1 text-xs">
                 {c.source}: {c.count}
-                {c.high > 0 && <span className="text-red-600 dark:text-red-400"> ({c.high} hoog)</span>}
+                {c.high > 0 && <span className="text-nx-danger dark:text-nx-danger"> ({c.high} hoog)</span>}
               </li>
             ))}
           </ul>
