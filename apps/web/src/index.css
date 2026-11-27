@@ -167,6 +167,36 @@ h3 {
   -webkit-backdrop-filter: blur(var(--nx-blur));
 }
 
+/*
+ * NEXUS Circuit Flow (desktop/CircuitFlow.tsx): copper traces on the board, in the accent of the
+ * theme, always faint; a small pulse runs along one now and then. Focus quieter than Pulse.
+ */
+.nx-circuit {
+  --nx-circuit-line: color-mix(in srgb, var(--nx-accent) 15%, transparent);
+  --nx-circuit-pad: color-mix(in srgb, var(--nx-accent) 45%, transparent);
+}
+[data-theme='pulse'] .nx-circuit {
+  --nx-circuit-line: color-mix(in srgb, var(--nx-accent) 20%, transparent);
+  --nx-circuit-pad: color-mix(in srgb, var(--nx-accent) 60%, transparent);
+}
+.nx-circuit-traces path {
+  fill: none;
+  stroke: var(--nx-circuit-line);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.nx-circuit-pads circle {
+  fill: var(--nx-circuit-pad);
+  opacity: 0.35;
+}
+.nx-circuit-pulse {
+  fill: var(--nx-accent);
+  will-change: transform, opacity;
+}
+.nx-circuit-halo {
+  opacity: 0.22;
+}
+
 /* A strip of the same board inside a panel (the head of Start): only the holes, fainter, no rail. */
 .nx-board {
   background-color: var(--nx-surface-2);
