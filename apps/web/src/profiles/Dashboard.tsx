@@ -770,7 +770,7 @@ function MyDay({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
         <>
           {/* Wide: the time line. */}
           <div className="relative mt-4 hidden min-h-0 flex-1 @2xl:block" style={{ minHeight: `${1.25 + day.lanes * 3.75}rem` }}>
-            <div aria-hidden className="absolute inset-x-0 top-0 h-4 text-[11px] text-nx-muted tabular-nums">
+            <div aria-hidden className="absolute inset-x-0 top-0 h-4 text-2xs text-nx-muted tabular-nums">
               {day.hours.map((h) => (
                 <span key={h.at} className="absolute -translate-x-1/2" style={{ left: `${h.left * 100}%` }}>
                   {clock(h.at)}
@@ -852,7 +852,7 @@ function ProfileWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
             <span className="truncate">{active.name} Mode</span>
           </p>
           <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-nx-border px-2 py-0.5 text-xs font-medium">
-            <span aria-hidden className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.18)]" />
+            <span aria-hidden className="size-2 rounded-full bg-nx-success shadow-[0_0_0_3px_color-mix(in_oklab,var(--nx-success)_18%,transparent)]" />
             Actief
           </span>
         </div>
@@ -1050,13 +1050,13 @@ function Upcoming({ rows = 1, onOpenApp }: { rows?: number; onOpenApp: OpenApp }
               <li key={r.id} className="grid grid-cols-[2.75rem_1fr] items-center gap-3 border-t border-nx-border py-1.5 first:border-t-0">
                 <span className={`text-right leading-none tabular-nums ${late || days <= 1 ? 'text-nx-accent' : ''}`}>
                   {late ? (
-                    <span className="text-xs font-semibold text-red-500">te laat</span>
+                    <span className="text-xs font-semibold text-nx-danger">te laat</span>
                   ) : days === 0 ? (
                     <span className="text-xs font-semibold">vandaag</span>
                   ) : (
                     <>
                       <span className="block text-2xl font-semibold">{days}</span>
-                      <span className="block text-[11px] text-nx-muted">{days === 1 ? 'dag' : 'dagen'}</span>
+                      <span className="block text-2xs text-nx-muted">{days === 1 ? 'dag' : 'dagen'}</span>
                     </>
                   )}
                 </span>
@@ -1158,8 +1158,8 @@ function GamingWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
           </button>
         </div>
       )}
-      {problem && <p role="alert" className="text-xs text-red-500">{problem}</p>}
-      <p className={`mt-2 text-sm ${week.over ? 'text-red-500' : week.near ? 'text-amber-600 dark:text-amber-400' : 'text-nx-muted'}`}>
+      {problem && <p role="alert" className="text-xs text-nx-danger">{problem}</p>}
+      <p className={`mt-2 text-sm ${week.over ? 'text-nx-danger' : week.near ? 'text-nx-warning dark:text-nx-warning' : 'text-nx-muted'}`}>
         Deze week {playTime(week.minutes)}
         {week.limit !== null ? ` van ${playTime(week.limit)}` : ''}
       </p>
