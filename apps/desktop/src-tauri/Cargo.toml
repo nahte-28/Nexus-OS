@@ -16,7 +16,9 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["tray-icon", "unstable"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
-tauri-plugin-single-instance = "2"
+# "deep-link": a second launch with a nexus:// link passes the link to the running app (deeplink.rs).
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-deep-link = "2"
 # Ctrl+Shift+Space opens Snelle notitie from any program (shortcut.rs).
 tauri-plugin-global-shortcut = "2"
 # Self-update: finds the newest installer on GitHub releases and downloads it (Windows TLS via schannel, OpenSSL on Linux).
