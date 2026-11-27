@@ -17,6 +17,8 @@ tauri = { version = "2", features = ["tray-icon", "unstable"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-single-instance = "2"
+# Ctrl+Shift+Space opens Snelle notitie from any program (shortcut.rs).
+tauri-plugin-global-shortcut = "2"
 # Self-update: finds the newest installer on GitHub releases and downloads it (Windows TLS via schannel, OpenSSL on Linux).
 reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json"] }
 serde = { version = "1", features = ["derive"] }

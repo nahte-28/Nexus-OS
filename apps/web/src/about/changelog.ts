@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     date: '2026-11-26',
+    title: 'Snelle notitie vanuit elk programma',
+    items: [
+      'In de Windows- en Linux-app opent Ctrl+Shift+Spatie Snelle notitie ook als je in een ander programma bezig bent: NEXUS komt naar voren, jij typt en bewaart. Gebruikt een ander programma die toets al, dan werkt ze zoals vroeger alleen binnen NEXUS.',
+    ],
+  },
+  {
+    date: '2026-11-26',
     title: 'Minder SQL voor nieuwe apps',
     items: [
       'Na één laatste stap in Account › Database-check ("Nieuwe apps syncen zonder eigen SQL") syncen nieuwe apps hun gegevens zonder dat je daarvoor nog SQL hoeft uit te voeren.',

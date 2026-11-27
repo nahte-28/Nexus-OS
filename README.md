@@ -108,6 +108,7 @@ Kan de companion niet op je gsm (bijvoorbeeld door ouderlijk toezicht), open NEX
 
 - Sluit je het venster, dan blijft NEXUS in het systeemvak draaien en krijg je Windows-meldingen van je gsm. Afsluiten doe je via het icoon in het systeemvak.
 - In Instellingen kun je NEXUS laten starten met Windows; het start dan stil in het systeemvak.
+- **Ctrl+Shift+Spatie** werkt in elk programma: NEXUS komt naar voren met Snelle notitie open (`src-tauri/src/shortcut.rs`). Gebruikt een ander programma die toets al, dan werkt ze alleen binnen NEXUS.
 - Inloggen gaat met e-mail en wachtwoord. "Wachtwoord vergeten?" stuurt een link die in de browser opent; daar kies je een nieuw wachtwoord.
 - De installer is nog niet digitaal ondertekend bij Microsoft. Windows SmartScreen waarschuwt daarom; kies "Meer informatie" en "Toch uitvoeren".
 - **Ondertekende updates**: de pipeline ondertekent elke installer (`nexus-os-setup.exe`, `.deb`, `.AppImage`) met een eigen ed25519-sleutel en zet `<bestand>.sig` ernaast. Een app die met de publieke sleutel gebouwd is, installeert alleen updates met een geldige handtekening (`apps/desktop/src-tauri/src/signature.rs`). Eenmalig instellen:

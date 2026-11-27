@@ -194,6 +194,7 @@ export const HELP: Record<AppId, HelpTopic> = {
     summary: 'Snel vastleggen: links, ideeën en taken meteen bewaren en later een plek geven.',
     tips: [
       'Kies in Snelle notitie (Alt+N of Ctrl+Shift+Spatie) "Later sorteren" en sorteer het in Te sorteren naar een notitie, deadline of herinnering.',
+      'In de Windows- en Linux-app werkt Ctrl+Shift+Spatie ook als je in een ander programma bezig bent: NEXUS komt naar voren met Snelle notitie open.',
       'Sjablonen zetten tekst en soort klaar voor wat je vaak bewaart.',
       'Geschiedenis toont de laatste 200 keer dat je iets vastlegde.',
     ],
