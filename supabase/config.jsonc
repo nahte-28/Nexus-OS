@@ -1,6 +1,7 @@
 // Local Supabase for CI (job "sync" in .github/workflows/ci.yml): Postgres with every migration,
 // Auth, PostgREST and Realtime, so the two-device sync test in apps/web runs against the real thing.
-// Not used by the live project; Studio, Storage, mail, edge functions and analytics are off.
+// Storage is on because migrations make buckets (files). Not used by the live project; Studio,
+// mail, edge functions and analytics are off.
 {
   "$schema": "https://supabase.com/schemas/config/v1.json",
   // For detailed configuration reference documentation, visit:
@@ -134,7 +135,7 @@
   },
 
   "storage": {
-    "enabled": false,
+    "enabled": true,
     // The maximum file size allowed (e.g. "5MB", "500KB").
     "file_size_limit": "50MiB",
 

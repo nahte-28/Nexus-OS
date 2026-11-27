@@ -73,7 +73,7 @@ jobs:
         with:
           version: 3.4.0
       - name: Start a local Supabase with every migration
-        run: supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
       - name: Two-device sync test
         run: |
           # The local stack's own demo keys, not the live project's.
