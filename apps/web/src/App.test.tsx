@@ -320,13 +320,13 @@ describe('App shell', () => {
     mockViewport(false)
     renderApp()
     chooseProfile('School')
-    expect(screen.getByText('School Workspace')).toBeTruthy()
+    expect(screen.getByText('Profiel School')).toBeTruthy()
     fireEvent.click(startMenu().getByRole('menuitem', { name: 'Profielen' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Lesrooster' }))
     fireEvent.change(screen.getByLabelText('Vak'), { target: { value: 'Wiskunde' } })
     fireEvent.click(screen.getByRole('button', { name: 'Les toevoegen' }))
     expect(screen.getByRole('list', { name: 'Lesrooster' }).textContent).toContain('Wiskunde')
-    expect(screen.getByText('Volgende les').parentElement?.textContent).toContain('Wiskunde')
+    expect(screen.getByText('Volgende les').closest('[data-widget]')?.textContent).toContain('Wiskunde')
   })
 
   it('opens KlasHub as its own app from the sidebar', () => {

@@ -218,7 +218,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Lessen, deadlines en studeren, met minder afleiding.',
     theme: 'focus',
     apps: ['klashub', 'agenda', 'study', 'grades', 'habits', 'flashcards', 'insights', 'files', 'notes', 'reminders', 'assistant', 'notifications', 'devices', 'account', 'about'],
-    widgets: ['today', 'profile', 'next_class', 'agenda_week', 'deadlines', 'klashub', 'ai_study', 'notes', 'quick_note', 'clock', 'shortcuts'],
+    widgets: ['today', 'agenda_week', 'deadlines', 'next_class', 'notes', 'ai_study', 'klashub', 'quick_note', 'profile', 'clock', 'shortcuts'],
     quietNonEssential: true,
     allowApps: [],
     accent: null,
@@ -229,7 +229,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Alles van NEXUS, zoals je het gewend bent.',
     theme: 'focus',
     apps: ['agenda', 'notes', 'files', 'study', 'grades', 'habits', 'journal', 'flashcards', 'insights', 'finance', 'notifications', 'assistant', 'reminders', 'klashub', 'devices', 'account', 'about'],
-    widgets: ['today', 'profile', 'agenda_week', 'deadlines', 'notes', 'habits', 'finance', 'notifications', 'devices', 'quick_note', 'clock', 'shortcuts'],
+    widgets: ['today', 'agenda_week', 'deadlines', 'notes', 'habits', 'finance', 'notifications', 'quick_note', 'profile', 'devices', 'clock', 'shortcuts'],
     quietNonEssential: false,
     allowApps: [],
     accent: null,
@@ -240,7 +240,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Donker en rustig: alleen belangrijke meldingen komen erdoor.',
     theme: 'pulse',
     apps: ['notifications', 'assistant', 'devices', 'notes', 'account', 'about'],
-    widgets: ['profile', 'gaming', 'notifications', 'devices', 'clock', 'shortcuts'],
+    widgets: ['gaming', 'notifications', 'profile', 'devices', 'clock', 'shortcuts'],
     quietNonEssential: true,
     allowApps: [],
     accent: null,
@@ -251,7 +251,7 @@ export const DEFAULT_PROFILES: Record<ProfileId, Profile> = {
     description: 'Met de ontwikkelaarstools en het logboek erbij.',
     theme: 'pulse',
     apps: ['developer', 'assistant', 'agenda', 'files', 'notes', 'notifications', 'reminders', 'devices', 'account', 'about'],
-    widgets: ['today', 'profile', 'agenda_week', 'deadlines', 'notes', 'devices', 'quick_note', 'clock', 'shortcuts'],
+    widgets: ['today', 'agenda_week', 'deadlines', 'notes', 'quick_note', 'devices', 'profile', 'clock', 'shortcuts'],
     quietNonEssential: false,
     allowApps: [],
     accent: null,
@@ -985,7 +985,18 @@ export const WORK_PROFILE: Pick<Profile, 'name' | 'description' | 'apps' | 'widg
   name: 'Werk',
   description: 'Je werkdag: afspraken, taken en notities, met minder afleiding.',
   apps: ['agenda', 'notes', 'files', 'reminders', 'habits', 'insights', 'assistant', 'notifications', 'devices', 'account', 'about'],
-  widgets: ['today', 'profile', 'agenda_week', 'deadlines', 'notes', 'notifications', 'habits', 'quick_note', 'clock', 'shortcuts'],
+  widgets: ['today', 'agenda_week', 'deadlines', 'notes', 'notifications', 'habits', 'quick_note', 'profile', 'clock', 'shortcuts'],
+}
+
+/**
+ * Dashboard 2.0: the widgets a profile starts with, in the order that reads best (your day, the
+ * week and deadlines first, small helpers last), and no own sizes. "Standaardindeling" in
+ * Indeling aanpassen puts a dashboard back to this; nothing changes a dashboard by itself.
+ */
+export function defaultDashboard(state: ProfilesState, id: ProfileId): Pick<Profile, 'widgets' | 'layout'> {
+  const working = state.about.role !== null && state.about.role !== 'student'
+  const widgets = id === 'school' && working ? WORK_PROFILE.widgets : DEFAULT_PROFILES[id].widgets
+  return { widgets: working ? widgets.filter((w) => w !== 'klashub' && w !== 'next_class' && w !== 'ai_study') : [...widgets], layout: {} }
 }
 
 /**

@@ -93,8 +93,9 @@ export function Desktop() {
 }
 
 /**
- * Op het bureaublad, onder de titel: je favorieten en de apps die je het vaakst opent. Alle apps
- * staan onder het NEXUS-teken (Start); daar zet je met de ster een app bij je favorieten.
+ * Op het bureaublad, rechts in de bovenste rij (Dashboard 2.0): je favorieten en de apps die je het
+ * vaakst opent, als één rustige strook. Alle apps staan onder het NEXUS-teken (Start); daar zet je
+ * met de ster een app bij je favorieten.
  */
 function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: (id: AppId) => void }) {
   const favorites = useFavorites()
@@ -104,18 +105,22 @@ function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: 
   const used = mostUsed(
     usage,
     apps.filter((a) => !favorites.includes(a.id)),
-    8,
+    5,
   )
   const rows = [
     { id: 'favorites', title: 'Favorieten', apps: favoriteApps },
     { id: 'used', title: 'Meest gebruikt', apps: used },
   ].filter((r) => r.apps.length > 0)
+  if (rows.length === 0) {
+    return <p className="text-xs text-nx-muted">Al je apps staan onder het NEXUS-teken linksonder. Met de ster zet je een app bij je favorieten.</p>
+  }
   return (
-    <nav aria-label="Apps" className="flex flex-wrap items-end gap-x-6 gap-y-3">
-      {rows.map((row) => (
-        <section key={row.id} aria-label={row.title}>
-          <h2 className="mb-1 text-xs font-semibold text-nx-muted">{row.title}</h2>
-          <ul className="nx-glass flex flex-wrap gap-0.5 rounded-lg border border-nx-border p-1">
+    <nav aria-label="Apps" className="nx-tile-quiet flex items-center rounded-lg border border-nx-border p-1" title="Alle apps: het NEXUS-teken linksonder">
+      {rows.map((row, i) => (
+        <section key={row.id} aria-label={row.title} className="flex items-center">
+          {i > 0 && <span aria-hidden className="mx-1 h-6 w-px bg-nx-border" />}
+          <h2 className="sr-only">{row.title}</h2>
+          <ul className="flex gap-0.5">
             {row.apps.map((app) => (
               <li key={app.id}>
                 <button
@@ -124,7 +129,7 @@ function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: 
                   aria-label={app.title}
                   title={app.title}
                   data-trace="bottom"
-                  className="grid size-10 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-accent [&>svg]:size-5"
+                  className="grid size-8 place-items-center rounded-md text-nx-muted hover:bg-nx-surface-2 hover:text-nx-accent [&>svg]:size-[18px]"
                 >
                   <app.icon />
                 </button>
@@ -133,10 +138,6 @@ function HomeShortcuts({ apps, onOpenApp }: { apps: AppDefinition[]; onOpenApp: 
           </ul>
         </section>
       ))}
-      <p className="pb-2.5 text-xs text-nx-muted">
-        {rows.length === 0 ? 'Al je apps staan onder het NEXUS-teken linksonder. ' : 'Alle apps: het NEXUS-teken linksonder. '}
-        Met de ster zet je een app bij je favorieten.
-      </p>
     </nav>
   )
 }

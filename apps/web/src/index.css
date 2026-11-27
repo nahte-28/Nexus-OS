@@ -136,6 +136,17 @@ h3 {
   box-shadow: var(--nx-shadow);
 }
 
+/*
+ * Dashboard 2.0: rustige tegels. Hoofdwidgets (je dag, de week, deadlines) gebruiken .nx-glass en
+ * liggen hoger op het bord; de rest is een vlakke tegel zonder schaduw, net doorschijnend genoeg om
+ * bij het bord te horen, maar zonder dat de gaatjes achter de tekst meelezen.
+ */
+.nx-tile-quiet {
+  background: color-mix(in srgb, var(--nx-surface) 74%, transparent);
+  backdrop-filter: blur(var(--nx-blur));
+  -webkit-backdrop-filter: blur(var(--nx-blur));
+}
+
 /* A strip of the same board inside a panel (the head of Start): only the holes, fainter, no rail. */
 .nx-board {
   background-color: var(--nx-surface-2);

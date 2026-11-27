@@ -40,6 +40,27 @@ describe('Workspace Studio 2.0 dashboard', () => {
     expect(screen.queryByLabelText('Voorbeeld op de gsm')).toBeNull()
   })
 
+  it('dashboard 2.0: puts the profile back to its standard layout, and can undo that', () => {
+    const id = active().id
+    profilesStore.updateProfile(id, { widgets: ['clock', 'notes'], layout: { notes: { w: 3, h: 1 } } })
+    render(<Dashboard onOpenApp={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Indeling aanpassen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Standaardindeling' }))
+    expect(active().widgets.slice(0, 3)).toEqual(['today', 'agenda_week', 'deadlines'])
+    expect(active().layout).toEqual({})
+    fireEvent.click(screen.getByRole('button', { name: 'Ongedaan maken' }))
+    expect(active().widgets).toEqual(['clock', 'notes'])
+    expect(active().layout).toEqual({ notes: { w: 3, h: 1 } })
+  })
+
+  it('dashboard 2.0: main widgets stand out, side widgets stay calm', () => {
+    profilesStore.updateProfile(active().id, { widgets: ['deadlines', 'clock'], layout: {} })
+    render(<Dashboard onOpenApp={() => {}} />)
+    const tile = (w: string) => document.querySelector(`[data-widget="${w}"] > div > div`)!
+    expect(tile('deadlines').className).toContain('nx-glass')
+    expect(tile('clock').className).toContain('nx-tile-quiet')
+  })
+
   it('shows the profile card and the new widgets, and saves a quick note', () => {
     const id = active().id
     profilesStore.updateProfile(id, { widgets: ['profile', 'clock', 'quick_note', 'shortcuts'], layout: {} })
