@@ -16,7 +16,7 @@ Lees de skill die bij je taak hoort voor je begint. Overzicht, externe skills en
 |---|---|
 | `nexus-architecture` | Elke wijziging over meer dan één bestand: lagen, stores, sync, platformen |
 | `nexus-module-builder` | Nieuwe app of module, of nieuwe opgeslagen gegevens |
-| `nexus-design-system` | Elke UI-wijziging (Werkbank-thema, tokens, Nederlandse teksten, toegankelijkheid) |
+| `nexus-design-system` | Elke UI-wijziging (Werkbank-thema, tokens, Nederlandse teksten, toegankelijkheid); plan voor de volgende stap: `docs/visual-identity-2.0.md` |
 | `nexus-security` | SQL, RLS, auth, delen, versleuteling, `api/`, geheimen |
 | `nexus-performance` | Opstart, afhankelijkheden, lange lijsten, timers, dashboard |
 | `nexus-integration` | Externe diensten, desktop, gsm, horloge, updates |

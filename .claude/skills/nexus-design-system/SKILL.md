@@ -89,6 +89,9 @@ Defined in `apps/web/src/index.css` (read its comments before changing anything)
 
 ## References
 
+- `docs/visual-identity-2.0.md`: Ethan's masterplan for the next design step (Circuit Flow,
+  taskbar, Start menu, dashboard 2.0, phased plan). Read it before design work in those areas;
+  build its phases only when Ethan asks for them.
 - `apps/web/src/index.css`, `apps/web/src/theme/`, `apps/web/src/apps/icons.tsx`
 - `packages/core/src/theme.ts` (theme ids), `dashboardLayout.ts`
 - Earlier design work: `/mnt/project-files/screenshots/` (dashboard-richtingen, groot-scherm)
