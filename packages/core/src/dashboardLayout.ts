@@ -5,7 +5,7 @@
  * grid has more columns, and widgets stretch into the empty cells next to and under them, so the
  * dashboard fills the screen.
  */
-import type { WidgetId } from './profiles'
+import type { ProfileId, WidgetId } from './profiles'
 
 export interface WidgetSize {
   w: 1 | 2 | 3 | 4 | 5 | 6
@@ -38,25 +38,40 @@ export const MAX_COLUMNS = 6
 export const MAX_ROWS = 4
 export const DEFAULT_SIZE: WidgetSize = { w: 1, h: 1 }
 
-/** The size a widget has until you change it: the busy ones start bigger. */
+/**
+ * The size a widget has until you change it (Dashboard 2.0): what you look at the most (your day,
+ * the week, deadlines) starts big, the small helpers (profile card, clock, quick note,
+ * shortcuts) one cell, so the important things come first without rearranging.
+ */
 export const WIDGET_DEFAULT_SIZES: Partial<Record<WidgetId, WidgetSize>> = {
-  profile: { w: 2, h: 1 },
   deadlines: { w: 2, h: 2 },
   notes: { w: 1, h: 2 },
   notifications: { w: 1, h: 2 },
   habits: { w: 1, h: 2 },
-  quick_note: { w: 2, h: 1 },
-  shortcuts: { w: 2, h: 1 },
   agenda_week: { w: 4, h: 2 },
   today: { w: 6, h: 1 },
 }
 
-export const defaultSizeOf = (id: WidgetId): WidgetSize => WIDGET_DEFAULT_SIZES[id] ?? DEFAULT_SIZE
+/** Where a profile's dashboard differs from that: Gaming has no day or week, so its own card leads. */
+export const PROFILE_WIDGET_SIZES: Partial<Record<ProfileId, WidgetLayout>> = {
+  gaming: { gaming: { w: 2, h: 2 }, profile: { w: 2, h: 1 }, shortcuts: { w: 2, h: 1 } },
+}
+
+export const defaultSizeOf = (id: WidgetId, profile?: ProfileId): WidgetSize =>
+  (profile && PROFILE_WIDGET_SIZES[profile]?.[id]) || WIDGET_DEFAULT_SIZES[id] || DEFAULT_SIZE
+
+/**
+ * Dashboard 2.0: how much attention a widget asks. Main widgets hold what you need right now and
+ * stand out; the rest are calm tiles around them.
+ */
+export type WidgetTier = 'main' | 'side'
+const MAIN_WIDGETS: WidgetId[] = ['today', 'agenda_week', 'deadlines', 'next_class', 'gaming']
+export const widgetTier = (id: WidgetId): WidgetTier => (MAIN_WIDGETS.includes(id) ? 'main' : 'side')
 
 const clampW = (n: number) => Math.min(MAX_COLUMNS, Math.max(1, Math.round(n))) as WidgetSize['w']
 const clampH = (n: number) => Math.min(MAX_ROWS, Math.max(1, Math.round(n))) as WidgetSize['h']
 
-export const sizeOf = (layout: WidgetLayout | undefined, id: WidgetId): WidgetSize => layout?.[id] ?? defaultSizeOf(id)
+export const sizeOf = (layout: WidgetLayout | undefined, id: WidgetId, profile?: ProfileId): WidgetSize => layout?.[id] ?? defaultSizeOf(id, profile)
 
 /** A stored layout: known widgets only, sizes within the grid. */
 export function parseLayout(raw: unknown): WidgetLayout {
@@ -72,10 +87,10 @@ export function parseLayout(raw: unknown): WidgetLayout {
 }
 
 /** Sets a size, kept within the grid; the default size is not stored. */
-export function setSize(layout: WidgetLayout, id: WidgetId, size: { w: number; h: number }): WidgetLayout {
+export function setSize(layout: WidgetLayout, id: WidgetId, size: { w: number; h: number }, profile?: ProfileId): WidgetLayout {
   const next: WidgetSize = { w: clampW(size.w), h: clampH(size.h) }
   const { [id]: _old, ...rest } = layout
-  const base = defaultSizeOf(id)
+  const base = defaultSizeOf(id, profile)
   return next.w === base.w && next.h === base.h ? rest : { ...rest, [id]: next }
 }
 

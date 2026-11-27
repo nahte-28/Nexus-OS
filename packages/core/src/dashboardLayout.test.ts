@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { columnsFor, fillGaps, moveWidget, packWidgets, parseLayout, resizeBy, rowsOf, setSize, sizeFromDrag, sizeOf, spanOn, widgetAt } from './dashboardLayout'
-import { defaultProfilesState, parseProfilesState } from './profiles'
+import { columnsFor, defaultSizeOf, fillGaps, moveWidget, packWidgets, parseLayout, resizeBy, rowsOf, setSize, sizeFromDrag, sizeOf, spanOn, widgetAt, widgetTier } from './dashboardLayout'
+import { applyRole, defaultDashboard, defaultProfilesState, parseProfilesState } from './profiles'
 
 describe('dashboard layout', () => {
   it('keeps sizes within the grid and does not store the default', () => {
@@ -12,6 +12,34 @@ describe('dashboard layout', () => {
     expect(sizeOf(layout, 'finance')).toEqual({ w: 1, h: 1 })
     expect(resizeBy({}, 'finance', 1, 1)).toEqual({ finance: { w: 2, h: 2 } })
     expect(setSize({}, 'devices', { w: 3, h: 9 })).toEqual({ devices: { w: 3, h: 4 } })
+  })
+
+  it('dashboard 2.0: starts big where it matters, per profile, and keeps your own sizes', () => {
+    expect(defaultSizeOf('today')).toEqual({ w: 6, h: 1 })
+    expect(defaultSizeOf('profile')).toEqual({ w: 1, h: 1 })
+    expect(defaultSizeOf('profile', 'gaming')).toEqual({ w: 2, h: 1 })
+    expect(defaultSizeOf('gaming', 'gaming')).toEqual({ w: 2, h: 2 })
+    expect(sizeOf({ profile: { w: 3, h: 1 } }, 'profile', 'gaming')).toEqual({ w: 3, h: 1 })
+    // The profile's own default is not stored either.
+    expect(setSize({}, 'gaming', { w: 2, h: 2 }, 'gaming')).toEqual({})
+    expect(setSize({}, 'gaming', { w: 1, h: 1 }, 'gaming')).toEqual({ gaming: { w: 1, h: 1 } })
+    expect(widgetTier('today')).toBe('main')
+    expect(widgetTier('clock')).toBe('side')
+  })
+
+  it('dashboard 2.0: the default puts your day, the week and deadlines first', () => {
+    const state = defaultProfilesState()
+    for (const id of ['school', 'personal', 'developer'] as const) {
+      expect(state.profiles[id].widgets.slice(0, 3)).toEqual(['today', 'agenda_week', 'deadlines'])
+      const packed = packWidgets(state.profiles[id].widgets.map((w) => ({ id: w, size: sizeOf({}, w, id) })), 6)
+      // The week and deadlines sit side by side right under Mijn dag.
+      expect(packed.find((p) => p.id === 'agenda_week')).toMatchObject({ x: 0, y: 1 })
+      expect(packed.find((p) => p.id === 'deadlines')).toMatchObject({ x: 4, y: 1 })
+    }
+    expect(defaultDashboard(state, 'school')).toEqual({ widgets: state.profiles.school.widgets, layout: {} })
+    const working = applyRole(state, 'work')
+    expect(defaultDashboard(working, 'school').widgets).not.toContain('klashub')
+    expect(defaultDashboard(working, 'school').widgets[0]).toBe('today')
   })
 
   it('reads stored layouts and drops what it does not know', () => {

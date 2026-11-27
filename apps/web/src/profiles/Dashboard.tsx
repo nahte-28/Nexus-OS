@@ -1,6 +1,5 @@
-import { NexusMark } from '../shell/NexusMark'
 import { useMinute } from '../state/useNow'
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react'
 import {
   activeHabits,
   agendaDay,
@@ -24,6 +23,9 @@ import {
   toggleDone,
   WIDGET_IDS,
   WIDGET_TITLES,
+  defaultDashboard,
+  widgetTier,
+  type WidgetTier,
   type WidgetLayout,
   type WidgetSize,
 } from '@nexus/core'
@@ -59,46 +61,50 @@ function greeting(now: number): string {
   return h < 6 ? 'Goedenacht' : h < 12 ? 'Goedemorgen' : h < 18 ? 'Goedemiddag' : 'Goedenavond'
 }
 
-/** The home screen of the active profile: a greeting, then its widgets, which you can move and resize. */
-/** shortcuts: je apps, getoond onder de titel. */
+/**
+ * The home screen of the active profile (Dashboard 2.0): one calm row on top (greeting, date and
+ * profile, your apps, Indeling aanpassen), then anything waiting for an answer, then the widgets,
+ * so what you need today is visible without scrolling.
+ */
+/** shortcuts: je apps, rechts in de bovenste rij. */
 export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { onOpenApp: OpenApp; compact?: boolean; shortcuts?: ReactNode }) {
   const { state, active } = useProfiles()
   const now = useMinute()
   const devHub = useFeature('devHub')
   const marketplace = useFeature('marketplace')
   const [editing, setEditing] = useState(false)
+  const date = new Date(now).toLocaleDateString('nl-BE', { weekday: 'long', day: 'numeric', month: 'long' })
   return (
-    <section aria-label="Dashboard" className={`flex w-full flex-col gap-4 ${compact ? 'mx-auto max-w-5xl p-4' : 'min-h-full p-6 2xl:px-8'}`}>
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          {!compact && <NexusMark className="mb-4" />}
-          <h1 className={`${compact ? 'text-xl' : 'text-3xl'} font-semibold`}>
-            {active.id === 'school' ? `${active.name} Workspace` : `${greeting(now)}${state.about.name ? `, ${state.about.name}` : ''}`}
+    <section aria-label="Dashboard" className={`flex w-full flex-col ${compact ? 'mx-auto max-w-5xl gap-3 p-4' : 'min-h-full gap-4 px-6 pt-5 pb-6 2xl:px-8'}`}>
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <h1 className={`${compact ? 'text-xl' : 'text-[26px] leading-tight'} font-semibold tracking-tight`}>
+            {greeting(now)}
+            {state.about.name ? `, ${state.about.name}` : ''}
           </h1>
-          <p className="text-nx-muted">
-            {new Date(now).toLocaleDateString('nl-BE', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
+          <p className="flex flex-wrap items-center gap-x-2 text-sm text-nx-muted">
+            <span className="first-letter:uppercase">{date}</span>
+            <span aria-hidden>·</span>
+            <span>Profiel {active.name}</span>
           </p>
         </div>
         {!compact && (
-          <button
-            type="button"
-            aria-pressed={editing}
-            onClick={() => setEditing(!editing)}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium ${editing ? 'bg-nx-accent text-nx-accent-text' : 'border border-nx-border bg-nx-surface hover:bg-nx-surface-2'}`}
-          >
-            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
-              {editing ? <path d="M5 12l5 5L20 7" /> : <path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" />}
-            </svg>
-            {editing ? 'Klaar' : 'Indeling aanpassen'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {shortcuts}
+            <button
+              type="button"
+              aria-pressed={editing}
+              onClick={() => setEditing(!editing)}
+              className={`flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium ${editing ? 'bg-nx-accent text-nx-accent-text' : 'nx-tile-quiet border border-nx-border hover:bg-nx-surface-2'}`}
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                {editing ? <path d="M5 12l5 5L20 7" /> : <path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" />}
+              </svg>
+              {editing ? 'Klaar' : 'Indeling aanpassen'}
+            </button>
+          </div>
         )}
       </header>
-
-      {shortcuts}
 
       <Welcome />
 
@@ -111,18 +117,21 @@ export function Dashboard({ onOpenApp, compact = false, shortcuts = null }: { on
   )
 }
 
+/** A line that waits for an answer above the widgets: one look for Welkom and Flow-voorstellen, with the copper trace on the left. */
+const notice = 'nx-tile-quiet flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-nx-border px-4 py-2 text-sm shadow-[inset_3px_0_0_var(--nx-accent)]'
+
 /** Suggestions from Flow Studio: nothing opens or installs until you choose it here. */
 function FlowPrompts({ onOpenApp }: { onOpenApp: OpenApp }) {
   const prompts = usePrompts()
   const update = useUpdate()
   if (prompts.length === 0) return null
   return (
-    <ul aria-label="Voorstellen" className="space-y-2">
+    <ul aria-label="Voorstellen" className="space-y-1.5">
       {prompts.map((p) => {
         const isUpdate = p.kind === 'update'
         if (isUpdate && update.status !== 'available') return null
         return (
-          <li key={p.id} className="nx-glass flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-nx-accent p-3 text-sm">
+          <li key={p.id} className={notice}>
             <span>
               <span className="font-medium">{p.flowName}</span> stelt voor:{' '}
               {isUpdate && update.status === 'available' ? `versie ${update.update.version} installeren` : `${appName(p.app ?? '')} openen`}
@@ -130,7 +139,7 @@ function FlowPrompts({ onOpenApp }: { onOpenApp: OpenApp }) {
             <span className="flex gap-2">
               <button
                 type="button"
-                className="rounded-lg bg-nx-accent px-3 py-1.5 font-medium text-nx-accent-text"
+                className="rounded-md bg-nx-accent px-3 py-1 font-medium text-nx-accent-text"
                 onClick={() => {
                   dismissPrompt(p.id)
                   if (isUpdate) void installUpdate()
@@ -139,7 +148,7 @@ function FlowPrompts({ onOpenApp }: { onOpenApp: OpenApp }) {
               >
                 {isUpdate ? 'Installeren' : 'Openen'}
               </button>
-              <button type="button" className="rounded-lg border border-nx-border px-3 py-1.5" onClick={() => dismissPrompt(p.id)}>
+              <button type="button" className="rounded-md border border-nx-border px-3 py-1 hover:bg-nx-surface-2" onClick={() => dismissPrompt(p.id)}>
                 Niet nu
               </button>
             </span>
@@ -174,7 +183,7 @@ function Welcome() {
   }
   if (!expanded) {
     return (
-      <section aria-label="Welkom" className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-dashed border-nx-accent/60 bg-nx-surface/70 px-4 py-2.5 text-sm">
+      <section aria-label="Welkom" className={notice}>
         <p>Vertel NEXUS hoe je heet en wat je doet, dan past je dashboard zich aan.</p>
         <span className="flex gap-4">
           <button type="button" className={linkButton} onClick={() => setExpanded(true)}>
@@ -188,7 +197,7 @@ function Welcome() {
     )
   }
   return (
-    <section aria-label="Welkom" className="nx-glass space-y-3 rounded-2xl border border-nx-accent p-4">
+    <section aria-label="Welkom" className="nx-glass space-y-3 rounded-xl border border-nx-border p-4 shadow-[inset_3px_0_0_var(--nx-accent)]">
       <h2 className="text-lg font-semibold">Welkom bij NEXUS</h2>
       <p className="text-sm text-nx-muted">Vertel kort wie je bent, dan past NEXUS zich aan. Je kan dit later aanpassen in Account.</p>
       <AboutMe />
@@ -204,10 +213,31 @@ function Welcome() {
   )
 }
 
-function Card({ children, title }: { children: ReactNode; title?: string }) {
+/** Dashboard 2.0: whether the widget being drawn is a main one or a calm side tile. */
+const TierContext = createContext<WidgetTier>('side')
+
+/** The look of a widget tile: main ones stand on the board, side ones lie flat and quiet. */
+const tileClass = (tier: WidgetTier) => (tier === 'main' ? 'nx-glass border-nx-border' : 'nx-tile-quiet border-nx-border')
+
+/** The title of a widget; on a main widget with the copper solder dot in front. */
+function WidgetTitle({ children, tier }: { children: ReactNode; tier: WidgetTier }) {
   return (
-    <div className="nx-glass h-full overflow-hidden rounded-xl border border-nx-border p-4">
-      {title && <h2 className="mb-2 text-[13px] font-semibold text-nx-muted">{title}</h2>}
+    <h2 className={`flex items-center gap-2 text-[13px] font-semibold ${tier === 'main' ? 'text-nx-text' : 'text-nx-muted'}`}>
+      {tier === 'main' && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-nx-accent" />}
+      {children}
+    </h2>
+  )
+}
+
+function Card({ children, title }: { children: ReactNode; title?: string }) {
+  const tier = useContext(TierContext)
+  return (
+    <div className={`${tileClass(tier)} h-full overflow-hidden rounded-xl border p-4`}>
+      {title && (
+        <div className="mb-2">
+          <WidgetTitle tier={tier}>{title}</WidgetTitle>
+        </div>
+      )}
       {children}
     </div>
   )
@@ -297,7 +327,7 @@ const small = 'rounded-md border border-nx-border bg-nx-surface px-2 py-0.5 text
  * wider or higher, add and hide widgets, and see how it looks on a phone.
  */
 function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; editing: boolean; now: number; onOpenApp: OpenApp }) {
-  const { active } = useProfiles()
+  const { state, active } = useProfiles()
   const box = useRef<HTMLDivElement>(null)
   const width = useWidth(box)
   const [preview, setPreview] = useState<'pc' | 'gsm'>('pc')
@@ -314,7 +344,7 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
   const phone = compact || (editing && preview === 'gsm')
   const cols = phone ? 1 : columnsFor(width ?? (typeof window === 'undefined' ? 1200 : window.innerWidth))
   const packed = packWidgets(
-    shown.map((id) => ({ id, size: sizeOf(layout, id) })),
+    shown.map((id) => ({ id, size: sizeOf(layout, id, active.id) })),
     cols,
   )
   const placements = fill && cols > 1 ? fillGaps(packed, cols) : packed
@@ -325,6 +355,10 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
   const rowHeight = room === null ? null : Math.round(Math.min(ROW_MAX_PX, Math.max(ROW_MIN_PX, (room - GAP_PX * (rows - 1)) / Math.max(1, rows))))
   const save = (patch: { widgets?: WidgetId[]; layout?: WidgetLayout }) => profilesStore.updateProfile(active.id, patch)
   const move = (id: WidgetId, to: number) => save({ widgets: moveWidget(active.widgets, shown, id, to) })
+  const [undo, setUndo] = useState<{ widgets: WidgetId[]; layout: WidgetLayout } | null>(null)
+  useEffect(() => setUndo(null), [editing, active.id])
+  const standard = defaultDashboard(state, active.id)
+  const isStandard = standard.widgets.join() === active.widgets.join() && Object.keys(layout).length === 0
   const hidden = WIDGET_IDS.filter((w) => !active.widgets.includes(w) && (w !== 'klashub' || active.apps.includes('klashub')) && appOn(appSwitches, WIDGET_APP[w] ?? 'settings'))
 
   /** Drag with the pointer (mouse, pen or touch): also works in the Windows app, where drag-and-drop of the page is off. */
@@ -366,18 +400,20 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
       {placements.map((p) => {
         const w = p.id
         const i = shown.indexOf(w)
-        const stored = sizeOf(layout, w)
+        const stored = sizeOf(layout, w, active.id)
         const size = { w: p.w, h: p.h } as WidgetSize
         return (
           <li
             key={w}
             data-widget={w}
             style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}` }}
-            className={`relative min-w-0 ${editing ? `cursor-grab touch-none rounded-2xl outline-2 outline-dashed ${over === w ? 'outline-nx-accent' : 'outline-nx-accent/60'}` : ''} ${dragging === w ? 'cursor-grabbing opacity-50' : ''}`}
+            className={`relative min-w-0 ${editing ? `cursor-grab touch-none rounded-xl outline-2 outline-dashed ${over === w ? 'outline-nx-accent' : 'outline-nx-accent/60'}` : ''} ${dragging === w ? 'cursor-grabbing opacity-50' : ''}`}
             onPointerDown={editing ? startMove(w) : undefined}
           >
             <div className={editing ? 'pointer-events-none h-full opacity-40 select-none' : 'h-full'} aria-hidden={editing || undefined}>
-              <Widget id={w} rows={p.h} now={now} onOpenApp={onOpenApp} />
+              <TierContext.Provider value={widgetTier(w)}>
+                <Widget id={w} rows={p.h} now={now} onOpenApp={onOpenApp} />
+              </TierContext.Provider>
             </div>
             {editing && (
               <EditFrame
@@ -388,7 +424,7 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
                 index={i}
                 count={shown.length}
                 onMove={(to) => move(w, to)}
-                onSize={(next) => save({ layout: setSize(layout, w, next) })}
+                onSize={(next) => save({ layout: setSize(layout, w, next, active.id) })}
                 onHide={() => save({ widgets: active.widgets.filter((x) => x !== w) })}
               />
             )}
@@ -414,10 +450,42 @@ function WidgetGrid({ compact, editing, now, onOpenApp }: { compact: boolean; ed
               ))}
             </div>
           </div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={fill} onChange={(e) => setFill(e.target.checked)} />
-            Lege plekken opvullen: widgets rekken mee tot het scherm vol is
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={fill} onChange={(e) => setFill(e.target.checked)} />
+              Lege plekken opvullen: widgets rekken mee tot het scherm vol is
+            </label>
+            {undo ? (
+              <span className="flex items-center gap-2">
+                <span className="text-nx-muted" role="status">
+                  Standaardindeling gezet.
+                </span>
+                <button
+                  type="button"
+                  className={small}
+                  onClick={() => {
+                    save(undo)
+                    setUndo(null)
+                  }}
+                >
+                  Ongedaan maken
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={small}
+                disabled={isStandard}
+                title="Je dag, de week en deadlines bovenaan, zoals NEXUS het voor dit profiel voorstelt"
+                onClick={() => {
+                  setUndo({ widgets: active.widgets, layout })
+                  save(standard)
+                }}
+              >
+                Standaardindeling
+              </button>
+            )}
+          </div>
           {hidden.length > 0 && (
             <div className="flex flex-wrap items-center gap-1">
               <span className="text-nx-muted">Toevoegen:</span>
@@ -600,9 +668,9 @@ function AgendaWeek({ rows, now, onOpenApp }: { rows: number; now: number; onOpe
   const hidden = new Set(calendarSources(state).filter((c) => c.hidden).map((c) => c.id))
   const perDay = Math.max(3, rows * 5)
   return (
-    <div className="nx-glass flex h-full flex-col overflow-hidden rounded-2xl border border-nx-border p-4">
+    <div className={`${tileClass('main')} flex h-full flex-col overflow-hidden rounded-xl border p-4`}>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-[13px] font-semibold text-nx-muted">Agenda deze week</h2>
+        <WidgetTitle tier="main">Agenda deze week</WidgetTitle>
         <button type="button" className={linkButton} onClick={() => onOpenApp('agenda')}>
           Agenda openen
         </button>
@@ -674,7 +742,7 @@ function MyDay({ now, onOpenApp }: { now: number; onOpenApp: OpenApp }) {
   const past = day ? day.blocks.filter((b) => b.entry.end <= now).length : 0
   const stageOf = (e: TimedEntry) => (e.end <= now ? 'past' : e === day?.current ? 'now' : e === day?.next ? 'next' : 'later')
   return (
-    <section aria-label="Mijn dag" className="nx-glass @container flex h-full flex-col overflow-hidden rounded-2xl border border-nx-border px-5 py-4">
+    <section aria-label="Mijn dag" className={`${tileClass('main')} @container flex h-full flex-col overflow-hidden rounded-xl border px-5 py-4`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="text-xl font-semibold tracking-tight @3xl:text-[22px]">{day ? dayHeadline(day.current, day.next, now) : 'Niets gepland vandaag'}</h2>
         {day && day.endsAt !== null ? (
@@ -766,23 +834,22 @@ function ProfileWidget({ onOpenApp }: { onOpenApp: OpenApp }) {
   const Icon = PROFILE_ICONS[active.id]
   return (
     <Card>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-nx-accent">{active.name} Mode</p>
-          <p className="flex items-center gap-2 text-lg font-semibold">
-            <Icon className="size-5 text-nx-accent" />
-            {active.description}
+      {/* Dashboard 2.0: a calm side tile; the greeting on top already names the profile. */}
+      <div className="flex h-full flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex min-w-0 items-center gap-2 font-semibold">
+            <Icon className="size-5 shrink-0 text-nx-accent" />
+            <span className="truncate">{active.name} Mode</span>
           </p>
-          <p className="text-sm text-nx-muted">{reasonText(reason, state)}</p>
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-nx-border px-2 py-0.5 text-xs font-medium">
+            <span aria-hidden className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.18)]" />
+            Actief
+          </span>
         </div>
-        <span className="flex items-center gap-1.5 rounded-full border border-nx-border px-2.5 py-1 text-xs font-medium">
-          <span aria-hidden className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.18)]" />
-          Actief
-        </span>
-      </div>
-      <div className="mt-3 border-t border-nx-border pt-3">
-        <button type="button" className={linkButton} onClick={() => onOpenApp('profiles')}>
-          Profiel wisselen in Profielen
+        <p className="line-clamp-2 text-sm">{active.description}</p>
+        <p className="line-clamp-2 text-xs text-nx-muted">{reasonText(reason, state)}</p>
+        <button type="button" className={`${linkButton} mt-auto self-start`} onClick={() => onOpenApp('profiles')}>
+          Profiel wisselen
         </button>
       </div>
     </Card>
